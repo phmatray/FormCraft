@@ -1,0 +1,67 @@
+﻿@page "/"
+@using DynamicFormBlazor.Models
+
+<PageTitle>Home</PageTitle>
+
+<h1>Hello, world!</h1>
+
+Welcome to your new app.
+
+<DynamicForm Fields="_fields" OnSubmit="OnFormSubmit" />
+
+@code {
+  private readonly List<FieldDefinition> _fields =
+  [
+    new FieldDefinition<string>
+    {
+      Key   = "firstName",
+      Label = "First Name",
+      Value = ""
+    },
+    new FieldDefinition<int>
+    {
+      Key   = "age",
+      Label = "Age",
+      Value = 30
+    },
+    new SelectFieldDefinition<string>
+    {
+      Key     = "favoriteColor",
+      Label   = "Favorite Color",
+      Value   = "green",
+      Options = new[]
+      {
+        new FieldOption<string>{ Value="red",   Label="Red"   },
+        new FieldOption<string>{ Value="green", Label="Green" },
+        new FieldOption<string>{ Value="blue",  Label="Blue"  }
+      }
+    },
+    new FieldDefinition<bool>
+    {
+      Key   = "subscribe",
+      Label = "Subscribe to newsletter?",
+      Value = true
+    },
+    new FieldDefinition<decimal>
+    {
+      Key   = "salary",
+      Label = "Desired Salary",
+      Value = 55000.50m
+    },
+    new FieldDefinition<DateTime?>
+    {
+      Key   = "dob",
+      Label = "Date of Birth",
+      Value = DateTime.Now.AddYears(-25)
+    }
+  ];
+
+  private async Task OnFormSubmit(Dictionary<string, object> model)
+  {
+    // model["firstName"] is string, model["age"] is int,
+    // model["salary"] is decimal, etc.
+    // Do whatever you need with the data:
+    Console.WriteLine($"Name: {model["firstName"]}, Age: {model["age"]}");
+    await Task.CompletedTask;
+  }
+}

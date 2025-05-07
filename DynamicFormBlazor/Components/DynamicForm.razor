@@ -1,0 +1,128 @@
+@using DynamicFormBlazor.Models
+@using Microsoft.AspNetCore.Components.Rendering
+
+<EditForm Model="@Model" OnValidSubmit="HandleValidSubmit">
+  <MudPaper Class="pa-4">
+    @foreach (var field in Fields)
+    {
+      <div class="mb-4">
+        @RenderField(field)
+      </div>
+    }
+    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">
+      Submit
+    </MudButton>
+  </MudPaper>
+</EditForm>
+
+@code {
+  [Parameter] public List<FieldDefinition> Fields { get; set; } = new();
+  [Parameter] public EventCallback<Dictionary<string, object>> OnSubmit { get; set; }
+
+  private Dictionary<string, object> Model { get; set; } = new();
+
+  protected override void OnInitialized()
+  {
+    foreach (var field in Fields)
+      Model[field.Key] = GetInitialValue(field);
+  }
+
+  private object? GetInitialValue(FieldDefinition field) => field switch
+  {
+    SelectFieldDefinition<string> f => f.Value,
+    FieldDefinition<string> f => f.Value,
+    FieldDefinition<int> f => f.Value,
+    FieldDefinition<double> f => f.Value,
+    FieldDefinition<decimal> f => f.Value,
+    FieldDefinition<bool> f => f.Value,
+    FieldDefinition<DateTime?> f => f.Value,
+    _ => null
+  };
+
+  private RenderFragment RenderField(FieldDefinition field) => builder =>
+  {
+    var method = typeof(DynamicForm).GetMethod(nameof(RenderFieldGeneric), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+    var generic = method.MakeGenericMethod(field.ValueType);
+    generic.Invoke(this, new object[] { builder, field });
+  };
+
+  private void RenderFieldGeneric<T>(RenderTreeBuilder builder, FieldDefinition field)
+  {
+    var typed = field as FieldDefinition<T>;
+    int seq = 0;
+
+    // Text
+    if (typeof(T) == typeof(string))
+    {
+      builder.OpenComponent<MudTextField<string>>(seq++);
+      builder.AddAttribute(seq++, "Label", typed!.Label);
+      builder.AddAttribute(seq++, "Value", (string)Model[typed.Key]!);
+      builder.AddAttribute(seq++, "ValueChanged", EventCallback.Factory.Create<string>(this, val => Model[typed.Key] = val));
+      builder.AddAttribute(seq++, "Immediate", true);
+      builder.CloseComponent();
+    }
+    // Numeric: int, double, decimal
+    else if (typeof(T) == typeof(int) || typeof(T) == typeof(double) || typeof(T) == typeof(decimal))
+    {
+      var numericType = typeof(T);
+      var componentType = typeof(MudNumericField<>).MakeGenericType(numericType);
+
+      builder.OpenComponent(seq++, componentType);
+      builder.AddAttribute(seq++, "Label", typed!.Label);
+      builder.AddAttribute(seq++, "Value", (T)Model[typed.Key]!);
+      builder.AddAttribute(seq++, "ValueChanged", EventCallback.Factory.Create<T>(this, val => Model[typed.Key] = val));
+      builder.CloseComponent();
+    }
+    // Checkbox
+    else if (typeof(T) == typeof(bool))
+    {
+      builder.OpenComponent<MudCheckBox<bool>>(seq++);
+      builder.AddAttribute(seq++, "Label", typed!.Label);
+      builder.AddAttribute(seq++, "Checked", (bool)Model[typed.Key]!);
+      builder.AddAttribute(seq++, "CheckedChanged", EventCallback.Factory.Create<bool>(this, val => Model[typed.Key] = val));
+      builder.CloseComponent();
+    }
+    // Date
+    else if (typeof(T) == typeof(DateTime?))
+    {
+      builder.OpenComponent<MudDatePicker>(seq++);
+      builder.AddAttribute(seq++, "Label", typed!.Label);
+      builder.AddAttribute(seq++, "Date", (DateTime?)Model[typed.Key]);
+      builder.AddAttribute(seq++, "DateChanged", EventCallback.Factory.Create<DateTime?>(this, val => Model[typed.Key] = val));
+      builder.CloseComponent();
+    }
+    // Select
+    else if (field is SelectFieldDefinition<T> sel)
+    {
+      var selectType = typeof(MudSelect<>).MakeGenericType(typeof(T));
+      var itemType = typeof(MudSelectItem<>).MakeGenericType(typeof(T));
+
+      builder.OpenComponent(seq++, selectType);
+      builder.AddAttribute(seq++, "Label", sel.Label);
+      builder.AddAttribute(seq++, "Value", (T)Model[sel.Key]!);
+      builder.AddAttribute(seq++, "ValueChanged", EventCallback.Factory.Create<T>(this, val => Model[sel.Key] = val));
+      builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(childBuilder =>
+      {
+        int inner = 0;
+        foreach (var opt in sel.Options)
+        {
+          childBuilder.OpenComponent(inner++, itemType);
+          childBuilder.AddAttribute(inner++, "Value", opt.Value);
+          childBuilder.AddAttribute(inner++, "ChildContent", (RenderFragment)(__builder => __builder.AddContent(0, opt.Label)));
+          childBuilder.CloseComponent();
+        }
+      }));
+      builder.CloseComponent();
+    }
+    else
+    {
+      builder.AddContent(seq++, $"No renderer for type {typeof(T).Name}");
+    }
+  }
+
+  private async Task HandleValidSubmit()
+  {
+    await OnSubmit.InvokeAsync(Model);
+  }
+
+}
