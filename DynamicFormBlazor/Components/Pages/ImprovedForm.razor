@@ -4,87 +4,67 @@
 @using DynamicFormBlazor.Forms.Extensions
 @using DynamicFormBlazor.Forms.Rendering
 @using DynamicFormBlazor.Models
+@using DynamicFormBlazor.Components.Shared
+@using DynamicFormBlazor.Components.Layout
 @inject IFieldRendererService FieldRendererService
 
-<PageTitle>Improved Dynamic Form</PageTitle>
+<PageTitle>Improved Dynamic Form API</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Improved Dynamic Form API</MudText>
-<MudText Class="mb-8">This demonstrates the new type-safe, feature-rich dynamic form API with validation and dependencies.</MudText>
-
-<MudGrid>
-    <MudItem xs="12" lg="8">
-        <MudCard>
-            <MudCardContent>
-                @* Render the form using our improved API *@
-                <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit">
-                    <DataAnnotationsValidator />
-                    
-                    @foreach (var field in formConfiguration.Fields.OrderBy(f => f.Order))
-                    {
-                        @if (ShouldShowField(field))
-                        {
-                            <div class="mb-3">
-                                @FieldRendererService.RenderField(model, field, 
-                                    EventCallback.Factory.Create<object?>(this, value => SetFieldValue(field.FieldName, value)),
-                                    EventCallback.Factory.Create(this, () => HandleFieldDependencies(field.FieldName)))
-                            </div>
-                        }
-                    }
-                    
-                    <MudCardActions>
-                        <MudButton ButtonType="ButtonType.Submit"
-                                  Variant="Variant.Filled"
-                                  Color="Color.Primary"
-                                  Disabled="@isSubmitting"
-                                  Class="ml-auto">
-                            @if (isSubmitting)
-                            {
-                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                                <MudText Class="ms-2">Submitting...</MudText>
-                            }
-                            else
-                            {
-                                <MudText>Submit Application</MudText>
-                            }
-                        </MudButton>
-                    </MudCardActions>
-                </EditForm>
-            </MudCardContent>
-        </MudCard>
-    </MudItem>
+<FormPageLayout PageTitle="Improved Dynamic Form API"
+                PageDescription="This demonstrates the new type-safe, feature-rich dynamic form API with validation, dependencies, and advanced field configuration."
+                PageIcon="@Icons.Material.Filled.Engineering"
+                FormTitle="Type-Safe Form Builder"
+                FormIcon="@Icons.Material.Filled.Build">
     
-    <MudItem xs="12" lg="4">
-        <MudCard>
-            <MudCardContent>
-                <MudText Typo="Typo.h6" GutterBottom="true">API Features Demonstrated</MudText>
-                <MudList T="string">
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
-                        <MudText Typo="Typo.body2">Type-safe form building with Expression&lt;Func&gt;</MudText>
-                    </MudListItem>
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
-                        <MudText Typo="Typo.body2">Fluent API with method chaining</MudText>
-                    </MudListItem>
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
-                        <MudText Typo="Typo.body2">Built-in validation (Required, Email, Range)</MudText>
-                    </MudListItem>
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
-                        <MudText Typo="Typo.body2">Field dependencies (City depends on Country)</MudText>
-                    </MudListItem>
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
-                        <MudText Typo="Typo.body2">Conditional visibility</MudText>
-                    </MudListItem>
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
-                        <MudText Typo="Typo.body2">Extension methods for field types</MudText>
-                    </MudListItem>
-                </MudList>
-            </MudCardContent>
-        </MudCard>
+    <FormContent>
+        <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            
+            @foreach (var field in formConfiguration.Fields.OrderBy(f => f.Order))
+            {
+                @if (ShouldShowField(field))
+                {
+                    <div class="mb-4">
+                        @FieldRendererService.RenderField(model, field, 
+                            EventCallback.Factory.Create<object?>(this, value => SetFieldValue(field.FieldName, value)),
+                            EventCallback.Factory.Create(this, () => HandleFieldDependencies(field.FieldName)))
+                    </div>
+                }
+            }
+            
+            <MudCardActions Class="justify-center pa-4">
+                <MudButton ButtonType="ButtonType.Submit"
+                          Variant="Variant.Filled"
+                          Color="Color.Primary"
+                          Size="Size.Large"
+                          Disabled="@isSubmitting"
+                          StartIcon="@(isSubmitting ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.Send)"
+                          Class="px-8">
+                    @if (isSubmitting)
+                    {
+                        <MudProgressCircular Class="me-2" Size="Size.Small" Indeterminate="true" />
+                        <span>Submitting...</span>
+                    }
+                    else
+                    {
+                        <span>Submit Application</span>
+                    }
+                </MudButton>
+            </MudCardActions>
+        </EditForm>
+    </FormContent>
+    
+    <SidebarContent>
+        <FormGuidelines Guidelines="@guidelines" Title="API Features" />
         
-        <MudCard Class="mt-4">
+        <MudCard Elevation="2" Class="mt-4">
             <MudCardContent>
-                <MudText Typo="Typo.h6" GutterBottom="true">Code Example</MudText>
+                <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Code" Class="me-2 text-info" />
+                    Code Example
+                </MudText>
                 <MudPaper Class="pa-3" Elevation="1">
-                    <pre style="font-size: 11px; line-height: 1.3; white-space: pre-wrap;">FormBuilder&lt;ContactModel&gt;
+                    <pre style="font-size: 11px; line-height: 1.3; white-space: pre-wrap; color: #2d3748;">FormBuilder&lt;ContactModel&gt;
     .Create()
     .AddField(x => x.FirstName)
         .WithLabel("First Name")
@@ -93,7 +73,7 @@
     .AddField(x => x.Email)
         .WithEmailValidation()
     .AddField(x => x.Country)
-        .WithOptions(("US", "USA"), ("CA", "Canada"))
+        .WithOptions(("US", "USA"))
     .AddField(x => x.City)
         .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
         .DependsOn(x => x.Country, (model, country) => {
@@ -104,36 +84,36 @@
                 </MudPaper>
             </MudCardContent>
         </MudCard>
-    </MudItem>
-</MudGrid>
-
-@if (isSubmitted)
-{
-    <MudCard Class="mt-4">
-        <MudCardContent>
-            <MudText Typo="Typo.h6" GutterBottom="true">Submitted Data</MudText>
-            <MudSimpleTable>
-                <tbody>
-                    <tr><td><strong>Name:</strong></td><td>@($"{model.FirstName} {model.LastName}")</td></tr>
-                    <tr><td><strong>Email:</strong></td><td>@model.Email</td></tr>
-                    <tr><td><strong>Age:</strong></td><td>@model.Age</td></tr>
-                    <tr><td><strong>Country:</strong></td><td>@model.Country</td></tr>
-                    @if (!string.IsNullOrEmpty(model.City))
-                    {
-                        <tr><td><strong>City:</strong></td><td>@model.City</td></tr>
-                    }
-                    <tr><td><strong>Newsletter:</strong></td><td>@(model.SubscribeToNewsletter ? "Yes" : "No")</td></tr>
-                </tbody>
-            </MudSimpleTable>
-        </MudCardContent>
-    </MudCard>
-}
+        
+        <FormHelpPanel HelpText="This demonstrates the advanced FormBuilder API with type safety, validation, and field dependencies." />
+    </SidebarContent>
+    
+    <SuccessContent>
+        @if (isSubmitted)
+        {
+            <FormSuccessDisplay TModel="ContactModel" 
+                               DataDisplayItems="@GetDataDisplayItems()"
+                               OnReset="@ResetForm" />
+        }
+    </SuccessContent>
+    
+</FormPageLayout>
 
 @code {
     private ContactModel model = new();
     private bool isSubmitted = false;
     private bool isSubmitting = false;
     private IFormConfiguration<ContactModel> formConfiguration = null!;
+    
+    private List<FormGuidelines.GuidelineItem> guidelines = new()
+    {
+        new() { Icon = Icons.Material.Filled.Security, Color = Color.Primary, Text = "Type-safe form builder API" },
+        new() { Icon = Icons.Material.Filled.Verified, Color = Color.Secondary, Text = "Fluent validation integration" },
+        new() { Icon = Icons.Material.Filled.AccountTree, Color = Color.Tertiary, Text = "Field dependencies & visibility" },
+        new() { Icon = Icons.Material.Filled.AutoAwesome, Color = Color.Info, Text = "Automatic field rendering" },
+        new() { Icon = Icons.Material.Filled.Extension, Color = Color.Success, Text = "Extensible with custom validators" },
+        new() { Icon = Icons.Material.Filled.Speed, Color = Color.Warning, Text = "Real-time validation feedback" }
+    };
     
     protected override void OnInitialized()
     {
@@ -225,5 +205,30 @@
         isSubmitted = true;
         isSubmitting = false;
         StateHasChanged();
+    }
+    
+    private void ResetForm()
+    {
+        model = new ContactModel();
+        isSubmitted = false;
+        StateHasChanged();
+    }
+    
+    private List<FormSuccessDisplay<ContactModel>.DataDisplayItem> GetDataDisplayItems()
+    {
+        var items = new List<FormSuccessDisplay<ContactModel>.DataDisplayItem>
+        {
+            new() { Label = "Full Name", Value = $"{model.FirstName} {model.LastName}" },
+            new() { Label = "Email", Value = model.Email ?? "" },
+            new() { Label = "Age", Value = model.Age.ToString() },
+            new() { Label = "Country", Value = model.Country ?? "" }
+        };
+        
+        if (!string.IsNullOrEmpty(model.City))
+            items.Add(new() { Label = "City", Value = model.City });
+            
+        items.Add(new() { Label = "Newsletter", Value = model.SubscribeToNewsletter ? "Yes" : "No" });
+        
+        return items;
     }
 }

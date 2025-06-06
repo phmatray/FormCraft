@@ -1,0 +1,33 @@
+@using Microsoft.AspNetCore.Components
+
+<MudCard Elevation="2">
+    <MudCardContent>
+        <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+            <MudIcon Icon="@Icons.Material.Filled.LiveHelp" Class="me-2 text-info" />
+            Need Help?
+        </MudText>
+        <MudStack Spacing="2">
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                <MudText Typo="Typo.body2">
+                    @HelpText
+                </MudText>
+            </MudAlert>
+            @if (ShowSupportButton)
+            {
+                <MudButton Variant="Variant.Outlined" 
+                          Color="Color.Info" 
+                          Size="Size.Small"
+                          StartIcon="@Icons.Material.Filled.Phone"
+                          FullWidth="true">
+                    @SupportButtonText
+                </MudButton>
+            }
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public string HelpText { get; set; } = "Having trouble? Contact our support team at support@example.com";
+    [Parameter] public bool ShowSupportButton { get; set; } = true;
+    [Parameter] public string SupportButtonText { get; set; } = "Call Support: 1-800-HELP";
+}

@@ -1,0 +1,47 @@
+@using Microsoft.AspNetCore.Components
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
+    <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true" Class="mb-2">
+        <MudIcon Icon="@PageIcon" Class="me-2" />
+        @PageTitle
+    </MudText>
+    <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-8 text-muted">
+        @PageDescription
+    </MudText>
+    
+    <MudGrid Justify="Justify.Center">
+        <MudItem xs="12" md="8" lg="6">
+            <MudCard Elevation="4" Class="pa-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h5" Class="mb-2">
+                            <MudIcon Icon="@FormIcon" Class="me-2" />
+                            @FormTitle
+                        </MudText>
+                        <MudDivider />
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent Class="pt-4">
+                    @FormContent
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        
+        <MudItem xs="12" md="4" lg="6">
+            @SidebarContent
+        </MudItem>
+    </MudGrid>
+    
+    @SuccessContent
+</MudContainer>
+
+@code {
+    [Parameter] public string PageTitle { get; set; } = "";
+    [Parameter] public string PageDescription { get; set; } = "";
+    [Parameter] public string PageIcon { get; set; } = Icons.Material.Filled.Assignment;
+    [Parameter] public string FormTitle { get; set; } = "";
+    [Parameter] public string FormIcon { get; set; } = Icons.Material.Filled.Person;
+    [Parameter] public RenderFragment FormContent { get; set; } = null!;
+    [Parameter] public RenderFragment SidebarContent { get; set; } = null!;
+    [Parameter] public RenderFragment? SuccessContent { get; set; }
+}

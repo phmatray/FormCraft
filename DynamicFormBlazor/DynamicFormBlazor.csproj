@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="MudBlazor" Version="8.7.0" />
     <PackageReference Include="FluentValidation" Version="12.0.0" />
+    <PackageReference Include="Markdig" Version="0.41.2" />
   </ItemGroup>
 
   <ItemGroup>

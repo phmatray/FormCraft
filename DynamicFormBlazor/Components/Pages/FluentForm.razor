@@ -4,98 +4,171 @@
 @using DynamicFormBlazor.Forms.Extensions
 @using DynamicFormBlazor.Models
 
-<PageTitle>Fluent Dynamic Form</PageTitle>
+<PageTitle>Contact Information Form</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Fluent Dynamic Form API</MudText>
-<MudText Class="mb-8">This demonstrates the most simplified API using fluent builder methods.</MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
+    <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.ContactPage" Class="me-2" />
+        Contact Information Form
+    </MudText>
+    <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-8 text-muted">
+        Please fill out your information below. All required fields are marked with an asterisk (*)
+    </MudText>
 
-<MudGrid>
-    <MudItem xs="12" lg="8">
-        <MudCard>
-            <MudCardContent>
-                <DynamicFormComponent TModel="ContactModel" 
-                                    Model="@model" 
-                                    Configuration="@formConfiguration"
-                                    OnValidSubmit="@HandleValidSubmit"
-                                    OnFieldChanged="@(args => HandleFieldChanged(args.fieldName, args.value))"
-                                    IsSubmitting="@isSubmitting" />
-            </MudCardContent>
-        </MudCard>
-    </MudItem>
-    
-    <MudItem xs="12" lg="4">
-        <MudCard>
-            <MudCardContent>
-                <MudText Typo="Typo.h6" GutterBottom="true">Fluent API Benefits</MudText>
-                <MudList T="string">
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
-                        <MudText Typo="Typo.body2">One-line field creation with validation</MudText>
-                    </MudListItem>
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
-                        <MudText Typo="Typo.body2">Pre-configured common field types</MudText>
-                    </MudListItem>
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
-                        <MudText Typo="Typo.body2">Reduced boilerplate code</MudText>
-                    </MudListItem>
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
-                        <MudText Typo="Typo.body2">Built-in validation patterns</MudText>
-                    </MudListItem>
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
-                        <MudText Typo="Typo.body2">Consistent field configuration</MudText>
-                    </MudListItem>
-                </MudList>
-            </MudCardContent>
-        </MudCard>
+    <MudGrid Justify="Justify.Center">
+        <MudItem xs="12" md="8" lg="6">
+            <MudCard Elevation="4" Class="pa-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h5" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Class="me-2" />
+                            Personal Details
+                        </MudText>
+                        <MudDivider />
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent Class="pt-4">
+                    <DynamicFormComponent TModel="ContactModel" 
+                                        Model="@model" 
+                                        Configuration="@formConfiguration"
+                                        OnValidSubmit="@HandleValidSubmit"
+                                        OnFieldChanged="@(args => HandleFieldChanged(args.fieldName, args.value))"
+                                        IsSubmitting="@isSubmitting"
+                                        ShowSubmitButton="true"
+                                        SubmitButtonText="Submit Information"
+                                        SubmittingText="Submitting..."
+                                        SubmitButtonClass="px-8" />
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
         
-        <MudCard Class="mt-4">
-            <MudCardContent>
-                <MudText Typo="Typo.h6" GutterBottom="true">Code Comparison</MudText>
-                <MudPaper Class="pa-3" Elevation="1">
-                    <pre style="font-size: 10px; line-height: 1.2; white-space: pre-wrap;">// Before (Verbose)
-.AddField(x => x.Email)
-    .WithLabel("Email Address")
-    .Required("Email is required")
-    .WithEmailValidation()
-    .WithPlaceholder("your.email@example.com")
+        <MudItem xs="12" md="4" lg="6">
+            <MudCard Elevation="2" Class="mb-4">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2 text-primary" />
+                        Form Guidelines
+                    </MudText>
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Star" IconColor="Color.Warning">
+                            <MudText Typo="Typo.body2">Fields marked with * are required</MudText>
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Security" IconColor="Color.Success">
+                            <MudText Typo="Typo.body2">Your information is secure and private</MudText>
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Speed" IconColor="Color.Info">
+                            <MudText Typo="Typo.body2">Real-time validation as you type</MudText>
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Save" IconColor="Color.Primary">
+                            <MudText Typo="Typo.body2">Progress is automatically saved</MudText>
+                        </MudListItem>
+                    </MudList>
+                </MudCardContent>
+            </MudCard>
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                        <MudIcon Icon="@Icons.Material.Filled.LiveHelp" Class="me-2 text-info" />
+                        Need Help?
+                    </MudText>
+                    <MudStack Spacing="2">
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                            <MudText Typo="Typo.body2">
+                                Having trouble? Contact our support team at 
+                                <MudLink Href="mailto:support@example.com">support@example.com</MudLink>
+                            </MudText>
+                        </MudAlert>
+                        <MudButton Variant="Variant.Outlined" 
+                                  Color="Color.Info" 
+                                  Size="Size.Small"
+                                  StartIcon="@Icons.Material.Filled.Phone"
+                                  FullWidth="true">
+                            Call Support: 1-800-HELP
+                        </MudButton>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
 
-// After (Fluent)
-.AddEmailField(x => x.Email)
-
-// Before (Complex)
-.AddField(x => x.Age)
-    .WithLabel("Age")
-    .Required("Age is required")
-    .WithRange(16, 100, "Age must be between 16 and 100")
-
-// After (Simple)
-.AddNumericField(x => x.Age, "Age", 16, 100)</pre>
-                </MudPaper>
-            </MudCardContent>
-        </MudCard>
-    </MudItem>
-</MudGrid>
-
-@if (isSubmitted)
-{
-    <MudCard Class="mt-4">
-        <MudCardContent>
-            <MudText Typo="Typo.h6" GutterBottom="true">Submitted Data</MudText>
-            <MudSimpleTable>
-                <tbody>
-                    <tr><td><strong>Name:</strong></td><td>@($"{model.FirstName} {model.LastName}")</td></tr>
-                    <tr><td><strong>Email:</strong></td><td>@model.Email</td></tr>
-                    <tr><td><strong>Age:</strong></td><td>@model.Age</td></tr>
-                    <tr><td><strong>Country:</strong></td><td>@model.Country</td></tr>
-                    @if (!string.IsNullOrEmpty(model.City))
-                    {
-                        <tr><td><strong>City:</strong></td><td>@model.City</td></tr>
-                    }
-                    <tr><td><strong>Newsletter:</strong></td><td>@(model.SubscribeToNewsletter ? "Yes" : "No")</td></tr>
-                </tbody>
-            </MudSimpleTable>
-        </MudCardContent>
-    </MudCard>
-}
+    @if (isSubmitted)
+    {
+        <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
+            <MudCard Elevation="6" Class="pa-4">
+                <MudCardContent>
+                    <MudStack Spacing="3" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
+                                Color="Color.Success" 
+                                Size="Size.Large" />
+                        <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Success">
+                            Thank You!
+                        </MudText>
+                        <MudText Typo="Typo.body1" Align="Align.Center" Class="text-muted">
+                            Your information has been successfully submitted. We'll be in touch soon!
+                        </MudText>
+                        
+                        <MudDivider Class="my-4" />
+                        
+                        <MudText Typo="Typo.h6" Class="mb-3">Submitted Information:</MudText>
+                        <MudGrid>
+                            <MudItem xs="12" sm="6">
+                                <MudPaper Class="pa-3" Elevation="1">
+                                    <MudText Typo="Typo.subtitle2" Class="mb-1">Full Name</MudText>
+                                    <MudText Typo="Typo.body1">@($"{model.FirstName} {model.LastName}")</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudPaper Class="pa-3" Elevation="1">
+                                    <MudText Typo="Typo.subtitle2" Class="mb-1">Email</MudText>
+                                    <MudText Typo="Typo.body1">@model.Email</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudPaper Class="pa-3" Elevation="1">
+                                    <MudText Typo="Typo.subtitle2" Class="mb-1">Age</MudText>
+                                    <MudText Typo="Typo.body1">@model.Age years old</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudPaper Class="pa-3" Elevation="1">
+                                    <MudText Typo="Typo.subtitle2" Class="mb-1">Location</MudText>
+                                    <MudText Typo="Typo.body1">
+                                        @if (!string.IsNullOrEmpty(model.City))
+                                        {
+                                            @($"{model.City}, {model.Country}")
+                                        }
+                                        else
+                                        {
+                                            @model.Country
+                                        }
+                                    </MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudPaper Class="pa-3" Elevation="1">
+                                    <MudText Typo="Typo.subtitle2" Class="mb-1">Newsletter Subscription</MudText>
+                                    <MudChip T="string" Icon="@(model.SubscribeToNewsletter ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+                                            Color="@(model.SubscribeToNewsletter ? Color.Success : Color.Default)"
+                                            Variant="Variant.Filled">
+                                        @(model.SubscribeToNewsletter ? "Subscribed" : "Not Subscribed")
+                                    </MudChip>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+                        
+                        <MudButton Variant="Variant.Outlined" 
+                                  Color="Color.Primary" 
+                                  StartIcon="@Icons.Material.Filled.Refresh"
+                                  OnClick="@ResetForm"
+                                  Class="mt-4">
+                            Submit Another Form
+                        </MudButton>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudContainer>
+    }
+</MudContainer>
 
 @code {
     private ContactModel model = new();
@@ -109,6 +182,7 @@
         // Much simpler form creation using fluent methods
         formConfiguration = FormBuilder<ContactModel>
             .Create()
+            .WithLayout(FormLayout.Horizontal)
             .AddRequiredTextField(x => x.FirstName, "First Name", "Enter your first name", 2)
             .AddRequiredTextField(x => x.LastName, "Last Name", "Enter your last name", 2)
             .AddEmailField(x => x.Email)
@@ -147,6 +221,15 @@
         
         isSubmitted = true;
         isSubmitting = false;
+        StateHasChanged();
+    }
+    
+    private void ResetForm()
+    {
+        model = new ContactModel();
+        isSubmitted = false;
+        isSubmitting = false;
+        fieldChanges.Clear();
         StateHasChanged();
     }
     
