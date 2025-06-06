@@ -1,4 +1,5 @@
-using FormCraft.Forms.Core;
+using FormCraft.Forms.Abstractions;
+using ValidationResult = FormCraft.Forms.Core.ValidationResult;
 
 namespace FormCraft.Forms.Validators;
 
