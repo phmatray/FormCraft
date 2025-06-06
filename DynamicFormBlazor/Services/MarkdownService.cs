@@ -5,17 +5,38 @@ using Markdig.Syntax;
 
 namespace DynamicFormBlazor.Services;
 
+/// <summary>
+/// Provides services for processing Markdown content and integrating with syntax highlighting.
+/// </summary>
 public interface IMarkdownService
 {
+    /// <summary>
+    /// Converts Markdown text to HTML with syntax highlighting support.
+    /// </summary>
+    /// <param name="markdown">The Markdown content to convert.</param>
+    /// <returns>HTML content with Prism.js classes applied for syntax highlighting.</returns>
     string ToHtml(string markdown);
+    
+    /// <summary>
+    /// Loads a Markdown document from the wwwroot/docs directory.
+    /// </summary>
+    /// <param name="fileName">The filename (without .md extension) to load.</param>
+    /// <returns>The raw Markdown content of the document, or an error message if loading fails.</returns>
     Task<string> LoadDocumentAsync(string fileName);
 }
 
+/// <summary>
+/// Default implementation of the Markdown service using Markdig with advanced extensions.
+/// </summary>
 public class MarkdownService : IMarkdownService
 {
     private readonly MarkdownPipeline _pipeline;
     private readonly IWebHostEnvironment _environment;
 
+    /// <summary>
+    /// Initializes a new instance of the MarkdownService class.
+    /// </summary>
+    /// <param name="environment">The web host environment for accessing file paths.</param>
     public MarkdownService(IWebHostEnvironment environment)
     {
         _environment = environment;
@@ -24,6 +45,7 @@ public class MarkdownService : IMarkdownService
             .Build();
     }
 
+    /// <inheritdoc />
     public string ToHtml(string markdown)
     {
         var html = Markdown.ToHtml(markdown, _pipeline);
@@ -52,6 +74,7 @@ public class MarkdownService : IMarkdownService
         return html;
     }
 
+    /// <inheritdoc />
     public async Task<string> LoadDocumentAsync(string fileName)
     {
         try

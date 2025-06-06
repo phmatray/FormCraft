@@ -1,6 +1,6 @@
 using DynamicFormBlazor.Components;
-using DynamicFormBlazor.Forms.Extensions;
 using DynamicFormBlazor.Services;
+using FormCraft.Forms.Extensions;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
