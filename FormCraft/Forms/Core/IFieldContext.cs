@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 
-namespace FormCraft.Forms.Core;
+namespace FormCraft;
 
 /// <summary>
 /// Provides context information for rendering custom field templates within forms.

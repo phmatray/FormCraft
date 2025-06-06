@@ -1,8 +1,6 @@
-using FormCraft.Forms.Abstractions;
-using FormCraft.Forms.Rendering;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace FormCraft.Forms.Extensions;
+namespace FormCraft;
 
 /// <summary>
 /// Provides extension methods for configuring Dynamic Form Blazor services in the dependency injection container.

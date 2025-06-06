@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components;
-using FormCraft.Forms.Core;
 
-namespace FormCraft.Forms.Abstractions;
+namespace FormCraft;
 
 /// <summary>
 /// Provides context information needed for rendering a form field.

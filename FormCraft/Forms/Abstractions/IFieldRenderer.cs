@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components;
-using FormCraft.Forms.Core;
 
-namespace FormCraft.Forms.Abstractions;
+namespace FormCraft;
 
 /// <summary>
 /// Defines the contract for field renderers that generate UI components for specific field types.

@@ -1,7 +1,4 @@
-using FormCraft.Forms.Abstractions;
-using ValidationResult = FormCraft.Forms.Core.ValidationResult;
-
-namespace FormCraft.Forms.Validators;
+namespace FormCraft;
 
 /// <summary>
 /// A built-in validator that ensures a field has a value (is not null, empty, or whitespace).

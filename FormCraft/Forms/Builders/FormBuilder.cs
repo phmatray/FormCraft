@@ -1,9 +1,6 @@
 using System.Linq.Expressions;
-using FormCraft.Forms.Abstractions;
-using FormCraft.Forms.Core;
-using Microsoft.AspNetCore.Components;
 
-namespace FormCraft.Forms.Builders;
+namespace FormCraft;
 
 /// <summary>
 /// Provides a fluent API for building dynamic forms with type safety and validation support.

@@ -1,8 +1,6 @@
 using System.Linq.Expressions;
-using FormCraft.Forms.Builders;
-using FormCraft.Forms.Extensions;
 
-namespace FormCraft.Forms.Templates;
+namespace FormCraft;
 
 /// <summary>
 /// Provides extension methods for creating specific form templates using reflection-based property binding.

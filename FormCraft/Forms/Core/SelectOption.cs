@@ -1,4 +1,4 @@
-namespace FormCraft.Forms.Core;
+namespace FormCraft;
 
 /// <summary>
 /// Represents an option in a select list or dropdown field.

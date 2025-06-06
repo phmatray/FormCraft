@@ -1,7 +1,6 @@
 using System.Linq.Expressions;
-using FormCraft.Forms.Builders;
 
-namespace FormCraft.Forms.Extensions;
+namespace FormCraft;
 
 /// <summary>
 /// Provides convenient fluent extension methods for quickly configuring common form field types.

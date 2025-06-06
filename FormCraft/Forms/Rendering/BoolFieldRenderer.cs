@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Components;
-using FormCraft.Forms.Abstractions;
-using FormCraft.Forms.Core;
 using MudBlazor;
 
-namespace FormCraft.Forms.Rendering;
+namespace FormCraft;
 
 /// <summary>
 /// Field renderer for boolean values, rendering checkbox controls.

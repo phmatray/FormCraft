@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Components;
-using FormCraft.Forms.Abstractions;
-using FormCraft.Forms.Core;
 
-namespace FormCraft.Forms.Rendering;
+namespace FormCraft;
 
 /// <summary>
 /// Default implementation of the field render context.

@@ -1,4 +1,4 @@
-namespace FormCraft.Forms.Core;
+namespace FormCraft;
 
 /// <summary>
 /// Represents the result of a field validation operation.

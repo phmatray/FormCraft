@@ -1,9 +1,7 @@
 using System.Linq.Expressions;
-using FormCraft.Forms.Abstractions;
-using FormCraft.Forms.Core;
 using Microsoft.AspNetCore.Components;
 
-namespace FormCraft.Forms.Builders;
+namespace FormCraft;
 
 /// <summary>
 /// Internal wrapper class that handles type conversion from strongly-typed field configurations to object-based configurations.

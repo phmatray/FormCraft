@@ -1,7 +1,6 @@
 using System.Linq.Expressions;
-using FormCraft.Forms.Abstractions;
 
-namespace FormCraft.Forms.Core;
+namespace FormCraft;
 
 /// <summary>
 /// Default implementation of field dependency that executes a callback when a dependent field changes.
