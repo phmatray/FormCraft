@@ -31,7 +31,7 @@ public class FieldRendererService : IFieldRendererService
             ActualFieldType = fieldType,
             CurrentValue = currentValue,
             OnValueChanged = onValueChanged,
-            OnDependencyChanged = onDependencyChanged
+            OnDependencyChanged = onDependencyChanged,
         };
 
         var renderer = _renderers.FirstOrDefault(r => r.CanRender(fieldType, null!));

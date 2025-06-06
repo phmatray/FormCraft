@@ -1,0 +1,97 @@
+@typeparam TModel where TModel : new()
+@using DynamicFormBlazor.Forms.Core
+@using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
+@implements IDisposable
+@inject IServiceProvider ServiceProvider
+
+@code {
+    [Parameter] public IFormConfiguration<TModel> Configuration { get; set; } = null!;
+    
+    private EditContext? _editContext;
+    
+    protected override void OnInitialized()
+    {
+        var editContext = CascadedEditContext ?? throw new InvalidOperationException(
+            $"{nameof(DynamicFormValidator<TModel>)} requires a cascading parameter of type {nameof(EditContext)}. " +
+            $"For example, you can use {nameof(DynamicFormValidator<TModel>)} inside an {nameof(EditForm)}.");
+
+        _editContext = editContext;
+        _editContext.OnValidationRequested += HandleValidationRequested;
+        _editContext.OnFieldChanged += HandleFieldChanged;
+    }
+
+    [CascadingParameter] EditContext CascadedEditContext { get; set; } = default!;
+    
+    private async void HandleValidationRequested(object? sender, ValidationRequestedEventArgs e)
+    {
+        var validationResults = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
+        var model = (TModel)_editContext!.Model;
+        
+        foreach (var field in Configuration.Fields)
+        {
+            var getter = field.ValueExpression.Compile();
+            var value = getter(model);
+            
+            foreach (var validator in field.Validators)
+            {
+                var result = await validator.ValidateAsync(model, value, ServiceProvider);
+                if (!result.IsValid)
+                {
+                    validationResults.Add(new System.ComponentModel.DataAnnotations.ValidationResult(result.ErrorMessage, new[] { field.FieldName }));
+                }
+            }
+        }
+        
+        // Add our custom validation results to the EditContext
+        if (validationResults.Any())
+        {
+            var messageStore = new ValidationMessageStore(_editContext);
+            
+            foreach (var validationResult in validationResults)
+            {
+                foreach (var memberName in validationResult.MemberNames)
+                {
+                    messageStore.Add(_editContext.Field(memberName), validationResult.ErrorMessage!);
+                }
+            }
+            
+            _editContext.NotifyValidationStateChanged();
+        }
+    }
+    
+    private async void HandleFieldChanged(object? sender, FieldChangedEventArgs e)
+    {
+        // Find the field configuration for the changed field
+        var fieldConfig = Configuration.Fields.FirstOrDefault(f => f.FieldName == e.FieldIdentifier.FieldName);
+        if (fieldConfig == null) return;
+        
+        var model = (TModel)_editContext!.Model;
+        var getter = fieldConfig.ValueExpression.Compile();
+        var value = getter(model);
+        
+        var messageStore = new ValidationMessageStore(_editContext);
+        messageStore.Clear(e.FieldIdentifier);
+        
+        // Validate the specific field
+        foreach (var validator in fieldConfig.Validators)
+        {
+            var result = await validator.ValidateAsync(model, value, ServiceProvider);
+            if (!result.IsValid)
+            {
+                messageStore.Add(e.FieldIdentifier, result.ErrorMessage!);
+            }
+        }
+        
+        _editContext.NotifyValidationStateChanged();
+    }
+    
+    public void Dispose()
+    {
+        if (_editContext != null)
+        {
+            _editContext.OnValidationRequested -= HandleValidationRequested;
+            _editContext.OnFieldChanged -= HandleFieldChanged;
+        }
+    }
+}
