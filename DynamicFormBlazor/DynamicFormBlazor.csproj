@@ -12,8 +12,4 @@
     <PackageReference Include="Markdig" Version="0.41.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Rendering\" />
-  </ItemGroup>
-
 </Project>
