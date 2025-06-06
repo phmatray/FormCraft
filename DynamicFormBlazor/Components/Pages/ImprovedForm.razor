@@ -101,8 +101,8 @@
 
 @code {
     private ContactModel model = new();
-    private bool isSubmitted = false;
-    private bool isSubmitting = false;
+    private bool isSubmitted;
+    private bool isSubmitting;
     private IFormConfiguration<ContactModel> formConfiguration = null!;
     
     private List<FormGuidelines.GuidelineItem> guidelines = new()
