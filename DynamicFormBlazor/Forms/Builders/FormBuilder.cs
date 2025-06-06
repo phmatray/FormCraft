@@ -7,7 +7,7 @@ namespace DynamicFormBlazor.Forms.Builders;
 public class FormBuilder<TModel> where TModel : new()
 {
     private readonly FormConfiguration<TModel> _configuration = new();
-    private int _fieldOrder = 0;
+    private int _fieldOrder;
     
     public static FormBuilder<TModel> Create() => new();
     
@@ -133,7 +133,7 @@ public class ValidatorWrapper<TModel, TValue> : IFieldValidator<TModel, object>
         set => _inner.ErrorMessage = value; 
     }
     
-    public async Task<ValidationResult> ValidateAsync(TModel model, object value, IServiceProvider services)
+    public async Task<ValidationResult> ValidateAsync(TModel model, object? value, IServiceProvider services)
     {
         // Convert object back to TValue for the inner validator
         TValue typedValue;
@@ -143,7 +143,7 @@ public class ValidatorWrapper<TModel, TValue> : IFieldValidator<TModel, object>
         }
         catch
         {
-            typedValue = default(TValue)!;
+            typedValue = default!;
         }
         
         return await _inner.ValidateAsync(model, typedValue, services);
