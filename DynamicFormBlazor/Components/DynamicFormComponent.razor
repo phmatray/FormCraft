@@ -7,18 +7,20 @@
     <DataAnnotationsValidator />
     <DynamicFormValidator TModel="TModel" Configuration="@Configuration" />
     
-    @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
-    {
-        @if (ShouldShowField(field))
+    <div class="@GetFormLayoutClass()">
+        @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
         {
-            <div class="mb-3">
-                @FieldRendererService.RenderField(Model, field, 
-                    EventCallback.Factory.Create<object?>(this, value => HandleFieldValueChanged(field.FieldName, value)),
-                    EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName)))
-                <FieldValidationMessage FieldName="@field.FieldName" />
-            </div>
+            @if (ShouldShowField(field))
+            {
+                <div class="@GetFieldLayoutClass(field) mb-3">
+                    @FieldRendererService.RenderField(Model, field, 
+                        EventCallback.Factory.Create<object?>(this, value => HandleFieldValueChanged(field.FieldName, value)),
+                        EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName)))
+                    <FieldValidationMessage FieldName="@field.FieldName" />
+                </div>
+            }
         }
-    }
+    </div>
     
     @if (ShowSubmitButton)
     {
@@ -99,5 +101,27 @@
     {
         var property = typeof(TModel).GetProperty(fieldName);
         property?.SetValue(Model, value);
+    }
+    
+    private string GetFormLayoutClass()
+    {
+        return Configuration.Layout switch
+        {
+            FormLayout.Horizontal => "row",
+            FormLayout.Grid => "row",
+            FormLayout.Inline => "d-flex flex-wrap gap-3",
+            _ => ""
+        };
+    }
+    
+    private string GetFieldLayoutClass(IFieldConfiguration<TModel, object> _)
+    {
+        return Configuration.Layout switch
+        {
+            FormLayout.Horizontal => "col-md-6",
+            FormLayout.Grid => "col-lg-4",
+            FormLayout.Inline => "flex-fill",
+            _ => ""
+        };
     }
 }
