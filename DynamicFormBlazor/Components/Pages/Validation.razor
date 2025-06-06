@@ -1,0 +1,232 @@
+@page "/validation"
+@using DynamicFormBlazor.Models
+@using DynamicFormBlazor.Validators
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>Form Validation Demo</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Form Validation with FluentValidation</MudText>
+<MudText Class="mb-8">This demo showcases form validation using FluentValidation with MudBlazor components.</MudText>
+
+<EditForm id="validation-form" Model="@model" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <MudGrid>
+        <MudItem xs="12" sm="12" md="8">
+            <MudCard>
+                <MudCardContent>
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="model.FirstName" 
+                                         Label="First Name" 
+                                         Required="true"
+                                         Immediate="true"
+                                         For="@(() => model.FirstName)" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="model.LastName" 
+                                         Label="Last Name" 
+                                         Required="true"
+                                         Immediate="true"
+                                         For="@(() => model.LastName)" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="model.Email" 
+                                         Label="Email" 
+                                         Required="true"
+                                         Immediate="true"
+                                         For="@(() => model.Email)" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField @bind-Value="model.Age" 
+                                            Label="Age" 
+                                            Min="0"
+                                            Max="150"
+                                            For="@(() => model.Age)" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="model.PhoneNumber" 
+                                         Label="Phone Number" 
+                                         For="@(() => model.PhoneNumber)" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudDatePicker @bind-Date="model.DateOfBirth" 
+                                          Label="Date of Birth" 
+                                          MaxDate="DateTime.Today"
+                                          For="@(() => model.DateOfBirth)" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="model.Address" 
+                                         Label="Address" 
+                                         For="@(() => model.Address)" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="model.City" 
+                                         Label="City" 
+                                         For="@(() => model.City)" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="model.PostalCode" 
+                                         Label="Postal Code" 
+                                         For="@(() => model.PostalCode)" />
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton ButtonType="ButtonType.Submit" 
+                              Variant="Variant.Filled" 
+                              Color="Color.Primary" 
+                              Form="validation-form"
+                              Class="ml-auto">Submit</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+        
+        <MudItem xs="12" sm="12" md="4">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" GutterBottom="true">Validation Features</MudText>
+                    <MudList T="string">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                            <MudText Typo="Typo.body2">Real-time validation</MudText>
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                            <MudText Typo="Typo.body2">Required field validation</MudText>
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                            <MudText Typo="Typo.body2">Email format validation</MudText>
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                            <MudText Typo="Typo.body2">String length constraints</MudText>
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                            <MudText Typo="Typo.body2">Pattern matching (names, phone)</MudText>
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                            <MudText Typo="Typo.body2">Date range validation</MudText>
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                            <MudText Typo="Typo.body2">Conditional validation</MudText>
+                        </MudListItem>
+                    </MudList>
+                    
+                    @if (isSubmitted)
+                    {
+                        <MudAlert Severity="Severity.Success" Class="mt-4">
+                            Form submitted successfully!
+                        </MudAlert>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</EditForm>
+
+@if (isSubmitted)
+{
+    <MudCard Class="mt-4">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" GutterBottom="true">Submitted Data</MudText>
+            <MudSimpleTable>
+                <tbody>
+                    <tr>
+                        <td><strong>Name:</strong></td>
+                        <td>@($"{model.FirstName} {model.LastName}")</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Email:</strong></td>
+                        <td>@model.Email</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Age:</strong></td>
+                        <td>@model.Age</td>
+                    </tr>
+                    @if (!string.IsNullOrEmpty(model.PhoneNumber))
+                    {
+                        <tr>
+                            <td><strong>Phone:</strong></td>
+                            <td>@model.PhoneNumber</td>
+                        </tr>
+                    }
+                    @if (model.DateOfBirth.HasValue)
+                    {
+                        <tr>
+                            <td><strong>Date of Birth:</strong></td>
+                            <td>@model.DateOfBirth.Value.ToShortDateString()</td>
+                        </tr>
+                    }
+                    @if (!string.IsNullOrEmpty(model.Address))
+                    {
+                        <tr>
+                            <td><strong>Address:</strong></td>
+                            <td>@model.Address</td>
+                        </tr>
+                    }
+                    @if (!string.IsNullOrEmpty(model.City))
+                    {
+                        <tr>
+                            <td><strong>City:</strong></td>
+                            <td>@model.City</td>
+                        </tr>
+                    }
+                    @if (!string.IsNullOrEmpty(model.PostalCode))
+                    {
+                        <tr>
+                            <td><strong>Postal Code:</strong></td>
+                            <td>@model.PostalCode</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudCardContent>
+    </MudCard>
+}
+
+@inject IServiceProvider ServiceProvider
+
+@code {
+    private Person model = new Person();
+    private bool isSubmitted = false;
+    private EditContext? editContext;
+    private ValidationMessageStore? messageStore;
+
+    protected override void OnInitialized()
+    {
+        editContext = new EditContext(model);
+        messageStore = new ValidationMessageStore(editContext);
+        
+        var validator = new PersonValidator();
+        editContext.OnFieldChanged += (sender, args) =>
+        {
+            messageStore.Clear(args.FieldIdentifier);
+            var validationResult = validator.Validate(model);
+            
+            foreach (var error in validationResult.Errors.Where(e => e.PropertyName == args.FieldIdentifier.FieldName))
+            {
+                messageStore.Add(args.FieldIdentifier, error.ErrorMessage);
+            }
+            
+            editContext.NotifyValidationStateChanged();
+        };
+    }
+
+    private void HandleValidSubmit()
+    {
+        var validator = new PersonValidator();
+        var result = validator.Validate(model);
+        
+        if (result.IsValid)
+        {
+            isSubmitted = true;
+        }
+        else
+        {
+            messageStore?.Clear();
+            foreach (var error in result.Errors)
+            {
+                var fieldIdentifier = new FieldIdentifier(model, error.PropertyName);
+                messageStore?.Add(fieldIdentifier, error.ErrorMessage);
+            }
+            editContext?.NotifyValidationStateChanged();
+        }
+    }
+}

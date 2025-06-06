@@ -1,11 +1,23 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-@Body
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudText Typo="Typo.h5" Class="ml-3">Dynamic Form Blazor</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Home" Color="Color.Inherit" Href="/" />
+        <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Inherit" Href="/validation" />
+    </MudAppBar>
+    <MudMainContent Class="pt-16 px-16">
+        <MudContainer Class="mt-6" MaxWidth="MaxWidth.Large">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
 
 <div id="blazor-error-ui" data-nosnippet>
   An unhandled error has occurred.
