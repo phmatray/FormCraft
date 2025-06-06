@@ -12,11 +12,13 @@
         {
             @if (ShouldShowField(field))
             {
-                <div class="@GetFieldLayoutClass(field) mb-3">
-                    @FieldRendererService.RenderField(Model, field, 
-                        EventCallback.Factory.Create<object?>(this, value => HandleFieldValueChanged(field.FieldName, value)),
-                        EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName)))
-                    <FieldValidationMessage FieldName="@field.FieldName" />
+                <div class="@GetFieldLayoutClass(field) mb-4">
+                    <div class="form-field-container">
+                        @FieldRendererService.RenderField(Model, field, 
+                            EventCallback.Factory.Create<object?>(this, value => HandleFieldValueChanged(field.FieldName, value)),
+                            EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName)))
+                        <FieldValidationMessage FieldName="@field.FieldName" />
+                    </div>
                 </div>
             }
         }
@@ -24,20 +26,22 @@
     
     @if (ShowSubmitButton)
     {
-        <MudCardActions>
+        <MudCardActions Class="justify-center pa-4">
             <MudButton ButtonType="ButtonType.Submit"
                       Variant="Variant.Filled"
                       Color="Color.Primary"
+                      Size="Size.Large"
                       Disabled="@IsSubmitting"
+                      StartIcon="@(IsSubmitting ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.Send)"
                       Class="@SubmitButtonClass">
                 @if (IsSubmitting)
                 {
-                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                    <MudText Class="ms-2">@SubmittingText</MudText>
+                    <MudProgressCircular Class="me-2" Size="Size.Small" Indeterminate="true" />
+                    <span>@SubmittingText</span>
                 }
                 else
                 {
-                    <MudText>@SubmitButtonText</MudText>
+                    <span>@SubmitButtonText</span>
                 }
             </MudButton>
         </MudCardActions>

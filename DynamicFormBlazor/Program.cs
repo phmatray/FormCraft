@@ -1,5 +1,6 @@
 using DynamicFormBlazor.Components;
 using DynamicFormBlazor.Forms.Extensions;
+using DynamicFormBlazor.Services;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddMudServices();
 builder.Services.AddDynamicForms();
+builder.Services.AddScoped<IMarkdownService, MarkdownService>();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

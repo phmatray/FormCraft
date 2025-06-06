@@ -1,15 +1,64 @@
-﻿@page "/"
+@page "/"
 @using DynamicFormBlazor.Models
+@using DynamicFormBlazor.Components.Shared
+@using DynamicFormBlazor.Components.Layout
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Basic Dynamic Form</PageTitle>
 
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
-
-<DynamicForm Fields="_fields" OnSubmit="OnFormSubmit" />
+<FormPageLayout PageTitle="Basic Dynamic Form"
+                PageDescription="This demonstrates the original dynamic form API using field definitions and dictionary-based data binding."
+                PageIcon="@Icons.Material.Filled.Dashboard"
+                FormTitle="Field Definition Form"
+                FormIcon="@Icons.Material.Filled.Assignment">
+    
+    <FormContent>
+        <DynamicForm Fields="_fields" OnSubmit="OnFormSubmit" />
+        
+        @if (isSubmitted)
+        {
+            <MudAlert Severity="Severity.Success" Class="mt-4">
+                <MudText Typo="Typo.body1">
+                    <strong>Form submitted successfully!</strong><br/>
+                    Check the browser console for submitted data.
+                </MudText>
+            </MudAlert>
+        }
+    </FormContent>
+    
+    <SidebarContent>
+        <FormGuidelines Guidelines="@guidelines" Title="Form Features" />
+        
+        <MudCard Elevation="2" Class="mt-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Code" Class="me-2 text-info" />
+                    Technical Details
+                </MudText>
+                <MudList T="string" Dense="true">
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.DataObject" IconColor="Color.Primary">
+                        <MudText Typo="Typo.body2">Dictionary-based data binding</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Schema" IconColor="Color.Secondary">
+                        <MudText Typo="Typo.body2">Field definition schema</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Tune" IconColor="Color.Tertiary">
+                        <MudText Typo="Typo.body2">Dynamic field rendering</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Psychology" IconColor="Color.Warning">
+                        <MudText Typo="Typo.body2">Type-aware components</MudText>
+                    </MudListItem>
+                </MudList>
+            </MudCardContent>
+        </MudCard>
+        
+        <FormHelpPanel HelpText="This is the original API demonstrating field definitions. For more advanced features, try the other demo pages!" />
+    </SidebarContent>
+    
+</FormPageLayout>
 
 @code {
+  private bool isSubmitted = false;
+  
   private readonly List<FieldDefinition> _fields =
   [
     new FieldDefinition<string>
@@ -56,12 +105,29 @@ Welcome to your new app.
     }
   ];
 
+  private List<FormGuidelines.GuidelineItem> guidelines = new()
+  {
+    new() { Icon = Icons.Material.Filled.TypeSpecimen, Color = Color.Primary, Text = "Multiple field types supported" },
+    new() { Icon = Icons.Material.Filled.DataObject, Color = Color.Secondary, Text = "Dictionary-based data model" },
+    new() { Icon = Icons.Material.Filled.AutoAwesome, Color = Color.Tertiary, Text = "Automatic type detection" },
+    new() { Icon = Icons.Material.Filled.Cached, Color = Color.Info, Text = "Real-time value updates" }
+  };
+
   private async Task OnFormSubmit(Dictionary<string, object> model)
   {
     // model["firstName"] is string, model["age"] is int,
     // model["salary"] is decimal, etc.
     // Do whatever you need with the data:
     Console.WriteLine($"Name: {model["firstName"]}, Age: {model["age"]}");
-    await Task.CompletedTask;
+    Console.WriteLine($"Color: {model["favoriteColor"]}, Salary: {model["salary"]}");
+    Console.WriteLine($"Subscribe: {model["subscribe"]}, DOB: {model["dob"]}");
+    
+    isSubmitted = true;
+    StateHasChanged();
+    
+    // Reset after 3 seconds
+    await Task.Delay(3000);
+    isSubmitted = false;
+    StateHasChanged();
   }
 }
