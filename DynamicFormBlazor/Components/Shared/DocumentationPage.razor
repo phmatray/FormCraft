@@ -69,79 +69,6 @@
     </MudGrid>
 </MudContainer>
 
-<style>
-    .markdown-content h1 {
-        font-size: 2.5rem;
-        font-weight: 300;
-        line-height: 1.2;
-        margin-bottom: 1rem;
-        border-bottom: 2px solid #e0e0e0;
-        padding-bottom: 0.5rem;
-    }
-    
-    .markdown-content h2 {
-        font-size: 2rem;
-        font-weight: 400;
-        line-height: 1.3;
-        margin-top: 2rem;
-        margin-bottom: 1rem;
-        color: #1976d2;
-    }
-    
-    .markdown-content h3 {
-        font-size: 1.5rem;
-        font-weight: 500;
-        line-height: 1.4;
-        margin-top: 1.5rem;
-        margin-bottom: 0.75rem;
-    }
-    
-    .markdown-content p {
-        line-height: 1.6;
-        margin-bottom: 1rem;
-    }
-    
-    .markdown-content code {
-        background-color: #f5f5f5;
-        padding: 0.2em 0.4em;
-        border-radius: 3px;
-        font-family: 'Monaco', 'Consolas', monospace;
-        font-size: 0.9em;
-    }
-    
-    .markdown-content pre {
-        background-color: #f8f8f8;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        padding: 1rem;
-        overflow-x: auto;
-        margin: 1rem 0;
-    }
-    
-    .markdown-content pre code {
-        background: none;
-        padding: 0;
-    }
-    
-    .markdown-content blockquote {
-        border-left: 4px solid #1976d2;
-        margin: 1rem 0;
-        padding-left: 1rem;
-        color: #666;
-        font-style: italic;
-    }
-    
-    .markdown-content ul, .markdown-content ol {
-        margin: 1rem 0;
-        padding-left: 2rem;
-    }
-    
-    .markdown-content li {
-        margin-bottom: 0.5rem;
-        line-height: 1.6;
-    }
-</style>
-
 @code {
     [Parameter] public string DocumentName { get; set; } = "";
     [Parameter] public string Title { get; set; } = "Documentation";
@@ -149,12 +76,30 @@
     private bool isLoading = true;
     private string htmlContent = "";
     private List<TocSection> tableOfContents = new();
+    private bool contentChanged = false;
     
     protected override async Task OnParametersSetAsync()
     {
         if (!string.IsNullOrEmpty(DocumentName))
         {
             await LoadDocumentAsync();
+        }
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (contentChanged)
+        {
+            contentChanged = false;
+            try
+            {
+                // Trigger Prism.js highlighting after content is rendered
+                await JSRuntime.InvokeVoidAsync("Prism.highlightAll");
+            }
+            catch (Exception)
+            {
+                // Ignore JavaScript interop errors during prerendering
+            }
         }
     }
     
@@ -168,6 +113,7 @@
             var markdown = await MarkdownService.LoadDocumentAsync(DocumentName);
             htmlContent = MarkdownService.ToHtml(markdown);
             ExtractTableOfContents(markdown);
+            contentChanged = true; // Flag that content has changed for syntax highlighting
         }
         catch (Exception ex)
         {
