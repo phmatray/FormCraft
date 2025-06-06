@@ -8,7 +8,7 @@
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
-        <MudText Typo="Typo.h5" Class="ml-3">Dynamic Form Blazor</MudText>
+        <MudText Typo="Typo.h5" Class="ml-3">FormCraft Demo</MudText>
         <MudSpacer />
         <MudButton Variant="Variant.Text" 
                    Color="Color.Inherit" 
@@ -21,18 +21,12 @@
     
     <MudDrawer @bind-Open="@_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <MudNavMenu>
-            <MudNavGroup Title="Demo Pages" Icon="@Icons.Material.Filled.Dashboard" Expanded="true">
-                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
-                    Basic Form
-                </MudNavLink>
-                <MudNavLink Href="/validation" Icon="@Icons.Material.Filled.CheckCircle">
-                    Validation Demo
-                </MudNavLink>
-                <MudNavLink Href="/improved" Icon="@Icons.Material.Filled.AutoAwesome">
-                    Improved Form
-                </MudNavLink>
-                <MudNavLink Href="/simplified" Icon="@Icons.Material.Filled.AutoFixHigh">
+            <MudNavGroup Title="FormCraft Demos" Icon="@Icons.Material.Filled.Dashboard" Expanded="true">
+                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.AutoFixHigh">
                     Simplified API
+                </MudNavLink>
+                <MudNavLink Href="/improved" Icon="@Icons.Material.Filled.Engineering">
+                    Type-Safe Builder
                 </MudNavLink>
                 <MudNavLink Href="/fluent" Icon="@Icons.Material.Filled.FlashOn">
                     Fluent API
