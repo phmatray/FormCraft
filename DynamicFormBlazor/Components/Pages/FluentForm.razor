@@ -1,0 +1,159 @@
+@page "/fluent"
+@using DynamicFormBlazor.Forms.Builders
+@using DynamicFormBlazor.Forms.Core
+@using DynamicFormBlazor.Forms.Extensions
+@using DynamicFormBlazor.Models
+
+<PageTitle>Fluent Dynamic Form</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Fluent Dynamic Form API</MudText>
+<MudText Class="mb-8">This demonstrates the most simplified API using fluent builder methods.</MudText>
+
+<MudGrid>
+    <MudItem xs="12" lg="8">
+        <MudCard>
+            <MudCardContent>
+                <DynamicFormComponent TModel="ContactModel" 
+                                    Model="@model" 
+                                    Configuration="@formConfiguration"
+                                    OnValidSubmit="@HandleValidSubmit"
+                                    OnFieldChanged="@(args => HandleFieldChanged(args.fieldName, args.value))"
+                                    IsSubmitting="@isSubmitting" />
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    
+    <MudItem xs="12" lg="4">
+        <MudCard>
+            <MudCardContent>
+                <MudText Typo="Typo.h6" GutterBottom="true">Fluent API Benefits</MudText>
+                <MudList T="string">
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">One-line field creation with validation</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">Pre-configured common field types</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">Reduced boilerplate code</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">Built-in validation patterns</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">Consistent field configuration</MudText>
+                    </MudListItem>
+                </MudList>
+            </MudCardContent>
+        </MudCard>
+        
+        <MudCard Class="mt-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" GutterBottom="true">Code Comparison</MudText>
+                <MudPaper Class="pa-3" Elevation="1">
+                    <pre style="font-size: 10px; line-height: 1.2; white-space: pre-wrap;">// Before (Verbose)
+.AddField(x => x.Email)
+    .WithLabel("Email Address")
+    .Required("Email is required")
+    .WithEmailValidation()
+    .WithPlaceholder("your.email@example.com")
+
+// After (Fluent)
+.AddEmailField(x => x.Email)
+
+// Before (Complex)
+.AddField(x => x.Age)
+    .WithLabel("Age")
+    .Required("Age is required")
+    .WithRange(16, 100, "Age must be between 16 and 100")
+
+// After (Simple)
+.AddNumericField(x => x.Age, "Age", 16, 100)</pre>
+                </MudPaper>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@if (isSubmitted)
+{
+    <MudCard Class="mt-4">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" GutterBottom="true">Submitted Data</MudText>
+            <MudSimpleTable>
+                <tbody>
+                    <tr><td><strong>Name:</strong></td><td>@($"{model.FirstName} {model.LastName}")</td></tr>
+                    <tr><td><strong>Email:</strong></td><td>@model.Email</td></tr>
+                    <tr><td><strong>Age:</strong></td><td>@model.Age</td></tr>
+                    <tr><td><strong>Country:</strong></td><td>@model.Country</td></tr>
+                    @if (!string.IsNullOrEmpty(model.City))
+                    {
+                        <tr><td><strong>City:</strong></td><td>@model.City</td></tr>
+                    }
+                    <tr><td><strong>Newsletter:</strong></td><td>@(model.SubscribeToNewsletter ? "Yes" : "No")</td></tr>
+                </tbody>
+            </MudSimpleTable>
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    private ContactModel model = new();
+    private bool isSubmitted = false;
+    private bool isSubmitting = false;
+    private List<string> fieldChanges = new();
+    private IFormConfiguration<ContactModel> formConfiguration = null!;
+    
+    protected override void OnInitialized()
+    {
+        // Much simpler form creation using fluent methods
+        formConfiguration = FormBuilder<ContactModel>
+            .Create()
+            .AddRequiredTextField(x => x.FirstName, "First Name", "Enter your first name", 2)
+            .AddRequiredTextField(x => x.LastName, "Last Name", "Enter your last name", 2)
+            .AddEmailField(x => x.Email)
+            .AddNumericField(x => x.Age, "Age", 16, 100)
+            .AddDropdownField(x => x.Country, "Country",
+                ("US", "United States"),
+                ("CA", "Canada"),
+                ("UK", "United Kingdom"),
+                ("DE", "Germany"),
+                ("FR", "France")
+            )
+            .AddField(x => x.City)
+                .WithLabel("City")
+                .WithPlaceholder("Enter your city")
+                .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
+                .DependsOn(x => x.Country, (model, country) =>
+                {
+                    if (string.IsNullOrEmpty(country))
+                    {
+                        model.City = null;
+                    }
+                })
+                .AddField(x => x.SubscribeToNewsletter)
+                .WithLabel("Subscribe to Newsletter")
+                .WithHelpText("Get updates about new features")
+            .Build();
+    }
+    
+    private async Task HandleValidSubmit(ContactModel submittedModel)
+    {
+        isSubmitting = true;
+        StateHasChanged();
+        
+        // Simulate API call
+        await Task.Delay(2000);
+        
+        isSubmitted = true;
+        isSubmitting = false;
+        StateHasChanged();
+    }
+    
+    private Task HandleFieldChanged(string fieldName, object? value)
+    {
+        fieldChanges.Add($"{DateTime.Now:HH:mm:ss} - {fieldName}: {value}");
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+}
