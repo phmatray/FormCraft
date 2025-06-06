@@ -87,8 +87,8 @@ var formConfiguration = FormBuilder&lt;ContactModel&gt;
 
 @code {
     private ContactModel model = new();
-    private bool isSubmitted = false;
-    private bool isSubmitting = false;
+    private bool isSubmitted;
+    private bool isSubmitting;
     private List<string> fieldChanges = new();
     private IFormConfiguration<ContactModel> formConfiguration = null!;
     
