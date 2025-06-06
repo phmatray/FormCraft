@@ -1,6 +1,4 @@
-using FormCraft.Forms.Core;
-
-namespace FormCraft.Forms.Abstractions;
+namespace FormCraft;
 
 /// <summary>
 /// Defines the contract for field validators that can validate individual form field values.

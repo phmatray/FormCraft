@@ -1,9 +1,4 @@
-using System.Linq.Expressions;
-using FormCraft.Forms.Builders;
-using FormCraft.Forms.Core;
-using FormCraft.Forms.Extensions;
-
-namespace FormCraft.Forms.Templates;
+namespace FormCraft;
 
 /// <summary>
 /// Provides pre-built form templates for common use cases, reducing boilerplate code for standard forms.

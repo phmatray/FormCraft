@@ -1,7 +1,4 @@
-using FormCraft.Forms.Abstractions;
-using FormCraft.Forms.Core;
-
-namespace FormCraft.Forms.Builders;
+namespace FormCraft;
 
 /// <summary>
 /// Internal wrapper class that converts strongly-typed field validators to object-based validators.

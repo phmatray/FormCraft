@@ -1,8 +1,7 @@
 using System.Linq.Expressions;
-using FormCraft.Forms.Abstractions;
 using Microsoft.AspNetCore.Components;
 
-namespace FormCraft.Forms.Core;
+namespace FormCraft;
 
 /// <summary>
 /// Default implementation of field configuration that stores all field metadata, attributes, and behavior.

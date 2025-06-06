@@ -1,8 +1,7 @@
 using System.Linq.Expressions;
-using FormCraft.Forms.Abstractions;
 using Microsoft.AspNetCore.Components;
 
-namespace FormCraft.Forms.Core;
+namespace FormCraft;
 
 /// <summary>
 /// Defines the configuration contract for individual form fields, including display properties, validation rules, and behavior.

@@ -1,8 +1,6 @@
-using FormCraft.Forms.Builders;
-using FormCraft.Forms.Core;
 using Microsoft.AspNetCore.Components.Forms;
 
-namespace FormCraft.Forms.Extensions;
+namespace FormCraft;
 
 /// <summary>
 /// Provides extension methods for the FieldBuilder to configure common field types and validation rules.

@@ -1,6 +1,4 @@
-using FormCraft.Forms.Abstractions;
-
-namespace FormCraft.Forms.Core;
+namespace FormCraft;
 
 /// <summary>
 /// Represents the complete configuration for a dynamic form, including all fields, layout settings, and validation options.

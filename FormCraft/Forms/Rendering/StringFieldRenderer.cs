@@ -1,10 +1,7 @@
 using Microsoft.AspNetCore.Components;
-using FormCraft.Forms.Abstractions;
-using FormCraft.Forms.Core;
-using FormCraft.Forms.Extensions;
 using MudBlazor;
 
-namespace FormCraft.Forms.Rendering;
+namespace FormCraft;
 
 /// <summary>
 /// Field renderer for string values, supporting text inputs and dropdown selections.

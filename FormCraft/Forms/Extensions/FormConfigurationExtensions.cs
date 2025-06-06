@@ -1,6 +1,4 @@
-using FormCraft.Forms.Core;
-
-namespace FormCraft.Forms.Extensions;
+namespace FormCraft;
 
 /// <summary>
 /// Provides extension methods for working with form configurations, including field analysis and filtering.
