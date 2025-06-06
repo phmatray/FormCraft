@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicFormBlazor", "DynamicFormBlazor\DynamicFormBlazor.csproj", "{0E605901-5186-4D76-AC90-EC845675DB9C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FormCraft", "FormCraft\FormCraft.csproj", "{F6DD27E9-766F-4426-82C7-03E6CF7AE348}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{0E605901-5186-4D76-AC90-EC845675DB9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0E605901-5186-4D76-AC90-EC845675DB9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0E605901-5186-4D76-AC90-EC845675DB9C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6DD27E9-766F-4426-82C7-03E6CF7AE348}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6DD27E9-766F-4426-82C7-03E6CF7AE348}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6DD27E9-766F-4426-82C7-03E6CF7AE348}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6DD27E9-766F-4426-82C7-03E6CF7AE348}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
