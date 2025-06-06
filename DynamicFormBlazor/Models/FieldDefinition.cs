@@ -38,7 +38,7 @@ public class FieldDefinition<T> : FieldDefinition
                 var compType = typeof(MudNumericField<>).MakeGenericType(typeof(T));
                 builder.OpenComponent(0, compType);
                 builder.AddAttribute(1, "Label", Label);
-                builder.AddAttribute(2, "Value", (object)current);
+                builder.AddAttribute(2, "Value", current);
                 builder.AddAttribute(3, "ValueChanged", EventCallback.Factory.Create<T>(this, val => model[Key] = val));
                 builder.CloseComponent();
             }
@@ -70,7 +70,7 @@ public class FieldDefinition<T> : FieldDefinition
 
 public class SelectFieldDefinition<T> : FieldDefinition<T>
 {
-    public IEnumerable<FieldOption<T>> Options { get; set; } = Array.Empty<FieldOption<T>>();
+    public IEnumerable<FieldOption<T>> Options { get; set; } = [];
 
     public override RenderFragment RenderFragment(Dictionary<string, object> model)
     {
@@ -82,7 +82,7 @@ public class SelectFieldDefinition<T> : FieldDefinition<T>
 
             builder.OpenComponent(0, selectType);
             builder.AddAttribute(1, "Label", Label);
-            builder.AddAttribute(2, "Value", (object)current);
+            builder.AddAttribute(2, "Value", current);
             builder.AddAttribute(3, "ValueChanged", EventCallback.Factory.Create<T>(this, val => model[Key] = val));
             builder.AddAttribute(4, "ChildContent", (RenderFragment)(childBuilder =>
             {

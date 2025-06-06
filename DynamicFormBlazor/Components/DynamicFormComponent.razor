@@ -51,7 +51,7 @@
     [Parameter] public string SubmitButtonText { get; set; } = "Submit";
     [Parameter] public string SubmittingText { get; set; } = "Submitting...";
     [Parameter] public string SubmitButtonClass { get; set; } = "ml-auto";
-    [Parameter] public bool IsSubmitting { get; set; } = false;
+    [Parameter] public bool IsSubmitting { get; set; }
     
     private bool ShouldShowField(IFieldConfiguration<TModel, object> field)
     {
