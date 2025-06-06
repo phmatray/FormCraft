@@ -1,0 +1,103 @@
+@typeparam TModel where TModel : new()
+@using DynamicFormBlazor.Forms.Core
+@using DynamicFormBlazor.Forms.Rendering
+@inject IFieldRendererService FieldRendererService
+
+<EditForm Model="@Model" OnValidSubmit="@OnSubmit">
+    <DataAnnotationsValidator />
+    <DynamicFormValidator TModel="TModel" Configuration="@Configuration" />
+    
+    @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
+    {
+        @if (ShouldShowField(field))
+        {
+            <div class="mb-3">
+                @FieldRendererService.RenderField(Model, field, 
+                    EventCallback.Factory.Create<object?>(this, value => HandleFieldValueChanged(field.FieldName, value)),
+                    EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName)))
+                <FieldValidationMessage FieldName="@field.FieldName" />
+            </div>
+        }
+    }
+    
+    @if (ShowSubmitButton)
+    {
+        <MudCardActions>
+            <MudButton ButtonType="ButtonType.Submit"
+                      Variant="Variant.Filled"
+                      Color="Color.Primary"
+                      Disabled="@IsSubmitting"
+                      Class="@SubmitButtonClass">
+                @if (IsSubmitting)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">@SubmittingText</MudText>
+                }
+                else
+                {
+                    <MudText>@SubmitButtonText</MudText>
+                }
+            </MudButton>
+        </MudCardActions>
+    }
+</EditForm>
+
+@code {
+    [Parameter] public TModel Model { get; set; } = new();
+    [Parameter] public IFormConfiguration<TModel> Configuration { get; set; } = null!;
+    [Parameter] public EventCallback<TModel> OnValidSubmit { get; set; }
+    [Parameter] public EventCallback<(string fieldName, object? value)> OnFieldChanged { get; set; }
+    [Parameter] public bool ShowSubmitButton { get; set; } = true;
+    [Parameter] public string SubmitButtonText { get; set; } = "Submit";
+    [Parameter] public string SubmittingText { get; set; } = "Submitting...";
+    [Parameter] public string SubmitButtonClass { get; set; } = "ml-auto";
+    [Parameter] public bool IsSubmitting { get; set; } = false;
+    
+    private bool ShouldShowField(IFieldConfiguration<TModel, object> field)
+    {
+        if (field.VisibilityCondition != null)
+        {
+            return field.VisibilityCondition(Model);
+        }
+        return field.IsVisible;
+    }
+    
+    private async Task OnSubmit()
+    {
+        if (OnValidSubmit.HasDelegate)
+        {
+            await OnValidSubmit.InvokeAsync(Model);
+        }
+    }
+    
+    private async Task HandleFieldValueChanged(string fieldName, object? value)
+    {
+        SetFieldValue(fieldName, value);
+        
+        if (OnFieldChanged.HasDelegate)
+        {
+            await OnFieldChanged.InvokeAsync((fieldName, value));
+        }
+        
+        StateHasChanged();
+    }
+    
+    private Task HandleFieldDependencyChanged(string fieldName)
+    {
+        if (Configuration.FieldDependencies.TryGetValue(fieldName, out var dependencies))
+        {
+            foreach (var dependency in dependencies)
+            {
+                dependency.OnDependencyChanged(Model);
+            }
+        }
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+    
+    private void SetFieldValue(string fieldName, object? value)
+    {
+        var property = typeof(TModel).GetProperty(fieldName);
+        property?.SetValue(Model, value);
+    }
+}

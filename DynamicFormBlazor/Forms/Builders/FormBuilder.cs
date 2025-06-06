@@ -90,7 +90,7 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
     
     public Dictionary<string, object> AdditionalAttributes => _inner.AdditionalAttributes;
     public List<IFieldValidator<TModel, object>> Validators => 
-        _inner.Validators.Cast<IFieldValidator<TModel, object>>().ToList();
+        _inner.Validators.Select<IFieldValidator<TModel, TValue>, IFieldValidator<TModel, object>>(v => new ValidatorWrapper<TModel, TValue>(v)).ToList();
     public List<IFieldDependency<TModel>> Dependencies => _inner.Dependencies;
     
     public Func<TModel, bool>? VisibilityCondition 
@@ -115,4 +115,37 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
     
     // Helper method to get the actual field type
     public Type GetActualFieldType() => typeof(TValue);
+}
+
+// Wrapper to handle validator type conversion
+public class ValidatorWrapper<TModel, TValue> : IFieldValidator<TModel, object>
+{
+    private readonly IFieldValidator<TModel, TValue> _inner;
+    
+    public ValidatorWrapper(IFieldValidator<TModel, TValue> inner)
+    {
+        _inner = inner;
+    }
+    
+    public string? ErrorMessage 
+    { 
+        get => _inner.ErrorMessage; 
+        set => _inner.ErrorMessage = value; 
+    }
+    
+    public async Task<ValidationResult> ValidateAsync(TModel model, object value, IServiceProvider services)
+    {
+        // Convert object back to TValue for the inner validator
+        TValue typedValue;
+        try
+        {
+            typedValue = (TValue)(value ?? default(TValue)!);
+        }
+        catch
+        {
+            typedValue = default(TValue)!;
+        }
+        
+        return await _inner.ValidateAsync(model, typedValue, services);
+    }
 }

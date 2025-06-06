@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Rendering;
 using DynamicFormBlazor.Forms.Core;
 using DynamicFormBlazor.Forms.Extensions;
 using MudBlazor;
+using System.Linq.Expressions;
 
 namespace DynamicFormBlazor.Forms.Rendering;
 
@@ -61,19 +62,20 @@ public class StringFieldRenderer : IFieldRenderer
                 context.OnDependencyChanged.InvokeAsync();
             }));
             
+            
             if (context.Field.AdditionalAttributes.TryGetValue("Options", out var optionsObj) &&
                 optionsObj is IEnumerable<SelectOption<string>> options)
             {
-                builder.AddAttribute(4, "ChildContent", (RenderFragment)(childBuilder =>
+                builder.AddAttribute(5, "ChildContent", (RenderFragment)(childBuilder =>
                 {
                     var index = 0;
                     foreach (var option in options)
                     {
                         childBuilder.OpenComponent<MudSelectItem<string>>(index);
-                        childBuilder.AddAttribute(index + 1, "Value", option.Value);
-                        childBuilder.AddAttribute(index + 2, "ChildContent", (RenderFragment)(b => b.AddContent(0, option.Label)));
+                        childBuilder.AddAttribute(1, "Value", option.Value);
+                        childBuilder.AddAttribute(2, "ChildContent", (RenderFragment)(b => b.AddContent(0, option.Label)));
                         childBuilder.CloseComponent();
-                        index += 3;
+                        index++;
                     }
                 }));
             }
@@ -81,4 +83,5 @@ public class StringFieldRenderer : IFieldRenderer
             builder.CloseComponent();
         };
     }
+    
 }

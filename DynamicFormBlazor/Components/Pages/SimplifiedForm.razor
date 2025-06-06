@@ -1,0 +1,188 @@
+@page "/simplified"
+@using DynamicFormBlazor.Forms.Builders
+@using DynamicFormBlazor.Forms.Core
+@using DynamicFormBlazor.Forms.Extensions
+@using DynamicFormBlazor.Models
+@using DynamicFormBlazor.Components
+
+<PageTitle>Simplified Dynamic Form</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Simplified Dynamic Form API</MudText>
+<MudText Class="mb-8">This demonstrates the simplified API that hides complexity from users.</MudText>
+
+<MudGrid>
+    <MudItem xs="12" lg="8">
+        <MudCard>
+            <MudCardContent>
+                <DynamicFormComponent TModel="ContactModel" 
+                                    Model="@model" 
+                                    Configuration="@formConfiguration"
+                                    OnValidSubmit="@HandleValidSubmit"
+                                    OnFieldChanged="@(args => HandleFieldChanged(args.fieldName, args.value))"
+                                    IsSubmitting="@isSubmitting" />
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    
+    <MudItem xs="12" lg="4">
+        <MudCard>
+            <MudCardContent>
+                <MudText Typo="Typo.h6" GutterBottom="true">Simplified API Benefits</MudText>
+                <MudList T="string">
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">Single component handles all rendering</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">Automatic field value binding</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">Built-in dependency handling</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">No manual RenderTreeBuilder code</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">Extension methods for validation</MudText>
+                    </MudListItem>
+                </MudList>
+            </MudCardContent>
+        </MudCard>
+        
+        <MudCard Class="mt-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" GutterBottom="true">Usage Example</MudText>
+                <MudPaper Class="pa-3" Elevation="1">
+                    <pre style="font-size: 11px; line-height: 1.3; white-space: pre-wrap;">// Build form configuration
+var formConfiguration = FormBuilder&lt;ContactModel&gt;.Create()
+    .AddField(x => x.FirstName).Required()
+    .AddField(x => x.Email).WithEmailValidation()
+    .Build();
+
+// Use in Razor component
+&lt;DynamicFormComponent TModel="ContactModel" 
+    Model="@model" 
+    Configuration="@formConfiguration"
+    OnValidSubmit="@HandleValidSubmit" /&gt;</pre>
+                </MudPaper>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@if (isSubmitted)
+{
+    <MudCard Class="mt-4">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" GutterBottom="true">Submitted Data</MudText>
+            <MudSimpleTable>
+                <tbody>
+                    <tr><td><strong>Name:</strong></td><td>@($"{model.FirstName} {model.LastName}")</td></tr>
+                    <tr><td><strong>Email:</strong></td><td>@model.Email</td></tr>
+                    <tr><td><strong>Age:</strong></td><td>@model.Age</td></tr>
+                    <tr><td><strong>Country:</strong></td><td>@model.Country</td></tr>
+                    @if (!string.IsNullOrEmpty(model.City))
+                    {
+                        <tr><td><strong>City:</strong></td><td>@model.City</td></tr>
+                    }
+                    <tr><td><strong>Newsletter:</strong></td><td>@(model.SubscribeToNewsletter ? "Yes" : "No")</td></tr>
+                </tbody>
+            </MudSimpleTable>
+        </MudCardContent>
+    </MudCard>
+}
+
+@if (fieldChanges.Any())
+{
+    <MudCard Class="mt-4">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" GutterBottom="true">Field Changes Log</MudText>
+            <MudList T="string">
+                @foreach (var change in fieldChanges.TakeLast(5))
+                {
+                    <MudListItem T="string">
+                        <MudText Typo="Typo.body2">@change</MudText>
+                    </MudListItem>
+                }
+            </MudList>
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    private ContactModel model = new();
+    private bool isSubmitted = false;
+    private bool isSubmitting = false;
+    private List<string> fieldChanges = new();
+    private IFormConfiguration<ContactModel> formConfiguration = null!;
+    
+    protected override void OnInitialized()
+    {
+        // Much simpler configuration setup
+        formConfiguration = FormBuilder<ContactModel>
+            .Create()
+            .AddField(x => x.FirstName)
+                .WithLabel("First Name")
+                .Required("First name is required")
+                .WithMinLength(2, "Must be at least 2 characters")
+                .WithPlaceholder("Enter your first name")
+            .AddField(x => x.LastName)
+                .WithLabel("Last Name")
+                .Required("Last name is required")
+                .WithMinLength(2, "Must be at least 2 characters")
+                .WithPlaceholder("Enter your last name")
+            .AddField(x => x.Email)
+                .WithLabel("Email Address")
+                .Required("Email is required")
+                .WithEmailValidation()
+                .WithPlaceholder("your.email@example.com")
+            .AddField(x => x.Age)
+                .WithLabel("Age")
+                .Required("Age is required")
+                .WithRange(16, 100, "Age must be between 16 and 100")
+            .AddField(x => x.Country)
+                .WithLabel("Country")
+                .Required("Please select your country")
+                .WithOptions(
+                    ("US", "United States"),
+                    ("CA", "Canada"),
+                    ("UK", "United Kingdom"),
+                    ("DE", "Germany"),
+                    ("FR", "France")
+                )
+            .AddField(x => x.City)
+                .WithLabel("City")
+                .WithPlaceholder("Enter your city")
+                .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
+                .DependsOn(x => x.Country, (model, country) =>
+                {
+                    if (string.IsNullOrEmpty(country))
+                    {
+                        model.City = null;
+                    }
+                })
+            .AddField(x => x.SubscribeToNewsletter)
+                .WithLabel("Subscribe to Newsletter")
+                .WithHelpText("Get updates about new features")
+            .Build();
+    }
+    
+    private async Task HandleValidSubmit(ContactModel submittedModel)
+    {
+        isSubmitting = true;
+        StateHasChanged();
+        
+        // Simulate API call
+        await Task.Delay(2000);
+        
+        isSubmitted = true;
+        isSubmitting = false;
+        StateHasChanged();
+    }
+    
+    private Task HandleFieldChanged(string fieldName, object? value)
+    {
+        fieldChanges.Add($"{DateTime.Now:HH:mm:ss} - {fieldName}: {value}");
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+}
