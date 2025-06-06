@@ -164,6 +164,74 @@ The main form component that:
 - **MudBlazor** (v8.7.0): Material Design component library
 - **FluentValidation** (v12.0.0): Validation library
 
+## Dynamic Form API Improvements
+
+This project showcases both the current dynamic form implementation and concepts for a significantly improved API. Visit `/improved` to see the architectural improvements that have been designed:
+
+### Current Implementation (Working)
+- Dictionary-based form model
+- Basic field type support
+- Manual RenderFragment generation
+- Simple validation examples
+
+### Improved API Design (Conceptual)
+We've designed a comprehensive improvement to the dynamic form API with the following features:
+
+#### ✅ **Type-Safe Form Builder**
+```csharp
+var form = FormBuilder<ContactModel>
+    .Create()
+    .AddField(x => x.FirstName)
+        .WithLabel("First Name")
+        .Required("First name is required")
+        .WithMinLength(2, "Must be at least 2 characters")
+    .Build();
+```
+
+#### ✅ **Comprehensive Validation System**
+- Built-in validators (Required, Email, Range, MinLength, MaxLength)
+- Custom synchronous and asynchronous validators
+- Fluent validation integration
+- Real-time field-level validation
+
+#### ✅ **Advanced Field Types**
+- Text areas with character limits
+- File upload with size/type restrictions
+- Multi-select dropdowns
+- Slider inputs for numeric ranges
+- Date/time pickers
+
+#### ✅ **Field Dependencies & Conditional Logic**
+```csharp
+.AddField(x => x.City)
+    .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
+    .DependsOn(x => x.Country, (model, country) => {
+        if (string.IsNullOrEmpty(country)) model.City = null;
+    })
+```
+
+#### ✅ **Form State Management**
+- Dirty state tracking
+- Change detection
+- Form reset functionality
+- Validation state management
+
+#### ✅ **Extensible Architecture**
+- Plugin system for custom field renderers
+- Service-based dependency injection
+- Configurable field layouts
+- Theme and styling support
+
+### Implementation Status
+
+The architectural foundation has been designed and demonstrates:
+- **Core Interfaces**: IFieldConfiguration, IFieldRenderer, IFieldValidator
+- **Builder Pattern**: FormBuilder and FieldBuilder classes
+- **Extension Methods**: Fluent API for common scenarios
+- **Service Integration**: Dependency injection setup
+
+While the complete implementation requires additional work to fully integrate with MudBlazor's component system, the foundation provides a clear path toward a modern, type-safe dynamic form solution.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

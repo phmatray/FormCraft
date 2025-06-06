@@ -1,0 +1,375 @@
+@page "/improved"
+@using DynamicFormBlazor.Forms.Builders
+@using DynamicFormBlazor.Forms.Core
+@using DynamicFormBlazor.Forms.Extensions
+@using DynamicFormBlazor.Models
+@using Microsoft.AspNetCore.Components.Rendering
+
+<PageTitle>Improved Dynamic Form</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Improved Dynamic Form API</MudText>
+<MudText Class="mb-8">This demonstrates the new type-safe, feature-rich dynamic form API with validation and dependencies.</MudText>
+
+<MudGrid>
+    <MudItem xs="12" lg="8">
+        <MudCard>
+            <MudCardContent>
+                @* Render the form using our improved API *@
+                <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit">
+                    <DataAnnotationsValidator />
+                    
+                    @foreach (var field in formConfiguration.Fields.OrderBy(f => f.Order))
+                    {
+                        @if (ShouldShowField(field))
+                        {
+                            <div class="mb-3">
+                                @RenderField(field)
+                            </div>
+                        }
+                    }
+                    
+                    <MudCardActions>
+                        <MudButton ButtonType="ButtonType.Submit"
+                                  Variant="Variant.Filled"
+                                  Color="Color.Primary"
+                                  Disabled="@isSubmitting"
+                                  Class="ml-auto">
+                            @if (isSubmitting)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Submitting...</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Submit Application</MudText>
+                            }
+                        </MudButton>
+                    </MudCardActions>
+                </EditForm>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    
+    <MudItem xs="12" lg="4">
+        <MudCard>
+            <MudCardContent>
+                <MudText Typo="Typo.h6" GutterBottom="true">API Features Demonstrated</MudText>
+                <MudList T="string">
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">Type-safe form building with Expression&lt;Func&gt;</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">Fluent API with method chaining</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">Built-in validation (Required, Email, Range)</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">Field dependencies (City depends on Country)</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">Conditional visibility</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        <MudText Typo="Typo.body2">Extension methods for field types</MudText>
+                    </MudListItem>
+                </MudList>
+            </MudCardContent>
+        </MudCard>
+        
+        <MudCard Class="mt-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" GutterBottom="true">Code Example</MudText>
+                <MudPaper Class="pa-3" Elevation="1">
+                    <pre style="font-size: 11px; line-height: 1.3; white-space: pre-wrap;">FormBuilder&lt;ContactModel&gt;
+    .Create()
+    .AddField(x => x.FirstName)
+        .WithLabel("First Name")
+        .Required("Required field")
+        .WithMinLength(2)
+    .AddField(x => x.Email)
+        .WithEmailValidation()
+    .AddField(x => x.Country)
+        .WithOptions(("US", "USA"), ("CA", "Canada"))
+    .AddField(x => x.City)
+        .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
+        .DependsOn(x => x.Country, (model, country) => {
+            if (string.IsNullOrEmpty(country)) 
+                model.City = null;
+        })
+    .Build();</pre>
+                </MudPaper>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@if (isSubmitted)
+{
+    <MudCard Class="mt-4">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" GutterBottom="true">Submitted Data</MudText>
+            <MudSimpleTable>
+                <tbody>
+                    <tr><td><strong>Name:</strong></td><td>@($"{model.FirstName} {model.LastName}")</td></tr>
+                    <tr><td><strong>Email:</strong></td><td>@model.Email</td></tr>
+                    <tr><td><strong>Age:</strong></td><td>@model.Age</td></tr>
+                    <tr><td><strong>Country:</strong></td><td>@model.Country</td></tr>
+                    @if (!string.IsNullOrEmpty(model.City))
+                    {
+                        <tr><td><strong>City:</strong></td><td>@model.City</td></tr>
+                    }
+                    <tr><td><strong>Newsletter:</strong></td><td>@(model.SubscribeToNewsletter ? "Yes" : "No")</td></tr>
+                </tbody>
+            </MudSimpleTable>
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    private ContactModel model = new();
+    private bool isSubmitted = false;
+    private bool isSubmitting = false;
+    private IFormConfiguration<ContactModel> formConfiguration = null!;
+    
+    protected override void OnInitialized()
+    {
+        // This is our improved API in action!
+        formConfiguration = FormBuilder<ContactModel>
+            .Create()
+            .AddField(x => x.FirstName)
+                .WithLabel("First Name")
+                .Required("First name is required")
+                .WithMinLength(2, "Must be at least 2 characters")
+                .WithPlaceholder("Enter your first name")
+            .AddField(x => x.LastName)
+                .WithLabel("Last Name")
+                .Required("Last name is required")
+                .WithMinLength(2, "Must be at least 2 characters")
+                .WithPlaceholder("Enter your last name")
+            .AddField(x => x.Email)
+                .WithLabel("Email Address")
+                .Required("Email is required")
+                .WithEmailValidation()
+                .WithPlaceholder("your.email@example.com")
+            .AddField(x => x.Age)
+                .WithLabel("Age")
+                .Required("Age is required")
+                .WithRange(16, 100, "Age must be between 16 and 100")
+            .AddField(x => x.Country)
+                .WithLabel("Country")
+                .Required("Please select your country")
+                .WithOptions(
+                    ("US", "United States"),
+                    ("CA", "Canada"),
+                    ("UK", "United Kingdom"),
+                    ("DE", "Germany"),
+                    ("FR", "France")
+                )
+            .AddField(x => x.City)
+                .WithLabel("City")
+                .WithPlaceholder("Enter your city")
+                .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
+                .DependsOn(x => x.Country, (model, country) =>
+                {
+                    if (string.IsNullOrEmpty(country))
+                    {
+                        model.City = null;
+                    }
+                })
+            .AddField(x => x.SubscribeToNewsletter)
+                .WithLabel("Subscribe to Newsletter")
+                .WithHelpText("Get updates about new features")
+            .Build();
+    }
+    
+    private bool ShouldShowField(IFieldConfiguration<ContactModel, object> field)
+    {
+        if (field.VisibilityCondition != null)
+        {
+            return field.VisibilityCondition(model);
+        }
+        return field.IsVisible;
+    }
+    
+    private RenderFragment RenderField(IFieldConfiguration<ContactModel, object> field)
+    {
+        return builder =>
+        {
+            // Get the actual field type
+            Type fieldType;
+            
+            // Check if this is a wrapper and get the actual type
+            var wrapperType = field.GetType();
+            if (wrapperType.IsGenericType && wrapperType.GetGenericTypeDefinition().Name.Contains("FieldConfigurationWrapper"))
+            {
+                // Use reflection to get the actual field type from the wrapper
+                var getActualFieldTypeMethod = wrapperType.GetMethod("GetActualFieldType");
+                if (getActualFieldTypeMethod != null)
+                {
+                    fieldType = (Type)getActualFieldTypeMethod.Invoke(field, null)!;
+                }
+                else
+                {
+                    // Fallback to property type
+                    var property = typeof(ContactModel).GetProperty(field.FieldName);
+                    fieldType = property?.PropertyType ?? typeof(object);
+                }
+            }
+            else
+            {
+                fieldType = field.ValueExpression.Body.Type;
+            }
+            
+            // Simple field rendering based on type and attributes
+            if (fieldType == typeof(string))
+            {
+                if (field.AdditionalAttributes.ContainsKey("Options"))
+                {
+                    RenderSelectField(builder, field);
+                }
+                else
+                {
+                    RenderTextField(builder, field);
+                }
+            }
+            else if (fieldType == typeof(int))
+            {
+                RenderNumericField(builder, field);
+            }
+            else if (fieldType == typeof(bool))
+            {
+                RenderCheckboxField(builder, field);
+            }
+            else
+            {
+                builder.AddContent(0, $"Unsupported field type: {fieldType.Name} for field: {field.FieldName}");
+            }
+        };
+    }
+    
+    private void RenderTextField(RenderTreeBuilder builder, IFieldConfiguration<ContactModel, object> field)
+    {
+        builder.OpenComponent<MudTextField<string>>(0);
+        builder.AddAttribute(1, "Label", field.Label);
+        
+        var getter = field.ValueExpression.Compile();
+        var currentValue = getter(model) as string ?? "";
+        builder.AddAttribute(2, "Value", currentValue);
+        
+        builder.AddAttribute(3, "ValueChanged", EventCallback.Factory.Create<string>(this, value => {
+            SetFieldValue(field.FieldName, value);
+        }));
+        
+        if (!string.IsNullOrEmpty(field.Placeholder))
+            builder.AddAttribute(4, "Placeholder", field.Placeholder);
+        
+        if (!string.IsNullOrEmpty(field.HelpText))
+            builder.AddAttribute(5, "HelperText", field.HelpText);
+        
+        builder.AddAttribute(6, "Required", field.IsRequired);
+        builder.AddAttribute(7, "Disabled", field.IsDisabled);
+        
+        builder.CloseComponent();
+    }
+    
+    private void RenderSelectField(RenderTreeBuilder builder, IFieldConfiguration<ContactModel, object> field)
+    {
+        builder.OpenComponent<MudSelect<string>>(0);
+        builder.AddAttribute(1, "Label", field.Label);
+        
+        var getter = field.ValueExpression.Compile();
+        var currentValue = getter(model) as string ?? "";
+        builder.AddAttribute(2, "Value", currentValue);
+        
+        builder.AddAttribute(3, "ValueChanged", EventCallback.Factory.Create<string>(this, value => {
+            SetFieldValue(field.FieldName, value);
+            HandleFieldDependencies(field.FieldName);
+        }));
+        
+        if (field.AdditionalAttributes.TryGetValue("Options", out var optionsObj) &&
+            optionsObj is IEnumerable<SelectOption<string>> options)
+        {
+            builder.AddAttribute(4, "ChildContent", (RenderFragment)(childBuilder =>
+            {
+                var index = 0;
+                foreach (var option in options)
+                {
+                    childBuilder.OpenComponent<MudSelectItem<string>>(index++);
+                    childBuilder.AddAttribute(index++, "Value", option.Value);
+                    childBuilder.AddAttribute(index++, "ChildContent", (RenderFragment)(b => b.AddContent(0, option.Label)));
+                    childBuilder.CloseComponent();
+                }
+            }));
+        }
+        
+        builder.CloseComponent();
+    }
+    
+    private void RenderNumericField(RenderTreeBuilder builder, IFieldConfiguration<ContactModel, object> field)
+    {
+        builder.OpenComponent<MudNumericField<int>>(0);
+        builder.AddAttribute(1, "Label", field.Label);
+        
+        var getter = field.ValueExpression.Compile();
+        var currentValue = (int)(getter(model) ?? 0);
+        builder.AddAttribute(2, "Value", currentValue);
+        
+        builder.AddAttribute(3, "ValueChanged", EventCallback.Factory.Create<int>(this, value => {
+            SetFieldValue(field.FieldName, value);
+        }));
+        
+        builder.AddAttribute(4, "Required", field.IsRequired);
+        builder.CloseComponent();
+    }
+    
+    private void RenderCheckboxField(RenderTreeBuilder builder, IFieldConfiguration<ContactModel, object> field)
+    {
+        builder.OpenComponent<MudCheckBox<bool>>(0);
+        builder.AddAttribute(1, "Label", field.Label);
+        
+        var getter = field.ValueExpression.Compile();
+        var currentValue = (bool)(getter(model) ?? false);
+        builder.AddAttribute(2, "Checked", currentValue);
+        
+        builder.AddAttribute(3, "CheckedChanged", EventCallback.Factory.Create<bool>(this, value => {
+            SetFieldValue(field.FieldName, value);
+        }));
+        
+        if (!string.IsNullOrEmpty(field.HelpText))
+            builder.AddAttribute(4, "HelperText", field.HelpText);
+        
+        builder.CloseComponent();
+    }
+    
+    private void SetFieldValue(string fieldName, object value)
+    {
+        var property = typeof(ContactModel).GetProperty(fieldName);
+        property?.SetValue(model, value);
+        StateHasChanged();
+    }
+    
+    private void HandleFieldDependencies(string changedFieldName)
+    {
+        if (formConfiguration.FieldDependencies.TryGetValue(changedFieldName, out var dependencies))
+        {
+            foreach (var dependency in dependencies)
+            {
+                dependency.OnDependencyChanged(model);
+            }
+            StateHasChanged();
+        }
+    }
+    
+    private async Task HandleValidSubmit()
+    {
+        isSubmitting = true;
+        
+        // Simulate API call
+        await Task.Delay(2000);
+        
+        isSubmitted = true;
+        isSubmitting = false;
+        StateHasChanged();
+    }
+}
