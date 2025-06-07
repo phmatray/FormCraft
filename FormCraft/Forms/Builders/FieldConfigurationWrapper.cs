@@ -82,11 +82,18 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
         set => _inner.DisabledCondition = value; 
     }
     
+    private RenderFragment<IFieldContext<TModel, object>>? _customTemplate;
+    
     /// <inheritdoc />
     public RenderFragment<IFieldContext<TModel, object>>? CustomTemplate 
     { 
-        get => null; // Simplified for now
-        set { } // Simplified for now
+        get => _customTemplate;
+        set 
+        { 
+            _customTemplate = value;
+            // For now, we can't easily convert between typed and object templates
+            // This would require a more complex adapter pattern
+        }
     }
     
     /// <summary>
