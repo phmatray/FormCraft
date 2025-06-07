@@ -14,11 +14,11 @@
     
     <FormContent>
         <DynamicFormComponent TModel="ContactModel" 
-                            Model="@model" 
-                            Configuration="@formConfiguration"
+                            Model="@_model" 
+                            Configuration="@_formConfiguration"
                             OnValidSubmit="@HandleValidSubmit"
                             OnFieldChanged="@(args => HandleFieldChanged(args.fieldName, args.value))"
-                            IsSubmitting="@isSubmitting"
+                            IsSubmitting="@_isSubmitting"
                             ShowSubmitButton="true"
                             SubmitButtonText="Submit Information"
                             SubmittingText="Submitting..."
@@ -26,7 +26,7 @@
     </FormContent>
     
     <SidebarContent>
-        <FormGuidelines Guidelines="@guidelines" Title="Fluent API Features" />
+        <FormGuidelines Guidelines="@_guidelines" Title="Fluent API Features" />
         
         <MudCard Elevation="2" Class="mt-4">
             <MudCardContent>
@@ -74,7 +74,7 @@
     </SidebarContent>
     
     <SuccessContent>
-        @if (isSubmitted)
+        @if (_isSubmitted)
         {
             <FormSuccessDisplay TModel="ContactModel" 
                                DataDisplayItems="@GetDataDisplayItems()"
@@ -85,13 +85,13 @@
 </FormPageLayout>
 
 @code {
-    private ContactModel model = new();
-    private bool isSubmitted;
-    private bool isSubmitting;
-    private List<string> fieldChanges = new();
-    private IFormConfiguration<ContactModel> formConfiguration = null!;
+    private ContactModel _model = new();
+    private bool _isSubmitted;
+    private bool _isSubmitting;
+    private List<string> _fieldChanges = new();
+    private IFormConfiguration<ContactModel> _formConfiguration = null!;
     
-    private List<FormGuidelines.GuidelineItem> guidelines = new()
+    private List<FormGuidelines.GuidelineItem> _guidelines = new()
     {
         new() { Icon = Icons.Material.Filled.FlashOn, Color = Color.Primary, Text = "Fluent helper methods for common fields" },
         new() { Icon = Icons.Material.Filled.Speed, Color = Color.Secondary, Text = "Streamlined form building process" },
@@ -104,7 +104,7 @@
     protected override void OnInitialized()
     {
         // Much simpler form creation using fluent methods
-        formConfiguration = FormBuilder<ContactModel>
+        _formConfiguration = FormBuilder<ContactModel>
             .Create()
             .WithLayout(FormLayout.Horizontal)
             .AddRequiredTextField(x => x.FirstName, "First Name", "Enter your first name", 2)
@@ -137,29 +137,29 @@
     
     private async Task HandleValidSubmit(ContactModel submittedModel)
     {
-        isSubmitting = true;
+        _isSubmitting = true;
         StateHasChanged();
         
         // Simulate API call
         await Task.Delay(2000);
         
-        isSubmitted = true;
-        isSubmitting = false;
+        _isSubmitted = true;
+        _isSubmitting = false;
         StateHasChanged();
     }
     
     private void ResetForm()
     {
-        model = new ContactModel();
-        isSubmitted = false;
-        isSubmitting = false;
-        fieldChanges.Clear();
+        _model = new ContactModel();
+        _isSubmitted = false;
+        _isSubmitting = false;
+        _fieldChanges.Clear();
         StateHasChanged();
     }
     
     private Task HandleFieldChanged(string fieldName, object? value)
     {
-        fieldChanges.Add($"{DateTime.Now:HH:mm:ss} - {fieldName}: {value}");
+        _fieldChanges.Add($"{DateTime.Now:HH:mm:ss} - {fieldName}: {value}");
         StateHasChanged();
         return Task.CompletedTask;
     }
@@ -168,19 +168,19 @@
     {
         var items = new List<FormSuccessDisplay<ContactModel>.DataDisplayItem>
         {
-            new() { Label = "Full Name", Value = $"{model.FirstName} {model.LastName}" },
-            new() { Label = "Email", Value = model.Email ?? "" },
-            new() { Label = "Age", Value = $"{model.Age} years old" },
-            new() { Label = "Country", Value = model.Country ?? "" }
+            new() { Label = "Full Name", Value = $"{_model.FirstName} {_model.LastName}" },
+            new() { Label = "Email", Value = _model.Email ?? "" },
+            new() { Label = "Age", Value = $"{_model.Age} years old" },
+            new() { Label = "Country", Value = _model.Country ?? "" }
         };
         
-        if (!string.IsNullOrEmpty(model.City))
-            items.Add(new() { Label = "City", Value = model.City });
+        if (!string.IsNullOrEmpty(_model.City))
+            items.Add(new() { Label = "City", Value = _model.City });
             
-        items.Add(new() { Label = "Newsletter", Value = model.SubscribeToNewsletter ? "Subscribed" : "Not Subscribed" });
+        items.Add(new() { Label = "Newsletter", Value = _model.SubscribeToNewsletter ? "Subscribed" : "Not Subscribed" });
         
-        if (fieldChanges.Any())
-            items.Add(new() { Label = "Field Changes", Value = $"{fieldChanges.Count} changes tracked" });
+        if (_fieldChanges.Any())
+            items.Add(new() { Label = "Field Changes", Value = $"{_fieldChanges.Count} changes tracked" });
         
         return items;
     }

@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Components;
-
 namespace FormCraft.UnitTests.Rendering;
 
 public class FieldRenderContextTests
@@ -9,7 +7,7 @@ public class FieldRenderContextTests
     {
         // Arrange
         var model = new TestModel { Name = "Test" };
-        var field = new FieldConfiguration<TestModel, string>(x => x.Name);
+        var field = new FieldConfiguration<TestModel, string?>(x => x.Name);
         var fieldType = typeof(string);
         var currentValue = "Test Value";
         var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
@@ -19,7 +17,7 @@ public class FieldRenderContextTests
         var context = new FieldRenderContext<TestModel>
         {
             Model = model,
-            Field = new FieldConfigurationWrapper<TestModel, string>(field),
+            Field = new FieldConfigurationWrapper<TestModel, string?>(field),
             ActualFieldType = fieldType,
             CurrentValue = currentValue,
             OnValueChanged = onValueChanged,
@@ -40,13 +38,13 @@ public class FieldRenderContextTests
     {
         // Arrange
         var model = new TestModel { Name = null };
-        var field = new FieldConfiguration<TestModel, string>(x => x.Name);
+        var field = new FieldConfiguration<TestModel, string?>(x => x.Name);
 
         // Act
         var context = new FieldRenderContext<TestModel>
         {
             Model = model,
-            Field = new FieldConfigurationWrapper<TestModel, string>(field),
+            Field = new FieldConfigurationWrapper<TestModel, string?>(field),
             ActualFieldType = typeof(string),
             CurrentValue = null,
             OnValueChanged = EventCallback.Factory.Create<object?>(this, _ => { }),
@@ -146,7 +144,7 @@ public class FieldRenderContextTests
     {
         // Arrange
         var model = new TestModel();
-        var field = new FieldConfiguration<TestModel, string>(x => x.Name);
+        var field = new FieldConfiguration<TestModel, string?>(x => x.Name);
         var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
         var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
 
@@ -154,7 +152,7 @@ public class FieldRenderContextTests
         var context = new FieldRenderContext<TestModel>
         {
             Model = model,
-            Field = new FieldConfigurationWrapper<TestModel, string>(field),
+            Field = new FieldConfigurationWrapper<TestModel, string?>(field),
             ActualFieldType = typeof(string),
             CurrentValue = "Test",
             OnValueChanged = onValueChanged,

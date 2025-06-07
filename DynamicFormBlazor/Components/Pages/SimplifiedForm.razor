@@ -15,13 +15,13 @@
     
     <FormContent>
         <DynamicFormComponent TModel="ContactModel" 
-                            Model="@model" 
-                            Configuration="@formConfiguration"
+                            Model="@_model" 
+                            Configuration="@_formConfiguration"
                             OnValidSubmit="@HandleValidSubmit"
                             OnFieldChanged="@(args => HandleFieldChanged(args.fieldName, args.value))"
-                            IsSubmitting="@isSubmitting" />
+                            IsSubmitting="@_isSubmitting" />
         
-        @if (fieldChanges.Any())
+        @if (_fieldChanges.Any())
         {
             <MudCard Class="mt-4" Elevation="2">
                 <MudCardContent>
@@ -30,7 +30,7 @@
                         Field Changes Log
                     </MudText>
                     <MudList T="string" Dense="true">
-                        @foreach (var change in fieldChanges.TakeLast(5))
+                        @foreach (var change in _fieldChanges.TakeLast(5))
                         {
                             <MudListItem T="string" Icon="@Icons.Material.Filled.Update" IconColor="Color.Secondary">
                                 <MudText Typo="Typo.body2">@change</MudText>
@@ -43,7 +43,7 @@
     </FormContent>
     
     <SidebarContent>
-        <FormGuidelines Guidelines="@guidelines" Title="Simplified API Benefits" />
+        <FormGuidelines Guidelines="@_guidelines" Title="Simplified API Benefits" />
         
         <MudCard Elevation="2" Class="mt-4">
             <MudCardContent>
@@ -63,8 +63,8 @@ var formConfiguration = FormBuilder&lt;ContactModel&gt;
 
 // Use in Razor component
 &lt;DynamicFormComponent TModel="ContactModel" 
-    Model="@model" 
-    Configuration="@formConfiguration"
+    Model="@_model" 
+    Configuration="@_formConfiguration"
     OnValidSubmit="@HandleValidSubmit" /&gt;</pre>
                 </MudPaper>
             </MudCardContent>
@@ -74,7 +74,7 @@ var formConfiguration = FormBuilder&lt;ContactModel&gt;
     </SidebarContent>
     
     <SuccessContent>
-        @if (isSubmitted)
+        @if (_isSubmitted)
         {
             <FormSuccessDisplay TModel="ContactModel" 
                                DataDisplayItems="@GetDataDisplayItems()"
@@ -85,13 +85,13 @@ var formConfiguration = FormBuilder&lt;ContactModel&gt;
 </FormPageLayout>
 
 @code {
-    private ContactModel model = new();
-    private bool isSubmitted;
-    private bool isSubmitting;
-    private List<string> fieldChanges = new();
-    private IFormConfiguration<ContactModel> formConfiguration = null!;
+    private ContactModel _model = new();
+    private bool _isSubmitted;
+    private bool _isSubmitting;
+    private List<string> _fieldChanges = new();
+    private IFormConfiguration<ContactModel> _formConfiguration = null!;
     
-    private List<FormGuidelines.GuidelineItem> guidelines = new()
+    private List<FormGuidelines.GuidelineItem> _guidelines = new()
     {
         new() { Icon = Icons.Material.Filled.Widgets, Color = Color.Primary, Text = "Single component handles all rendering" },
         new() { Icon = Icons.Material.Filled.AutoAwesome, Color = Color.Secondary, Text = "Automatic field value binding" },
@@ -104,7 +104,7 @@ var formConfiguration = FormBuilder&lt;ContactModel&gt;
     protected override void OnInitialized()
     {
         // Much simpler configuration setup
-        formConfiguration = FormBuilder<ContactModel>
+        _formConfiguration = FormBuilder<ContactModel>
             .Create()
             .AddField(x => x.FirstName)
                 .WithLabel("First Name")
@@ -154,29 +154,29 @@ var formConfiguration = FormBuilder&lt;ContactModel&gt;
     
     private async Task HandleValidSubmit(ContactModel submittedModel)
     {
-        isSubmitting = true;
+        _isSubmitting = true;
         StateHasChanged();
         
         // Simulate API call
         await Task.Delay(2000);
         
-        isSubmitted = true;
-        isSubmitting = false;
+        _isSubmitted = true;
+        _isSubmitting = false;
         StateHasChanged();
     }
     
     private Task HandleFieldChanged(string fieldName, object? value)
     {
-        fieldChanges.Add($"{DateTime.Now:HH:mm:ss} - {fieldName}: {value}");
+        _fieldChanges.Add($"{DateTime.Now:HH:mm:ss} - {fieldName}: {value}");
         StateHasChanged();
         return Task.CompletedTask;
     }
     
     private void ResetForm()
     {
-        model = new ContactModel();
-        isSubmitted = false;
-        fieldChanges.Clear();
+        _model = new ContactModel();
+        _isSubmitted = false;
+        _fieldChanges.Clear();
         StateHasChanged();
     }
     
@@ -184,19 +184,19 @@ var formConfiguration = FormBuilder&lt;ContactModel&gt;
     {
         var items = new List<FormSuccessDisplay<ContactModel>.DataDisplayItem>
         {
-            new() { Label = "Full Name", Value = $"{model.FirstName} {model.LastName}" },
-            new() { Label = "Email", Value = model.Email ?? "" },
-            new() { Label = "Age", Value = model.Age.ToString() },
-            new() { Label = "Country", Value = model.Country ?? "" }
+            new() { Label = "Full Name", Value = $"{_model.FirstName} {_model.LastName}" },
+            new() { Label = "Email", Value = _model.Email ?? "" },
+            new() { Label = "Age", Value = _model.Age.ToString() },
+            new() { Label = "Country", Value = _model.Country ?? "" }
         };
         
-        if (!string.IsNullOrEmpty(model.City))
-            items.Add(new() { Label = "City", Value = model.City });
+        if (!string.IsNullOrEmpty(_model.City))
+            items.Add(new() { Label = "City", Value = _model.City });
             
-        items.Add(new() { Label = "Newsletter", Value = model.SubscribeToNewsletter ? "Yes" : "No" });
+        items.Add(new() { Label = "Newsletter", Value = _model.SubscribeToNewsletter ? "Yes" : "No" });
         
-        if (fieldChanges.Any())
-            items.Add(new() { Label = "Field Changes", Value = $"{fieldChanges.Count} changes tracked" });
+        if (_fieldChanges.Any())
+            items.Add(new() { Label = "Field Changes", Value = $"{_fieldChanges.Count} changes tracked" });
         
         return items;
     }

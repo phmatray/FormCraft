@@ -1,6 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
-using FakeItEasy;
-
 namespace FormCraft.UnitTests.Integration;
 
 public class DependencyInjectionIntegrationTests

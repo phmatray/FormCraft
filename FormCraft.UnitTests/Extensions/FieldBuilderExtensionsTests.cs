@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Components.Forms;
-
 namespace FormCraft.UnitTests.Extensions;
 
 public class FieldBuilderExtensionsTests
@@ -47,7 +45,7 @@ public class FieldBuilderExtensionsTests
         var fieldBuilder = builder.AddField(x => x.Description);
 
         // Act
-        var result = fieldBuilder.AsTextArea(3);
+        var result = fieldBuilder.AsTextArea();
         var config = result.Build();
 
         // Assert

@@ -114,7 +114,7 @@ public class FieldBuilderTests
         var fieldBuilder = builder.AddField(x => x.Name);
 
         // Act
-        var result = fieldBuilder.Disabled(true);
+        var result = fieldBuilder.Disabled();
         var config = result.Build();
 
         // Assert
@@ -131,7 +131,7 @@ public class FieldBuilderTests
         var fieldBuilder = builder.AddField(x => x.Name);
 
         // Act
-        var result = fieldBuilder.ReadOnly(true);
+        var result = fieldBuilder.ReadOnly();
         var config = result.Build();
 
         // Assert

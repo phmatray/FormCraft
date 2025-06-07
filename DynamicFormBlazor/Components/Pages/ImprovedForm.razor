@@ -14,15 +14,15 @@
                 FormIcon="@Icons.Material.Filled.Build">
     
     <FormContent>
-        <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit">
+        <EditForm Model="@_model" OnValidSubmit="@HandleValidSubmit">
             <DataAnnotationsValidator />
             
-            @foreach (var field in formConfiguration.Fields.OrderBy(f => f.Order))
+            @foreach (var field in _formConfiguration.Fields.OrderBy(f => f.Order))
             {
                 @if (ShouldShowField(field))
                 {
                     <div class="mb-4">
-                        @FieldRendererService.RenderField(model, field, 
+                        @FieldRendererService.RenderField(_model, field, 
                             EventCallback.Factory.Create<object?>(this, value => SetFieldValue(field.FieldName, value)),
                             EventCallback.Factory.Create(this, () => HandleFieldDependencies(field.FieldName)))
                     </div>
@@ -34,10 +34,10 @@
                           Variant="Variant.Filled"
                           Color="Color.Primary"
                           Size="Size.Large"
-                          Disabled="@isSubmitting"
-                          StartIcon="@(isSubmitting ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.Send)"
+                          Disabled="@_isSubmitting"
+                          StartIcon="@(_isSubmitting ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.Send)"
                           Class="px-8">
-                    @if (isSubmitting)
+                    @if (_isSubmitting)
                     {
                         <MudProgressCircular Class="me-2" Size="Size.Small" Indeterminate="true" />
                         <span>Submitting...</span>
@@ -52,7 +52,7 @@
     </FormContent>
     
     <SidebarContent>
-        <FormGuidelines Guidelines="@guidelines" Title="API Features" />
+        <FormGuidelines Guidelines="@_guidelines" Title="API Features" />
         
         <MudCard Elevation="2" Class="mt-4">
             <MudCardContent>
@@ -86,7 +86,7 @@
     </SidebarContent>
     
     <SuccessContent>
-        @if (isSubmitted)
+        @if (_isSubmitted)
         {
             <FormSuccessDisplay TModel="ContactModel" 
                                DataDisplayItems="@GetDataDisplayItems()"
@@ -97,12 +97,12 @@
 </FormPageLayout>
 
 @code {
-    private ContactModel model = new();
-    private bool isSubmitted;
-    private bool isSubmitting;
-    private IFormConfiguration<ContactModel> formConfiguration = null!;
+    private ContactModel _model = new();
+    private bool _isSubmitted;
+    private bool _isSubmitting;
+    private IFormConfiguration<ContactModel> _formConfiguration = null!;
     
-    private List<FormGuidelines.GuidelineItem> guidelines = new()
+    private List<FormGuidelines.GuidelineItem> _guidelines = new()
     {
         new() { Icon = Icons.Material.Filled.Security, Color = Color.Primary, Text = "Type-safe form builder API" },
         new() { Icon = Icons.Material.Filled.Verified, Color = Color.Secondary, Text = "Fluent validation integration" },
@@ -115,7 +115,7 @@
     protected override void OnInitialized()
     {
         // This is our improved API in action!
-        formConfiguration = FormBuilder<ContactModel>
+        _formConfiguration = FormBuilder<ContactModel>
             .Create()
             .AddField(x => x.FirstName)
                 .WithLabel("First Name")
@@ -167,7 +167,7 @@
     {
         if (field.VisibilityCondition != null)
         {
-            return field.VisibilityCondition(model);
+            return field.VisibilityCondition(_model);
         }
         return field.IsVisible;
     }
@@ -176,17 +176,17 @@
     private void SetFieldValue(string fieldName, object value)
     {
         var property = typeof(ContactModel).GetProperty(fieldName);
-        property?.SetValue(model, value);
+        property?.SetValue(_model, value);
         StateHasChanged();
     }
     
     private void HandleFieldDependencies(string changedFieldName)
     {
-        if (formConfiguration.FieldDependencies.TryGetValue(changedFieldName, out var dependencies))
+        if (_formConfiguration.FieldDependencies.TryGetValue(changedFieldName, out var dependencies))
         {
             foreach (var dependency in dependencies)
             {
-                dependency.OnDependencyChanged(model);
+                dependency.OnDependencyChanged(_model);
             }
             StateHasChanged();
         }
@@ -194,20 +194,20 @@
     
     private async Task HandleValidSubmit()
     {
-        isSubmitting = true;
+        _isSubmitting = true;
         
         // Simulate API call
         await Task.Delay(2000);
         
-        isSubmitted = true;
-        isSubmitting = false;
+        _isSubmitted = true;
+        _isSubmitting = false;
         StateHasChanged();
     }
     
     private void ResetForm()
     {
-        model = new ContactModel();
-        isSubmitted = false;
+        _model = new ContactModel();
+        _isSubmitted = false;
         StateHasChanged();
     }
     
@@ -215,16 +215,16 @@
     {
         var items = new List<FormSuccessDisplay<ContactModel>.DataDisplayItem>
         {
-            new() { Label = "Full Name", Value = $"{model.FirstName} {model.LastName}" },
-            new() { Label = "Email", Value = model.Email ?? "" },
-            new() { Label = "Age", Value = model.Age.ToString() },
-            new() { Label = "Country", Value = model.Country ?? "" }
+            new() { Label = "Full Name", Value = $"{_model.FirstName} {_model.LastName}" },
+            new() { Label = "Email", Value = _model.Email ?? "" },
+            new() { Label = "Age", Value = _model.Age.ToString() },
+            new() { Label = "Country", Value = _model.Country ?? "" }
         };
         
-        if (!string.IsNullOrEmpty(model.City))
-            items.Add(new() { Label = "City", Value = model.City });
+        if (!string.IsNullOrEmpty(_model.City))
+            items.Add(new() { Label = "City", Value = _model.City });
             
-        items.Add(new() { Label = "Newsletter", Value = model.SubscribeToNewsletter ? "Yes" : "No" });
+        items.Add(new() { Label = "Newsletter", Value = _model.SubscribeToNewsletter ? "Yes" : "No" });
         
         return items;
     }

@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Components;
-
 namespace FormCraft.UnitTests.Rendering;
 
 public class IntFieldRendererTests

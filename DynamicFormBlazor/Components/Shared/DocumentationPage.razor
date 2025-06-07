@@ -1,6 +1,6 @@
 @using DynamicFormBlazor.Services
 @inject IMarkdownService MarkdownService
-@inject IJSRuntime JSRuntime
+@inject IJSRuntime JsRuntime
 
 <PageTitle>@Title - Dynamic Form Blazor</PageTitle>
 
@@ -9,7 +9,7 @@
         <MudItem xs="12" lg="9">
             <MudCard Elevation="2">
                 <MudCardContent>
-                    @if (isLoading)
+                    @if (_isLoading)
                     {
                         <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
                         <MudText Class="mt-4" Align="Align.Center">Loading documentation...</MudText>
@@ -17,7 +17,7 @@
                     else
                     {
                         <div class="markdown-content">
-                            @((MarkupString)htmlContent)
+                            @((MarkupString)_htmlContent)
                         </div>
                     }
                 </MudCardContent>
@@ -33,7 +33,7 @@
                 </MudCardHeader>
                 <MudCardContent>
                     <MudNavMenu>
-                        @foreach (var tocSection in tableOfContents)
+                        @foreach (var tocSection in _tableOfContents)
                         {
                             <MudNavLink OnClick="@(() => ScrollToSection(tocSection.Id))">
                                 @tocSection.Title
@@ -73,10 +73,10 @@
     [Parameter] public string DocumentName { get; set; } = "";
     [Parameter] public string Title { get; set; } = "Documentation";
     
-    private bool isLoading = true;
-    private string htmlContent = "";
-    private List<TocSection> tableOfContents = new();
-    private bool contentChanged = false;
+    private bool _isLoading = true;
+    private string _htmlContent = "";
+    private List<TocSection> _tableOfContents = new();
+    private bool _contentChanged = false;
     
     protected override async Task OnParametersSetAsync()
     {
@@ -88,13 +88,13 @@
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (contentChanged)
+        if (_contentChanged)
         {
-            contentChanged = false;
+            _contentChanged = false;
             try
             {
                 // Trigger Prism.js highlighting after content is rendered
-                await JSRuntime.InvokeVoidAsync("Prism.highlightAll");
+                await JsRuntime.InvokeVoidAsync("Prism.highlightAll");
             }
             catch (Exception)
             {
@@ -105,30 +105,30 @@
     
     private async Task LoadDocumentAsync()
     {
-        isLoading = true;
+        _isLoading = true;
         StateHasChanged();
         
         try
         {
             var markdown = await MarkdownService.LoadDocumentAsync(DocumentName);
-            htmlContent = MarkdownService.ToHtml(markdown);
+            _htmlContent = MarkdownService.ToHtml(markdown);
             ExtractTableOfContents(markdown);
-            contentChanged = true; // Flag that content has changed for syntax highlighting
+            _contentChanged = true; // Flag that content has changed for syntax highlighting
         }
         catch (Exception ex)
         {
-            htmlContent = $"<div class='error'>Error loading document: {ex.Message}</div>";
+            _htmlContent = $"<div class='error'>Error loading document: {ex.Message}</div>";
         }
         finally
         {
-            isLoading = false;
+            _isLoading = false;
             StateHasChanged();
         }
     }
     
     private void ExtractTableOfContents(string markdown)
     {
-        tableOfContents.Clear();
+        _tableOfContents.Clear();
         var lines = markdown.Split('\n');
         
         foreach (var line in lines)
@@ -137,14 +137,14 @@
             {
                 var title = line[3..].Trim();
                 var id = title.ToLower().Replace(" ", "-").Replace(".", "");
-                tableOfContents.Add(new TocSection { Title = title, Id = id });
+                _tableOfContents.Add(new TocSection { Title = title, Id = id });
             }
         }
     }
     
     private async Task ScrollToSection(string sectionId)
     {
-        await JSRuntime.InvokeVoidAsync("scrollToElement", sectionId);
+        await JsRuntime.InvokeVoidAsync("scrollToElement", sectionId);
     }
     
     private class TocSection
