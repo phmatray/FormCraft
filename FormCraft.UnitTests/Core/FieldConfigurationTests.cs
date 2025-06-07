@@ -12,8 +12,8 @@ public class FieldConfigurationTests
         var config = new FieldConfiguration<TestModel, string>(expression);
 
         // Assert
-        config.FieldName.Should().Be("Name");
-        config.ValueExpression.Should().BeSameAs(expression);
+        config.FieldName.ShouldBe("Name");
+        config.ValueExpression.ShouldBeSameAs(expression);
     }
 
     [Fact]
@@ -26,21 +26,21 @@ public class FieldConfigurationTests
         var config = new FieldConfiguration<TestModel, string>(expression);
 
         // Assert
-        config.Label.Should().Be("Name"); // Default label is field name
-        config.Placeholder.Should().BeNull();
-        config.HelpText.Should().BeNull();
-        config.CssClass.Should().BeNull();
-        config.IsRequired.Should().BeFalse();
-        config.IsVisible.Should().BeTrue();
-        config.IsDisabled.Should().BeFalse();
-        config.IsReadOnly.Should().BeFalse();
-        config.Order.Should().Be(0);
-        config.VisibilityCondition.Should().BeNull();
-        config.DisabledCondition.Should().BeNull();
-        config.Validators.Should().BeEmpty();
-        config.Dependencies.Should().BeEmpty();
-        config.AdditionalAttributes.Should().BeEmpty();
-        config.CustomTemplate.Should().BeNull();
+        config.Label.ShouldBe("Name"); // Default label is field name
+        config.Placeholder.ShouldBeNull();
+        config.HelpText.ShouldBeNull();
+        config.CssClass.ShouldBeNull();
+        config.IsRequired.ShouldBeFalse();
+        config.IsVisible.ShouldBeTrue();
+        config.IsDisabled.ShouldBeFalse();
+        config.IsReadOnly.ShouldBeFalse();
+        config.Order.ShouldBe(0);
+        config.VisibilityCondition.ShouldBeNull();
+        config.DisabledCondition.ShouldBeNull();
+        config.Validators.ShouldBeEmpty();
+        config.Dependencies.ShouldBeEmpty();
+        config.AdditionalAttributes.ShouldBeEmpty();
+        config.CustomTemplate.ShouldBeNull();
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class FieldConfigurationTests
         var config = new FieldConfiguration<TestModel, string>(expression);
 
         // Assert
-        config.FieldName.Should().Be("City"); // Only the final property name is used
+        config.FieldName.ShouldBe("City"); // Only the final property name is used
     }
 
     [Fact]
@@ -78,18 +78,18 @@ public class FieldConfigurationTests
         config.CustomTemplate = template;
 
         // Assert
-        config.Label.Should().Be("Full Name");
-        config.Placeholder.Should().Be("Enter name");
-        config.HelpText.Should().Be("Your full name");
-        config.CssClass.Should().Be("custom-class");
-        config.IsRequired.Should().BeTrue();
-        config.IsVisible.Should().BeFalse();
-        config.IsDisabled.Should().BeTrue();
-        config.IsReadOnly.Should().BeTrue();
-        config.Order.Should().Be(5);
-        config.VisibilityCondition.Should().NotBeNull();
-        config.DisabledCondition.Should().NotBeNull();
-        config.CustomTemplate.Should().BeSameAs(template);
+        config.Label.ShouldBe("Full Name");
+        config.Placeholder.ShouldBe("Enter name");
+        config.HelpText.ShouldBe("Your full name");
+        config.CssClass.ShouldBe("custom-class");
+        config.IsRequired.ShouldBeTrue();
+        config.IsVisible.ShouldBeFalse();
+        config.IsDisabled.ShouldBeTrue();
+        config.IsReadOnly.ShouldBeTrue();
+        config.Order.ShouldBe(5);
+        config.VisibilityCondition.ShouldNotBeNull();
+        config.DisabledCondition.ShouldNotBeNull();
+        config.CustomTemplate.ShouldBeSameAs(template);
     }
 
     [Fact]
@@ -103,8 +103,8 @@ public class FieldConfigurationTests
         config.Validators.Add(validator);
 
         // Assert
-        config.Validators.Should().Contain(validator);
-        config.Validators.Should().HaveCount(1);
+        config.Validators.ShouldContain(validator);
+        config.Validators.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -118,8 +118,8 @@ public class FieldConfigurationTests
         config.Dependencies.Add(dependency);
 
         // Assert
-        config.Dependencies.Should().Contain(dependency);
-        config.Dependencies.Should().HaveCount(1);
+        config.Dependencies.ShouldContain(dependency);
+        config.Dependencies.Count.ShouldBe(1);
     }
 
     [Theory]
@@ -136,8 +136,8 @@ public class FieldConfigurationTests
         config.AdditionalAttributes[key] = value;
 
         // Assert
-        config.AdditionalAttributes.Should().ContainKey(key);
-        config.AdditionalAttributes[key].Should().Be(value);
+        config.AdditionalAttributes.ShouldContainKey(key);
+        config.AdditionalAttributes[key].ShouldBe(value);
     }
 
     [Fact]
@@ -152,10 +152,10 @@ public class FieldConfigurationTests
         config.AdditionalAttributes["attr3"] = true;
 
         // Assert
-        config.AdditionalAttributes.Should().HaveCount(3);
-        config.AdditionalAttributes["attr1"].Should().Be("value1");
-        config.AdditionalAttributes["attr2"].Should().Be(42);
-        config.AdditionalAttributes["attr3"].Should().Be(true);
+        config.AdditionalAttributes.Count.ShouldBe(3);
+        config.AdditionalAttributes["attr1"].ShouldBe("value1");
+        config.AdditionalAttributes["attr2"].ShouldBe(42);
+        config.AdditionalAttributes["attr3"].ShouldBe(true);
     }
 
     [Fact]
@@ -169,11 +169,11 @@ public class FieldConfigurationTests
         config.VisibilityCondition = m => !string.IsNullOrEmpty(m.Name);
 
         // Assert
-        config.VisibilityCondition.Should().NotBeNull();
-        config.VisibilityCondition!(model).Should().BeTrue();
+        config.VisibilityCondition.ShouldNotBeNull();
+        config.VisibilityCondition!(model).ShouldBeTrue();
         
         model.Name = string.Empty;
-        config.VisibilityCondition!(model).Should().BeFalse();
+        config.VisibilityCondition!(model).ShouldBeFalse();
     }
 
     [Fact]
@@ -187,11 +187,11 @@ public class FieldConfigurationTests
         config.DisabledCondition = m => string.IsNullOrEmpty(m.Name);
 
         // Assert
-        config.DisabledCondition.Should().NotBeNull();
-        config.DisabledCondition!(model).Should().BeFalse();
+        config.DisabledCondition.ShouldNotBeNull();
+        config.DisabledCondition!(model).ShouldBeFalse();
         
         model.Name = string.Empty;
-        config.DisabledCondition!(model).Should().BeTrue();
+        config.DisabledCondition!(model).ShouldBeTrue();
     }
 
     public class TestModel

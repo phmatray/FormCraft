@@ -9,8 +9,8 @@ public class SelectOptionTests
         var option = new SelectOption<string>();
 
         // Assert
-        option.Value.Should().BeNull();
-        option.Label.Should().Be(string.Empty);
+        option.Value.ShouldBeNull();
+        option.Label.ShouldBe(string.Empty);
     }
 
     [Fact]
@@ -24,8 +24,8 @@ public class SelectOptionTests
         var option = new SelectOption<string>(value, label);
 
         // Assert
-        option.Value.Should().Be(value);
-        option.Label.Should().Be(label);
+        option.Value.ShouldBe(value);
+        option.Label.ShouldBe(label);
     }
 
     [Fact]
@@ -33,18 +33,18 @@ public class SelectOptionTests
     {
         // Act & Assert for int
         var intOption = new SelectOption<int>(42, "Answer");
-        intOption.Value.Should().Be(42);
-        intOption.Label.Should().Be("Answer");
+        intOption.Value.ShouldBe(42);
+        intOption.Label.ShouldBe("Answer");
 
         // Act & Assert for enum
         var enumOption = new SelectOption<DayOfWeek>(DayOfWeek.Monday, "Monday");
-        enumOption.Value.Should().Be(DayOfWeek.Monday);
-        enumOption.Label.Should().Be("Monday");
+        enumOption.Value.ShouldBe(DayOfWeek.Monday);
+        enumOption.Label.ShouldBe("Monday");
 
         // Act & Assert for custom type
         var customOption = new SelectOption<TestClass>(new TestClass { Id = 1 }, "Test");
-        customOption.Value!.Id.Should().Be(1);
-        customOption.Label.Should().Be("Test");
+        customOption.Value!.Id.ShouldBe(1);
+        customOption.Label.ShouldBe("Test");
     }
 
     [Fact]
@@ -58,8 +58,8 @@ public class SelectOptionTests
         option.Label = "New Label";
 
         // Assert
-        option.Value.Should().Be("newValue");
-        option.Label.Should().Be("New Label");
+        option.Value.ShouldBe("newValue");
+        option.Label.ShouldBe("New Label");
     }
 
     private class TestClass

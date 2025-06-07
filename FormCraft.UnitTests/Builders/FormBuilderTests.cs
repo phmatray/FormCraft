@@ -9,8 +9,8 @@ public class FormBuilderTests
         var builder = FormBuilder<TestModel>.Create();
 
         // Assert
-        builder.Should().NotBeNull();
-        builder.Should().BeOfType<FormBuilder<TestModel>>();
+        builder.ShouldNotBeNull();
+        builder.ShouldBeOfType<FormBuilder<TestModel>>();
     }
 
     [Fact]
@@ -24,11 +24,11 @@ public class FormBuilderTests
         var config = fieldBuilder.Build();
 
         // Assert
-        fieldBuilder.Should().NotBeNull();
-        fieldBuilder.Should().BeOfType<FieldBuilder<TestModel, string>>();
+        fieldBuilder.ShouldNotBeNull();
+        fieldBuilder.ShouldBeOfType<FieldBuilder<TestModel, string>>();
         
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.FieldName.Should().Be("Name");
+        field.FieldName.ShouldBe("Name");
     }
 
     [Fact]
@@ -48,9 +48,9 @@ public class FormBuilderTests
         var emailField = config.Fields.First(f => f.FieldName == "Email");
         var ageField = config.Fields.First(f => f.FieldName == "Age");
         
-        nameField.Order.Should().Be(0);
-        emailField.Order.Should().Be(1);
-        ageField.Order.Should().Be(2);
+        nameField.Order.ShouldBe(0);
+        emailField.Order.ShouldBe(1);
+        ageField.Order.ShouldBe(2);
     }
 
     [Fact]
@@ -64,8 +64,8 @@ public class FormBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(builder);
-        config.Layout.Should().Be(FormLayout.Horizontal);
+        result.ShouldBeSameAs(builder);
+        config.Layout.ShouldBe(FormLayout.Horizontal);
     }
 
     [Fact]
@@ -79,8 +79,8 @@ public class FormBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(builder);
-        config.CssClass.Should().Be("custom-form");
+        result.ShouldBeSameAs(builder);
+        config.CssClass.ShouldBe("custom-form");
     }
 
     [Fact]
@@ -94,8 +94,8 @@ public class FormBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(builder);
-        config.ShowValidationSummary.Should().BeTrue();
+        result.ShouldBeSameAs(builder);
+        config.ShowValidationSummary.ShouldBeTrue();
     }
 
     [Fact]
@@ -109,9 +109,9 @@ public class FormBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(builder);
-        config.ShowRequiredIndicator.Should().BeTrue();
-        config.RequiredIndicator.Should().Be("**");
+        result.ShouldBeSameAs(builder);
+        config.ShowRequiredIndicator.ShouldBeTrue();
+        config.RequiredIndicator.ShouldBe("**");
     }
 
     [Fact]
@@ -134,15 +134,15 @@ public class FormBuilderTests
         var configuration = builder.Build();
 
         // Assert
-        configuration.Should().NotBeNull();
-        configuration.Layout.Should().Be(FormLayout.Inline);
-        configuration.CssClass.Should().Be("test-form");
-        configuration.ShowValidationSummary.Should().BeTrue();
-        configuration.ShowRequiredIndicator.Should().BeTrue();
-        configuration.RequiredIndicator.Should().Be("*");
-        configuration.Fields.Should().HaveCount(2);
-        configuration.Fields.Should().Contain(f => f.FieldName == "Name");
-        configuration.Fields.Should().Contain(f => f.FieldName == "Email");
+        configuration.ShouldNotBeNull();
+        configuration.Layout.ShouldBe(FormLayout.Inline);
+        configuration.CssClass.ShouldBe("test-form");
+        configuration.ShowValidationSummary.ShouldBeTrue();
+        configuration.ShowRequiredIndicator.ShouldBeTrue();
+        configuration.RequiredIndicator.ShouldBe("*");
+        configuration.Fields.Count.ShouldBe(2);
+        configuration.Fields.ShouldContain(f => f.FieldName == "Name");
+        configuration.Fields.ShouldContain(f => f.FieldName == "Email");
     }
 
     [Fact]
@@ -158,9 +158,9 @@ public class FormBuilderTests
         var configuration = builder.Build();
 
         // Assert
-        configuration.FieldDependencies.Should().ContainKey("City");
-        configuration.FieldDependencies["City"].Should().HaveCount(1);
-        configuration.FieldDependencies["City"].First().DependentFieldName.Should().Be("Country");
+        configuration.FieldDependencies.ShouldContainKey("City");
+        configuration.FieldDependencies["City"].Count.ShouldBe(1);
+        configuration.FieldDependencies["City"].First().DependentFieldName.ShouldBe("Country");
     }
 
     [Fact]
@@ -201,21 +201,21 @@ public class FormBuilderTests
             .Build();
 
         // Assert
-        configuration.Should().NotBeNull();
-        configuration.Layout.Should().Be(FormLayout.Vertical);
-        configuration.CssClass.Should().Be("registration-form");
-        configuration.Fields.Should().HaveCount(5);
+        configuration.ShouldNotBeNull();
+        configuration.Layout.ShouldBe(FormLayout.Vertical);
+        configuration.CssClass.ShouldBe("registration-form");
+        configuration.Fields.Count.ShouldBe(5);
         
         var nameField = configuration.Fields.First(f => f.FieldName == "Name");
-        nameField.Label.Should().Be("Full Name");
-        nameField.IsRequired.Should().BeTrue();
-        nameField.Order.Should().Be(1);
+        nameField.Label.ShouldBe("Full Name");
+        nameField.IsRequired.ShouldBeTrue();
+        nameField.Order.ShouldBe(1);
 
         var cityField = configuration.Fields.First(f => f.FieldName == "City");
-        cityField.VisibilityCondition.Should().NotBeNull();
+        cityField.VisibilityCondition.ShouldNotBeNull();
         
-        configuration.FieldDependencies.Should().ContainKey("City");
-        configuration.FieldDependencies["City"].Should().HaveCount(1);
+        configuration.FieldDependencies.ShouldContainKey("City");
+        configuration.FieldDependencies["City"].Count.ShouldBe(1);
     }
 
     [Fact]
@@ -233,13 +233,13 @@ public class FormBuilderTests
             .Build();
 
         // Assert
-        config.Fields.Should().HaveCount(4);
+        config.Fields.Count.ShouldBe(4);
         
         var orderedFields = config.Fields.OrderBy(f => f.Order).ToList();
-        orderedFields[0].FieldName.Should().Be("Name");
-        orderedFields[1].FieldName.Should().Be("Email");
-        orderedFields[2].FieldName.Should().Be("Age");
-        orderedFields[3].FieldName.Should().Be("Country");
+        orderedFields[0].FieldName.ShouldBe("Name");
+        orderedFields[1].FieldName.ShouldBe("Email");
+        orderedFields[2].FieldName.ShouldBe("Age");
+        orderedFields[3].FieldName.ShouldBe("Country");
     }
 
     [Fact]
@@ -255,10 +255,10 @@ public class FormBuilderTests
         var config = result.Build();
 
         // Assert
-        config.Layout.Should().Be(FormLayout.Grid);
-        config.CssClass.Should().Be("test-form");
-        config.ShowValidationSummary.Should().BeFalse();
-        config.ShowRequiredIndicator.Should().BeFalse();
+        config.Layout.ShouldBe(FormLayout.Grid);
+        config.CssClass.ShouldBe("test-form");
+        config.ShowValidationSummary.ShouldBeFalse();
+        config.ShowRequiredIndicator.ShouldBeFalse();
     }
 
     [Fact]
@@ -268,13 +268,13 @@ public class FormBuilderTests
         var config = FormBuilder<TestModel>.Create().Build();
 
         // Assert
-        config.Layout.Should().Be(FormLayout.Vertical); // Default layout
-        config.CssClass.Should().BeNull();
-        config.ShowValidationSummary.Should().BeTrue(); // Default
-        config.ShowRequiredIndicator.Should().BeTrue(); // Default
-        config.RequiredIndicator.Should().Be("*"); // Default
-        config.Fields.Should().BeEmpty();
-        config.FieldDependencies.Should().BeEmpty();
+        config.Layout.ShouldBe(FormLayout.Vertical); // Default layout
+        config.CssClass.ShouldBeNull();
+        config.ShowValidationSummary.ShouldBeTrue(); // Default
+        config.ShowRequiredIndicator.ShouldBeTrue(); // Default
+        config.RequiredIndicator.ShouldBe("*"); // Default
+        config.Fields.ShouldBeEmpty();
+        config.FieldDependencies.ShouldBeEmpty();
     }
 
     public class TestModel

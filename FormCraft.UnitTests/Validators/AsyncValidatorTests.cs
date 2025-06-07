@@ -26,8 +26,8 @@ public class AsyncValidatorTests
         var result = await validator.ValidateAsync(model, "Valid value", _services);
 
         // Assert
-        result.IsValid.Should().BeTrue();
-        result.ErrorMessage.Should().BeNull();
+        result.IsValid.ShouldBeTrue();
+        result.ErrorMessage.ShouldBeNull();
     }
 
     [Fact]
@@ -47,8 +47,8 @@ public class AsyncValidatorTests
         var result = await validator.ValidateAsync(model, string.Empty, _services);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Value cannot be empty");
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Value cannot be empty");
     }
 
     [Fact]
@@ -68,8 +68,8 @@ public class AsyncValidatorTests
         var result = await validator.ValidateAsync(model, null, _services);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Value cannot be null");
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Value cannot be null");
     }
 
     [Fact]
@@ -92,11 +92,11 @@ public class AsyncValidatorTests
 
         // Act & Assert
         var uniqueResult = await validator.ValidateAsync(model, "newuser", _services);
-        uniqueResult.IsValid.Should().BeTrue();
+        uniqueResult.IsValid.ShouldBeTrue();
 
         var existingResult = await validator.ValidateAsync(model, "john", _services);
-        existingResult.IsValid.Should().BeFalse();
-        existingResult.ErrorMessage.Should().Be("Username is already taken");
+        existingResult.IsValid.ShouldBeFalse();
+        existingResult.ErrorMessage.ShouldBe("Username is already taken");
     }
 
     [Fact]
@@ -119,11 +119,11 @@ public class AsyncValidatorTests
 
         // Act & Assert
         var validResult = await validator.ValidateAsync(model, "user@example.com", _services);
-        validResult.IsValid.Should().BeTrue();
+        validResult.IsValid.ShouldBeTrue();
 
         var invalidResult = await validator.ValidateAsync(model, "user@invalid.com", _services);
-        invalidResult.IsValid.Should().BeFalse();
-        invalidResult.ErrorMessage.Should().Be("Email address is not valid or disposable");
+        invalidResult.IsValid.ShouldBeFalse();
+        invalidResult.ErrorMessage.ShouldBe("Email address is not valid or disposable");
     }
 
     [Fact]
@@ -145,8 +145,8 @@ public class AsyncValidatorTests
         var result = await validator.ValidateAsync(model, "test", _services);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Validation failed due to service error");
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Validation failed due to service error");
     }
 
     [Fact]
@@ -184,13 +184,13 @@ public class AsyncValidatorTests
 
         // Act & Assert
         var validResult = await validator.ValidateAsync(model, "(555) 123-4567", _services);
-        validResult.IsValid.Should().BeTrue();
+        validResult.IsValid.ShouldBeTrue();
 
         var invalidAreaResult = await validator.ValidateAsync(model, "(999) 123-4567", _services);
-        invalidAreaResult.IsValid.Should().BeFalse();
+        invalidAreaResult.IsValid.ShouldBeFalse();
 
         var invalidFormatResult = await validator.ValidateAsync(model, "123", _services);
-        invalidFormatResult.IsValid.Should().BeFalse();
+        invalidFormatResult.IsValid.ShouldBeFalse();
     }
 
     [Fact]
@@ -214,8 +214,8 @@ public class AsyncValidatorTests
         var result = await validator.ValidateAsync(model, "test", _services);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Validation timed out");
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Validation timed out");
     }
 
     [Fact]
@@ -246,9 +246,9 @@ public class AsyncValidatorTests
         var results = await Task.WhenAll(tasks);
 
         // Assert
-        callCount.Should().Be(5);
-        results.Count(r => r.IsValid).Should().Be(4);
-        results.Count(r => !r.IsValid).Should().Be(1);
+        callCount.ShouldBe(5);
+        results.Count(r => r.IsValid).ShouldBe(4);
+        results.Count(r => !r.IsValid).ShouldBe(1);
     }
 
     public class TestModel

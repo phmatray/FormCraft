@@ -9,8 +9,8 @@ public class ValidationResultTests
         var result = ValidationResult.Success();
 
         // Assert
-        result.IsValid.Should().BeTrue();
-        result.ErrorMessage.Should().BeNull();
+        result.IsValid.ShouldBeTrue();
+        result.ErrorMessage.ShouldBeNull();
     }
 
     [Fact]
@@ -23,8 +23,8 @@ public class ValidationResultTests
         var result = ValidationResult.Failure(errorMessage);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Be(errorMessage);
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(errorMessage);
     }
 
     [Theory]
@@ -37,8 +37,8 @@ public class ValidationResultTests
         var result = ValidationResult.Failure(errorMessage);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Be(errorMessage);
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(errorMessage);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class ValidationResultTests
         var result = ValidationResult.Failure(null!);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().BeNull();
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBeNull();
     }
 }

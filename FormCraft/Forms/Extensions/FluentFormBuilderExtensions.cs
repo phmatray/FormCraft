@@ -247,25 +247,6 @@ public static class FluentFormBuilderExtensions
         return builder;
     }
 
-    /// <summary>
-    /// Creates a contact form with common fields
-    /// </summary>
-    public static FormBuilder<TModel> AsContactForm<TModel>(this FormBuilder<TModel> builder) 
-        where TModel : new()
-    {
-        // This is a template method - would need reflection or specific implementation
-        return builder;
-    }
-
-    /// <summary>
-    /// Creates a registration form with common fields
-    /// </summary>
-    public static FormBuilder<TModel> AsRegistrationForm<TModel>(this FormBuilder<TModel> builder)
-        where TModel : new()
-    {
-        // This is a template method - would need reflection or specific implementation
-        return builder;
-    }
 
     #region Helper Methods
     
