@@ -10,7 +10,7 @@ namespace FormCraft;
 /// // Using with a lambda expression
 /// .AddField(x => x.Username)
 ///     .WithValidator(new CustomValidator&lt;MyModel, string&gt;(
-///         value => value.Length >= 3 && !value.Contains(" "),
+///         value => value.Length >= 3 &amp;&amp; !value.Contains(" "),
 ///         "Username must be at least 3 characters and contain no spaces"));
 /// 
 /// // Using with a method reference

@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <!-- Common properties for all projects -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    
+    <!-- Deterministic builds for CI/CD -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true' Or '$(TF_BUILD)' == 'true'">true</ContinuousIntegrationBuild>
+    
+    <!-- MinVer will automatically set these properties -->
+    <!-- Version, AssemblyVersion, FileVersion, PackageVersion -->
+  </PropertyGroup>
+</Project>
