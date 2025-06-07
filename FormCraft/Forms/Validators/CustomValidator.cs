@@ -47,9 +47,16 @@ public class CustomValidator<TModel, TValue> : IFieldValidator<TModel, TValue>
     /// <returns>A ValidationResult indicating success if the custom function returns true, or failure with the error message if it returns false.</returns>
     public Task<ValidationResult> ValidateAsync(TModel model, TValue value, IServiceProvider services)
     {
-        var isValid = _validation(value);
-        return Task.FromResult(isValid 
-            ? ValidationResult.Success() 
-            : ValidationResult.Failure(ErrorMessage!));
+        try
+        {
+            var isValid = _validation(value);
+            return Task.FromResult(isValid 
+                ? ValidationResult.Success() 
+                : ValidationResult.Failure(ErrorMessage!));
+        }
+        catch
+        {
+            return Task.FromResult(ValidationResult.Failure(ErrorMessage!));
+        }
     }
 }

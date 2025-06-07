@@ -48,9 +48,16 @@ public class AsyncValidator<TModel, TValue> : IFieldValidator<TModel, TValue>
     /// <returns>A ValidationResult indicating success if the async function returns true, or failure with the error message if it returns false.</returns>
     public async Task<ValidationResult> ValidateAsync(TModel model, TValue value, IServiceProvider services)
     {
-        var isValid = await _validation(value);
-        return isValid 
-            ? ValidationResult.Success() 
-            : ValidationResult.Failure(ErrorMessage!);
+        try
+        {
+            var isValid = await _validation(value);
+            return isValid 
+                ? ValidationResult.Success() 
+                : ValidationResult.Failure(ErrorMessage!);
+        }
+        catch
+        {
+            return ValidationResult.Failure(ErrorMessage!);
+        }
     }
 }
