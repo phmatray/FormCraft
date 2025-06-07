@@ -111,7 +111,7 @@ public class CustomValidatorTests
     public async Task ValidateAsync_Should_Support_Boolean_Validations()
     {
         // Arrange
-        Func<bool, bool> validationFunction = value => value == true;
+        Func<bool, bool> validationFunction = value => value;
         var validator = new CustomValidator<TestModel, bool>(
             validationFunction, 
             "You must accept the terms");

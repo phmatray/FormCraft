@@ -1,5 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
-
 namespace FormCraft.UnitTests.Integration;
 
 public class RealModelTemplateTests

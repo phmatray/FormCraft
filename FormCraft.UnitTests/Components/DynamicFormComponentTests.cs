@@ -1,6 +1,3 @@
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.Extensions.DependencyInjection;
-
 namespace FormCraft.UnitTests.Components;
 
 public class DynamicFormComponentTests : Bunit.TestContext
@@ -60,7 +57,7 @@ public class DynamicFormComponentTests : Bunit.TestContext
             .ReturnsLazily((TestModel m, IFieldConfiguration<TestModel, object> f, EventCallback<object?> e1, EventCallback e2) =>
             {
                 callOrder.Add(f.FieldName);
-                return new RenderFragment(builder => builder.AddContent(0, f.FieldName));
+                return builder => builder.AddContent(0, f.FieldName);
             });
 
         // Act
@@ -151,10 +148,10 @@ public class DynamicFormComponentTests : Bunit.TestContext
 
         // Assert
         var formContainer = component.Find("form > div");
-        formContainer.GetAttribute("class").ShouldContain("row"); // Horizontal layout class
+        formContainer.GetAttribute("class")!.ShouldContain("row"); // Horizontal layout class
 
         var fieldContainer = component.Find(".mb-4");
-        fieldContainer.GetAttribute("class").ShouldContain("col-md-6"); // Horizontal field class
+        fieldContainer.GetAttribute("class")!.ShouldContain("col-md-6"); // Horizontal field class
     }
 
     [Fact]
@@ -178,10 +175,10 @@ public class DynamicFormComponentTests : Bunit.TestContext
 
         // Assert
         var formContainer = component.Find("form > div");
-        formContainer.GetAttribute("class").ShouldContain("row"); // Grid layout class
+        formContainer.GetAttribute("class")!.ShouldContain("row"); // Grid layout class
 
         var fieldContainer = component.Find(".mb-4");
-        fieldContainer.GetAttribute("class").ShouldContain("col-lg-4"); // Grid field class
+        fieldContainer.GetAttribute("class")!.ShouldContain("col-lg-4"); // Grid field class
     }
 
     [Fact]
@@ -205,10 +202,10 @@ public class DynamicFormComponentTests : Bunit.TestContext
 
         // Assert
         var formContainer = component.Find("form > div");
-        formContainer.GetAttribute("class").ShouldContain("d-flex"); // Inline layout classes
+        formContainer.GetAttribute("class")!.ShouldContain("d-flex"); // Inline layout classes
 
         var fieldContainer = component.Find(".mb-4");
-        fieldContainer.GetAttribute("class").ShouldContain("flex-fill"); // Inline field class
+        fieldContainer.GetAttribute("class")!.ShouldContain("flex-fill"); // Inline field class
     }
 
     [Fact]

@@ -90,7 +90,7 @@ public class FormBuilderTests
         var builder = FormBuilder<TestModel>.Create();
 
         // Act
-        var result = builder.ShowValidationSummary(true);
+        var result = builder.ShowValidationSummary();
         var config = result.Build();
 
         // Assert
@@ -121,8 +121,8 @@ public class FormBuilderTests
         var builder = FormBuilder<TestModel>.Create()
             .WithLayout(FormLayout.Inline)
             .WithCssClass("test-form")
-            .ShowValidationSummary(true)
-            .ShowRequiredIndicator(true, "*");
+            .ShowValidationSummary()
+            .ShowRequiredIndicator();
 
         builder.AddField(x => x.Name)
             .WithLabel("Name")
@@ -170,8 +170,8 @@ public class FormBuilderTests
         var configuration = FormBuilder<TestModel>.Create()
             .WithLayout(FormLayout.Vertical)
             .WithCssClass("registration-form")
-            .ShowValidationSummary(true)
-            .ShowRequiredIndicator(true, "*")
+            .ShowValidationSummary()
+            .ShowRequiredIndicator()
             .AddField(x => x.Name)
                 .WithLabel("Full Name")
                 .WithPlaceholder("Enter your full name")

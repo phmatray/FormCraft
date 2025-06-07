@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Components;
-
 namespace FormCraft.UnitTests.Rendering;
 
 public class FieldRendererServiceTests
@@ -92,7 +90,7 @@ public class FieldRendererServiceTests
             .ReturnsLazily((IFieldRenderContext<TestModel> ctx) =>
             {
                 capturedContext = ctx;
-                return new RenderFragment(builder => builder.AddContent(0, "Test"));
+                return builder => builder.AddContent(0, "Test");
             });
 
         var service = new FieldRendererService(new[] { mockRenderer });
@@ -170,7 +168,7 @@ public class FieldRendererServiceTests
             .ReturnsLazily((IFieldRenderContext<TestModel> ctx) =>
             {
                 capturedContext = ctx;
-                return new RenderFragment(builder => builder.AddContent(0, "Test"));
+                return builder => builder.AddContent(0, "Test");
             });
 
         var service = new FieldRendererService(new[] { mockRenderer });
@@ -200,7 +198,7 @@ public class FieldRendererServiceTests
         A.CallTo(() => mockRenderer.CanRender(typeof(int), A<IFieldConfiguration<object, object>>._))
             .Returns(true);
         A.CallTo(() => mockRenderer.Render(A<IFieldRenderContext<TestModel>>._))
-            .Returns(new RenderFragment(builder => builder.AddContent(0, "Test")));
+            .Returns(builder => builder.AddContent(0, "Test"));
 
         var service = new FieldRendererService(new[] { mockRenderer });
         var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
