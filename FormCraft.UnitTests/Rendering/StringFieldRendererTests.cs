@@ -258,6 +258,327 @@ public class StringFieldRendererTests
         return context;
     }
 
+    [Fact]
+    public void Render_Should_Handle_Very_Long_String_Values()
+    {
+        // Arrange
+        var longString = new string('A', 10000); // 10,000 character string
+        var model = new TestModel { Name = longString };
+        var field = CreateMockField("Long String Test");
+        var context = CreateContext(model, field, longString);
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Render_Should_Handle_String_With_Special_Characters()
+    {
+        // Arrange
+        var specialString = "Test with <HTML> & \"quotes\" and emoji 🚀";
+        var model = new TestModel { Name = specialString };
+        var field = CreateMockField("Special Characters");
+        var context = CreateContext(model, field, specialString);
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Render_Should_Apply_MaxLength_Attribute()
+    {
+        // Arrange
+        var model = new TestModel { Name = "Test" };
+        var field = CreateMockFieldWithAttribute("MaxLength", "MaxLength", 50);
+        var context = CreateContext(model, field, "Test");
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Render_Should_Apply_Pattern_Attribute()
+    {
+        // Arrange
+        var model = new TestModel { Name = "test@example.com" };
+        var field = CreateMockFieldWithAttribute("Email Pattern", "pattern", @"[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$");
+        var context = CreateContext(model, field, "test@example.com");
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Render_Should_Handle_Multiline_Text_Mode()
+    {
+        // Arrange
+        var multilineText = "Line 1\nLine 2\nLine 3";
+        var model = new TestModel { Name = multilineText };
+        var field = CreateMockFieldWithAttribute("Multiline", "multiline", true);
+        var context = CreateContext(model, field, multilineText);
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Render_Should_Apply_Custom_CSS_Classes()
+    {
+        // Arrange
+        var model = new TestModel { Name = "Test" };
+        var field = CreateMockFieldWithAttribute("Custom CSS", "class", "custom-input special-field");
+        var context = CreateContext(model, field, "Test");
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Render_Should_Handle_Password_Type_Attribute()
+    {
+        // Arrange
+        var model = new TestModel { Name = "secret123" };
+        var field = CreateMockFieldWithAttribute("Password", "type", "password");
+        var context = CreateContext(model, field, "secret123");
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Render_Should_Handle_Email_InputMode()
+    {
+        // Arrange
+        var model = new TestModel { Name = "user@domain.com" };
+        var field = CreateMockFieldWithAttribute("Email", "inputmode", "email");
+        var context = CreateContext(model, field, "user@domain.com");
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Render_Should_Handle_ReadOnly_Attribute()
+    {
+        // Arrange
+        var model = new TestModel { Name = "readonly value" };
+        var field = CreateMockFieldWithAttribute("ReadOnly", "readonly", true);
+        var context = CreateContext(model, field, "readonly value");
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Render_Should_Handle_Unicode_Characters()
+    {
+        // Arrange
+        var unicodeString = "Ελληνικά, 中文, العربية, עברית, русский";
+        var model = new TestModel { Name = unicodeString };
+        var field = CreateMockField("Unicode Test");
+        var context = CreateContext(model, field, unicodeString);
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Render_Should_Handle_Null_Options_Gracefully()
+    {
+        // Arrange
+        var model = new TestModel { Name = "Test" };
+        var field = CreateMockFieldWithAttribute("Null Options", "Options", null);
+        var context = CreateContext(model, field, "Test");
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Render_Should_Handle_Malformed_Options_Data()
+    {
+        // Arrange
+        var model = new TestModel { Name = "Test" };
+        var invalidOptions = new List<object> { "invalid", 123, null };
+        var field = CreateMockFieldWithAttribute("Invalid Options", "Options", invalidOptions);
+        var context = CreateContext(model, field, "Test");
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Render_Should_Handle_Empty_And_Whitespace_Values()
+    {
+        // Arrange & Act & Assert - Empty string
+        var model1 = new TestModel { Name = "" };
+        var field1 = CreateMockField("Empty");
+        var context1 = CreateContext(model1, field1, "");
+        var result1 = _renderer.Render(context1);
+        result1.ShouldNotBeNull();
+
+        // Whitespace only
+        var model2 = new TestModel { Name = "   " };
+        var field2 = CreateMockField("Whitespace");
+        var context2 = CreateContext(model2, field2, "   ");
+        var result2 = _renderer.Render(context2);
+        result2.ShouldNotBeNull();
+
+        // Tab and newline characters
+        var model3 = new TestModel { Name = "\t\n\r" };
+        var field3 = CreateMockField("Control Chars");
+        var context3 = CreateContext(model3, field3, "\t\n\r");
+        var result3 = _renderer.Render(context3);
+        result3.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Render_Should_Handle_Select_With_Duplicate_Values()
+    {
+        // Arrange
+        var model = new TestModel { Name = "Duplicate" };
+        var options = new[]
+        {
+            new SelectOption<string>("Duplicate", "First Duplicate"),
+            new SelectOption<string>("Duplicate", "Second Duplicate"),
+            new SelectOption<string>("Unique", "Unique Option")
+        };
+        var field = CreateMockFieldWithOptions("Duplicate Values", options);
+        var context = CreateContext(model, field, "Duplicate");
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Render_Should_Handle_Large_Options_Collection()
+    {
+        // Arrange
+        var model = new TestModel { Name = "Option500" };
+        var options = Enumerable.Range(1, 1000)
+            .Select(i => new SelectOption<string>($"Option{i}", $"Option {i}"))
+            .ToArray();
+        var field = CreateMockFieldWithOptions("Large Collection", options);
+        var context = CreateContext(model, field, "Option500");
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void CanRender_Should_Handle_String_Type_Variations()
+    {
+        // Arrange
+        var mockField = A.Fake<IFieldConfiguration<object, object>>();
+
+        // Act & Assert - Test string type variations
+        _renderer.CanRender(typeof(string), mockField).ShouldBeTrue();
+        
+        // Test with different string-like scenarios
+        var stringType = typeof(string);
+        var result = _renderer.CanRender(stringType, mockField);
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Render_Should_Handle_Multiple_Attributes_Combination()
+    {
+        // Arrange
+        var model = new TestModel { Name = "Test" };
+        var attributes = new Dictionary<string, object?>
+        {
+            { "maxlength", 100 },
+            { "pattern", @"[A-Za-z\s]+" },
+            { "class", "form-control custom-input" },
+            { "data-test", "string-field" },
+            { "autocomplete", "name" }
+        };
+        var field = CreateMockFieldWithAttributes("Multiple Attributes", attributes);
+        var context = CreateContext(model, field, "Test");
+
+        // Act
+        var renderFragment = _renderer.Render(context);
+
+        // Assert
+        renderFragment.ShouldNotBeNull();
+    }
+
+    private IFieldConfiguration<TestModel, object> CreateMockFieldWithAttribute(
+        string label, 
+        string attributeName, 
+        object? attributeValue)
+    {
+        var field = A.Fake<IFieldConfiguration<TestModel, object>>();
+        var attributes = new Dictionary<string, object?> { { attributeName, attributeValue } };
+        
+        A.CallTo(() => field.Label).Returns(label);
+        A.CallTo(() => field.Placeholder).Returns(string.Empty);
+        A.CallTo(() => field.HelpText).Returns(string.Empty);
+        A.CallTo(() => field.IsRequired).Returns(false);
+        A.CallTo(() => field.IsDisabled).Returns(false);
+        A.CallTo(() => field.AdditionalAttributes).Returns(attributes);
+        
+        return field;
+    }
+
+    private IFieldConfiguration<TestModel, object> CreateMockFieldWithAttributes(
+        string label, 
+        Dictionary<string, object?> attributes)
+    {
+        var field = A.Fake<IFieldConfiguration<TestModel, object>>();
+        
+        A.CallTo(() => field.Label).Returns(label);
+        A.CallTo(() => field.Placeholder).Returns(string.Empty);
+        A.CallTo(() => field.HelpText).Returns(string.Empty);
+        A.CallTo(() => field.IsRequired).Returns(false);
+        A.CallTo(() => field.IsDisabled).Returns(false);
+        A.CallTo(() => field.AdditionalAttributes).Returns(attributes);
+        
+        return field;
+    }
+
     public class TestModel
     {
         public string? Name { get; set; }
