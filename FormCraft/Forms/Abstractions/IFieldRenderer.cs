@@ -11,7 +11,7 @@ namespace FormCraft;
 /// {
 ///     public bool CanRender(Type fieldType, IFieldConfiguration&lt;object, object&gt; field)
 ///     {
-///         return fieldType == typeof(string) && field.Attributes.ContainsKey("CustomInput");
+///         return fieldType == typeof(string) &amp;&amp; field.Attributes.ContainsKey("CustomInput");
 ///     }
 ///     
 ///     public RenderFragment Render&lt;TModel&gt;(IFieldRenderContext&lt;TModel&gt; context)

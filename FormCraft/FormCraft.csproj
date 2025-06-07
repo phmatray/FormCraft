@@ -5,12 +5,36 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    
+    <!-- Package Information -->
+    <PackageId>FormCraft</PackageId>
     <Title>FormCraft</Title>
-    <Description>A powerful, type-safe dynamic form library for Blazor applications with fluent API design.</Description>
-    <Authors>Your Name</Authors>
-    <PackageProjectUrl>https://github.com/yourusername/FormCraft</PackageProjectUrl>
-    <PackageTags>blazor;forms;dynamic;fluent;validation;ui</PackageTags>
-    <Version>1.0.0</Version>
+    <Description>A powerful, type-safe dynamic form library for Blazor applications with fluent API design. Build complex forms with ease using a fluent interface, dynamic validation, field dependencies, and extensible rendering.</Description>
+    <Authors>phmatray</Authors>
+    <Company>phmatray</Company>
+    <Copyright>Copyright © 2025 phmatray</Copyright>
+    
+    <!-- Package URLs -->
+    <PackageProjectUrl>https://github.com/phmatray/DynamicFormBlazor</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/phmatray/DynamicFormBlazor</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    
+    <!-- Package Tags -->
+    <PackageTags>blazor;forms;dynamic;fluent;validation;ui;mudblazor;form-builder;dynamic-forms;blazor-components</PackageTags>
+    
+    <!-- Build Settings -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    
+    <!-- MinVer Settings -->
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerDefaultPreReleaseIdentifiers>preview</MinVerDefaultPreReleaseIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +46,22 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.5"/>
     <PackageReference Include="MudBlazor" Version="8.7.0" />
     <PackageReference Include="FluentValidation" Version="12.0.0" />
+    
+    <!-- Versioning and Source Link -->
+    <PackageReference Include="MinVer" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Include README and icon in package -->
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="icon.png" Pack="true" PackagePath="\" Condition="Exists('icon.png')" />
   </ItemGroup>
 
 </Project>
