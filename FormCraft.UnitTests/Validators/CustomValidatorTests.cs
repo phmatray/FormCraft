@@ -21,8 +21,8 @@ public class CustomValidatorTests
         var result = await validator.ValidateAsync(model, "Valid value", _services);
 
         // Assert
-        result.IsValid.Should().BeTrue();
-        result.ErrorMessage.Should().BeNull();
+        result.IsValid.ShouldBeTrue();
+        result.ErrorMessage.ShouldBeNull();
     }
 
     [Fact]
@@ -37,8 +37,8 @@ public class CustomValidatorTests
         var result = await validator.ValidateAsync(model, string.Empty, _services);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Value cannot be empty");
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Value cannot be empty");
     }
 
     [Fact]
@@ -53,8 +53,8 @@ public class CustomValidatorTests
         var result = await validator.ValidateAsync(model, null, _services);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Value cannot be null");
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Value cannot be null");
     }
 
     [Fact]
@@ -74,16 +74,16 @@ public class CustomValidatorTests
 
         // Act & Assert
         var validResult = await validator.ValidateAsync(model, "ValidUser123", _services);
-        validResult.IsValid.Should().BeTrue();
+        validResult.IsValid.ShouldBeTrue();
 
         var tooShortResult = await validator.ValidateAsync(model, "ab", _services);
-        tooShortResult.IsValid.Should().BeFalse();
+        tooShortResult.IsValid.ShouldBeFalse();
 
         var tooLongResult = await validator.ValidateAsync(model, "thisusernameistoolong", _services);
-        tooLongResult.IsValid.Should().BeFalse();
+        tooLongResult.IsValid.ShouldBeFalse();
 
         var invalidCharsResult = await validator.ValidateAsync(model, "user@name", _services);
-        invalidCharsResult.IsValid.Should().BeFalse();
+        invalidCharsResult.IsValid.ShouldBeFalse();
     }
 
     [Fact]
@@ -98,13 +98,13 @@ public class CustomValidatorTests
 
         // Act & Assert
         var validResult = await validator.ValidateAsync(model, 30, _services);
-        validResult.IsValid.Should().BeTrue();
+        validResult.IsValid.ShouldBeTrue();
 
         var tooYoungResult = await validator.ValidateAsync(model, 17, _services);
-        tooYoungResult.IsValid.Should().BeFalse();
+        tooYoungResult.IsValid.ShouldBeFalse();
 
         var tooOldResult = await validator.ValidateAsync(model, 66, _services);
-        tooOldResult.IsValid.Should().BeFalse();
+        tooOldResult.IsValid.ShouldBeFalse();
     }
 
     [Fact]
@@ -119,11 +119,11 @@ public class CustomValidatorTests
 
         // Act & Assert
         var validResult = await validator.ValidateAsync(model, true, _services);
-        validResult.IsValid.Should().BeTrue();
+        validResult.IsValid.ShouldBeTrue();
 
         var invalidResult = await validator.ValidateAsync(model, false, _services);
-        invalidResult.IsValid.Should().BeFalse();
-        invalidResult.ErrorMessage.Should().Be("You must accept the terms");
+        invalidResult.IsValid.ShouldBeFalse();
+        invalidResult.ErrorMessage.ShouldBe("You must accept the terms");
     }
 
     [Fact]
@@ -139,14 +139,14 @@ public class CustomValidatorTests
 
         // Act & Assert
         var validResult = await validator.ValidateAsync(model, today.AddDays(-1), _services);
-        validResult.IsValid.Should().BeTrue();
+        validResult.IsValid.ShouldBeTrue();
 
         var todayResult = await validator.ValidateAsync(model, today, _services);
-        todayResult.IsValid.Should().BeTrue();
+        todayResult.IsValid.ShouldBeTrue();
 
         var futureResult = await validator.ValidateAsync(model, today.AddDays(1), _services);
-        futureResult.IsValid.Should().BeFalse();
-        futureResult.ErrorMessage.Should().Be("Date cannot be in the future");
+        futureResult.IsValid.ShouldBeFalse();
+        futureResult.ErrorMessage.ShouldBe("Date cannot be in the future");
     }
 
     [Fact]
@@ -163,8 +163,8 @@ public class CustomValidatorTests
         var result = await validator.ValidateAsync(model, "test", _services);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Validation error");
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Validation error");
     }
 
     [Fact]
@@ -193,11 +193,11 @@ public class CustomValidatorTests
 
         // Act & Assert
         var validResult = await validator.ValidateAsync(model, "user@example.com", _services);
-        validResult.IsValid.Should().BeTrue();
+        validResult.IsValid.ShouldBeTrue();
 
         var invalidResult = await validator.ValidateAsync(model, "invalid-email", _services);
-        invalidResult.IsValid.Should().BeFalse();
-        invalidResult.ErrorMessage.Should().Be("Please enter a valid email address");
+        invalidResult.IsValid.ShouldBeFalse();
+        invalidResult.ErrorMessage.ShouldBe("Please enter a valid email address");
     }
 
     public class TestModel

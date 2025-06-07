@@ -13,7 +13,7 @@ public class FieldDependencyTests
         var dependency = new FieldDependency<TestModel, string>(expression, onChanged);
 
         // Assert
-        dependency.DependentFieldName.Should().Be("Country");
+        dependency.DependentFieldName.ShouldBe("Country");
     }
 
     [Fact]
@@ -36,8 +36,8 @@ public class FieldDependencyTests
         dependency.OnDependencyChanged(model);
 
         // Assert
-        capturedModel.Should().BeSameAs(model);
-        capturedCountry.Should().Be("USA");
+        capturedModel.ShouldBeSameAs(model);
+        capturedCountry.ShouldBe("USA");
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class FieldDependencyTests
         dependency.OnDependencyChanged(model);
 
         // Assert
-        capturedCountry.Should().BeNull();
+        capturedCountry.ShouldBeNull();
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public class FieldDependencyTests
         intDependency.OnDependencyChanged(model);
 
         // Assert
-        capturedAge.Should().Be(25);
+        capturedAge.ShouldBe(25);
 
         // Arrange for bool
         bool capturedIsActive = false;
@@ -90,7 +90,7 @@ public class FieldDependencyTests
         boolDependency.OnDependencyChanged(model);
 
         // Assert
-        capturedIsActive.Should().BeTrue();
+        capturedIsActive.ShouldBeTrue();
     }
 
     [Fact]
@@ -122,14 +122,14 @@ public class FieldDependencyTests
         dependency.OnDependencyChanged(model);
 
         // Assert
-        model.City.Should().Be("New York");
+        model.City.ShouldBe("New York");
 
         // Act
         model.Country = "UK";
         dependency.OnDependencyChanged(model);
 
         // Assert
-        model.City.Should().BeEmpty();
+        model.City.ShouldBeEmpty();
     }
 
     [Fact]
@@ -150,8 +150,8 @@ public class FieldDependencyTests
         dependency.OnDependencyChanged(model);
 
         // Assert
-        capturedPostalCode.Should().Be("12345");
-        dependency.DependentFieldName.Should().Be("PostalCode");
+        capturedPostalCode.ShouldBe("12345");
+        dependency.DependentFieldName.ShouldBe("PostalCode");
     }
 
     public class TestModel

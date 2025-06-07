@@ -1,5 +1,5 @@
 global using Xunit;
-global using FluentAssertions;
+global using Shouldly;
 global using FakeItEasy;
 global using Bunit;
 global using Microsoft.AspNetCore.Components;

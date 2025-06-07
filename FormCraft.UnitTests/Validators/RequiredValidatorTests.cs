@@ -25,8 +25,8 @@ public class RequiredValidatorTests
         var result = await _stringValidator.ValidateAsync(model, null!, _services);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Field is required");
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Field is required");
     }
 
     [Fact]
@@ -39,8 +39,8 @@ public class RequiredValidatorTests
         var result = await _stringValidator.ValidateAsync(model, string.Empty, _services);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Field is required");
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Field is required");
     }
 
     [Fact]
@@ -53,8 +53,8 @@ public class RequiredValidatorTests
         var result = await _stringValidator.ValidateAsync(model, "   ", _services);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Field is required");
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Field is required");
     }
 
     [Fact]
@@ -67,8 +67,8 @@ public class RequiredValidatorTests
         var result = await _stringValidator.ValidateAsync(model, "Valid value", _services);
 
         // Assert
-        result.IsValid.Should().BeTrue();
-        result.ErrorMessage.Should().BeNull();
+        result.IsValid.ShouldBeTrue();
+        result.ErrorMessage.ShouldBeNull();
     }
 
     [Fact]
@@ -81,8 +81,8 @@ public class RequiredValidatorTests
         var result = await _intValidator.ValidateAsync(model, 0, _services);
 
         // Assert
-        result.IsValid.Should().BeTrue();
-        result.ErrorMessage.Should().BeNull();
+        result.IsValid.ShouldBeTrue();
+        result.ErrorMessage.ShouldBeNull();
     }
 
     [Fact]
@@ -95,8 +95,8 @@ public class RequiredValidatorTests
         var result = await _intValidator.ValidateAsync(model, 42, _services);
 
         // Assert
-        result.IsValid.Should().BeTrue();
-        result.ErrorMessage.Should().BeNull();
+        result.IsValid.ShouldBeTrue();
+        result.ErrorMessage.ShouldBeNull();
     }
 
     [Fact]
@@ -109,8 +109,8 @@ public class RequiredValidatorTests
         var result = await _nullableIntValidator.ValidateAsync(model, null, _services);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Field is required");
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Field is required");
     }
 
     [Fact]
@@ -123,8 +123,8 @@ public class RequiredValidatorTests
         var result = await _nullableIntValidator.ValidateAsync(model, 42, _services);
 
         // Assert
-        result.IsValid.Should().BeTrue();
-        result.ErrorMessage.Should().BeNull();
+        result.IsValid.ShouldBeTrue();
+        result.ErrorMessage.ShouldBeNull();
     }
 
     [Fact]
@@ -138,8 +138,8 @@ public class RequiredValidatorTests
         var result = await validator.ValidateAsync(model, null!, _services);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Be("This field is required.");
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("This field is required.");
     }
 
     [Fact]
@@ -155,9 +155,9 @@ public class RequiredValidatorTests
         var validResult = await validator.ValidateAsync(model, new List<string> { "item" }, _services);
 
         // Assert
-        nullResult.IsValid.Should().BeFalse();
-        emptyResult.IsValid.Should().BeFalse();
-        validResult.IsValid.Should().BeTrue();
+        nullResult.IsValid.ShouldBeFalse();
+        emptyResult.IsValid.ShouldBeFalse();
+        validResult.IsValid.ShouldBeTrue();
     }
 
     [Fact]
@@ -172,9 +172,9 @@ public class RequiredValidatorTests
         var validResult = await validator.ValidateAsync(model, new CustomType(), _services);
 
         // Assert
-        nullResult.IsValid.Should().BeFalse();
-        nullResult.ErrorMessage.Should().Be("Custom type is required");
-        validResult.IsValid.Should().BeTrue();
+        nullResult.IsValid.ShouldBeFalse();
+        nullResult.ErrorMessage.ShouldBe("Custom type is required");
+        validResult.IsValid.ShouldBeTrue();
     }
 
     public class TestModel

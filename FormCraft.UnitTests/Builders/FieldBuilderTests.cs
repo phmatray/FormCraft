@@ -14,9 +14,9 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.Label.Should().Be("Full Name");
+        field.Label.ShouldBe("Full Name");
     }
 
     [Fact]
@@ -31,9 +31,9 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.Placeholder.Should().Be("Enter your name");
+        field.Placeholder.ShouldBe("Enter your name");
     }
 
     [Fact]
@@ -48,9 +48,9 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.HelpText.Should().Be("Please enter your full name");
+        field.HelpText.ShouldBe("Please enter your full name");
     }
 
     [Fact]
@@ -65,9 +65,9 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.CssClass.Should().Be("custom-input");
+        field.CssClass.ShouldBe("custom-input");
     }
 
     [Fact]
@@ -82,11 +82,11 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.IsRequired.Should().BeTrue();
-        field.Validators.Should().HaveCount(1);
-        field.Validators.First().Should().BeOfType<ValidatorWrapper<TestModel, string>>();
+        field.IsRequired.ShouldBeTrue();
+        field.Validators.Count.ShouldBe(1);
+        field.Validators.First().ShouldBeOfType<ValidatorWrapper<TestModel, string>>();
     }
 
     [Fact]
@@ -102,8 +102,8 @@ public class FieldBuilderTests
 
         // Assert
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.IsRequired.Should().BeTrue();
-        field.Validators.Should().HaveCount(1);
+        field.IsRequired.ShouldBeTrue();
+        field.Validators.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -118,9 +118,9 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.IsDisabled.Should().BeTrue();
+        field.IsDisabled.ShouldBeTrue();
     }
 
     [Fact]
@@ -135,9 +135,9 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.IsReadOnly.Should().BeTrue();
+        field.IsReadOnly.ShouldBeTrue();
     }
 
     [Fact]
@@ -153,9 +153,9 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.VisibilityCondition.Should().BeSameAs(condition);
+        field.VisibilityCondition.ShouldBeSameAs(condition);
     }
 
     [Fact]
@@ -171,9 +171,9 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.DisabledCondition.Should().BeSameAs(condition);
+        field.DisabledCondition.ShouldBeSameAs(condition);
     }
 
     [Fact]
@@ -188,10 +188,10 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.AdditionalAttributes.Should().ContainKey("data-test");
-        field.AdditionalAttributes["data-test"].Should().Be("value");
+        field.AdditionalAttributes.ShouldContainKey("data-test");
+        field.AdditionalAttributes["data-test"].ShouldBe("value");
     }
 
     [Fact]
@@ -212,12 +212,14 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.AdditionalAttributes.Should().ContainKeys(attributes.Keys);
+        field.AdditionalAttributes.ShouldContainKey("data-test");
+        field.AdditionalAttributes.ShouldContainKey("min");
+        field.AdditionalAttributes.ShouldContainKey("max");
         foreach (var attr in attributes)
         {
-            field.AdditionalAttributes[attr.Key].Should().Be(attr.Value);
+            field.AdditionalAttributes[attr.Key].ShouldBe(attr.Value);
         }
     }
 
@@ -234,10 +236,10 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.Validators.Should().HaveCount(1);
-        field.Validators.First().Should().BeOfType<ValidatorWrapper<TestModel, string>>();
+        field.Validators.Count.ShouldBe(1);
+        field.Validators.First().ShouldBeOfType<ValidatorWrapper<TestModel, string>>();
     }
 
     [Fact]
@@ -253,10 +255,10 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.Validators.Should().HaveCount(1);
-        field.Validators.First().Should().BeOfType<ValidatorWrapper<TestModel, string>>();
+        field.Validators.Count.ShouldBe(1);
+        field.Validators.First().ShouldBeOfType<ValidatorWrapper<TestModel, string>>();
     }
 
     [Fact]
@@ -276,10 +278,10 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.Validators.Should().HaveCount(1);
-        field.Validators.First().Should().BeOfType<ValidatorWrapper<TestModel, string>>();
+        field.Validators.Count.ShouldBe(1);
+        field.Validators.First().ShouldBeOfType<ValidatorWrapper<TestModel, string>>();
     }
 
     [Fact]
@@ -295,14 +297,14 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "City");
-        field.Dependencies.Should().HaveCount(1);
-        field.Dependencies.First().DependentFieldName.Should().Be("Country");
+        field.Dependencies.Count.ShouldBe(1);
+        field.Dependencies.First().DependentFieldName.ShouldBe("Country");
         
-        config.FieldDependencies.Should().ContainKey("City");
-        config.FieldDependencies["City"].Should().HaveCount(1);
-        config.FieldDependencies["City"].First().DependentFieldName.Should().Be("Country");
+        config.FieldDependencies.ShouldContainKey("City");
+        config.FieldDependencies["City"].Count.ShouldBe(1);
+        config.FieldDependencies["City"].First().DependentFieldName.ShouldBe("Country");
     }
 
     [Fact]
@@ -321,11 +323,11 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         var wrapper = field as FieldConfigurationWrapper<TestModel, string>;
-        wrapper.Should().NotBeNull();
-        wrapper!.TypedConfiguration.CustomTemplate.Should().BeSameAs(template);
+        wrapper.ShouldNotBeNull();
+        wrapper!.TypedConfiguration.CustomTemplate.ShouldBeSameAs(template);
     }
 
     [Fact]
@@ -340,9 +342,9 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.Order.Should().Be(5);
+        field.Order.ShouldBe(5);
     }
 
     [Fact]
@@ -357,12 +359,12 @@ public class FieldBuilderTests
         var config = newFieldBuilder.Build();
 
         // Assert
-        newFieldBuilder.Should().NotBeSameAs(fieldBuilder);
-        newFieldBuilder.Should().BeOfType<FieldBuilder<TestModel, string>>();
+        newFieldBuilder.ShouldNotBeSameAs(fieldBuilder);
+        newFieldBuilder.ShouldBeOfType<FieldBuilder<TestModel, string>>();
         
-        config.Fields.Should().HaveCount(2);
-        config.Fields.Should().Contain(f => f.FieldName == "Name");
-        config.Fields.Should().Contain(f => f.FieldName == "Email");
+        config.Fields.Count.ShouldBe(2);
+        config.Fields.ShouldContain(f => f.FieldName == "Name");
+        config.Fields.ShouldContain(f => f.FieldName == "Email");
     }
 
     [Fact]
@@ -379,11 +381,11 @@ public class FieldBuilderTests
         var result = fieldBuilder.Build();
 
         // Assert
-        result.Should().NotBeNull();
-        result.Fields.Should().HaveCount(1);
-        result.Fields.First().FieldName.Should().Be("Name");
-        result.Fields.First().Label.Should().Be("Name");
-        result.Fields.First().IsRequired.Should().BeTrue();
+        result.ShouldNotBeNull();
+        result.Fields.Count.ShouldBe(1);
+        result.Fields.First().FieldName.ShouldBe("Name");
+        result.Fields.First().Label.ShouldBe("Name");
+        result.Fields.First().IsRequired.ShouldBeTrue();
     }
 
     [Fact]
@@ -407,16 +409,16 @@ public class FieldBuilderTests
         var config = result.Build();
 
         // Assert
-        result.Should().BeSameAs(fieldBuilder);
+        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
-        field.Label.Should().Be("Full Name");
-        field.Placeholder.Should().Be("Enter full name");
-        field.IsRequired.Should().BeTrue();
-        field.CssClass.Should().Be("form-control");
-        field.HelpText.Should().Be("Your legal name");
-        field.Order.Should().Be(1);
-        field.IsDisabled.Should().BeFalse();
-        field.IsReadOnly.Should().BeFalse();
+        field.Label.ShouldBe("Full Name");
+        field.Placeholder.ShouldBe("Enter full name");
+        field.IsRequired.ShouldBeTrue();
+        field.CssClass.ShouldBe("form-control");
+        field.HelpText.ShouldBe("Your legal name");
+        field.Order.ShouldBe(1);
+        field.IsDisabled.ShouldBeFalse();
+        field.IsReadOnly.ShouldBeFalse();
     }
 
     public class TestModel
