@@ -3,3 +3,11 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+
+# Nuke build
+.nuke/temp/
+.nuke/build.schema.json
+
+# Build artifacts
+/artifacts/
+/test-results/
