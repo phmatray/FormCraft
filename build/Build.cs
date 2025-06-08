@@ -48,7 +48,7 @@ class Build : NukeBuild
     [Parameter("GitHub personal access token")]
     readonly string GitHubToken;
 
-    string CurrentVersion => GitRepository?.Tags?.FirstOrDefault()?.Replace("v", "") ?? "1.0.0";
+    string CurrentVersion => GetCurrentVersion();
 
     AbsolutePath SourceDirectory => RootDirectory / "FormCraft";
     AbsolutePath TestsDirectory => RootDirectory / "FormCraft.UnitTests";
@@ -127,7 +127,7 @@ class Build : NukeBuild
     Target Publish => _ => _
         .DependsOn(Pack)
         .Requires(() => NuGetApiKey)
-        .Requires(() => GitRepository.IsOnMainBranch() || GitRepository.IsOnReleaseBranch())
+        .Requires(() => IsOnVersionTag() || GitRepository.IsOnMainBranch() || GitRepository.IsOnReleaseBranch())
         .Requires(() => Configuration.Equals(Configuration.Release))
         .Triggers(Announce)
         .Executes(() =>
@@ -154,7 +154,6 @@ class Build : NukeBuild
     Target CreateGitHubRelease => _ => _
         .DependsOn(Pack)
         .Requires(() => GitHubToken)
-        .Requires(() => GitRepository.IsOnMainBranch() || GitRepository.IsOnReleaseBranch())
         .Requires(() => IsOnVersionTag())
         .OnlyWhenStatic(() => IsServerBuild)
         .Executes(async () =>
@@ -210,8 +209,21 @@ class Build : NukeBuild
         .Triggers(PublishIfNeeded);
 
     Target PublishIfNeeded => _ => _
-        .OnlyWhenStatic(() => GitRepository.IsOnMainBranch() && IsOnVersionTag())
+        .OnlyWhenStatic(() => IsOnVersionTag())
         .OnlyWhenStatic(() => IsServerBuild)
+        .Executes(() =>
+        {
+            var isVersionTag = IsOnVersionTag();
+            var currentTag = GetCurrentTag();
+            var branch = GitRepository.Branch;
+            
+            Serilog.Log.Information("PublishIfNeeded conditions:");
+            Serilog.Log.Information("  - IsServerBuild: {IsServerBuild}", IsServerBuild);
+            Serilog.Log.Information("  - Current branch: {Branch}", branch);
+            Serilog.Log.Information("  - IsOnVersionTag: {IsVersionTag}", isVersionTag);
+            Serilog.Log.Information("  - Current tag: {CurrentTag}", currentTag ?? "none");
+            Serilog.Log.Information("  - Current version: {Version}", CurrentVersion);
+        })
         .DependsOn(Publish)
         .Triggers(CreateGitHubRelease);
     
@@ -226,18 +238,57 @@ class Build : NukeBuild
         });
 
     // Helper methods
-    bool IsOnVersionTag()
+    string GetCurrentVersion()
     {
-        var process = ProcessTasks.StartProcess("git", "describe --exact-match --tags HEAD", RootDirectory, logOutput: false);
-        process.WaitForExit();
-        
-        if (process.ExitCode == 0 && process.Output.Any())
+        // Try to get version from current tag
+        var currentTag = GetCurrentTag();
+        if (!string.IsNullOrEmpty(currentTag))
         {
-            var tag = process.Output.First().Text;
-            return Regex.IsMatch(tag, @"^v\d+\.\d+\.\d+");
+            return currentTag.TrimStart('v');
         }
         
-        return false;
+        // Try to get version from MinVer or GitVersion
+        var minVerVersion = EnvironmentInfo.GetVariable("MINVER_VERSION");
+        if (!string.IsNullOrEmpty(minVerVersion))
+        {
+            return minVerVersion;
+        }
+        
+        // Fallback to latest tag
+        try
+        {
+            var process = ProcessTasks.StartProcess("git", "describe --tags --abbrev=0", RootDirectory, logOutput: false);
+            process.WaitForExit();
+            if (process.ExitCode == 0 && process.Output.Any())
+            {
+                return process.Output.First().Text.TrimStart('v');
+            }
+        }
+        catch { }
+        
+        return "1.0.0";
+    }
+    
+    string GetCurrentTag()
+    {
+        try
+        {
+            var process = ProcessTasks.StartProcess("git", "describe --exact-match --tags HEAD", RootDirectory, logOutput: false);
+            process.WaitForExit();
+            if (process.ExitCode == 0 && process.Output.Any())
+            {
+                return process.Output.First().Text;
+            }
+        }
+        catch { }
+        
+        return null;
+    }
+    
+    bool IsOnVersionTag()
+    {
+        var tag = GetCurrentTag();
+        return !string.IsNullOrEmpty(tag) && Regex.IsMatch(tag, @"^v\d+\.\d+\.\d+");
     }
 
     string GenerateChangelogForRelease(string tag)
