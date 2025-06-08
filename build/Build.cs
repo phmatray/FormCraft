@@ -139,35 +139,6 @@ class Build : NukeBuild
                     .SetTargetPath(package)));
         });
 
-    Target Changelog => _ => _
-        .Description("Generate changelog using git-cliff")
-        .Executes(() =>
-        {
-            // In CI, git-cliff is installed by the GitHub Action
-            // Locally, install if not available
-            if (IsLocalBuild && !IsGitCliffInstalled())
-            {
-                InstallGitCliff();
-            }
-
-            // Generate changelog
-            var process = ProcessTasks.StartProcess(
-                "git-cliff", 
-                "--config cliff.toml --output CHANGELOG.md", 
-                RootDirectory);
-            
-            process.WaitForExit();
-            
-            if (process.ExitCode == 0)
-            {
-                Serilog.Log.Information("Changelog generated successfully at: {Path}", ChangelogPath);
-            }
-            else
-            {
-                throw new Exception("Failed to generate changelog with git-cliff");
-            }
-        });
-
     Target Announce => _ => _
         .TriggeredBy(Publish)
         .Executes(() =>
@@ -179,40 +150,12 @@ class Build : NukeBuild
 
     Target Continuous => _ => _
         .DependsOn(Test, Pack)
-        .Triggers(PublishIfNeeded, ChangelogIfNeeded);
+        .Triggers(PublishIfNeeded);
 
     Target PublishIfNeeded => _ => _
         .OnlyWhenStatic(() => GitRepository.IsOnMainBranch() && IsOnVersionTag())
         .OnlyWhenStatic(() => IsServerBuild)
         .DependsOn(Publish);
-
-    Target ChangelogIfNeeded => _ => _
-        .OnlyWhenStatic(() => GitRepository.IsOnMainBranch())
-        .OnlyWhenStatic(() => !IsOnVersionTag())
-        .OnlyWhenStatic(() => IsServerBuild)
-        .DependsOn(Changelog)
-        .Executes(() =>
-        {
-            // Check if changelog has changes
-            var diffProcess = ProcessTasks.StartProcess("git", "diff --quiet CHANGELOG.md", RootDirectory);
-            diffProcess.WaitForExit();
-            
-            if (diffProcess.ExitCode != 0)
-            {
-                // Commit changelog changes
-                ProcessTasks.StartProcess("git", "config --local user.email \"github-actions[bot]@users.noreply.github.com\"", RootDirectory).WaitForExit();
-                ProcessTasks.StartProcess("git", "config --local user.name \"github-actions[bot]\"", RootDirectory).WaitForExit();
-                ProcessTasks.StartProcess("git", "add CHANGELOG.md", RootDirectory).WaitForExit();
-                ProcessTasks.StartProcess("git", "commit -m \"chore: update changelog [skip ci]\"", RootDirectory).WaitForExit();
-                ProcessTasks.StartProcess("git", "push", RootDirectory).WaitForExit();
-                
-                Serilog.Log.Information("Changelog committed and pushed");
-            }
-            else
-            {
-                Serilog.Log.Information("No changelog changes to commit");
-            }
-        });
 
     // Helper methods
     bool IsOnVersionTag()
@@ -227,65 +170,5 @@ class Build : NukeBuild
         }
         
         return false;
-    }
-
-    bool IsGitCliffInstalled()
-    {
-        try
-        {
-            var process = ProcessTasks.StartProcess("git-cliff", "--version", RootDirectory, logOutput: false);
-            process.WaitForExit();
-            return process.ExitCode == 0;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    void InstallGitCliff()
-    {
-        Serilog.Log.Information("Installing git-cliff...");
-        
-        if (EnvironmentInfo.IsOsx)
-        {
-            // Install via Homebrew
-            var brewProcess = ProcessTasks.StartProcess("brew", "install git-cliff", RootDirectory);
-            brewProcess.WaitForExit();
-            
-            if (brewProcess.ExitCode != 0)
-            {
-                throw new Exception("Failed to install git-cliff via Homebrew. Please install manually: https://github.com/orhun/git-cliff#installation");
-            }
-        }
-        else if (EnvironmentInfo.IsLinux)
-        {
-            // Download binary for Linux
-            var commands = new[]
-            {
-                "curl -sLO https://github.com/orhun/git-cliff/releases/latest/download/git-cliff-x86_64-unknown-linux-gnu.tar.gz",
-                "tar -xzf git-cliff-x86_64-unknown-linux-gnu.tar.gz",
-                "sudo mv git-cliff /usr/local/bin/",
-                "rm git-cliff-x86_64-unknown-linux-gnu.tar.gz"
-            };
-            
-            foreach (var command in commands)
-            {
-                var process = ProcessTasks.StartProcess("/bin/bash", $"-c \"{command}\"", RootDirectory);
-                process.WaitForExit();
-                
-                if (process.ExitCode != 0)
-                {
-                    throw new Exception($"Failed to install git-cliff at command: {command}. Please install manually: https://github.com/orhun/git-cliff#installation");
-                }
-            }
-        }
-        else if (EnvironmentInfo.IsWin)
-        {
-            Serilog.Log.Warning("Please install git-cliff manually on Windows: https://github.com/orhun/git-cliff#installation");
-            throw new Exception("git-cliff must be installed manually on Windows");
-        }
-        
-        Serilog.Log.Information("git-cliff installed successfully");
     }
 }

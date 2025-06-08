@@ -62,8 +62,8 @@
   <ItemGroup>
     <!-- Include README, CHANGELOG, and icon in package -->
     <None Include="README.md" Pack="true" PackagePath="\" />
-    <None Include="../CHANGELOG.md" Pack="true" PackagePath="\" Condition="Exists('../CHANGELOG.md')" />
     <None Include="icon.png" Pack="true" PackagePath="\" Condition="Exists('icon.png')" />
+    <None Remove="CHANGELOG.md" />
   </ItemGroup>
 
   <!-- Changelog Generation Target -->
