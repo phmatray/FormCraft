@@ -10,14 +10,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d167caaa-5ebe-4aad-8ea1-3bbbe1168d9c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Shared/CodeExample.razor" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Models/EmployeeModel.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FormCraft.UnitTests/Builders/FieldGroupBuilderTests.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FormCraft/Forms/Builders/FieldGroupBuilder.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FormCraft/Forms/Core/FieldGroup.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.DynamicFormBlazor/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.DynamicFormBlazor/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Layout/MainLayout.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Layout/MainLayout.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/FluentForm.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/FluentForm.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/ImprovedForm.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/ImprovedForm.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/SimplifiedForm.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/SimplifiedForm.razor" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/FieldGroups.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/FieldGroups.razor" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/wwwroot/app.css" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/wwwroot/app.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FormCraft/Components/DynamicFormComponent.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft/Components/DynamicFormComponent.razor" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FormCraft/Components/DynamicFormComponent.razor.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft/Components/DynamicFormComponent.razor.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FormCraft/Forms/Builders/FormBuilder.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft/Forms/Builders/FormBuilder.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FormCraft/Forms/Core/IFormConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft/Forms/Core/IFormConfiguration.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -58,6 +60,7 @@
     <setting file="mock:///Users/phmatray/Repositories/github-phm/DynamicFormBlazor/DynamicFormBlazor/Components/Pages/FluentForm.razor" root0="SKIP_HIGHLIGHTING" root1="FORCE_HIGHLIGHTING" root2="FORCE_HIGHLIGHTING" />
     <setting file="mock:///Users/phmatray/Repositories/github-phm/DynamicFormBlazor/DynamicFormBlazor/Components/Pages/FluentForm.razor" root0="SKIP_HIGHLIGHTING" root1="FORCE_HIGHLIGHTING" root2="FORCE_HIGHLIGHTING" />
     <setting file="mock:///Users/phmatray/Repositories/github-phm/DynamicFormBlazor/DynamicFormBlazor/Components/Pages/ImprovedForm.razor" root0="SKIP_HIGHLIGHTING" root1="FORCE_HIGHLIGHTING" root2="FORCE_HIGHLIGHTING" />
+    <setting file="mock:///Users/phmatray/Repositories/github-phm/DynamicFormBlazor/FormCraft.DemoBlazorApp/Components/Layout/MainLayout.razor" root0="SKIP_HIGHLIGHTING" root1="FORCE_HIGHLIGHTING" root2="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/FormCraft.UnitTests/Components/DynamicFormComponentTests.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="mock:///Users/phmatray/Repositories/github-phm/DynamicFormBlazor/FormCraft.UnitTests/Components/DynamicFormComponentTests.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/FormCraft.UnitTests/Components/DynamicFormValidatorTests.cs" root0="FORCE_HIGHLIGHTING" />
@@ -68,6 +71,10 @@
     <setting file="mock:///Users/phmatray/Repositories/github-phm/DynamicFormBlazor/FormCraft/Forms/Validators/AsyncValidator.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///Users/phmatray/Repositories/github-phm/DynamicFormBlazor/FormCraft/Forms/Validators/CustomValidator.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///Users/phmatray/Repositories/github-phm/DynamicFormBlazor/FormCraft/Forms/Validators/RequiredValidator.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file:///usr/local/texlive/2025/texmf-dist/source/latex/cd/cd.dtx" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file:///usr/local/texlive/2025/texmf-dist/source/latex/lh/nfssfox.dtx" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file:///usr/local/texlive/2025/texmf-dist/source/latex/nag/nag.dtx" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://diff.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://diff.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://diff.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://diff.cs" root0="SKIP_HIGHLIGHTING" />
@@ -186,7 +193,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1749286610137</updated>
-      <workItem from="1749286611699" duration="26102000" />
+      <workItem from="1749286611699" duration="32393000" />
     </task>
     <task id="LOCAL-00001" summary="test: add unit tests">
       <option name="closed" value="true" />
@@ -276,7 +283,31 @@
       <option name="project" value="LOCAL" />
       <updated>1749378388856</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="refactor: add FieldGroups demo page">
+      <option name="closed" value="true" />
+      <created>1749379391194</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1749379391194</updated>
+    </task>
+    <task id="LOCAL-00013" summary="chore: generate changelog before a commit with the setup-hooks script">
+      <option name="closed" value="true" />
+      <created>1749379707742</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1749379707742</updated>
+    </task>
+    <task id="LOCAL-00014" summary="chore: improve changelog generation">
+      <option name="closed" value="true" />
+      <created>1749380202130</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1749380202130</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -291,7 +322,7 @@
       <expand>
         <path>
           <item name="rootNode" type="c53c71d1:RiderDotCoverCoverageTreeModel$RootNode" />
-          <item name="Total 0% 6526/6526" type="8b8fad3a:RiderDotCoverCoverageTreeNode" />
+          <item name="Total 0% 6746/6746" type="8b8fad3a:RiderDotCoverCoverageTreeNode" />
         </path>
       </expand>
       <select />
@@ -323,7 +354,10 @@
     <MESSAGE value="feat: add decimal and double field renderers" />
     <MESSAGE value="chore: add changelog generation" />
     <MESSAGE value="refactor: rename demo website" />
-    <option name="LAST_COMMIT_MESSAGE" value="refactor: rename demo website" />
+    <MESSAGE value="refactor: add FieldGroups demo page" />
+    <MESSAGE value="chore: generate changelog before a commit with the setup-hooks script" />
+    <MESSAGE value="chore: improve changelog generation" />
+    <option name="LAST_COMMIT_MESSAGE" value="chore: improve changelog generation" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -406,6 +440,24 @@
           <option name="totalLines" value="51507" />
           <option name="info" value="" />
         </TimePoint>
+        <TimePoint>
+          <option name="timestamp" value="1749379391231" />
+          <option name="linesCode" value="20695" />
+          <option name="totalLines" value="54523" />
+          <option name="info" value="" />
+        </TimePoint>
+        <TimePoint>
+          <option name="timestamp" value="1749379707769" />
+          <option name="linesCode" value="20780" />
+          <option name="totalLines" value="54677" />
+          <option name="info" value="" />
+        </TimePoint>
+        <TimePoint>
+          <option name="timestamp" value="1749380202159" />
+          <option name="linesCode" value="20808" />
+          <option name="totalLines" value="54714" />
+          <option name="info" value="" />
+        </TimePoint>
       </list>
     </option>
     <option name="genericTimePoints">
@@ -429,9 +481,9 @@
           <option name="info" value="08 Jun 2025" />
         </TimePoint>
         <TimePoint>
-          <option name="timestamp" value="1749378388919" />
-          <option name="linesCode" value="20683" />
-          <option name="totalLines" value="51507" />
+          <option name="timestamp" value="1749380202159" />
+          <option name="linesCode" value="20808" />
+          <option name="totalLines" value="54714" />
           <option name="info" value="08 Jun 2025" />
         </TimePoint>
       </list>

@@ -13,77 +13,13 @@
                 FormIcon="@Icons.Material.Filled.Badge">
     
     <FormContent>
-        <EditForm Model="@_model" OnValidSubmit="@HandleValidSubmit">
-            <DataAnnotationsValidator />
-            
-            @* Row 1: 2 fields side by side *@
-            <MudGrid>
-                <MudItem xs="12" md="6">
-                    <DynamicFormComponent TModel="EmployeeModel" 
-                                        Model="@_model" 
-                                        Configuration="@_firstNameConfig"
-                                        ShowSubmitButton="false" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <DynamicFormComponent TModel="EmployeeModel" 
-                                        Model="@_model" 
-                                        Configuration="@_lastNameConfig"
-                                        ShowSubmitButton="false" />
-                </MudItem>
-            </MudGrid>
-            
-            @* Row 2: 3 fields side by side *@
-            <MudGrid Class="mt-4">
-                <MudItem xs="12" md="4">
-                    <DynamicFormComponent TModel="EmployeeModel" 
-                                        Model="@_model" 
-                                        Configuration="@_emailConfig"
-                                        ShowSubmitButton="false" />
-                </MudItem>
-                <MudItem xs="12" md="4">
-                    <DynamicFormComponent TModel="EmployeeModel" 
-                                        Model="@_model" 
-                                        Configuration="@_phoneConfig"
-                                        ShowSubmitButton="false" />
-                </MudItem>
-                <MudItem xs="12" md="4">
-                    <DynamicFormComponent TModel="EmployeeModel" 
-                                        Model="@_model" 
-                                        Configuration="@_departmentConfig"
-                                        ShowSubmitButton="false" />
-                </MudItem>
-            </MudGrid>
-            
-            @* Row 3: 1 field full width *@
-            <MudGrid Class="mt-4">
-                <MudItem xs="12">
-                    <DynamicFormComponent TModel="EmployeeModel" 
-                                        Model="@_model" 
-                                        Configuration="@_biographyConfig"
-                                        ShowSubmitButton="false" />
-                </MudItem>
-            </MudGrid>
-            
-            <MudCardActions Class="justify-center pa-4 mt-4">
-                <MudButton ButtonType="ButtonType.Submit"
-                          Variant="Variant.Filled"
-                          Color="Color.Primary"
-                          Size="Size.Large"
-                          Disabled="@_isSubmitting"
-                          StartIcon="@(_isSubmitting ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.Save)"
-                          Class="px-8">
-                    @if (_isSubmitting)
-                    {
-                        <MudProgressCircular Class="me-2" Size="Size.Small" Indeterminate="true" />
-                        <span>Saving...</span>
-                    }
-                    else
-                    {
-                        <span>Save Employee</span>
-                    }
-                </MudButton>
-            </MudCardActions>
-        </EditForm>
+        <DynamicFormComponent TModel="EmployeeModel" 
+                            Model="@_model" 
+                            Configuration="@_formConfiguration"
+                            OnValidSubmit="@HandleValidSubmit"
+                            IsSubmitting="@_isSubmitting"
+                            SubmitButtonText="Save Employee"
+                            SubmittingText="Saving..." />
     </FormContent>
     
     <SidebarContent>
@@ -110,6 +46,7 @@
                 </MudList>
             </MudCardContent>
         </MudCard>
+        
     </SidebarContent>
     
     <SuccessContent>
@@ -127,107 +64,115 @@
     private EmployeeModel _model = new();
     private bool _isSubmitted;
     private bool _isSubmitting;
-    
-    private IFormConfiguration<EmployeeModel> _firstNameConfig = null!;
-    private IFormConfiguration<EmployeeModel> _lastNameConfig = null!;
-    private IFormConfiguration<EmployeeModel> _emailConfig = null!;
-    private IFormConfiguration<EmployeeModel> _phoneConfig = null!;
-    private IFormConfiguration<EmployeeModel> _departmentConfig = null!;
-    private IFormConfiguration<EmployeeModel> _biographyConfig = null!;
+    private IFormConfiguration<EmployeeModel> _formConfiguration = null!;
     
     private List<FormGuidelines.GuidelineItem> _guidelines = new()
     {
-        new() { Icon = Icons.Material.Filled.GridView, Color = Color.Primary, Text = "Flexible grid-based layouts" },
-        new() { Icon = Icons.Material.Filled.Devices, Color = Color.Secondary, Text = "Responsive column sizing" },
-        new() { Icon = Icons.Material.Filled.ViewModule, Color = Color.Tertiary, Text = "Mix different column counts" },
-        new() { Icon = Icons.Material.Filled.AutoAwesome, Color = Color.Info, Text = "Individual field configuration" },
-        new() { Icon = Icons.Material.Filled.Speed, Color = Color.Success, Text = "Optimized for complex forms" },
-        new() { Icon = Icons.Material.Filled.Extension, Color = Color.Warning, Text = "Composable form sections" }
+        new() { Icon = Icons.Material.Filled.GridView, Color = Color.Primary, Text = "Built-in field groups support" },
+        new() { Icon = Icons.Material.Filled.Code, Color = Color.Secondary, Text = "Single form configuration" },
+        new() { Icon = Icons.Material.Filled.ViewModule, Color = Color.Tertiary, Text = "Flexible column layouts" },
+        new() { Icon = Icons.Material.Filled.Dashboard, Color = Color.Info, Text = "Named group sections" },
+        new() { Icon = Icons.Material.Filled.Speed, Color = Color.Success, Text = "Optimized rendering" },
+        new() { Icon = Icons.Material.Filled.AutoAwesome, Color = Color.Warning, Text = "Fluent API design" }
     };
     
-    private string _codeExample = @"// Row 1: 2 fields side by side
-<MudGrid>
-    <MudItem xs=""12"" md=""6"">
-        <DynamicFormComponent TModel=""EmployeeModel"" 
-            Model=""@_model"" 
-            Configuration=""@_firstNameConfig""
-            ShowSubmitButton=""false"" />
-    </MudItem>
-    <MudItem xs=""12"" md=""6"">
-        <DynamicFormComponent TModel=""EmployeeModel"" 
-            Model=""@_model"" 
-            Configuration=""@_lastNameConfig""
-            ShowSubmitButton=""false"" />
-    </MudItem>
-</MudGrid>
-
-// Row 2: 3 fields
-<MudGrid Class=""mt-4"">
-    <MudItem xs=""12"" md=""4"">...</MudItem>
-    <MudItem xs=""12"" md=""4"">...</MudItem>
-    <MudItem xs=""12"" md=""4"">...</MudItem>
-</MudGrid>
-
-// Row 3: 1 field full width
-<MudGrid Class=""mt-4"">
-    <MudItem xs=""12"">...</MudItem>
-</MudGrid>";
+    private string _codeExample = @"// Using the new Field Groups API with fluent configuration
+var formConfig = FormBuilder<EmployeeModel>
+    .Create()
+    // Row 1: 2 fields (First Name, Last Name)
+    .AddFieldGroup(group => group
+        .WithGroupName(""Personal Information"")
+        .WithColumns(2)
+        .AddField(x => x.FirstName, field => field
+            .WithLabel(""First Name"")
+            .Required(""First name is required"")
+            .WithPlaceholder(""Enter first name""))
+        .AddField(x => x.LastName, field => field
+            .WithLabel(""Last Name"")
+            .Required(""Last name is required"")
+            .WithPlaceholder(""Enter last name"")))
+    // Row 2: 3 fields (Email, Phone, Department)
+    .AddFieldGroup(group => group
+        .WithGroupName(""Contact Details"")
+        .WithColumns(3)
+        .AddField(x => x.Email, field => field
+            .WithLabel(""Email"")
+            .Required(""Email is required"")
+            .WithEmailValidation()
+            .WithPlaceholder(""email@example.com""))
+        .AddField(x => x.Phone, field => field
+            .WithLabel(""Phone"")
+            .WithPlaceholder(""(555) 123-4567""))
+        .AddField(x => x.Department, field => field
+            .WithLabel(""Department"")
+            .Required(""Department is required"")
+            .WithOptions(
+                (""IT"", ""Information Technology""),
+                (""HR"", ""Human Resources""),
+                (""SALES"", ""Sales""),
+                (""MARKETING"", ""Marketing""),
+                (""FINANCE"", ""Finance"")
+            )))
+    // Row 3: 1 field (Biography)
+    .AddFieldGroup(group => group
+        .WithGroupName(""Additional Information"")
+        .WithColumns(1)
+        .AddField(x => x.Biography, field => field
+            .WithLabel(""Biography"")
+            .WithPlaceholder(""Tell us about yourself..."")
+            .WithHelpText(""Brief description of experience and background"")))
+    .Build();";
     
     protected override void OnInitialized()
     {
-        // Configure individual fields
-        _firstNameConfig = FormBuilder<EmployeeModel>
+        // Build form with field groups using the new fluent API
+        _formConfiguration = FormBuilder<EmployeeModel>
             .Create()
-            .AddField(x => x.FirstName)
-                .WithLabel("First Name")
-                .Required("First name is required")
-                .WithPlaceholder("Enter first name")
-            .Build();
-            
-        _lastNameConfig = FormBuilder<EmployeeModel>
-            .Create()
-            .AddField(x => x.LastName)
-                .WithLabel("Last Name")
-                .Required("Last name is required")
-                .WithPlaceholder("Enter last name")
-            .Build();
-            
-        _emailConfig = FormBuilder<EmployeeModel>
-            .Create()
-            .AddField(x => x.Email)
-                .WithLabel("Email")
-                .Required("Email is required")
-                .WithEmailValidation()
-                .WithPlaceholder("email@example.com")
-            .Build();
-            
-        _phoneConfig = FormBuilder<EmployeeModel>
-            .Create()
-            .AddField(x => x.Phone)
-                .WithLabel("Phone")
-                .WithPlaceholder("(555) 123-4567")
-            .Build();
-            
-        _departmentConfig = FormBuilder<EmployeeModel>
-            .Create()
-            .AddField(x => x.Department)
-                .WithLabel("Department")
-                .Required("Department is required")
-                .WithOptions(
-                    ("IT", "Information Technology"),
-                    ("HR", "Human Resources"),
-                    ("SALES", "Sales"),
-                    ("MARKETING", "Marketing"),
-                    ("FINANCE", "Finance")
-                )
-            .Build();
-            
-        _biographyConfig = FormBuilder<EmployeeModel>
-            .Create()
-            .AddField(x => x.Biography)
-                .WithLabel("Biography")
-                .WithPlaceholder("Tell us about yourself...")
-                .WithHelpText("Brief description of experience and background")
+            // Row 1: 2 fields (First Name, Last Name)
+            .AddFieldGroup(group => group
+                .WithGroupName("Personal Information")
+                .WithColumns(2)
+                .ShowInCard()
+                .AddField(x => x.FirstName, field => field
+                    .WithLabel("First Name")
+                    .Required("First name is required")
+                    .WithPlaceholder("Enter first name"))
+                .AddField(x => x.LastName, field => field
+                    .WithLabel("Last Name")
+                    .Required("Last name is required")
+                    .WithPlaceholder("Enter last name")))
+            // Row 2: 3 fields (Email, Phone, Department)
+            .AddFieldGroup(group => group
+                .WithGroupName("Contact Details")
+                .WithColumns(3)
+                .ShowInCard()
+                .AddField(x => x.Email, field => field
+                    .WithLabel("Email")
+                    .Required("Email is required")
+                    .WithEmailValidation()
+                    .WithPlaceholder("email@example.com"))
+                .AddField(x => x.Phone, field => field
+                    .WithLabel("Phone")
+                    .WithPlaceholder("(555) 123-4567"))
+                .AddField(x => x.Department, field => field
+                    .WithLabel("Department")
+                    .Required("Department is required")
+                    .WithOptions(
+                        ("IT", "Information Technology"),
+                        ("HR", "Human Resources"),
+                        ("SALES", "Sales"),
+                        ("MARKETING", "Marketing"),
+                        ("FINANCE", "Finance")
+                    )))
+            // Row 3: 1 field (Biography)
+            .AddFieldGroup(group => group
+                .WithGroupName("Additional Information")
+                .WithColumns(1)
+                .ShowInCard()
+                .AddField(x => x.Biography, field => field
+                    .WithLabel("Biography")
+                    .WithPlaceholder("Tell us about yourself...")
+                    .WithHelpText("Brief description of experience and background")))
             .Build();
     }
     

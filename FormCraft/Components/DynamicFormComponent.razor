@@ -11,22 +11,111 @@ This component coordinates field rendering, validation, and form submission for 
     <DataAnnotationsValidator />
     <DynamicFormValidator TModel="TModel" Configuration="@Configuration" />
     
-    <div class="@GetFormLayoutClass()">
-        @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
+    @if (ShouldUseFieldGroups())
+    {
+        @* Render fields in groups *@
+        @foreach (var group in GetFieldGroups().OrderBy(g => g.Order))
         {
-            @if (ShouldShowField(field))
-            {
-                <div class="@GetFieldLayoutClass(field) mb-4">
-                    <div class="form-field-container">
-                        @FieldRendererService.RenderField(Model, field, 
-                            EventCallback.Factory.Create<object?>(this, value => HandleFieldValueChanged(field.FieldName, value)),
-                            EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName)))
-                        <FieldValidationMessage FieldName="@field.FieldName" />
-                    </div>
-                </div>
-            }
+            <div class="@GetGroupContainerClass(group) mb-3">
+                @if (group.ShowCard)
+                {
+                    <MudCard Elevation="@group.CardElevation" Class="mb-4">
+                        @if (!string.IsNullOrEmpty(group.Name))
+                        {
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.h6">@group.Name</MudText>
+                                </CardHeaderContent>
+                            </MudCardHeader>
+                        }
+                        <MudCardContent>
+                            <MudGrid Spacing="2">
+                                @foreach (var fieldName in group.FieldNames)
+                                {
+                                    var field = Configuration.Fields.FirstOrDefault(f => f.FieldName == fieldName);
+                                    if (field != null && ShouldShowField(field))
+                                    {
+                                        <MudItem xs="@GetColumnWidth(group.Columns)" sm="@GetColumnWidth(group.Columns)" md="@GetColumnWidth(group.Columns)" lg="@GetColumnWidth(group.Columns)">
+                                            <div class="form-field-container">
+                                                @FieldRendererService.RenderField(Model, field, 
+                                                    EventCallback.Factory.Create<object?>(this, value => HandleFieldValueChanged(field.FieldName, value)),
+                                                    EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName)))
+                                                <FieldValidationMessage FieldName="@field.FieldName" />
+                                            </div>
+                                        </MudItem>
+                                    }
+                                }
+                            </MudGrid>
+                        </MudCardContent>
+                    </MudCard>
+                }
+                else
+                {
+                    <MudGrid Spacing="2">
+                        @foreach (var fieldName in group.FieldNames)
+                        {
+                            var field = Configuration.Fields.FirstOrDefault(f => f.FieldName == fieldName);
+                            if (field != null && ShouldShowField(field))
+                            {
+                                <MudItem xs="@GetColumnWidth(group.Columns)" sm="@GetColumnWidth(group.Columns)" md="@GetColumnWidth(group.Columns)" lg="@GetColumnWidth(group.Columns)">
+                                    <div class="form-field-container">
+                                        @FieldRendererService.RenderField(Model, field, 
+                                            EventCallback.Factory.Create<object?>(this, value => HandleFieldValueChanged(field.FieldName, value)),
+                                            EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName)))
+                                        <FieldValidationMessage FieldName="@field.FieldName" />
+                                    </div>
+                                </MudItem>
+                            }
+                        }
+                    </MudGrid>
+                }
+            </div>
         }
-    </div>
+        
+        @* Render ungrouped fields *@
+        var groupedFieldNames = GetFieldGroups().SelectMany(g => g.FieldNames).ToHashSet();
+        var ungroupedFields = Configuration.Fields.Where(f => !groupedFieldNames.Contains(f.FieldName)).OrderBy(f => f.Order).ToList();
+        
+        if (ungroupedFields.Any())
+        {
+            <div class="@GetFormLayoutClass()">
+                @foreach (var field in ungroupedFields)
+                {
+                    if (ShouldShowField(field))
+                    {
+                        <div class="@GetFieldLayoutClass(field) mb-4">
+                            <div class="form-field-container">
+                                @FieldRendererService.RenderField(Model, field, 
+                                    EventCallback.Factory.Create<object?>(this, value => HandleFieldValueChanged(field.FieldName, value)),
+                                    EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName)))
+                                <FieldValidationMessage FieldName="@field.FieldName" />
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    }
+    else
+    {
+        @* Traditional rendering without groups *@
+        <div class="@GetFormLayoutClass()">
+            @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
+            {
+                @if (ShouldShowField(field))
+                {
+                    <div class="@GetFieldLayoutClass(field) mb-4">
+                        <div class="form-field-container">
+                            @FieldRendererService.RenderField(Model, field, 
+                                EventCallback.Factory.Create<object?>(this, value => HandleFieldValueChanged(field.FieldName, value)),
+                                EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName)))
+                            <FieldValidationMessage FieldName="@field.FieldName" />
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
     
     @if (ShowSubmitButton)
     {

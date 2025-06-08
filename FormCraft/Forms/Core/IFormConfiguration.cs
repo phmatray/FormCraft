@@ -69,10 +69,27 @@ public enum FormLayout
 }
 
 /// <summary>
+/// Interface for form configurations that support field groups.
+/// </summary>
+/// <typeparam name="TModel">The model type that the form will bind to.</typeparam>
+public interface IGroupedFormConfiguration<TModel> : IFormConfiguration<TModel>
+{
+    /// <summary>
+    /// Gets the collection of field groups that define the form's layout structure.
+    /// </summary>
+    List<FieldGroup<TModel>> FieldGroups { get; }
+    
+    /// <summary>
+    /// Gets or sets whether to use field groups for rendering.
+    /// </summary>
+    bool UseFieldGroups { get; set; }
+}
+
+/// <summary>
 /// Default implementation of IFormConfiguration that stores form settings and field collections.
 /// </summary>
 /// <typeparam name="TModel">The model type that the form will bind to.</typeparam>
-public class FormConfiguration<TModel> : IFormConfiguration<TModel>
+public class FormConfiguration<TModel> : IFormConfiguration<TModel>, IGroupedFormConfiguration<TModel>
 {
     /// <inheritdoc />
     public List<IFieldConfiguration<TModel, object>> Fields { get; } = new();
@@ -94,4 +111,10 @@ public class FormConfiguration<TModel> : IFormConfiguration<TModel>
     
     /// <inheritdoc />
     public string RequiredIndicator { get; set; } = "*";
+    
+    /// <inheritdoc />
+    public List<FieldGroup<TModel>> FieldGroups { get; } = new();
+    
+    /// <inheritdoc />
+    public bool UseFieldGroups { get; set; } = false;
 }

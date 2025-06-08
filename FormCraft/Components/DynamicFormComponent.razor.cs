@@ -129,4 +129,40 @@ public partial class DynamicFormComponent<TModel>
             _ => ""
         };
     }
+    
+    private bool ShouldUseFieldGroups()
+    {
+        if (Configuration is IGroupedFormConfiguration<TModel> groupedConfig)
+        {
+            return groupedConfig.UseFieldGroups && groupedConfig.FieldGroups.Any();
+        }
+        return false;
+    }
+    
+    private List<FieldGroup<TModel>> GetFieldGroups()
+    {
+        if (Configuration is IGroupedFormConfiguration<TModel> groupedConfig)
+        {
+            return groupedConfig.FieldGroups;
+        }
+        return new List<FieldGroup<TModel>>();
+    }
+    
+    private string GetGroupContainerClass(FieldGroup<TModel> group)
+    {
+        return group.CssClass ?? "mb-4";
+    }
+    
+    private int GetColumnWidth(int columns)
+    {
+        return columns switch
+        {
+            1 => 12,
+            2 => 6,
+            3 => 4,
+            4 => 3,
+            6 => 2,
+            _ => 12
+        };
+    }
 }

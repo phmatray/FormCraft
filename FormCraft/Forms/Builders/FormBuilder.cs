@@ -124,6 +124,41 @@ public class FormBuilder<TModel> where TModel : new()
     }
     
     /// <summary>
+    /// Adds a field group to the form using a lambda expression for configuration.
+    /// </summary>
+    /// <param name="groupBuilder">A lambda expression that configures the group and its fields.</param>
+    /// <returns>The FormBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// builder.AddFieldGroup(group => group
+    ///     .WithGroupName("Personal Information")
+    ///     .WithColumns(2)
+    ///     .AddField(x => x.FirstName)
+    ///         .WithLabel("First Name")
+    ///         .Required()
+    ///     .AddField(x => x.LastName)
+    ///         .WithLabel("Last Name")
+    ///         .Required());
+    /// </code>
+    /// </example>
+    public FormBuilder<TModel> AddFieldGroup(Action<FieldGroupBuilder<TModel>> groupBuilder)
+    {
+        var group = new FieldGroup<TModel>
+        {
+            Order = _configuration.FieldGroups.Count,
+            Columns = 1 // Explicit default
+        };
+        
+        _configuration.FieldGroups.Add(group);
+        _configuration.UseFieldGroups = true;
+        
+        var fieldGroupBuilder = new FieldGroupBuilder<TModel>(this, group);
+        groupBuilder(fieldGroupBuilder);
+        
+        return this;
+    }
+    
+    /// <summary>
     /// Builds and returns the final form configuration that can be used with DynamicFormComponent.
     /// </summary>
     /// <returns>An IFormConfiguration instance containing all configured fields and settings.</returns>
