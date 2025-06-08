@@ -96,7 +96,7 @@
 @code {
     private JobApplicationModel _model = new();
     private IFormConfiguration<JobApplicationModel> _formConfiguration = null!;
-    private bool _isSubmitted = false;
+    private bool _isSubmitted;
     
     private List<FormGuidelines.GuidelineItem> _guidelines = new()
     {

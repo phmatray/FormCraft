@@ -217,7 +217,7 @@ public class StringFieldRendererTests
         A.CallTo(() => field.HelpText).Returns(helpText ?? string.Empty);
         A.CallTo(() => field.IsRequired).Returns(isRequired);
         A.CallTo(() => field.IsDisabled).Returns(isDisabled);
-        A.CallTo(() => field.AdditionalAttributes).Returns(new Dictionary<string, object?>());
+        A.CallTo(() => field.AdditionalAttributes).Returns(new Dictionary<string, object>());
 
         return field;
     }
@@ -227,7 +227,7 @@ public class StringFieldRendererTests
         IEnumerable<SelectOption<string>> options)
     {
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
-        var attributes = new Dictionary<string, object?> { { "Options", options } };
+        var attributes = new Dictionary<string, object> { { "Options", options } };
 
         A.CallTo(() => field.Label).Returns(label);
         A.CallTo(() => field.Placeholder).Returns(string.Empty);
@@ -430,7 +430,7 @@ public class StringFieldRendererTests
     {
         // Arrange
         var model = new TestModel { Name = "Test" };
-        var invalidOptions = new List<object> { "invalid", 123, null };
+        var invalidOptions = new List<object> { "invalid", 123 };
         var field = CreateMockFieldWithAttribute("Invalid Options", "Options", invalidOptions);
         var context = CreateContext(model, field, "Test");
 
@@ -525,7 +525,7 @@ public class StringFieldRendererTests
     {
         // Arrange
         var model = new TestModel { Name = "Test" };
-        var attributes = new Dictionary<string, object?>
+        var attributes = new Dictionary<string, object>
         {
             { "maxlength", 100 },
             { "pattern", @"[A-Za-z\s]+" },
@@ -549,7 +549,7 @@ public class StringFieldRendererTests
         object? attributeValue)
     {
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
-        var attributes = new Dictionary<string, object?> { { attributeName, attributeValue } };
+        var attributes = new Dictionary<string, object> { { attributeName, attributeValue! } };
 
         A.CallTo(() => field.Label).Returns(label);
         A.CallTo(() => field.Placeholder).Returns(string.Empty);
@@ -563,7 +563,7 @@ public class StringFieldRendererTests
 
     private IFieldConfiguration<TestModel, object> CreateMockFieldWithAttributes(
         string label,
-        Dictionary<string, object?> attributes)
+        Dictionary<string, object> attributes)
     {
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
 

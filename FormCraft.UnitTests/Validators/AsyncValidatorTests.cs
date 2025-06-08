@@ -130,7 +130,7 @@ public class AsyncValidatorTests
     public async Task ValidateAsync_Should_Handle_Exception_In_Validation_Function()
     {
         // Arrange
-        Func<string, Task<bool>> validationFunction = async value =>
+        Func<string, Task<bool>> validationFunction = async _ =>
         {
             await Task.Delay(10);
             throw new InvalidOperationException("Simulated service error");
@@ -199,7 +199,7 @@ public class AsyncValidatorTests
         // Arrange
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
-        Func<string, Task<bool>> slowValidation = async value =>
+        Func<string, Task<bool>> slowValidation = async _ =>
         {
             await Task.Delay(100, cts.Token); // This should timeout
             return true;

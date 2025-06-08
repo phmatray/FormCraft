@@ -153,7 +153,7 @@ public class CustomValidatorTests
     public async Task ValidateAsync_Should_Handle_Exception_In_Validation_Function()
     {
         // Arrange
-        Func<string, bool> validationFunction = value => throw new InvalidOperationException("Test exception");
+        Func<string, bool> validationFunction = _ => throw new InvalidOperationException("Test exception");
         var validator = new CustomValidator<TestModel, string>(
             validationFunction,
             "Validation error");

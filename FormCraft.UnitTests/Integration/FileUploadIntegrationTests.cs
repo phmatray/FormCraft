@@ -128,7 +128,7 @@ public class FileUploadIntegrationTests
         {
             if (validator is IFieldValidator<FileUploadTestModel, object> fieldValidator)
             {
-                var result = await fieldValidator.ValidateAsync(model, null, services);
+                var result = await fieldValidator.ValidateAsync(model, null!, services);
                 validationResults.Add(result);
             }
         }
@@ -136,6 +136,7 @@ public class FileUploadIntegrationTests
         // Assert
         validators.Count.ShouldBe(1);
         validationResults.ShouldContain(r => !r.IsValid);
+        validationResults.First().ErrorMessage.ShouldNotBeNull();
         validationResults.First().ErrorMessage.ShouldContain("Resume is required");
     }
 
@@ -187,7 +188,7 @@ public class FileUploadIntegrationTests
         {
             if (validator is IFieldValidator<FileUploadTestModel, object> fieldValidator)
             {
-                var result = await fieldValidator.ValidateAsync(model, null, services);
+                var result = await fieldValidator.ValidateAsync(model, null!, services);
                 validationResults.Add(result);
             }
         }
@@ -195,6 +196,7 @@ public class FileUploadIntegrationTests
         // Assert
         validators.Count.ShouldBe(1);
         validationResults.ShouldContain(r => !r.IsValid);
+        validationResults.First().ErrorMessage.ShouldNotBeNull();
         validationResults.First().ErrorMessage.ShouldContain("At least one certificates is required");
     }
 
