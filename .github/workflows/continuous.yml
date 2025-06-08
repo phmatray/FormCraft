@@ -36,16 +36,20 @@ jobs:
     name: ubuntu-latest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Install git-cliff
-        run: |
-          wget -qO git-cliff.tar.gz https://github.com/orhun/git-cliff/releases/latest/download/git-cliff-x86_64-unknown-linux-gnu.tar.gz
-          tar -xzf git-cliff.tar.gz
-          sudo mv git-cliff /usr/local/bin/
-          rm git-cliff.tar.gz
-          git-cliff --version
+
+      - name: Generate a changelog
+        uses: orhun/git-cliff-action@v3
+        with:
+          config: cliff.toml
+          args: --verbose
+        env:
+          OUTPUT: CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
+          
       - name: 'Cache: .nuke/temp, ~/.nuget/packages'
         uses: actions/cache@v4
         with:
@@ -53,16 +57,19 @@ jobs:
             .nuke/temp
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('global.json', '**/*.csproj') }}
+          
       - name: 'Run: Continuous'
         run: ./build.cmd Continuous
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
       - name: 'Publish: test-results'
         uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: test-results
+          
       - name: 'Publish: artifacts'
         uses: actions/upload-artifact@v4
         with:
