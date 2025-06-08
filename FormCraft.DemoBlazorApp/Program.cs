@@ -1,5 +1,5 @@
-using DynamicFormBlazor.Components;
-using DynamicFormBlazor.Services;
+using FormCraft.DemoBlazorApp.Components;
+using FormCraft.DemoBlazorApp.Services;
 using FormCraft;
 using MudBlazor.Services;
 

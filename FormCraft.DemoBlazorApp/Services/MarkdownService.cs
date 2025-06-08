@@ -1,6 +1,6 @@
 using Markdig;
 
-namespace DynamicFormBlazor.Services;
+namespace FormCraft.DemoBlazorApp.Services;
 
 /// <summary>
 /// Provides services for processing Markdown content and integrating with syntax highlighting.
