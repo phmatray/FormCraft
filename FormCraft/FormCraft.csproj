@@ -15,8 +15,8 @@
     <Copyright>Copyright © 2025 phmatray</Copyright>
     
     <!-- Package URLs -->
-    <PackageProjectUrl>https://github.com/phmatray/DynamicFormBlazor</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/phmatray/DynamicFormBlazor</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/phmatray/FormCraft</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/phmatray/FormCraft</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>

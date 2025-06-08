@@ -17,7 +17,7 @@ Dynamic Form Blazor provides a fluent API for building forms that are:
 Add the package to your Blazor project:
 
 ```bash
-dotnet add package DynamicFormBlazor
+dotnet add package FormCraft
 ```
 
 ### 2. Basic Usage

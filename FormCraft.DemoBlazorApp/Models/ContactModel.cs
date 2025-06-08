@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components.Forms;
 
-namespace DynamicFormBlazor.Models;
+namespace FormCraft.DemoBlazorApp.Models;
 
 public class ContactModel
 {
