@@ -87,7 +87,7 @@ public class CustomFieldRendererTests
 
         var context = A.Fake<IFieldRenderContext>();
         A.CallTo(() => context.OnValueChanged).Returns(
-            EventCallback.Factory.Create<object?>(this, (object? value) =>
+            EventCallback.Factory.Create<object?>(this, value =>
             {
                 callbackInvoked = true;
                 newValue = value as string ?? "";

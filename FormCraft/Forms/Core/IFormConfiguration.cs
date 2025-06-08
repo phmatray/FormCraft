@@ -89,7 +89,7 @@ public interface IGroupedFormConfiguration<TModel> : IFormConfiguration<TModel>
 /// Default implementation of IFormConfiguration that stores form settings and field collections.
 /// </summary>
 /// <typeparam name="TModel">The model type that the form will bind to.</typeparam>
-public class FormConfiguration<TModel> : IFormConfiguration<TModel>, IGroupedFormConfiguration<TModel>
+public class FormConfiguration<TModel> : IGroupedFormConfiguration<TModel>
 {
     /// <inheritdoc />
     public List<IFieldConfiguration<TModel, object>> Fields { get; } = new();

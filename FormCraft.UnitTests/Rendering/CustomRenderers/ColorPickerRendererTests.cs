@@ -42,7 +42,7 @@ public class ColorPickerRendererTests
         // Arrange
         var renderer = new ColorPickerRenderer();
         var context = A.Fake<IFieldRenderContext>();
-        A.CallTo(() => context.CurrentValue).Returns((object?)null);
+        A.CallTo(() => context.CurrentValue).Returns(null);
         A.CallTo(() => context.FieldConfiguration).Returns(new TestFieldConfiguration());
         A.CallTo(() => context.OnValueChanged).Returns(EventCallback.Factory.Create<object?>(this, _ => { }));
 

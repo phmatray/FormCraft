@@ -26,8 +26,7 @@
                             
                             @if (_isSubmitted)
                             {
-                                <FormSuccessDisplay TModel="ContactModel" 
-                                                   DataDisplayItems="@GetDataDisplayItems()"
+                                <FormSuccessDisplay DataDisplayItems="@GetDataDisplayItems()"
                                                    OnReset="@ResetForm" />
                             }
                             else
@@ -199,9 +198,9 @@
         StateHasChanged();
     }
     
-    private List<FormSuccessDisplay<ContactModel>.DataDisplayItem> GetDataDisplayItems()
+    private List<FormSuccessDisplay.DataDisplayItem> GetDataDisplayItems()
     {
-        var items = new List<FormSuccessDisplay<ContactModel>.DataDisplayItem>
+        var items = new List<FormSuccessDisplay.DataDisplayItem>
         {
             new() { Label = "Full Name", Value = $"{_model.FirstName} {_model.LastName}" },
             new() { Label = "Email", Value = _model.Email },

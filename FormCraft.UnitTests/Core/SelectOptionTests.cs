@@ -43,7 +43,7 @@ public class SelectOptionTests
 
         // Act & Assert for custom type
         var customOption = new SelectOption<TestClass>(new TestClass { Id = 1 }, "Test");
-        customOption.Value!.Id.ShouldBe(1);
+        customOption.Value.Id.ShouldBe(1);
         customOption.Label.ShouldBe("Test");
     }
 
