@@ -75,7 +75,7 @@
     private bool _isLoading = true;
     private string _htmlContent = "";
     private List<TocSection> _tableOfContents = new();
-    private bool _contentChanged = false;
+    private bool _contentChanged;
     
     protected override async Task OnParametersSetAsync()
     {

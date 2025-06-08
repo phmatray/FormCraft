@@ -4,9 +4,9 @@
 
 [![NuGet Version](https://img.shields.io/nuget/v/FormCraft.svg?style=flat-square)](https://www.nuget.org/packages/FormCraft/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/FormCraft.svg?style=flat-square)](https://www.nuget.org/packages/FormCraft/)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/phmatray/DynamicFormBlazor/ci.yml?branch=main&style=flat-square)](https://github.com/phmatray/DynamicFormBlazor/actions)
-[![License](https://img.shields.io/github/license/phmatray/DynamicFormBlazor?style=flat-square)](https://github.com/phmatray/DynamicFormBlazor/blob/main/LICENSE)
-[![Stars](https://img.shields.io/github/stars/phmatray/DynamicFormBlazor?style=flat-square)](https://github.com/phmatray/DynamicFormBlazor/stargazers)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/phmatray/FormCraft/continuous.yml?branch=main&style=flat-square)](https://github.com/phmatray/FormCraft/actions)
+[![License](https://img.shields.io/github/license/phmatray/FormCraft?style=flat-square)](https://github.com/phmatray/FormCraft/blob/main/LICENSE)
+[![Stars](https://img.shields.io/github/stars/phmatray/FormCraft?style=flat-square)](https://github.com/phmatray/FormCraft/stargazers)
 
 **Build type-safe, dynamic forms in Blazor with ease** ✨
 
@@ -294,7 +294,7 @@ We love contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for 
 
 ```bash
 # Clone the repository
-git clone https://github.com/phmatray/DynamicFormBlazor.git
+git clone https://github.com/phmatray/FormCraft.git
 
 # Build the project
 dotnet build
@@ -329,8 +329,8 @@ dotnet test
 
 ## 💬 Community
 
-- **Discussions**: [GitHub Discussions](https://github.com/phmatray/DynamicFormBlazor/discussions)
-- **Issues**: [GitHub Issues](https://github.com/phmatray/DynamicFormBlazor/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/phmatray/FormCraft/discussions)
+- **Issues**: [GitHub Issues](https://github.com/phmatray/FormCraft/issues)
 - **Twitter**: [@phmatray](https://twitter.com/phmatray)
 
 ## 📄 License

@@ -38,7 +38,7 @@ public interface ICustomFieldRenderer<TValue> : ICustomFieldRenderer
 /// <typeparam name="TValue">The type of the field value.</typeparam>
 public abstract class CustomFieldRendererBase<TValue> : ICustomFieldRenderer<TValue>
 {
-    /// <inheritdoc />
+    /// <inheritdoc cref="ICustomFieldRenderer.ValueType"/>
     public Type ValueType => typeof(TValue);
 
     /// <summary>

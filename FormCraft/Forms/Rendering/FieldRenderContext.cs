@@ -14,13 +14,13 @@ public class FieldRenderContext<TModel> : IFieldRenderContext<TModel>
     /// <inheritdoc />
     public IFieldConfiguration<TModel, object> Field { get; init; } = default!;
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IFieldRenderContext.ActualFieldType"/>
     public Type ActualFieldType { get; init; } = default!;
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IFieldRenderContext.CurrentValue"/>
     public object? CurrentValue { get; init; }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IFieldRenderContext.OnValueChanged"/>
     public EventCallback<object?> OnValueChanged { get; init; }
 
     /// <inheritdoc />

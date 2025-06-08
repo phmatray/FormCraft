@@ -1,5 +1,4 @@
 @page "/custom-renderers"
-@using FormCraft.DemoBlazorApp.Models
 @inject FormCodeGeneratorService CodeGenerator
 
 <PageTitle>Custom Field Renderers</PageTitle>
@@ -26,8 +25,7 @@
                             
                             @if (_isSubmitted)
                             {
-                                <FormSuccessDisplay TModel="ProductModel" 
-                                                   DataDisplayItems="@GetDataDisplayItems()"
+                                <FormSuccessDisplay DataDisplayItems="@GetDataDisplayItems()"
                                                    OnReset="@ResetForm" />
                             }
                             else
@@ -164,9 +162,9 @@
         StateHasChanged();
     }
     
-    private List<FormSuccessDisplay<ProductModel>.DataDisplayItem> GetDataDisplayItems()
+    private List<FormSuccessDisplay.DataDisplayItem> GetDataDisplayItems()
     {
-        return new List<FormSuccessDisplay<ProductModel>.DataDisplayItem>
+        return new List<FormSuccessDisplay.DataDisplayItem>
         {
             new() { Label = "Product Name", Value = _model.Name },
             new() { Label = "Category", Value = _model.Category },
