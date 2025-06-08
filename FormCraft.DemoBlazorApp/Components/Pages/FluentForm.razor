@@ -28,49 +28,8 @@
     <SidebarContent>
         <FormGuidelines Guidelines="@_guidelines" Title="Fluent API Features" />
         
-        <MudCard Elevation="2" Class="mt-4">
-            <MudCardContent>
-                <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
-                    <MudIcon Icon="@Icons.Material.Filled.Code" Class="me-2 text-info" />
-                    Fluent Methods Example
-                </MudText>
-                <MudPaper Class="pa-3" Elevation="1">
-                    <pre style="font-size: 11px; line-height: 1.3; white-space: pre-wrap; color: #2d3748;">FormBuilder&lt;ContactModel&gt;
-    .Create()
-    .WithLayout(FormLayout.Horizontal)
-    .AddRequiredTextField(x => x.FirstName, 
-        "First Name", "Enter first name", 2)
-    .AddEmailField(x => x.Email)
-    .AddNumericField(x => x.Age, "Age", 16, 100)
-    .AddDropdownField(x => x.Country, "Country",
-        ("US", "United States"),
-        ("CA", "Canada"))
-    .Build();</pre>
-                </MudPaper>
-            </MudCardContent>
-        </MudCard>
+        <CodeExample Title="Fluent Methods Example" Language="csharp" Code="@_codeExample" />
         
-        <MudCard Elevation="2" Class="mt-4">
-            <MudCardContent>
-                <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
-                    <MudIcon Icon="@Icons.Material.Filled.LiveHelp" Class="me-2 text-info" />
-                    Need Help?
-                </MudText>
-                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
-                    <MudText Typo="Typo.body2">
-                        Having trouble? Contact our support team at 
-                        <MudLink Href="mailto:support@example.com">support@example.com</MudLink>
-                    </MudText>
-                </MudAlert>
-                <MudButton Variant="Variant.Outlined" 
-                          Color="Color.Info" 
-                          Size="Size.Small"
-                          StartIcon="@Icons.Material.Filled.Phone"
-                          FullWidth="true">
-                    Call Support: 1-800-HELP
-                </MudButton>
-            </MudCardContent>
-        </MudCard>
     </SidebarContent>
     
     <SuccessContent>
@@ -100,6 +59,18 @@
         new() { Icon = Icons.Material.Filled.Security, Color = Color.Success, Text = "Built-in field validation rules" },
         new() { Icon = Icons.Material.Filled.Psychology, Color = Color.Warning, Text = "Intelligent dependency handling" }
     };
+    
+    private string _codeExample = @"FormBuilder<ContactModel>
+    .Create()
+    .WithLayout(FormLayout.Horizontal)
+    .AddRequiredTextField(x => x.FirstName, 
+        ""First Name"", ""Enter first name"", 2)
+    .AddEmailField(x => x.Email)
+    .AddNumericField(x => x.Age, ""Age"", 16, 100)
+    .AddDropdownField(x => x.Country, ""Country"",
+        (""US"", ""United States""),
+        (""CA"", ""Canada""))
+    .Build();";
     
     protected override void OnInitialized()
     {

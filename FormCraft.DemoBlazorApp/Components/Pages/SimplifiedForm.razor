@@ -45,32 +45,8 @@
     <SidebarContent>
         <FormGuidelines Guidelines="@_guidelines" Title="Simplified API Benefits" />
         
-        <MudCard Elevation="2" Class="mt-4">
-            <MudCardContent>
-                <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
-                    <MudIcon Icon="@Icons.Material.Filled.Code" Class="me-2 text-info" />
-                    Usage Example
-                </MudText>
-                <MudPaper Class="pa-3" Elevation="1">
-                    <pre style="font-size: 11px; line-height: 1.3; white-space: pre-wrap; color: #2d3748;">// Build form configuration
-var formConfiguration = FormBuilder&lt;ContactModel&gt;
-    .Create()
-    .AddField(x => x.FirstName)
-        .Required()
-    .AddField(x => x.Email)
-        .WithEmailValidation()
-    .Build();
-
-// Use in Razor component
-&lt;DynamicFormComponent TModel="ContactModel" 
-    Model="@_model" 
-    Configuration="@_formConfiguration"
-    OnValidSubmit="@HandleValidSubmit" /&gt;</pre>
-                </MudPaper>
-            </MudCardContent>
-        </MudCard>
+        <CodeExample Title="Usage Example" Language="csharp" Code="@_codeExample" />
         
-        <FormHelpPanel HelpText="This API encapsulates all form rendering logic into a single component, making it very easy to use for simple scenarios." />
     </SidebarContent>
     
     <SuccessContent>
@@ -100,6 +76,21 @@ var formConfiguration = FormBuilder&lt;ContactModel&gt;
         new() { Icon = Icons.Material.Filled.Extension, Color = Color.Success, Text = "Extension methods for validation" },
         new() { Icon = Icons.Material.Filled.Speed, Color = Color.Warning, Text = "Real-time field change tracking" }
     };
+    
+    private string _codeExample = @"// Build form configuration
+var formConfiguration = FormBuilder<ContactModel>
+    .Create()
+    .AddField(x => x.FirstName)
+        .Required()
+    .AddField(x => x.Email)
+        .WithEmailValidation()
+    .Build();
+
+// Use in Razor component
+<DynamicFormComponent TModel=""ContactModel"" 
+    Model=""@_model"" 
+    Configuration=""@_formConfiguration""
+    OnValidSubmit=""@HandleValidSubmit"" />";
     
     protected override void OnInitialized()
     {

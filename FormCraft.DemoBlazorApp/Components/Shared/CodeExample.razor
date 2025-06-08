@@ -1,0 +1,39 @@
+@inject IJSRuntime JsRuntime
+
+<div @ref="_element">
+    <MudCard Elevation="2" Class="@($"mt-4 {Class}")">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                <MudIcon Icon="@Icons.Material.Filled.Code" Class="me-2 text-info" />
+                @Title
+            </MudText>
+            <MudPaper Class="pa-0" Elevation="1" Style="overflow: hidden;">
+                <pre class="language-@Language" style="margin: 0;"><code class="language-@Language">@Code</code></pre>
+            </MudPaper>
+        </MudCardContent>
+    </MudCard>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Code Example";
+    [Parameter] public string Code { get; set; } = "";
+    [Parameter] public string Language { get; set; } = "csharp";
+    [Parameter] public string Class { get; set; } = "";
+    
+    private ElementReference _element;
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!string.IsNullOrEmpty(Code))
+        {
+            try
+            {
+                await JsRuntime.InvokeVoidAsync("Prism.highlightAllUnder", _element);
+            }
+            catch (Exception)
+            {
+                // Ignore JavaScript interop errors during prerendering
+            }
+        }
+    }
+}

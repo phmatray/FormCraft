@@ -54,35 +54,8 @@
     <SidebarContent>
         <FormGuidelines Guidelines="@_guidelines" Title="API Features" />
         
-        <MudCard Elevation="2" Class="mt-4">
-            <MudCardContent>
-                <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
-                    <MudIcon Icon="@Icons.Material.Filled.Code" Class="me-2 text-info" />
-                    Code Example
-                </MudText>
-                <MudPaper Class="pa-3" Elevation="1">
-                    <pre style="font-size: 11px; line-height: 1.3; white-space: pre-wrap; color: #2d3748;">FormBuilder&lt;ContactModel&gt;
-    .Create()
-    .AddField(x => x.FirstName)
-        .WithLabel("First Name")
-        .Required("Required field")
-        .WithMinLength(2)
-    .AddField(x => x.Email)
-        .WithEmailValidation()
-    .AddField(x => x.Country)
-        .WithOptions(("US", "USA"))
-    .AddField(x => x.City)
-        .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
-        .DependsOn(x => x.Country, (model, country) => {
-            if (string.IsNullOrEmpty(country)) 
-                model.City = null;
-        })
-    .Build();</pre>
-                </MudPaper>
-            </MudCardContent>
-        </MudCard>
+        <CodeExample Title="Code Example" Language="csharp" Code="@_codeExample" />
         
-        <FormHelpPanel HelpText="This demonstrates the advanced FormBuilder API with type safety, validation, and field dependencies." />
     </SidebarContent>
     
     <SuccessContent>
@@ -111,6 +84,24 @@
         new() { Icon = Icons.Material.Filled.Extension, Color = Color.Success, Text = "Extensible with custom validators" },
         new() { Icon = Icons.Material.Filled.Speed, Color = Color.Warning, Text = "Real-time validation feedback" }
     };
+    
+    private string _codeExample = @"FormBuilder<ContactModel>
+    .Create()
+    .AddField(x => x.FirstName)
+        .WithLabel(""First Name"")
+        .Required(""Required field"")
+        .WithMinLength(2)
+    .AddField(x => x.Email)
+        .WithEmailValidation()
+    .AddField(x => x.Country)
+        .WithOptions((""US"", ""USA""))
+    .AddField(x => x.City)
+        .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
+        .DependsOn(x => x.Country, (model, country) => {
+            if (string.IsNullOrEmpty(country)) 
+                model.City = null;
+        })
+    .Build();";
     
     protected override void OnInitialized()
     {

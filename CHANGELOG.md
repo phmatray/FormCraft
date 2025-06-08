@@ -7,9 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - 2025-06-08
 
+### ♻️ Code Refactoring
+
+* rename demo website ([d7a909e](https://github.com/phmatray/DynamicFormBlazor/commit/d7a909e))
+
 ### ✨ Features
 
 * add decimal and double field renderers ([0e5dc5d](https://github.com/phmatray/DynamicFormBlazor/commit/0e5dc5d))
+
+### 🔧 Chores
+
+* add changelog generation ([7a97344](https://github.com/phmatray/DynamicFormBlazor/commit/7a97344))
 
 ## [1.0.3] - 2025-06-08
 

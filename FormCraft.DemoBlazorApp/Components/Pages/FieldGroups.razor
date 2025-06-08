@@ -1,0 +1,274 @@
+@page "/field-groups"
+@using FormCraft.DemoBlazorApp.Models
+@using FormCraft.DemoBlazorApp.Components.Shared
+@using FormCraft.DemoBlazorApp.Components.Layout
+@using FormCraft
+
+<PageTitle>Field Groups Layout</PageTitle>
+
+<FormPageLayout PageTitle="Field Groups Layout"
+                PageDescription="This demonstrates organizing form fields into rows with different column layouts."
+                PageIcon="@Icons.Material.Filled.GridView"
+                FormTitle="Employee Information Form"
+                FormIcon="@Icons.Material.Filled.Badge">
+    
+    <FormContent>
+        <EditForm Model="@_model" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            
+            @* Row 1: 2 fields side by side *@
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <DynamicFormComponent TModel="EmployeeModel" 
+                                        Model="@_model" 
+                                        Configuration="@_firstNameConfig"
+                                        ShowSubmitButton="false" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <DynamicFormComponent TModel="EmployeeModel" 
+                                        Model="@_model" 
+                                        Configuration="@_lastNameConfig"
+                                        ShowSubmitButton="false" />
+                </MudItem>
+            </MudGrid>
+            
+            @* Row 2: 3 fields side by side *@
+            <MudGrid Class="mt-4">
+                <MudItem xs="12" md="4">
+                    <DynamicFormComponent TModel="EmployeeModel" 
+                                        Model="@_model" 
+                                        Configuration="@_emailConfig"
+                                        ShowSubmitButton="false" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <DynamicFormComponent TModel="EmployeeModel" 
+                                        Model="@_model" 
+                                        Configuration="@_phoneConfig"
+                                        ShowSubmitButton="false" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <DynamicFormComponent TModel="EmployeeModel" 
+                                        Model="@_model" 
+                                        Configuration="@_departmentConfig"
+                                        ShowSubmitButton="false" />
+                </MudItem>
+            </MudGrid>
+            
+            @* Row 3: 1 field full width *@
+            <MudGrid Class="mt-4">
+                <MudItem xs="12">
+                    <DynamicFormComponent TModel="EmployeeModel" 
+                                        Model="@_model" 
+                                        Configuration="@_biographyConfig"
+                                        ShowSubmitButton="false" />
+                </MudItem>
+            </MudGrid>
+            
+            <MudCardActions Class="justify-center pa-4 mt-4">
+                <MudButton ButtonType="ButtonType.Submit"
+                          Variant="Variant.Filled"
+                          Color="Color.Primary"
+                          Size="Size.Large"
+                          Disabled="@_isSubmitting"
+                          StartIcon="@(_isSubmitting ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.Save)"
+                          Class="px-8">
+                    @if (_isSubmitting)
+                    {
+                        <MudProgressCircular Class="me-2" Size="Size.Small" Indeterminate="true" />
+                        <span>Saving...</span>
+                    }
+                    else
+                    {
+                        <span>Save Employee</span>
+                    }
+                </MudButton>
+            </MudCardActions>
+        </EditForm>
+    </FormContent>
+    
+    <SidebarContent>
+        <FormGuidelines Guidelines="@_guidelines" Title="Layout Features" />
+        
+        <CodeExample Title="Field Groups Example" Language="csharp" Code="@_codeExample" />
+        
+        <MudCard Elevation="2" Class="mt-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2 text-info" />
+                    Layout Information
+                </MudText>
+                <MudList T="string" Dense="true">
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.TableRows" IconColor="Color.Primary">
+                        <MudText Typo="Typo.body2">Row 1: 2 fields (50% each)</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.ViewColumn" IconColor="Color.Secondary">
+                        <MudText Typo="Typo.body2">Row 2: 3 fields (33.3% each)</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.ViewStream" IconColor="Color.Tertiary">
+                        <MudText Typo="Typo.body2">Row 3: 1 field (100% width)</MudText>
+                    </MudListItem>
+                </MudList>
+            </MudCardContent>
+        </MudCard>
+    </SidebarContent>
+    
+    <SuccessContent>
+        @if (_isSubmitted)
+        {
+            <FormSuccessDisplay TModel="EmployeeModel" 
+                               DataDisplayItems="@GetDataDisplayItems()"
+                               OnReset="@ResetForm" />
+        }
+    </SuccessContent>
+    
+</FormPageLayout>
+
+@code {
+    private EmployeeModel _model = new();
+    private bool _isSubmitted;
+    private bool _isSubmitting;
+    
+    private IFormConfiguration<EmployeeModel> _firstNameConfig = null!;
+    private IFormConfiguration<EmployeeModel> _lastNameConfig = null!;
+    private IFormConfiguration<EmployeeModel> _emailConfig = null!;
+    private IFormConfiguration<EmployeeModel> _phoneConfig = null!;
+    private IFormConfiguration<EmployeeModel> _departmentConfig = null!;
+    private IFormConfiguration<EmployeeModel> _biographyConfig = null!;
+    
+    private List<FormGuidelines.GuidelineItem> _guidelines = new()
+    {
+        new() { Icon = Icons.Material.Filled.GridView, Color = Color.Primary, Text = "Flexible grid-based layouts" },
+        new() { Icon = Icons.Material.Filled.Devices, Color = Color.Secondary, Text = "Responsive column sizing" },
+        new() { Icon = Icons.Material.Filled.ViewModule, Color = Color.Tertiary, Text = "Mix different column counts" },
+        new() { Icon = Icons.Material.Filled.AutoAwesome, Color = Color.Info, Text = "Individual field configuration" },
+        new() { Icon = Icons.Material.Filled.Speed, Color = Color.Success, Text = "Optimized for complex forms" },
+        new() { Icon = Icons.Material.Filled.Extension, Color = Color.Warning, Text = "Composable form sections" }
+    };
+    
+    private string _codeExample = @"// Row 1: 2 fields side by side
+<MudGrid>
+    <MudItem xs=""12"" md=""6"">
+        <DynamicFormComponent TModel=""EmployeeModel"" 
+            Model=""@_model"" 
+            Configuration=""@_firstNameConfig""
+            ShowSubmitButton=""false"" />
+    </MudItem>
+    <MudItem xs=""12"" md=""6"">
+        <DynamicFormComponent TModel=""EmployeeModel"" 
+            Model=""@_model"" 
+            Configuration=""@_lastNameConfig""
+            ShowSubmitButton=""false"" />
+    </MudItem>
+</MudGrid>
+
+// Row 2: 3 fields
+<MudGrid Class=""mt-4"">
+    <MudItem xs=""12"" md=""4"">...</MudItem>
+    <MudItem xs=""12"" md=""4"">...</MudItem>
+    <MudItem xs=""12"" md=""4"">...</MudItem>
+</MudGrid>
+
+// Row 3: 1 field full width
+<MudGrid Class=""mt-4"">
+    <MudItem xs=""12"">...</MudItem>
+</MudGrid>";
+    
+    protected override void OnInitialized()
+    {
+        // Configure individual fields
+        _firstNameConfig = FormBuilder<EmployeeModel>
+            .Create()
+            .AddField(x => x.FirstName)
+                .WithLabel("First Name")
+                .Required("First name is required")
+                .WithPlaceholder("Enter first name")
+            .Build();
+            
+        _lastNameConfig = FormBuilder<EmployeeModel>
+            .Create()
+            .AddField(x => x.LastName)
+                .WithLabel("Last Name")
+                .Required("Last name is required")
+                .WithPlaceholder("Enter last name")
+            .Build();
+            
+        _emailConfig = FormBuilder<EmployeeModel>
+            .Create()
+            .AddField(x => x.Email)
+                .WithLabel("Email")
+                .Required("Email is required")
+                .WithEmailValidation()
+                .WithPlaceholder("email@example.com")
+            .Build();
+            
+        _phoneConfig = FormBuilder<EmployeeModel>
+            .Create()
+            .AddField(x => x.Phone)
+                .WithLabel("Phone")
+                .WithPlaceholder("(555) 123-4567")
+            .Build();
+            
+        _departmentConfig = FormBuilder<EmployeeModel>
+            .Create()
+            .AddField(x => x.Department)
+                .WithLabel("Department")
+                .Required("Department is required")
+                .WithOptions(
+                    ("IT", "Information Technology"),
+                    ("HR", "Human Resources"),
+                    ("SALES", "Sales"),
+                    ("MARKETING", "Marketing"),
+                    ("FINANCE", "Finance")
+                )
+            .Build();
+            
+        _biographyConfig = FormBuilder<EmployeeModel>
+            .Create()
+            .AddField(x => x.Biography)
+                .WithLabel("Biography")
+                .WithPlaceholder("Tell us about yourself...")
+                .WithHelpText("Brief description of experience and background")
+            .Build();
+    }
+    
+    private async Task HandleValidSubmit()
+    {
+        _isSubmitting = true;
+        StateHasChanged();
+        
+        // Simulate API call
+        await Task.Delay(2000);
+        
+        _isSubmitted = true;
+        _isSubmitting = false;
+        StateHasChanged();
+    }
+    
+    private void ResetForm()
+    {
+        _model = new EmployeeModel();
+        _isSubmitted = false;
+        StateHasChanged();
+    }
+    
+    private List<FormSuccessDisplay<EmployeeModel>.DataDisplayItem> GetDataDisplayItems()
+    {
+        var items = new List<FormSuccessDisplay<EmployeeModel>.DataDisplayItem>
+        {
+            new() { Label = "Full Name", Value = $"{_model.FirstName} {_model.LastName}" },
+            new() { Label = "Email", Value = _model.Email ?? "" },
+            new() { Label = "Phone", Value = _model.Phone ?? "" },
+            new() { Label = "Department", Value = _model.Department ?? "" }
+        };
+        
+        if (!string.IsNullOrEmpty(_model.Biography))
+        {
+            var bio = _model.Biography.Length > 50 
+                ? _model.Biography.Substring(0, 50) + "..." 
+                : _model.Biography;
+            items.Add(new() { Label = "Biography", Value = bio });
+        }
+        
+        return items;
+    }
+}
