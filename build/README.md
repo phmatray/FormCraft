@@ -75,7 +75,7 @@ The build system generates a single, comprehensive workflow (`continuous.yml`) t
 
 - Runs on Ubuntu latest
 - Full git history fetch for changelog generation
-- Automatic git-cliff setup using official GitHub Action
+- Automatic git-cliff installation in CI environment
 - Write permissions for committing changelog updates
 - Caches NuGet packages for faster builds
 - Conditional steps based on branch and tags
@@ -122,7 +122,7 @@ fix!: critical security fix with breaking changes
 
 ### Installation
 
-**In GitHub Actions**: git-cliff is automatically set up using the official [git-cliff-action](https://github.com/orhun/git-cliff-action).
+**In GitHub Actions**: git-cliff is automatically installed via direct download in the workflow.
 
 **For local development**: git-cliff is automatically installed when running the Changelog target on macOS and Linux. For Windows, install manually:
 
