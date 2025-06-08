@@ -1,64 +1,79 @@
 @page "/"
 @page "/simplified"
-@using FormCraft.DemoBlazorApp.Models
-@using FormCraft.DemoBlazorApp.Components.Shared
-@using FormCraft.DemoBlazorApp.Components.Layout
-@using FormCraft
+@inject FormCodeGeneratorService CodeGenerator
 
 <PageTitle>Simplified Dynamic Form API</PageTitle>
 
-<FormPageLayout PageTitle="Simplified Dynamic Form API"
-                PageDescription="This demonstrates the simplified API that hides complexity from users while providing powerful features."
-                PageIcon="@Icons.Material.Filled.AutoFixHigh"
-                FormTitle="DynamicFormComponent"
-                FormIcon="@Icons.Material.Filled.Assignment">
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
+    <MudText Typo="Typo.h3" GutterBottom="true" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.AutoFixHigh" Class="me-2" Style="vertical-align: bottom;" />
+        Simplified Dynamic Form API
+    </MudText>
+    <MudText Typo="Typo.body1" GutterBottom="true" Class="mb-6">
+        This demonstrates the simplified API that hides complexity from users while providing powerful features.
+    </MudText>
     
-    <FormContent>
-        <DynamicFormComponent TModel="ContactModel" 
-                            Model="@_model" 
-                            Configuration="@_formConfiguration"
-                            OnValidSubmit="@HandleValidSubmit"
-                            OnFieldChanged="@(args => HandleFieldChanged(args.fieldName, args.value))"
-                            IsSubmitting="@_isSubmitting" />
-        
-        @if (_fieldChanges.Any())
-        {
-            <MudCard Class="mt-4" Elevation="2">
-                <MudCardContent>
-                    <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Timeline" Class="me-2 text-info" />
-                        Field Changes Log
-                    </MudText>
-                    <MudList T="string" Dense="true">
-                        @foreach (var change in _fieldChanges.TakeLast(5))
-                        {
-                            <MudListItem T="string" Icon="@Icons.Material.Filled.Update" IconColor="Color.Secondary">
-                                <MudText Typo="Typo.body2">@change</MudText>
-                            </MudListItem>
-                        }
-                    </MudList>
-                </MudCardContent>
-            </MudCard>
-        }
-    </FormContent>
-    
-    <SidebarContent>
-        <FormGuidelines Guidelines="@_guidelines" Title="Simplified API Benefits" />
-        
-        <CodeExample Title="Usage Example" Language="csharp" Code="@_codeExample" />
-        
-    </SidebarContent>
-    
-    <SuccessContent>
-        @if (_isSubmitted)
-        {
-            <FormSuccessDisplay TModel="ContactModel" 
-                               DataDisplayItems="@GetDataDisplayItems()"
-                               OnReset="@ResetForm" />
-        }
-    </SuccessContent>
-    
-</FormPageLayout>
+    <MudPaper Elevation="2" Class="pa-0">
+        <MudTabs Elevation="0" Rounded="false" PanelClass="pa-6">
+            <MudTabPanel Text="Form Demo" Icon="@Icons.Material.Filled.Assignment">
+                <MudGrid>
+                    <MudItem xs="12" lg="8">
+                        <MudPaper Elevation="1" Class="pa-6">
+                            <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
+                                <MudIcon Icon="@Icons.Material.Filled.ContactPage" Class="me-2" />
+                                Contact Form Example
+                            </MudText>
+                            
+                            @if (_isSubmitted)
+                            {
+                                <FormSuccessDisplay TModel="ContactModel" 
+                                                   DataDisplayItems="@GetDataDisplayItems()"
+                                                   OnReset="@ResetForm" />
+                            }
+                            else
+                            {
+                                <DynamicFormComponent TModel="ContactModel" 
+                                                    Model="@_model" 
+                                                    Configuration="@_formConfiguration"
+                                                    OnValidSubmit="@HandleValidSubmit"
+                                                    OnFieldChanged="@(args => HandleFieldChanged(args.fieldName, args.value))"
+                                                    IsSubmitting="@_isSubmitting" />
+                                
+                                @if (_fieldChanges.Any())
+                                {
+                                    <MudCard Class="mt-4" Elevation="2">
+                                        <MudCardContent>
+                                            <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                                                <MudIcon Icon="@Icons.Material.Filled.Timeline" Class="me-2 text-info" />
+                                                Field Changes Log
+                                            </MudText>
+                                            <MudList T="string" Dense="true">
+                                                @foreach (var change in _fieldChanges.TakeLast(5))
+                                                {
+                                                    <MudListItem T="string" Icon="@Icons.Material.Filled.Update" IconColor="Color.Secondary">
+                                                        <MudText Typo="Typo.body2">@change</MudText>
+                                                    </MudListItem>
+                                                }
+                                            </MudList>
+                                        </MudCardContent>
+                                    </MudCard>
+                                }
+                            }
+                        </MudPaper>
+                    </MudItem>
+                    
+                    <MudItem xs="12" lg="4">
+                        <FormGuidelines Guidelines="@_guidelines" Title="Simplified API Benefits" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+            
+            <MudTabPanel Text="Code Example" Icon="@Icons.Material.Filled.Code">
+                <CodeExample Title="Complete Form Configuration" Language="csharp" Code="@GetGeneratedCode()" />
+            </MudTabPanel>
+        </MudTabs>
+    </MudPaper>
+</MudContainer>
 
 @code {
     private ContactModel _model = new();
@@ -77,20 +92,6 @@
         new() { Icon = Icons.Material.Filled.Speed, Color = Color.Warning, Text = "Real-time field change tracking" }
     };
     
-    private string _codeExample = @"// Build form configuration
-var formConfiguration = FormBuilder<ContactModel>
-    .Create()
-    .AddField(x => x.FirstName)
-        .Required()
-    .AddField(x => x.Email)
-        .WithEmailValidation()
-    .Build();
-
-// Use in Razor component
-<DynamicFormComponent TModel=""ContactModel"" 
-    Model=""@_model"" 
-    Configuration=""@_formConfiguration""
-    OnValidSubmit=""@HandleValidSubmit"" />";
     
     protected override void OnInitialized()
     {
@@ -176,9 +177,9 @@ var formConfiguration = FormBuilder<ContactModel>
         var items = new List<FormSuccessDisplay<ContactModel>.DataDisplayItem>
         {
             new() { Label = "Full Name", Value = $"{_model.FirstName} {_model.LastName}" },
-            new() { Label = "Email", Value = _model.Email ?? "" },
+            new() { Label = "Email", Value = _model.Email },
             new() { Label = "Age", Value = _model.Age.ToString() },
-            new() { Label = "Country", Value = _model.Country ?? "" }
+            new() { Label = "Country", Value = _model.Country }
         };
         
         if (!string.IsNullOrEmpty(_model.City))
@@ -190,5 +191,21 @@ var formConfiguration = FormBuilder<ContactModel>
             items.Add(new() { Label = "Field Changes", Value = $"{_fieldChanges.Count} changes tracked" });
         
         return items;
+    }
+    
+    private string GetGeneratedCode()
+    {
+        var formCode = CodeGenerator.GenerateFormBuilderCode(_formConfiguration);
+        
+        // Add usage example
+        var usageExample = @"
+// Use in Razor component
+<DynamicFormComponent TModel=""ContactModel"" 
+    Model=""@_model"" 
+    Configuration=""@_formConfiguration""
+    OnValidSubmit=""@HandleValidSubmit""
+    OnFieldChanged=""@(args => HandleFieldChanged(args.fieldName, args.value))"" />";
+        
+        return formCode + usageExample;
     }
 }

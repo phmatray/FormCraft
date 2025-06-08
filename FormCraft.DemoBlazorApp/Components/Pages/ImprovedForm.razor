@@ -1,73 +1,88 @@
 @page "/improved"
-@using FormCraft.DemoBlazorApp.Models
-@using FormCraft.DemoBlazorApp.Components.Shared
-@using FormCraft.DemoBlazorApp.Components.Layout
-@using FormCraft
 @inject IFieldRendererService FieldRendererService
+@inject FormCodeGeneratorService CodeGenerator
 
 <PageTitle>Improved Dynamic Form API</PageTitle>
 
-<FormPageLayout PageTitle="Improved Dynamic Form API"
-                PageDescription="This demonstrates the new type-safe, feature-rich dynamic form API with validation, dependencies, and advanced field configuration."
-                PageIcon="@Icons.Material.Filled.Engineering"
-                FormTitle="Type-Safe Form Builder"
-                FormIcon="@Icons.Material.Filled.Build">
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
+    <MudText Typo="Typo.h3" GutterBottom="true" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.Engineering" Class="me-2" Style="vertical-align: bottom;" />
+        Improved Dynamic Form API
+    </MudText>
+    <MudText Typo="Typo.body1" GutterBottom="true" Class="mb-6">
+        This demonstrates the new type-safe, feature-rich dynamic form API with validation, dependencies, and advanced field configuration.
+    </MudText>
     
-    <FormContent>
-        <EditForm Model="@_model" OnValidSubmit="@HandleValidSubmit">
-            <DataAnnotationsValidator />
+    <MudPaper Elevation="2" Class="pa-0">
+        <MudTabs Elevation="0" Rounded="false" PanelClass="pa-6">
+            <MudTabPanel Text="Form Demo" Icon="@Icons.Material.Filled.Build">
+                <MudGrid>
+                    <MudItem xs="12" lg="8">
+                        <MudPaper Elevation="1" Class="pa-6">
+                            <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
+                                <MudIcon Icon="@Icons.Material.Filled.FactCheck" Class="me-2" />
+                                Type-Safe Form Builder
+                            </MudText>
+                            
+                            @if (_isSubmitted)
+                            {
+                                <FormSuccessDisplay TModel="ContactModel" 
+                                                   DataDisplayItems="@GetDataDisplayItems()"
+                                                   OnReset="@ResetForm" />
+                            }
+                            else
+                            {
+                                <EditForm Model="@_model" OnValidSubmit="@HandleValidSubmit">
+                                    <DataAnnotationsValidator />
+                                    
+                                    @foreach (var field in _formConfiguration.Fields.OrderBy(f => f.Order))
+                                    {
+                                        @if (ShouldShowField(field))
+                                        {
+                                            <div class="mb-4">
+                                                @FieldRendererService.RenderField(_model, field, 
+                                                    EventCallback.Factory.Create<object?>(this, value => SetFieldValue(field.FieldName, value)),
+                                                    EventCallback.Factory.Create(this, () => HandleFieldDependencies(field.FieldName)))
+                                            </div>
+                                        }
+                                    }
+                                    
+                                    <MudCardActions Class="justify-center pa-4">
+                                        <MudButton ButtonType="ButtonType.Submit"
+                                                  Variant="Variant.Filled"
+                                                  Color="Color.Primary"
+                                                  Size="Size.Large"
+                                                  Disabled="@_isSubmitting"
+                                                  StartIcon="@(_isSubmitting ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.Send)"
+                                                  Class="px-8">
+                                            @if (_isSubmitting)
+                                            {
+                                                <MudProgressCircular Class="me-2" Size="Size.Small" Indeterminate="true" />
+                                                <span>Submitting...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Submit Application</span>
+                                            }
+                                        </MudButton>
+                                    </MudCardActions>
+                                </EditForm>
+                            }
+                        </MudPaper>
+                    </MudItem>
+                    
+                    <MudItem xs="12" lg="4">
+                        <FormGuidelines Guidelines="@_guidelines" Title="API Features" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
             
-            @foreach (var field in _formConfiguration.Fields.OrderBy(f => f.Order))
-            {
-                @if (ShouldShowField(field))
-                {
-                    <div class="mb-4">
-                        @FieldRendererService.RenderField(_model, field, 
-                            EventCallback.Factory.Create<object?>(this, value => SetFieldValue(field.FieldName, value)),
-                            EventCallback.Factory.Create(this, () => HandleFieldDependencies(field.FieldName)))
-                    </div>
-                }
-            }
-            
-            <MudCardActions Class="justify-center pa-4">
-                <MudButton ButtonType="ButtonType.Submit"
-                          Variant="Variant.Filled"
-                          Color="Color.Primary"
-                          Size="Size.Large"
-                          Disabled="@_isSubmitting"
-                          StartIcon="@(_isSubmitting ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.Send)"
-                          Class="px-8">
-                    @if (_isSubmitting)
-                    {
-                        <MudProgressCircular Class="me-2" Size="Size.Small" Indeterminate="true" />
-                        <span>Submitting...</span>
-                    }
-                    else
-                    {
-                        <span>Submit Application</span>
-                    }
-                </MudButton>
-            </MudCardActions>
-        </EditForm>
-    </FormContent>
-    
-    <SidebarContent>
-        <FormGuidelines Guidelines="@_guidelines" Title="API Features" />
-        
-        <CodeExample Title="Code Example" Language="csharp" Code="@_codeExample" />
-        
-    </SidebarContent>
-    
-    <SuccessContent>
-        @if (_isSubmitted)
-        {
-            <FormSuccessDisplay TModel="ContactModel" 
-                               DataDisplayItems="@GetDataDisplayItems()"
-                               OnReset="@ResetForm" />
-        }
-    </SuccessContent>
-    
-</FormPageLayout>
+            <MudTabPanel Text="Code Example" Icon="@Icons.Material.Filled.Code">
+                <CodeExample Title="Type-Safe Form Configuration" Language="csharp" Code="@GetGeneratedCode()" />
+            </MudTabPanel>
+        </MudTabs>
+    </MudPaper>
+</MudContainer>
 
 @code {
     private ContactModel _model = new();
@@ -84,24 +99,6 @@
         new() { Icon = Icons.Material.Filled.Extension, Color = Color.Success, Text = "Extensible with custom validators" },
         new() { Icon = Icons.Material.Filled.Speed, Color = Color.Warning, Text = "Real-time validation feedback" }
     };
-    
-    private string _codeExample = @"FormBuilder<ContactModel>
-    .Create()
-    .AddField(x => x.FirstName)
-        .WithLabel(""First Name"")
-        .Required(""Required field"")
-        .WithMinLength(2)
-    .AddField(x => x.Email)
-        .WithEmailValidation()
-    .AddField(x => x.Country)
-        .WithOptions((""US"", ""USA""))
-    .AddField(x => x.City)
-        .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
-        .DependsOn(x => x.Country, (model, country) => {
-            if (string.IsNullOrEmpty(country)) 
-                model.City = null;
-        })
-    .Build();";
     
     protected override void OnInitialized()
     {
@@ -164,7 +161,7 @@
     }
     
     
-    private void SetFieldValue(string fieldName, object value)
+    private void SetFieldValue(string fieldName, object? value)
     {
         var property = typeof(ContactModel).GetProperty(fieldName);
         property?.SetValue(_model, value);
@@ -207,9 +204,9 @@
         var items = new List<FormSuccessDisplay<ContactModel>.DataDisplayItem>
         {
             new() { Label = "Full Name", Value = $"{_model.FirstName} {_model.LastName}" },
-            new() { Label = "Email", Value = _model.Email ?? "" },
+            new() { Label = "Email", Value = _model.Email },
             new() { Label = "Age", Value = _model.Age.ToString() },
-            new() { Label = "Country", Value = _model.Country ?? "" }
+            new() { Label = "Country", Value = _model.Country }
         };
         
         if (!string.IsNullOrEmpty(_model.City))
@@ -218,5 +215,36 @@
         items.Add(new() { Label = "Newsletter", Value = _model.SubscribeToNewsletter ? "Yes" : "No" });
         
         return items;
+    }
+    
+    private string GetGeneratedCode()
+    {
+        var formCode = CodeGenerator.GenerateFormBuilderCode(_formConfiguration);
+        
+        // Add usage example for manual rendering
+        var usageExample = @"
+
+// Manual rendering with EditForm
+<EditForm Model=""@_model"" OnValidSubmit=""@HandleValidSubmit"">
+    <DataAnnotationsValidator />
+    
+    @foreach (var field in _formConfiguration.Fields.OrderBy(f => f.Order))
+    {
+        @if (ShouldShowField(field))
+        {
+            <div class=""mb-4"">
+                @FieldRendererService.RenderField(_model, field, 
+                    EventCallback.Factory.Create<object?>(this, value => SetFieldValue(field.FieldName, value)),
+                    EventCallback.Factory.Create(this, () => HandleFieldDependencies(field.FieldName)))
+            </div>
+        }
+    }
+    
+    <MudButton ButtonType=""ButtonType.Submit"" Variant=""Variant.Filled"" Color=""Color.Primary"">
+        Submit
+    </MudButton>
+</EditForm>";
+        
+        return formCode + usageExample;
     }
 }
