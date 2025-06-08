@@ -98,6 +98,54 @@ This project uses [MinVer](https://github.com/adamralph/minver) for semantic ver
 - Pre-release versions are automatically generated
 - Follow [Semantic Versioning](https://semver.org/)
 
+## Commit Messages and Changelog
+
+### Conventional Commits
+
+We use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages:
+- `feat:` for new features
+- `fix:` for bug fixes
+- `docs:` for documentation changes
+- `style:` for formatting changes
+- `refactor:` for code refactoring
+- `test:` for test additions/changes
+- `chore:` for maintenance tasks
+
+Examples:
+```
+feat: add field groups layout support
+fix: resolve null reference in field renderer
+docs: update API documentation
+```
+
+### Automatic Changelog Generation
+
+The changelog is automatically generated from commit messages:
+
+#### Setup (one-time)
+```bash
+# macOS/Linux
+./setup-hooks.sh
+
+# Windows
+./setup-hooks.ps1
+```
+
+This will:
+- Install a pre-commit hook that generates CHANGELOG.md automatically
+- Create a `git ccommit` alias as an alternative
+
+#### Manual Generation
+```bash
+# macOS/Linux
+./generate-changelog.sh
+
+# Windows
+./generate-changelog.ps1
+```
+
+The changelog follows the [Keep a Changelog](https://keepachangelog.com/) format.
+
 ## Documentation
 
 - Update XML documentation for public APIs

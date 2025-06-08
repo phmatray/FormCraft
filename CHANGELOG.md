@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ♻️ Code Refactoring
 
+* add FieldGroups demo page ([a01d003](https://github.com/phmatray/DynamicFormBlazor/commit/a01d003))
 * rename demo website ([d7a909e](https://github.com/phmatray/DynamicFormBlazor/commit/d7a909e))
 
 ### ✨ Features
