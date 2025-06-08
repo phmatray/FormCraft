@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.3.0] - 2025-06-08
 
 ### Ci
 
@@ -21,6 +21,8 @@ All notable changes to this project will be documented in this file.
 ### ✨ Features
 
 - Add FileUpload renderer ([eacbb1f](https://github.com/phmatray/FormCraft/commit/eacbb1fb02903ed1ddfc3af8741419823f7c4d01))
+- Add fileupload error handling ([cc29c76](https://github.com/phmatray/FormCraft/commit/cc29c76154d2a0215cac231383c33cb57ce6b816))
+- Create onboarding welcome page ([bf35ce4](https://github.com/phmatray/FormCraft/commit/bf35ce46643bbfc0c16617b7737744c18a651f36))
 
 ### 🔧 Miscellaneous Tasks
 
