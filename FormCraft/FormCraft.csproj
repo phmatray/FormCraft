@@ -67,11 +67,15 @@
   </ItemGroup>
 
   <!-- Changelog Generation Target -->
-  <Target Name="GenerateChangelog" BeforeTargets="GenerateNuspec" Condition="'$(Configuration)' == 'Release'">
+  <!-- Only run changelog generation locally, not in CI environments -->
+  <Target Name="GenerateChangelog" BeforeTargets="GenerateNuspec" 
+          Condition="'$(Configuration)' == 'Release' AND '$(GITHUB_ACTIONS)' != 'true' AND '$(CI)' != 'true'">
     <Exec Command="pwsh -File &quot;$(MSBuildProjectDirectory)/../generate-changelog.ps1&quot;" 
-          Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+          Condition="$([MSBuild]::IsOSPlatform('Windows'))" 
+          ContinueOnError="true" />
     <Exec Command="bash &quot;$(MSBuildProjectDirectory)/../generate-changelog.sh&quot;" 
-          Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+          Condition="!$([MSBuild]::IsOSPlatform('Windows'))" 
+          ContinueOnError="true" />
   </Target>
 
 </Project>
