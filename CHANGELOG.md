@@ -1,6 +1,11 @@
 # [](https://github.com/phmatray/FormCraft/compare/v1.1.0...v) (2025-06-08)
 
 
+### Features
+
+* add custom renderers ([f180104](https://github.com/phmatray/FormCraft/commit/f1801041c634646c1f737ac787f2d05996432cd0))
+
+
 
 # [1.1.0](https://github.com/phmatray/FormCraft/compare/v1.0.3...v1.1.0) (2025-06-08)
 
