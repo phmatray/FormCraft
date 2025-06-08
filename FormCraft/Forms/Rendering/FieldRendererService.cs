@@ -110,7 +110,7 @@ public class FieldRendererService : IFieldRendererService
         return field.ValueExpression.Body.Type;
     }
 
-    private static object? GetCurrentValue<TModel>(TModel model, IFieldConfiguration<TModel, object> field)
+    private static object GetCurrentValue<TModel>(TModel model, IFieldConfiguration<TModel, object> field)
     {
         var getter = field.ValueExpression.Compile();
         return getter(model);

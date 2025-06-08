@@ -6,11 +6,11 @@ public class FieldDependencyTests
     public void Constructor_Should_Extract_DependsOnFieldName()
     {
         // Arrange
-        Expression<Func<TestModel, string>> expression = x => x.Country;
-        Action<TestModel, string> onChanged = (m, v) => { };
+        Expression<Func<TestModel, string?>> expression = x => x.Country;
+        Action<TestModel, string?> onChanged = (m, v) => { };
 
         // Act
-        var dependency = new FieldDependency<TestModel, string>(expression, onChanged);
+        var dependency = new FieldDependency<TestModel, string?>(expression, onChanged);
 
         // Assert
         dependency.DependentFieldName.ShouldBe("Country");
@@ -24,13 +24,13 @@ public class FieldDependencyTests
         string? capturedCountry = null;
         TestModel? capturedModel = null;
 
-        Action<TestModel, string> onChanged = (m, v) =>
+        Action<TestModel, string?> onChanged = (m, v) =>
         {
             capturedModel = m;
             capturedCountry = v;
         };
 
-        var dependency = new FieldDependency<TestModel, string>(x => x.Country, onChanged);
+        var dependency = new FieldDependency<TestModel, string?>(x => x.Country, onChanged);
 
         // Act
         dependency.OnDependencyChanged(model);
@@ -99,7 +99,7 @@ public class FieldDependencyTests
         // Arrange
         var model = new TestModel { Country = "Canada", City = "Toronto" };
 
-        Action<TestModel, string> onChanged = (m, country) =>
+        Action<TestModel, string?> onChanged = (m, country) =>
         {
             if (country == "USA")
             {
@@ -115,7 +115,7 @@ public class FieldDependencyTests
             }
         };
 
-        var dependency = new FieldDependency<TestModel, string>(x => x.Country, onChanged);
+        var dependency = new FieldDependency<TestModel, string?>(x => x.Country, onChanged);
 
         // Act
         model.Country = "USA";

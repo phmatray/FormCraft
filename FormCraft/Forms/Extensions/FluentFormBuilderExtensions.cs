@@ -405,7 +405,7 @@ public static class FluentFormBuilderExtensions
     {
         var fieldBuilder = builder.AddField(expression)
             .WithLabel(label)
-            .AsFileUpload(acceptedFileTypes, maxFileSize, true, true);
+            .AsFileUpload(acceptedFileTypes, maxFileSize);
             
         if (required)
             fieldBuilder.Required($"{label} is required");

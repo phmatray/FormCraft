@@ -96,6 +96,7 @@ public class FileUploadConfigurationTests
 
         // Assert
         result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldNotBeNull();
         result.ErrorMessage.ShouldContain("File size exceeds the maximum allowed size of 1.00 MB");
     }
 
@@ -133,6 +134,7 @@ public class FileUploadConfigurationTests
 
         // Assert
         result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldNotBeNull();
         result.ErrorMessage.ShouldContain("File type '.jpg' is not allowed");
         result.ErrorMessage.ShouldContain("Accepted types: .pdf, .doc");
     }

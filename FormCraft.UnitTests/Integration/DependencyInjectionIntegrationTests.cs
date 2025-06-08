@@ -140,7 +140,7 @@ public class DependencyInjectionIntegrationTests
     }
 
     [Fact]
-    public void Service_Provider_Access_In_Validators_Should_Work()
+    public async Task Service_Provider_Access_In_Validators_Should_Work()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -154,11 +154,8 @@ public class DependencyInjectionIntegrationTests
 
         // Act & Assert
         var model = new TestModel { Name = "test" };
-        var validationTask = validator.ValidateAsync(model, "test value", serviceProvider);
+        var result = await validator.ValidateAsync(model, "test value", serviceProvider);
 
-        validationTask.ShouldNotBeNull();
-        // The validator should be able to access the validation service
-        var result = validationTask.Result;
         result.ShouldNotBeNull();
         result.IsValid.ShouldBeTrue(); // Our test validation service always returns true
     }

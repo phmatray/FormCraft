@@ -172,6 +172,7 @@ public class FluentFormBuilderExtensionsTests
         field.AdditionalAttributes.ShouldContainKey("Options");
 
         var options = field.AdditionalAttributes["Options"] as IEnumerable<SelectOption<string>>;
+        options.ShouldNotBeNull();
         options.Count().ShouldBe(3);
         options.ShouldContain(o => o.Value == "US" && o.Label == "United States");
     }

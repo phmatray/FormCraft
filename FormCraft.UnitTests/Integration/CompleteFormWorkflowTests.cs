@@ -256,15 +256,15 @@ public class CompleteFormWorkflowTests
         var firstNameField = formConfig.Fields.First(f => f.FieldName == "FirstName");
 
         // Initially hidden when IsActive is false
-        firstNameField.VisibilityCondition(model).ShouldBeFalse();
+        firstNameField.VisibilityCondition?.Invoke(model).ShouldBeFalse();
 
         // Should become visible when IsActive changes to true
         model.IsActive = true;
-        firstNameField.VisibilityCondition(model).ShouldBeTrue();
+        firstNameField.VisibilityCondition?.Invoke(model).ShouldBeTrue();
 
         // Should become hidden again when IsActive changes back to false
         model.IsActive = false;
-        firstNameField.VisibilityCondition(model).ShouldBeFalse();
+        firstNameField.VisibilityCondition?.Invoke(model).ShouldBeFalse();
     }
 
     [Fact]

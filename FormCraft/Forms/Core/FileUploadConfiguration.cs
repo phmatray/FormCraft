@@ -52,7 +52,7 @@ public class FileUploadConfiguration
     /// </summary>
     /// <param name="file">The file to validate.</param>
     /// <returns>A validation result indicating success or failure with an error message.</returns>
-    public ValidationResult ValidateFile(IBrowserFile file)
+    public ValidationResult ValidateFile(IBrowserFile? file)
     {
         if (file == null)
             return ValidationResult.Success();
@@ -67,7 +67,7 @@ public class FileUploadConfiguration
         // Check file type
         if (AcceptedFileTypes?.Length > 0)
         {
-            var fileExtension = System.IO.Path.GetExtension(file.Name).ToLowerInvariant();
+            var fileExtension = Path.GetExtension(file.Name).ToLowerInvariant();
             if (!AcceptedFileTypes.Any(type => type.Equals(fileExtension, StringComparison.OrdinalIgnoreCase)))
             {
                 var acceptedTypes = string.Join(", ", AcceptedFileTypes);

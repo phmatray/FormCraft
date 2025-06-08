@@ -29,7 +29,7 @@ public class FieldRendererServiceTests
     {
         // Arrange
         var model = new TestModel { Name = "Test Value" };
-        var field = new FieldConfiguration<TestModel, string>(x => x.Name);
+        var field = new FieldConfiguration<TestModel, string?>(x => x.Name);
         var expectedFragment = new RenderFragment(builder => builder.AddContent(0, "Rendered Content"));
 
         var mockRenderer = A.Fake<IFieldRenderer>();
@@ -44,7 +44,7 @@ public class FieldRendererServiceTests
 
         // Act
         var result = service.RenderField(model,
-            new FieldConfigurationWrapper<TestModel, string>(field),
+            new FieldConfigurationWrapper<TestModel, string?>(field),
             onValueChanged,
             onDependencyChanged);
 
@@ -88,7 +88,7 @@ public class FieldRendererServiceTests
     {
         // Arrange
         var model = new TestModel { Name = "Test Name" };
-        var field = new FieldConfiguration<TestModel, string>(x => x.Name);
+        var field = new FieldConfiguration<TestModel, string?>(x => x.Name);
         IFieldRenderContext<TestModel>? capturedContext = null;
 
         var mockRenderer = A.Fake<IFieldRenderer>();
@@ -107,7 +107,7 @@ public class FieldRendererServiceTests
 
         // Act
         service.RenderField(model,
-            new FieldConfigurationWrapper<TestModel, string>(field),
+            new FieldConfigurationWrapper<TestModel, string?>(field),
             onValueChanged,
             onDependencyChanged);
 
@@ -126,7 +126,7 @@ public class FieldRendererServiceTests
     {
         // Arrange
         var model = new TestModel { Name = "Test" };
-        var field = new FieldConfiguration<TestModel, string>(x => x.Name);
+        var field = new FieldConfiguration<TestModel, string?>(x => x.Name);
 
         var mockRenderer1 = A.Fake<IFieldRenderer>();
         var mockRenderer2 = A.Fake<IFieldRenderer>();
@@ -145,7 +145,7 @@ public class FieldRendererServiceTests
 
         // Act
         var result = service.RenderField(model,
-            new FieldConfigurationWrapper<TestModel, string>(field),
+            new FieldConfigurationWrapper<TestModel, string?>(field),
             onValueChanged,
             onDependencyChanged);
 
@@ -166,7 +166,7 @@ public class FieldRendererServiceTests
     {
         // Arrange
         var model = new TestModel { Name = null };
-        var field = new FieldConfiguration<TestModel, string>(x => x.Name);
+        var field = new FieldConfiguration<TestModel, string?>(x => x.Name);
         IFieldRenderContext<TestModel>? capturedContext = null;
 
         var mockRenderer = A.Fake<IFieldRenderer>();
@@ -185,7 +185,7 @@ public class FieldRendererServiceTests
 
         // Act
         service.RenderField(model,
-            new FieldConfigurationWrapper<TestModel, string>(field),
+            new FieldConfigurationWrapper<TestModel, string?>(field),
             onValueChanged,
             onDependencyChanged);
 
@@ -225,7 +225,7 @@ public class FieldRendererServiceTests
     {
         // Arrange
         var model = new TestModel { Name = "Test" };
-        var field = new FieldConfiguration<TestModel, string>(x => x.Name);
+        var field = new FieldConfiguration<TestModel, string?>(x => x.Name);
 
         var service = new FieldRendererService(new IFieldRenderer[0], _serviceProvider);
         var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
@@ -233,7 +233,7 @@ public class FieldRendererServiceTests
 
         // Act
         var result = service.RenderField(model,
-            new FieldConfigurationWrapper<TestModel, string>(field),
+            new FieldConfigurationWrapper<TestModel, string?>(field),
             onValueChanged,
             onDependencyChanged);
 
