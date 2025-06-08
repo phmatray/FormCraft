@@ -17,4 +17,7 @@ public class ContactModel
     public string? Message { get; set; }
     public IBrowserFile? Resume { get; set; }
     public int ExperienceLevel { get; set; } = 1;
+    public decimal? ExpectedSalary { get; set; }
+    public decimal? HourlyRate { get; set; }
+    public double? Rating { get; set; }
 }

@@ -9,7 +9,8 @@
     &lt;Project Location="/Users/phmatray/Repositories/github-phm/DynamicFormBlazor/FormCraft.UnitTests" Presentation="&amp;lt;FormCraft.UnitTests&amp;gt;" /&gt;
   &lt;/And&gt;
 &lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=712f66c7_002D329e_002D4ba7_002Da611_002D095c22b30b1b/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from &amp;lt;FormCraft.UnitTests&amp;gt;" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=9f889285_002Dfa63_002D45fe_002Db520_002D61645c197339/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from &amp;lt;FormCraft.UnitTests&amp;gt;" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;Project Location="/Users/phmatray/Repositories/github-phm/DynamicFormBlazor/FormCraft.UnitTests" Presentation="&amp;lt;FormCraft.UnitTests&amp;gt;" /&gt;
 &lt;/SessionState&gt;</s:String>
+	
 	</wpf:ResourceDictionary>
