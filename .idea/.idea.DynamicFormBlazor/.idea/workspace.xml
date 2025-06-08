@@ -10,56 +10,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d167caaa-5ebe-4aad-8ea1-3bbbe1168d9c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.FormCraft/.idea/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.FormCraft/.idea/AndroidProjectSystem.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.FormCraft/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.FormCraft/.idea/indexLayout.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.FormCraft/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.DynamicFormBlazor/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.DynamicFormBlazor/.idea/AndroidProjectSystem.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.DynamicFormBlazor/.idea/encodings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.DynamicFormBlazor/.idea/indexLayout.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.DynamicFormBlazor/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor.sln" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.sln" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.sln.DotSettings.user" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/App.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/App.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Layout/FormPageLayout.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Layout/FormPageLayout.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Layout/MainLayout.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Layout/MainLayout.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Layout/MainLayout.razor.css" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Layout/MainLayout.razor.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Pages/Docs/ApiReference.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/Docs/ApiReference.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Pages/Docs/Customization.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/Docs/Customization.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Pages/Docs/Examples.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/Docs/Examples.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Pages/Docs/GettingStarted.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/Docs/GettingStarted.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Pages/Docs/Troubleshooting.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/Docs/Troubleshooting.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Pages/Error.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/Error.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Pages/FluentForm.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/FluentForm.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Pages/ImprovedForm.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/ImprovedForm.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Pages/SimplifiedForm.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/SimplifiedForm.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Routes.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Routes.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Shared/DocumentationPage.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Shared/DocumentationPage.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Shared/FormGuidelines.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Shared/FormGuidelines.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Shared/FormHelpPanel.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Shared/FormHelpPanel.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/Shared/FormSuccessDisplay.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Shared/FormSuccessDisplay.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Components/_Imports.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/_Imports.razor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/DynamicFormBlazor.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/FormCraft.DemoBlazorApp.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Models/ContactModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Models/ContactModel.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Program.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Properties/launchSettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Properties/launchSettings.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/Services/MarkdownService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Services/MarkdownService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/appsettings.Development.json" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/appsettings.Development.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/appsettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/appsettings.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/wwwroot/app.css" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/wwwroot/app.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/wwwroot/docs/api-reference.md" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/wwwroot/docs/api-reference.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/wwwroot/docs/customization.md" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/wwwroot/docs/customization.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/wwwroot/docs/examples.md" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/wwwroot/docs/examples.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/wwwroot/docs/getting-started.md" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/wwwroot/docs/getting-started.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/wwwroot/docs/troubleshooting.md" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/wwwroot/docs/troubleshooting.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/wwwroot/js/docs.js" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/wwwroot/js/docs.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/wwwroot/lib/prism/prism-csharp.min.js" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/wwwroot/lib/prism/prism-csharp.min.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/wwwroot/lib/prism/prism-razor.min.js" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/wwwroot/lib/prism/prism-razor.min.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/wwwroot/lib/prism/prism.min.css" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/wwwroot/lib/prism/prism.min.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DynamicFormBlazor/wwwroot/lib/prism/prism.min.js" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/wwwroot/lib/prism/prism.min.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FormCraft/FormCraft.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft/FormCraft.csproj" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Shared/CodeExample.razor" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Models/EmployeeModel.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.DynamicFormBlazor/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.DynamicFormBlazor/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Layout/MainLayout.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Layout/MainLayout.razor" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/FluentForm.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/FluentForm.razor" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/ImprovedForm.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/ImprovedForm.razor" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/SimplifiedForm.razor" beforeDir="false" afterPath="$PROJECT_DIR$/FormCraft.DemoBlazorApp/Components/Pages/SimplifiedForm.razor" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -84,18 +42,18 @@
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "phmatray"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;phmatray&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/phmatray/DynamicFormBlazor.git",
-    "accountId": "7909c483-5745-4ff4-a088-586865126af4"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/phmatray/DynamicFormBlazor.git&quot;,
+    &quot;accountId&quot;: &quot;7909c483-5745-4ff4-a088-586865126af4&quot;
   }
-}]]></component>
+}</component>
   <component name="HighlightingSettingsPerFile">
     <setting file="mock:///Users/phmatray/Repositories/github-phm/DynamicFormBlazor/DynamicFormBlazor/Components/Pages/FluentForm.razor" root0="SKIP_HIGHLIGHTING" root1="FORCE_HIGHLIGHTING" root2="FORCE_HIGHLIGHTING" />
     <setting file="mock:///Users/phmatray/Repositories/github-phm/DynamicFormBlazor/DynamicFormBlazor/Components/Pages/FluentForm.razor" root0="SKIP_HIGHLIGHTING" root1="FORCE_HIGHLIGHTING" root2="FORCE_HIGHLIGHTING" />
@@ -129,35 +87,38 @@
     <setting file="mock://diff.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://diff.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://diff.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://diff.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://diff.razor" root0="SKIP_HIGHLIGHTING" root1="FORCE_HIGHLIGHTING" root2="FORCE_HIGHLIGHTING" />
+    <setting file="mock://diff.razor" root0="SKIP_HIGHLIGHTING" root1="FORCE_HIGHLIGHTING" root2="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="SWEA" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 1
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1
+}</component>
   <component name="ProjectId" id="2yAoCDhEe2pNPcEPwEifTgwqFQ5" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    ".NET Launch Settings Profile.DynamicFormBlazor: http.executor": "Debug",
-    ".NET Launch Settings Profile.FormCraft.DemoBlazorApp: https.executor": "Debug",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;.NET Launch Settings Profile.DynamicFormBlazor: http.executor&quot;: &quot;Debug&quot;,
+    &quot;.NET Launch Settings Profile.FormCraft.DemoBlazorApp: https.executor&quot;: &quot;Debug&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected=".NET Launch Settings Profile.FormCraft.DemoBlazorApp: https">
     <configuration name="FormCraft.UnitTests" type="DotNetProject" factoryName=".NET Project">
       <option name="EXE_PATH" value="" />
@@ -225,7 +186,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1749286610137</updated>
-      <workItem from="1749286611699" duration="25231000" />
+      <workItem from="1749286611699" duration="26102000" />
     </task>
     <task id="LOCAL-00001" summary="test: add unit tests">
       <option name="closed" value="true" />
@@ -307,7 +268,15 @@
       <option name="project" value="LOCAL" />
       <updated>1749377212757</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="refactor: rename demo website">
+      <option name="closed" value="true" />
+      <created>1749378388856</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1749378388856</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -322,7 +291,7 @@
       <expand>
         <path>
           <item name="rootNode" type="c53c71d1:RiderDotCoverCoverageTreeModel$RootNode" />
-          <item name="Total 0% 6441/6441" type="8b8fad3a:RiderDotCoverCoverageTreeNode" />
+          <item name="Total 0% 6526/6526" type="8b8fad3a:RiderDotCoverCoverageTreeNode" />
         </path>
       </expand>
       <select />
@@ -353,7 +322,8 @@
     <MESSAGE value="refactor: fix some warnings" />
     <MESSAGE value="feat: add decimal and double field renderers" />
     <MESSAGE value="chore: add changelog generation" />
-    <option name="LAST_COMMIT_MESSAGE" value="chore: add changelog generation" />
+    <MESSAGE value="refactor: rename demo website" />
+    <option name="LAST_COMMIT_MESSAGE" value="refactor: rename demo website" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -430,6 +400,12 @@
           <option name="totalLines" value="53838" />
           <option name="info" value="" />
         </TimePoint>
+        <TimePoint>
+          <option name="timestamp" value="1749378388919" />
+          <option name="linesCode" value="20683" />
+          <option name="totalLines" value="51507" />
+          <option name="info" value="" />
+        </TimePoint>
       </list>
     </option>
     <option name="genericTimePoints">
@@ -453,9 +429,9 @@
           <option name="info" value="08 Jun 2025" />
         </TimePoint>
         <TimePoint>
-          <option name="timestamp" value="1749377212822" />
-          <option name="linesCode" value="20489" />
-          <option name="totalLines" value="53838" />
+          <option name="timestamp" value="1749378388919" />
+          <option name="linesCode" value="20683" />
+          <option name="totalLines" value="51507" />
           <option name="info" value="08 Jun 2025" />
         </TimePoint>
       </list>
