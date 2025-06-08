@@ -13,10 +13,10 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         result.ShouldBeSameAs(services);
-        
+
         // Verify all expected services are registered
         services.ShouldContain(s => s.ServiceType == typeof(IFieldRendererService) && s.Lifetime == ServiceLifetime.Scoped);
-        
+
         // Verify field renderers are registered as IFieldRenderer
         var fieldRendererRegistrations = services.Where(s => s.ServiceType == typeof(IFieldRenderer)).ToList();
         fieldRendererRegistrations.Count.ShouldBe(6);
@@ -26,7 +26,7 @@ public class ServiceCollectionExtensionsTests
         fieldRendererRegistrations.ShouldContain(s => s.ImplementationType == typeof(DoubleFieldRenderer));
         fieldRendererRegistrations.ShouldContain(s => s.ImplementationType == typeof(BoolFieldRenderer));
         fieldRendererRegistrations.ShouldContain(s => s.ImplementationType == typeof(DateTimeFieldRenderer));
-        
+
         // Verify all field renderers are scoped
         foreach (var registration in fieldRendererRegistrations)
         {
@@ -77,7 +77,7 @@ public class ServiceCollectionExtensionsTests
         // Assert
         // Same instance within the same scope
         service1_1.ShouldBeSameAs(service1_2);
-        
+
         // Different instances across different scopes
         service1_1.ShouldNotBeSameAs(service2_1);
     }

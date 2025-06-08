@@ -18,7 +18,7 @@ public class AsyncValidatorTests
             await Task.Delay(10);
             return !string.IsNullOrEmpty(value);
         };
-        
+
         var validator = new AsyncValidator<TestModel, string>(validationFunction, "Value cannot be empty");
         var model = new TestModel();
 
@@ -39,7 +39,7 @@ public class AsyncValidatorTests
             await Task.Delay(10);
             return !string.IsNullOrEmpty(value);
         };
-        
+
         var validator = new AsyncValidator<TestModel, string>(validationFunction, "Value cannot be empty");
         var model = new TestModel();
 
@@ -60,7 +60,7 @@ public class AsyncValidatorTests
             await Task.Delay(10);
             return value != null;
         };
-        
+
         var validator = new AsyncValidator<TestModel, string?>(validationFunction, "Value cannot be null");
         var model = new TestModel();
 
@@ -77,16 +77,16 @@ public class AsyncValidatorTests
     {
         // Arrange
         var existingUsernames = new HashSet<string> { "john", "jane", "admin" };
-        
+
         Func<string, Task<bool>> uniqueUsernameValidation = async username =>
         {
             // Simulate database call
             await Task.Delay(50);
             return !existingUsernames.Contains(username.ToLower());
         };
-        
+
         var validator = new AsyncValidator<TestModel, string>(
-            uniqueUsernameValidation, 
+            uniqueUsernameValidation,
             "Username is already taken");
         var model = new TestModel();
 
@@ -107,13 +107,13 @@ public class AsyncValidatorTests
         {
             // Simulate API call to email validation service
             await Task.Delay(100);
-            
+
             // Simple validation logic for testing
             return email.Contains("@") && email.Contains(".") && !email.Contains("invalid");
         };
-        
+
         var validator = new AsyncValidator<TestModel, string>(
-            emailValidation, 
+            emailValidation,
             "Email address is not valid or disposable");
         var model = new TestModel();
 
@@ -135,9 +135,9 @@ public class AsyncValidatorTests
             await Task.Delay(10);
             throw new InvalidOperationException("Simulated service error");
         };
-        
+
         var validator = new AsyncValidator<TestModel, string>(
-            validationFunction, 
+            validationFunction,
             "Validation failed due to service error");
         var model = new TestModel();
 
@@ -157,28 +157,28 @@ public class AsyncValidatorTests
         {
             // Simulate multiple async operations
             await Task.Delay(25); // First service call
-            
+
             if (string.IsNullOrWhiteSpace(phoneNumber))
                 return false;
-                
+
             await Task.Delay(25); // Second service call
-            
+
             // Check format
             var cleanNumber = phoneNumber.Replace("-", "").Replace(" ", "").Replace("(", "").Replace(")", "");
             if (cleanNumber.Length != 10)
                 return false;
-                
+
             await Task.Delay(25); // Third service call
-            
+
             // Check if it's a valid area code (simulate)
             var areaCode = cleanNumber.Substring(0, 3);
             var validAreaCodes = new[] { "555", "123", "456" };
-            
+
             return validAreaCodes.Contains(areaCode);
         };
-        
+
         var validator = new AsyncValidator<TestModel, string>(
-            complexValidation, 
+            complexValidation,
             "Phone number is not valid or from an unsupported area");
         var model = new TestModel();
 
@@ -198,15 +198,15 @@ public class AsyncValidatorTests
     {
         // Arrange
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
-        
+
         Func<string, Task<bool>> slowValidation = async value =>
         {
             await Task.Delay(100, cts.Token); // This should timeout
             return true;
         };
-        
+
         var validator = new AsyncValidator<TestModel, string>(
-            slowValidation, 
+            slowValidation,
             "Validation timed out");
         var model = new TestModel();
 
@@ -229,7 +229,7 @@ public class AsyncValidatorTests
             await Task.Delay(50);
             return !string.IsNullOrEmpty(value);
         };
-        
+
         var validator = new AsyncValidator<TestModel, string>(validationFunction, "Invalid");
         var model = new TestModel();
 

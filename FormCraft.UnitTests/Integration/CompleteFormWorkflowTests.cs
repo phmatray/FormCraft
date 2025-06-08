@@ -69,7 +69,7 @@ public class CompleteFormWorkflowTests
 
         // Act & Assert - Test valid model
         var validModel = new CompleteTestModel { FirstName = "John", Age = 30 };
-        
+
         var firstNameField = formConfig.Fields.First(f => f.FieldName == "FirstName");
         var ageField = formConfig.Fields.First(f => f.FieldName == "Age");
 
@@ -111,7 +111,7 @@ public class CompleteFormWorkflowTests
 
         // Act & Assert - Test with active model
         var activeModel = new CompleteTestModel { IsActive = true, FirstName = "John" };
-        
+
         var isActiveField = formConfig.Fields.First(f => f.FieldName == "IsActive");
         var firstNameField = formConfig.Fields.First(f => f.FieldName == "FirstName");
         var lastNameField = formConfig.Fields.First(f => f.FieldName == "LastName");
@@ -121,7 +121,7 @@ public class CompleteFormWorkflowTests
         firstNameField.VisibilityCondition.ShouldNotBeNull();
         lastNameField.VisibilityCondition.ShouldNotBeNull();
         ageField.DisabledCondition.ShouldNotBeNull();
-        
+
         // Test conditions with active model
         firstNameField.VisibilityCondition(activeModel).ShouldBeTrue();
         lastNameField.VisibilityCondition(activeModel).ShouldBeTrue();
@@ -129,7 +129,7 @@ public class CompleteFormWorkflowTests
 
         // Test with inactive model
         var inactiveModel = new CompleteTestModel { IsActive = false };
-        
+
         firstNameField.VisibilityCondition(inactiveModel).ShouldBeFalse();
         lastNameField.VisibilityCondition(inactiveModel).ShouldBeFalse();
         ageField.DisabledCondition(inactiveModel).ShouldBeTrue(); // Should be disabled when not active
@@ -175,7 +175,7 @@ public class CompleteFormWorkflowTests
         var intRender = rendererService.RenderField(model, intField, EventCallback<object?>.Empty, EventCallback.Empty);
         var boolRender = rendererService.RenderField(model, boolField, EventCallback<object?>.Empty, EventCallback.Empty);
         var dateTimeRender = rendererService.RenderField(model, dateTimeField, EventCallback<object?>.Empty, EventCallback.Empty);
-        
+
         stringRender.ShouldNotBeNull();
         intRender.ShouldNotBeNull();
         boolRender.ShouldNotBeNull();
@@ -201,7 +201,7 @@ public class CompleteFormWorkflowTests
 
         // Act - Build form with many fields
         var formBuilder = FormBuilder<CompleteTestModel>.Create();
-        
+
         // Add multiple fields of each type to simulate a complex form
         for (int i = 0; i < 10; i++)
         {
@@ -229,9 +229,9 @@ public class CompleteFormWorkflowTests
         stopwatch.Stop();
 
         // Assert - Performance should be reasonable (under 1 second for 40 fields)
-        stopwatch.ElapsedMilliseconds.ShouldBeLessThan(1000, 
+        stopwatch.ElapsedMilliseconds.ShouldBeLessThan(1000,
             $"Form building and rendering took too long: {stopwatch.ElapsedMilliseconds}ms");
-        
+
         formConfig.Fields.Count().ShouldBe(40);
     }
 

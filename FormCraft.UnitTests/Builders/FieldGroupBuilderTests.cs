@@ -10,7 +10,7 @@ public class FieldGroupBuilderTests
         public string? Phone { get; set; }
         public string? Department { get; set; }
     }
-    
+
     [Fact]
     public void AddFieldGroup_WithColumns_SetsColumnsCorrectly()
     {
@@ -30,7 +30,7 @@ public class FieldGroupBuilderTests
         groupedConfig.ShouldNotBeNull();
         groupedConfig.UseFieldGroups.ShouldBeTrue();
         groupedConfig.FieldGroups.Count.ShouldBe(1);
-        
+
         var fieldGroup = groupedConfig.FieldGroups[0];
         fieldGroup.Name.ShouldBe("Test Group");
         fieldGroup.Columns.ShouldBe(3);
@@ -63,11 +63,11 @@ public class FieldGroupBuilderTests
         var groupedConfig = config as IGroupedFormConfiguration<TestModel>;
         groupedConfig.ShouldNotBeNull();
         groupedConfig.FieldGroups.Count.ShouldBe(2);
-        
+
         groupedConfig.FieldGroups[0].Name.ShouldBe("Group 1");
         groupedConfig.FieldGroups[0].Columns.ShouldBe(2);
         groupedConfig.FieldGroups[0].Order.ShouldBe(0);
-        
+
         groupedConfig.FieldGroups[1].Name.ShouldBe("Group 2");
         groupedConfig.FieldGroups[1].Columns.ShouldBe(3);
         groupedConfig.FieldGroups[1].Order.ShouldBe(1);
@@ -102,7 +102,7 @@ public class FieldGroupBuilderTests
         // Assert
         var groupedConfig = config as IGroupedFormConfiguration<TestModel>;
         groupedConfig.ShouldNotBeNull();
-        
+
         var fieldGroup = groupedConfig.FieldGroups[0];
         fieldGroup.ShowCard.ShouldBeTrue();
         fieldGroup.CardElevation.ShouldBe(3);

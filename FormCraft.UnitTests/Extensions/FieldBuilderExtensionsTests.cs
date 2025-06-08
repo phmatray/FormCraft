@@ -71,7 +71,7 @@ public class FieldBuilderExtensionsTests
         result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Status");
         field.AdditionalAttributes.ShouldContainKey("Options");
-        
+
         var options = field.AdditionalAttributes["Options"] as IEnumerable<SelectOption<string>>;
         options.ShouldNotBeNull();
         options.Count().ShouldBe(3);
@@ -97,7 +97,7 @@ public class FieldBuilderExtensionsTests
         result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Categories");
         field.AdditionalAttributes.ShouldContainKey("MultiSelectOptions");
-        
+
         var options = field.AdditionalAttributes["MultiSelectOptions"] as IEnumerable<SelectOption<string>>;
         options.ShouldNotBeNull();
         options.Count().ShouldBe(2);

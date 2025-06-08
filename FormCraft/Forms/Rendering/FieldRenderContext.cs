@@ -10,19 +10,24 @@ public class FieldRenderContext<TModel> : IFieldRenderContext<TModel>
 {
     /// <inheritdoc />
     public TModel Model { get; init; } = default!;
-    
+
     /// <inheritdoc />
     public IFieldConfiguration<TModel, object> Field { get; init; } = default!;
-    
+
     /// <inheritdoc />
     public Type ActualFieldType { get; init; } = default!;
-    
+
     /// <inheritdoc />
     public object? CurrentValue { get; init; }
-    
+
     /// <inheritdoc />
     public EventCallback<object?> OnValueChanged { get; init; }
-    
+
     /// <inheritdoc />
     public EventCallback OnDependencyChanged { get; init; }
+
+    // Explicit interface implementations for non-generic interface
+    object IFieldRenderContext.Model => Model!;
+    object IFieldRenderContext.FieldConfiguration => Field;
+    EventCallback IFieldRenderContext.OnFieldChanged => OnDependencyChanged;
 }

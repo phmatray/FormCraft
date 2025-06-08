@@ -20,7 +20,7 @@ public class RequiredValidator<TModel, TValue> : IFieldValidator<TModel, TValue>
 {
     /// <inheritdoc />
     public string? ErrorMessage { get; set; }
-    
+
     /// <summary>
     /// Initializes a new instance of the RequiredValidator class.
     /// </summary>
@@ -29,7 +29,7 @@ public class RequiredValidator<TModel, TValue> : IFieldValidator<TModel, TValue>
     {
         ErrorMessage = errorMessage ?? "This field is required.";
     }
-    
+
     /// <summary>
     /// Validates that the field has a value. For strings, checks that the value is not null, empty, or whitespace.
     /// For other types, checks that the value is not null.
@@ -47,9 +47,9 @@ public class RequiredValidator<TModel, TValue> : IFieldValidator<TModel, TValue>
             System.Collections.IEnumerable enumerable => enumerable.Cast<object>().Any(),
             _ => true
         };
-        
-        return Task.FromResult(isValid 
-            ? ValidationResult.Success() 
+
+        return Task.FromResult(isValid
+            ? ValidationResult.Success()
             : ValidationResult.Failure(ErrorMessage!));
     }
 }

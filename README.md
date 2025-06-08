@@ -230,26 +230,42 @@ var formConfig = FormBuilder<UserModel>
 
 ### Custom Field Renderers
 
-Create your own field types:
+Create specialized input controls for specific field types:
 
 ```csharp
-public class ColorPickerRenderer : IFieldRenderer
+// Create a custom renderer
+public class ColorPickerRenderer : CustomFieldRendererBase<string>
 {
-    public bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
-        => fieldType == typeof(string) && field.AdditionalAttributes.ContainsKey("color-picker");
-
-    public RenderFragment Render<TModel>(IFieldRenderContext<TModel> context)
+    public override RenderFragment Render(IFieldRenderContext context)
     {
-        // Your custom rendering logic
+        return builder =>
+        {
+            var value = GetValue(context) ?? "#000000";
+            
+            builder.OpenElement(0, "input");
+            builder.AddAttribute(1, "type", "color");
+            builder.AddAttribute(2, "value", value);
+            builder.AddAttribute(3, "onchange", EventCallback.Factory.CreateBinder<string>(
+                this, async (newValue) => await SetValue(context, newValue), value));
+            builder.CloseElement();
+        };
     }
 }
 
-// Register your renderer
-services.AddDynamicForms(options =>
-{
-    options.AddRenderer<ColorPickerRenderer>();
-});
+// Use in your form configuration
+.AddField(x => x.Color, field => field
+    .WithLabel("Product Color")
+    .WithCustomRenderer<ProductModel, string, ColorPickerRenderer>()
+    .WithHelpText("Select the primary color"))
+
+// Register custom renderers (optional for DI)
+services.AddScoped<ColorPickerRenderer>();
+services.AddScoped<RatingRenderer>();
 ```
+
+Built-in example renderers:
+- **ColorPickerRenderer** - Visual color selection with hex input
+- **RatingRenderer** - Star-based rating control using MudBlazor
 
 ## 📊 Performance
 

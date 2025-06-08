@@ -8,11 +8,11 @@ public class DependencyInjectionIntegrationTests
         // Arrange - Create service collection and register FormCraft services
         var services = new ServiceCollection();
         services.AddDynamicForms();
-        
+
         // Add some additional services to test non-interference
         services.AddSingleton<ITestDependency, TestDependency>();
         services.AddScoped<ITestScopedService, TestScopedService>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
 
         // Act & Assert - Test complete service resolution chain
@@ -62,12 +62,12 @@ public class DependencyInjectionIntegrationTests
 
         // Act & Assert - Test scoped lifetime behavior
         IFieldRendererService service1, service2, service3;
-        
+
         using (var scope1 = serviceProvider.CreateScope())
         {
             service1 = scope1.ServiceProvider.GetRequiredService<IFieldRendererService>();
             service2 = scope1.ServiceProvider.GetRequiredService<IFieldRendererService>();
-            
+
             // Same instance within same scope
             service1.ShouldBeSameAs(service2);
         }
@@ -75,22 +75,22 @@ public class DependencyInjectionIntegrationTests
         using (var scope2 = serviceProvider.CreateScope())
         {
             service3 = scope2.ServiceProvider.GetRequiredService<IFieldRendererService>();
-            
+
             // Different instance in different scope
             service1.ShouldNotBeSameAs(service3);
         }
 
         // Test field renderer lifetime (should be scoped)
         IFieldRenderer renderer1, renderer2, renderer3;
-        
+
         using (var scope1 = serviceProvider.CreateScope())
         {
             var renderers = scope1.ServiceProvider.GetServices<IFieldRenderer>().ToList();
             renderer1 = renderers.First(r => r is StringFieldRenderer);
-            
+
             var renderersAgain = scope1.ServiceProvider.GetServices<IFieldRenderer>().ToList();
             renderer2 = renderersAgain.First(r => r is StringFieldRenderer);
-            
+
             // Same instance within same scope
             renderer1.ShouldBeSameAs(renderer2);
         }
@@ -99,7 +99,7 @@ public class DependencyInjectionIntegrationTests
         {
             var renderers = scope2.ServiceProvider.GetServices<IFieldRenderer>().ToList();
             renderer3 = renderers.First(r => r is StringFieldRenderer);
-            
+
             // Different instance in different scope
             renderer1.ShouldNotBeSameAs(renderer3);
         }
@@ -111,10 +111,10 @@ public class DependencyInjectionIntegrationTests
         // Arrange
         var services = new ServiceCollection();
         services.AddDynamicForms();
-        
+
         // Add a custom renderer
         services.AddScoped<IFieldRenderer, CustomTestRenderer>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
 
         // Act
@@ -143,7 +143,7 @@ public class DependencyInjectionIntegrationTests
         var services = new ServiceCollection();
         services.AddDynamicForms();
         services.AddSingleton<IValidationService, ValidationService>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
 
         // Create a validator that uses service provider
@@ -152,7 +152,7 @@ public class DependencyInjectionIntegrationTests
         // Act & Assert
         var model = new TestModel { Name = "test" };
         var validationTask = validator.ValidateAsync(model, "test value", serviceProvider);
-        
+
         validationTask.ShouldNotBeNull();
         // The validator should be able to access the validation service
         var result = validationTask.Result;
@@ -167,7 +167,7 @@ public class DependencyInjectionIntegrationTests
         var services = new ServiceCollection();
         services.AddDynamicForms();
         services.AddScoped<ITestScopedService, TestScopedService>();
-        
+
         var serviceProvider = services.BuildServiceProvider();
 
         // Act & Assert - Create multiple scopes simultaneously
@@ -196,7 +196,7 @@ public class DependencyInjectionIntegrationTests
         rendererService1.ShouldNotBeNull();
         rendererService2.ShouldNotBeNull();
         rendererService3.ShouldNotBeNull();
-        
+
         scopedService1.ShouldNotBeNull();
         scopedService2.ShouldNotBeNull();
         scopedService3.ShouldNotBeNull();
@@ -260,7 +260,7 @@ public class DependencyInjectionIntegrationTests
         {
             rendererService = scope.ServiceProvider.GetRequiredService<IFieldRendererService>();
             renderers = scope.ServiceProvider.GetServices<IFieldRenderer>();
-            
+
             rendererService.ShouldNotBeNull();
             renderers.ShouldNotBeNull();
             renderers.Count().ShouldBe(6); // String, Int, Decimal, Double, Bool, DateTime
@@ -271,11 +271,11 @@ public class DependencyInjectionIntegrationTests
         {
             var newRendererService = newScope.ServiceProvider.GetRequiredService<IFieldRendererService>();
             var newRenderers = newScope.ServiceProvider.GetServices<IFieldRenderer>();
-            
+
             newRendererService.ShouldNotBeNull();
             newRenderers.ShouldNotBeNull();
             newRenderers.Count().ShouldBe(6); // String, Int, Decimal, Double, Bool, DateTime
-            
+
             // Should be different instances
             newRendererService.ShouldNotBeSameAs(rendererService);
         }
@@ -346,9 +346,9 @@ public class DependencyInjectionIntegrationTests
             // Use the validation service from DI
             var validationService = services.GetRequiredService<IValidationService>();
             var isValid = validationService.IsValid(value ?? "");
-            
-            return await Task.FromResult(isValid 
-                ? ValidationResult.Success() 
+
+            return await Task.FromResult(isValid
+                ? ValidationResult.Success()
                 : ValidationResult.Failure("Validation failed"));
         }
     }

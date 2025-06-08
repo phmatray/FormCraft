@@ -10,7 +10,7 @@ public class FieldGroupBuilder<TModel> where TModel : new()
 {
     private readonly FormBuilder<TModel> _formBuilder;
     private readonly FieldGroup<TModel> _fieldGroup;
-    
+
     /// <summary>
     /// Initializes a new instance of the FieldGroupBuilder class.
     /// </summary>
@@ -21,7 +21,7 @@ public class FieldGroupBuilder<TModel> where TModel : new()
         _formBuilder = formBuilder;
         _fieldGroup = fieldGroup;
     }
-    
+
     /// <summary>
     /// Sets the display name for this field group.
     /// </summary>
@@ -32,7 +32,7 @@ public class FieldGroupBuilder<TModel> where TModel : new()
         _fieldGroup.Name = name;
         return this;
     }
-    
+
     /// <summary>
     /// Sets the number of columns for this group's grid layout.
     /// </summary>
@@ -43,7 +43,7 @@ public class FieldGroupBuilder<TModel> where TModel : new()
         _fieldGroup.Columns = columns;
         return this;
     }
-    
+
     /// <summary>
     /// Sets the CSS class for this field group's container.
     /// </summary>
@@ -54,7 +54,7 @@ public class FieldGroupBuilder<TModel> where TModel : new()
         _fieldGroup.CssClass = cssClass;
         return this;
     }
-    
+
     /// <summary>
     /// Configures the group to render its fields within a card/panel.
     /// </summary>
@@ -66,7 +66,7 @@ public class FieldGroupBuilder<TModel> where TModel : new()
         _fieldGroup.CardElevation = elevation;
         return this;
     }
-    
+
     /// <summary>
     /// Sets the order in which this group should be rendered.
     /// </summary>
@@ -77,7 +77,7 @@ public class FieldGroupBuilder<TModel> where TModel : new()
         _fieldGroup.Order = order;
         return this;
     }
-    
+
     /// <summary>
     /// Adds a field to this group and returns the FieldGroupBuilder for method chaining.
     /// </summary>
@@ -88,17 +88,17 @@ public class FieldGroupBuilder<TModel> where TModel : new()
     {
         // Add field through the form builder
         _formBuilder.AddField(expression);
-        
+
         // Get the field name from the expression
         var memberExpression = expression.Body as MemberExpression;
         if (memberExpression != null)
         {
             _fieldGroup.FieldNames.Add(memberExpression.Member.Name);
         }
-        
+
         return this;
     }
-    
+
     /// <summary>
     /// Adds a field to this group with configuration and returns the FieldGroupBuilder for method chaining.
     /// </summary>
@@ -112,17 +112,17 @@ public class FieldGroupBuilder<TModel> where TModel : new()
     {
         // Add field through the form builder
         var fieldBuilder = _formBuilder.AddField(expression);
-        
+
         // Configure the field
         fieldConfig(fieldBuilder);
-        
+
         // Get the field name from the expression
         var memberExpression = expression.Body as MemberExpression;
         if (memberExpression != null)
         {
             _fieldGroup.FieldNames.Add(memberExpression.Member.Name);
         }
-        
+
         return this;
     }
 }

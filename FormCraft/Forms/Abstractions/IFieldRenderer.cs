@@ -35,7 +35,7 @@ public interface IFieldRenderer
     /// <param name="field">The field configuration containing attributes and metadata.</param>
     /// <returns>True if this renderer can handle the field type, false otherwise.</returns>
     bool CanRender(Type fieldType, IFieldConfiguration<object, object> field);
-    
+
     /// <summary>
     /// Generates the UI component for the field as a Blazor RenderFragment.
     /// </summary>

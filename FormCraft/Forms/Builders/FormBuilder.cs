@@ -22,13 +22,13 @@ public class FormBuilder<TModel> where TModel : new()
 {
     private readonly FormConfiguration<TModel> _configuration = new();
     private int _fieldOrder;
-    
+
     /// <summary>
     /// Creates a new instance of the form builder.
     /// </summary>
     /// <returns>A new FormBuilder instance for the specified model type.</returns>
     public static FormBuilder<TModel> Create() => new();
-    
+
     /// <summary>
     /// Adds a field to the form configuration using a strongly-typed expression.
     /// </summary>
@@ -49,14 +49,14 @@ public class FormBuilder<TModel> where TModel : new()
         {
             Order = _fieldOrder++
         };
-        
+
         // Cast to object version for storage
         var objectConfig = new FieldConfigurationWrapper<TModel, TValue>(fieldConfig);
         _configuration.Fields.Add(objectConfig);
-        
+
         return new FieldBuilder<TModel, TValue>(this, fieldConfig);
     }
-    
+
     /// <summary>
     /// Sets the layout style for the entire form.
     /// </summary>
@@ -72,7 +72,7 @@ public class FormBuilder<TModel> where TModel : new()
         _configuration.Layout = layout;
         return this;
     }
-    
+
     /// <summary>
     /// Adds a CSS class to the form container element.
     /// </summary>
@@ -88,7 +88,7 @@ public class FormBuilder<TModel> where TModel : new()
         _configuration.CssClass = cssClass;
         return this;
     }
-    
+
     /// <summary>
     /// Configures whether to display a validation summary showing all form errors.
     /// </summary>
@@ -104,7 +104,7 @@ public class FormBuilder<TModel> where TModel : new()
         _configuration.ShowValidationSummary = show;
         return this;
     }
-    
+
     /// <summary>
     /// Configures whether to show indicators (like asterisks) next to required fields.
     /// </summary>
@@ -122,7 +122,7 @@ public class FormBuilder<TModel> where TModel : new()
         _configuration.RequiredIndicator = indicator;
         return this;
     }
-    
+
     /// <summary>
     /// Adds a field group to the form using a lambda expression for configuration.
     /// </summary>
@@ -148,16 +148,16 @@ public class FormBuilder<TModel> where TModel : new()
             Order = _configuration.FieldGroups.Count,
             Columns = 1 // Explicit default
         };
-        
+
         _configuration.FieldGroups.Add(group);
         _configuration.UseFieldGroups = true;
-        
+
         var fieldGroupBuilder = new FieldGroupBuilder<TModel>(this, group);
         groupBuilder(fieldGroupBuilder);
-        
+
         return this;
     }
-    
+
     /// <summary>
     /// Builds and returns the final form configuration that can be used with DynamicFormComponent.
     /// </summary>
@@ -168,14 +168,14 @@ public class FormBuilder<TModel> where TModel : new()
     /// </code>
     /// </example>
     public IFormConfiguration<TModel> Build() => _configuration;
-    
+
     internal void AddFieldDependency(string fieldName, IFieldDependency<TModel> dependency)
     {
         if (!_configuration.FieldDependencies.ContainsKey(fieldName))
         {
             _configuration.FieldDependencies[fieldName] = new List<IFieldDependency<TModel>>();
         }
-        
+
         _configuration.FieldDependencies[fieldName].Add(dependency);
     }
 }

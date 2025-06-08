@@ -13,7 +13,7 @@ public interface IMarkdownService
     /// <param name="markdown">The Markdown content to convert.</param>
     /// <returns>HTML content with Prism.js classes applied for syntax highlighting.</returns>
     string ToHtml(string markdown);
-    
+
     /// <summary>
     /// Loads a Markdown document from the wwwroot/docs directory.
     /// </summary>
@@ -46,13 +46,13 @@ public class MarkdownService : IMarkdownService
     public string ToHtml(string markdown)
     {
         var html = Markdown.ToHtml(markdown, _pipeline);
-        
+
         // Post-process to add Prism.js classes
         html = AddPrismClasses(html);
-        
+
         return html;
     }
-    
+
     private string AddPrismClasses(string html)
     {
         // Replace code blocks with Prism.js classes
@@ -64,10 +64,10 @@ public class MarkdownService : IMarkdownService
         html = html.Replace("<code class=\"language-json\"", "<code class=\"language-json line-numbers\"");
         html = html.Replace("<code class=\"language-javascript\"", "<code class=\"language-javascript line-numbers\"");
         html = html.Replace("<code class=\"language-js\"", "<code class=\"language-javascript line-numbers\"");
-        
+
         // Add Prism class to pre elements
         html = html.Replace("<pre><code class=\"language-", "<pre class=\"line-numbers\"><code class=\"language-");
-        
+
         return html;
     }
 
@@ -77,7 +77,7 @@ public class MarkdownService : IMarkdownService
         try
         {
             var filePath = Path.Combine(_environment.WebRootPath, "docs", $"{fileName}.md");
-            
+
             if (File.Exists(filePath))
             {
                 var content = await File.ReadAllTextAsync(filePath);

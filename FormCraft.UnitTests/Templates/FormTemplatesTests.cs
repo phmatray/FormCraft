@@ -194,7 +194,7 @@ public class FormTemplatesTests
     public void Templates_Should_Support_Generic_Constraints()
     {
         // These should all compile successfully due to the 'new()' constraint
-        
+
         // Act & Assert - compilation test
         var config1 = FormTemplates.ContactForm<TestModel>();
         var config2 = FormTemplates.RegistrationForm<TestModel>();

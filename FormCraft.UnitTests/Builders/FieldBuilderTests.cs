@@ -267,7 +267,7 @@ public class FieldBuilderTests
         // Arrange
         var builder = FormBuilder<TestModel>.Create();
         var fieldBuilder = builder.AddField(x => x.Name);
-        Func<string, Task<bool>> validation = async value => 
+        Func<string, Task<bool>> validation = async value =>
         {
             await Task.Delay(1);
             return !string.IsNullOrEmpty(value);
@@ -301,7 +301,7 @@ public class FieldBuilderTests
         var field = config.Fields.First(f => f.FieldName == "City");
         field.Dependencies.Count.ShouldBe(1);
         field.Dependencies.First().DependentFieldName.ShouldBe("Country");
-        
+
         config.FieldDependencies.ShouldContainKey("City");
         config.FieldDependencies["City"].Count.ShouldBe(1);
         config.FieldDependencies["City"].First().DependentFieldName.ShouldBe("Country");
@@ -313,7 +313,7 @@ public class FieldBuilderTests
         // Arrange
         var builder = FormBuilder<TestModel>.Create();
         var fieldBuilder = builder.AddField(x => x.Name);
-        RenderFragment<IFieldContext<TestModel, string>> template = context => builder => 
+        RenderFragment<IFieldContext<TestModel, string>> template = context => builder =>
         {
             builder.AddContent(0, "Custom content");
         };
@@ -361,7 +361,7 @@ public class FieldBuilderTests
         // Assert
         newFieldBuilder.ShouldNotBeSameAs(fieldBuilder);
         newFieldBuilder.ShouldBeOfType<FieldBuilder<TestModel, string>>();
-        
+
         config.Fields.Count.ShouldBe(2);
         config.Fields.ShouldContain(f => f.FieldName == "Name");
         config.Fields.ShouldContain(f => f.FieldName == "Email");

@@ -26,7 +26,7 @@ public class FormBuilderTests
         // Assert
         fieldBuilder.ShouldNotBeNull();
         fieldBuilder.ShouldBeOfType<FieldBuilder<TestModel, string>>();
-        
+
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.FieldName.ShouldBe("Name");
     }
@@ -47,7 +47,7 @@ public class FormBuilderTests
         var nameField = config.Fields.First(f => f.FieldName == "Name");
         var emailField = config.Fields.First(f => f.FieldName == "Email");
         var ageField = config.Fields.First(f => f.FieldName == "Age");
-        
+
         nameField.Order.ShouldBe(0);
         emailField.Order.ShouldBe(1);
         ageField.Order.ShouldBe(2);
@@ -150,7 +150,7 @@ public class FormBuilderTests
     {
         // Arrange
         var builder = FormBuilder<TestModel>.Create();
-        
+
         builder.AddField(x => x.City)
             .DependsOn(x => x.Country, (m, v) => m.City = string.Empty);
 
@@ -205,7 +205,7 @@ public class FormBuilderTests
         configuration.Layout.ShouldBe(FormLayout.Vertical);
         configuration.CssClass.ShouldBe("registration-form");
         configuration.Fields.Count.ShouldBe(5);
-        
+
         var nameField = configuration.Fields.First(f => f.FieldName == "Name");
         nameField.Label.ShouldBe("Full Name");
         nameField.IsRequired.ShouldBeTrue();
@@ -213,7 +213,7 @@ public class FormBuilderTests
 
         var cityField = configuration.Fields.First(f => f.FieldName == "City");
         cityField.VisibilityCondition.ShouldNotBeNull();
-        
+
         configuration.FieldDependencies.ShouldContainKey("City");
         configuration.FieldDependencies["City"].Count.ShouldBe(1);
     }
@@ -234,7 +234,7 @@ public class FormBuilderTests
 
         // Assert
         config.Fields.Count.ShouldBe(4);
-        
+
         var orderedFields = config.Fields.OrderBy(f => f.Order).ToList();
         orderedFields[0].FieldName.ShouldBe("Name");
         orderedFields[1].FieldName.ShouldBe("Email");

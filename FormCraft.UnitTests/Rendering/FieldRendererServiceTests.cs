@@ -2,6 +2,14 @@ namespace FormCraft.UnitTests.Rendering;
 
 public class FieldRendererServiceTests
 {
+    private readonly IServiceProvider _serviceProvider;
+
+    public FieldRendererServiceTests()
+    {
+        var services = new ServiceCollection();
+        _serviceProvider = services.BuildServiceProvider();
+    }
+
     [Fact]
     public void Constructor_Should_Initialize_With_Renderers()
     {
@@ -10,7 +18,7 @@ public class FieldRendererServiceTests
         var renderers = new[] { mockRenderer };
 
         // Act
-        var service = new FieldRendererService(renderers);
+        var service = new FieldRendererService(renderers, _serviceProvider);
 
         // Assert
         service.ShouldNotBeNull();
@@ -30,14 +38,14 @@ public class FieldRendererServiceTests
         A.CallTo(() => mockRenderer.Render(A<IFieldRenderContext<TestModel>>._))
             .Returns(expectedFragment);
 
-        var service = new FieldRendererService(new[] { mockRenderer });
+        var service = new FieldRendererService(new[] { mockRenderer }, _serviceProvider);
         var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
         var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
 
         // Act
-        var result = service.RenderField(model, 
-            new FieldConfigurationWrapper<TestModel, string>(field), 
-            onValueChanged, 
+        var result = service.RenderField(model,
+            new FieldConfigurationWrapper<TestModel, string>(field),
+            onValueChanged,
             onDependencyChanged);
 
         // Assert
@@ -59,14 +67,14 @@ public class FieldRendererServiceTests
         A.CallTo(() => mockRenderer.CanRender(typeof(int), A<IFieldConfiguration<object, object>>._))
             .Returns(false);
 
-        var service = new FieldRendererService(new[] { mockRenderer });
+        var service = new FieldRendererService(new[] { mockRenderer }, _serviceProvider);
         var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
         var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
 
         // Act
-        var result = service.RenderField(model, 
-            new FieldConfigurationWrapper<TestModel, int>(field), 
-            onValueChanged, 
+        var result = service.RenderField(model,
+            new FieldConfigurationWrapper<TestModel, int>(field),
+            onValueChanged,
             onDependencyChanged);
 
         // Assert
@@ -93,14 +101,14 @@ public class FieldRendererServiceTests
                 return builder => builder.AddContent(0, "Test");
             });
 
-        var service = new FieldRendererService(new[] { mockRenderer });
+        var service = new FieldRendererService(new[] { mockRenderer }, _serviceProvider);
         var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
         var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
 
         // Act
-        service.RenderField(model, 
-            new FieldConfigurationWrapper<TestModel, string>(field), 
-            onValueChanged, 
+        service.RenderField(model,
+            new FieldConfigurationWrapper<TestModel, string>(field),
+            onValueChanged,
             onDependencyChanged);
 
         // Assert
@@ -131,14 +139,14 @@ public class FieldRendererServiceTests
         A.CallTo(() => mockRenderer2.Render(A<IFieldRenderContext<TestModel>>._))
             .Returns(expectedFragment);
 
-        var service = new FieldRendererService(new[] { mockRenderer1, mockRenderer2 });
+        var service = new FieldRendererService(new[] { mockRenderer1, mockRenderer2 }, _serviceProvider);
         var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
         var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
 
         // Act
-        var result = service.RenderField(model, 
-            new FieldConfigurationWrapper<TestModel, string>(field), 
-            onValueChanged, 
+        var result = service.RenderField(model,
+            new FieldConfigurationWrapper<TestModel, string>(field),
+            onValueChanged,
             onDependencyChanged);
 
         // Assert
@@ -171,14 +179,14 @@ public class FieldRendererServiceTests
                 return builder => builder.AddContent(0, "Test");
             });
 
-        var service = new FieldRendererService(new[] { mockRenderer });
+        var service = new FieldRendererService(new[] { mockRenderer }, _serviceProvider);
         var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
         var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
 
         // Act
-        service.RenderField(model, 
-            new FieldConfigurationWrapper<TestModel, string>(field), 
-            onValueChanged, 
+        service.RenderField(model,
+            new FieldConfigurationWrapper<TestModel, string>(field),
+            onValueChanged,
             onDependencyChanged);
 
         // Assert
@@ -193,14 +201,14 @@ public class FieldRendererServiceTests
         var model = new TestModel { Value = 123 };
         var field = new FieldConfiguration<TestModel, int>(x => x.Value);
         var wrapper = new FieldConfigurationWrapper<TestModel, int>(field);
-        
+
         var mockRenderer = A.Fake<IFieldRenderer>();
         A.CallTo(() => mockRenderer.CanRender(typeof(int), A<IFieldConfiguration<object, object>>._))
             .Returns(true);
         A.CallTo(() => mockRenderer.Render(A<IFieldRenderContext<TestModel>>._))
             .Returns(builder => builder.AddContent(0, "Test"));
 
-        var service = new FieldRendererService(new[] { mockRenderer });
+        var service = new FieldRendererService(new[] { mockRenderer }, _serviceProvider);
         var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
         var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
 
@@ -219,14 +227,14 @@ public class FieldRendererServiceTests
         var model = new TestModel { Name = "Test" };
         var field = new FieldConfiguration<TestModel, string>(x => x.Name);
 
-        var service = new FieldRendererService(new IFieldRenderer[0]);
+        var service = new FieldRendererService(new IFieldRenderer[0], _serviceProvider);
         var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
         var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
 
         // Act
-        var result = service.RenderField(model, 
-            new FieldConfigurationWrapper<TestModel, string>(field), 
-            onValueChanged, 
+        var result = service.RenderField(model,
+            new FieldConfigurationWrapper<TestModel, string>(field),
+            onValueChanged,
             onDependencyChanged);
 
         // Assert

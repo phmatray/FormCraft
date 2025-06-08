@@ -9,7 +9,7 @@ namespace FormCraft;
 public class ValidatorWrapper<TModel, TValue> : IFieldValidator<TModel, object>
 {
     private readonly IFieldValidator<TModel, TValue> _inner;
-    
+
     /// <summary>
     /// Initializes a new instance of the ValidatorWrapper class.
     /// </summary>
@@ -18,14 +18,14 @@ public class ValidatorWrapper<TModel, TValue> : IFieldValidator<TModel, object>
     {
         _inner = inner;
     }
-    
+
     /// <inheritdoc />
-    public string? ErrorMessage 
-    { 
-        get => _inner.ErrorMessage; 
-        set => _inner.ErrorMessage = value; 
+    public string? ErrorMessage
+    {
+        get => _inner.ErrorMessage;
+        set => _inner.ErrorMessage = value;
     }
-    
+
     /// <inheritdoc />
     public async Task<ValidationResult> ValidateAsync(TModel model, object? value, IServiceProvider services)
     {
@@ -39,7 +39,7 @@ public class ValidatorWrapper<TModel, TValue> : IFieldValidator<TModel, object>
         {
             typedValue = default!;
         }
-        
+
         return await _inner.ValidateAsync(model, typedValue, services);
     }
 }

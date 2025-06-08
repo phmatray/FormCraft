@@ -24,10 +24,10 @@ namespace FormCraft;
 public class AsyncValidator<TModel, TValue> : IFieldValidator<TModel, TValue>
 {
     private readonly Func<TValue, Task<bool>> _validation;
-    
+
     /// <inheritdoc />
     public string? ErrorMessage { get; set; }
-    
+
     /// <summary>
     /// Initializes a new instance of the AsyncValidator class.
     /// </summary>
@@ -38,7 +38,7 @@ public class AsyncValidator<TModel, TValue> : IFieldValidator<TModel, TValue>
         _validation = validation;
         ErrorMessage = errorMessage;
     }
-    
+
     /// <summary>
     /// Validates the field value asynchronously using the custom validation function.
     /// </summary>
@@ -51,8 +51,8 @@ public class AsyncValidator<TModel, TValue> : IFieldValidator<TModel, TValue>
         try
         {
             var isValid = await _validation(value);
-            return isValid 
-                ? ValidationResult.Success() 
+            return isValid
+                ? ValidationResult.Success()
                 : ValidationResult.Failure(ErrorMessage!);
         }
         catch

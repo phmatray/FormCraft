@@ -21,13 +21,18 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
 {
     private readonly FormBuilder<TModel> _formBuilder;
     private readonly FieldConfiguration<TModel, TValue> _fieldConfiguration;
-    
+
     internal FieldBuilder(FormBuilder<TModel> formBuilder, FieldConfiguration<TModel, TValue> fieldConfiguration)
     {
         _formBuilder = formBuilder;
         _fieldConfiguration = fieldConfiguration;
     }
-    
+
+    /// <summary>
+    /// Gets the underlying field configuration for advanced scenarios.
+    /// </summary>
+    internal FieldConfiguration<TModel, TValue> Configuration => _fieldConfiguration;
+
     /// <summary>
     /// Sets the display label for the field.
     /// </summary>
@@ -43,7 +48,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.Label = label;
         return this;
     }
-    
+
     /// <summary>
     /// Sets the placeholder text that appears in empty form fields.
     /// </summary>
@@ -59,7 +64,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.Placeholder = placeholder;
         return this;
     }
-    
+
     /// <summary>
     /// Sets help text that provides additional guidance to users about the field.
     /// </summary>
@@ -75,7 +80,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.HelpText = helpText;
         return this;
     }
-    
+
     /// <summary>
     /// Adds a CSS class to the field container for custom styling.
     /// </summary>
@@ -91,7 +96,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.CssClass = cssClass;
         return this;
     }
-    
+
     /// <summary>
     /// Makes the field required and adds validation to ensure it has a value.
     /// </summary>
@@ -108,7 +113,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.Validators.Add(new RequiredValidator<TModel, TValue>(errorMessage));
         return this;
     }
-    
+
     /// <summary>
     /// Sets whether the field is disabled (non-interactive).
     /// </summary>
@@ -124,7 +129,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.IsDisabled = disabled;
         return this;
     }
-    
+
     /// <summary>
     /// Sets whether the field is read-only (visible but not editable).
     /// </summary>
@@ -140,7 +145,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.IsReadOnly = readOnly;
         return this;
     }
-    
+
     /// <summary>
     /// Makes the field conditionally visible based on the model state.
     /// </summary>
@@ -156,7 +161,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.VisibilityCondition = condition;
         return this;
     }
-    
+
     /// <summary>
     /// Makes the field conditionally disabled based on the model state.
     /// </summary>
@@ -172,7 +177,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.DisabledCondition = condition;
         return this;
     }
-    
+
     /// <summary>
     /// Adds a custom HTML attribute to the field element.
     /// </summary>
@@ -189,7 +194,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.AdditionalAttributes[name] = value;
         return this;
     }
-    
+
     /// <summary>
     /// Adds multiple custom HTML attributes to the field element.
     /// </summary>
@@ -212,7 +217,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         }
         return this;
     }
-    
+
     /// <summary>
     /// Adds a custom validator that implements IFieldValidator to the field.
     /// </summary>
@@ -228,7 +233,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.Validators.Add(validator);
         return this;
     }
-    
+
     /// <summary>
     /// Adds a custom validation function with an error message.
     /// </summary>
@@ -245,7 +250,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.Validators.Add(new CustomValidator<TModel, TValue>(validation, errorMessage));
         return this;
     }
-    
+
     /// <summary>
     /// Adds an asynchronous validation function with an error message.
     /// </summary>
@@ -262,7 +267,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.Validators.Add(new AsyncValidator<TModel, TValue>(validation, errorMessage));
         return this;
     }
-    
+
     /// <summary>
     /// Creates a dependency on another field, executing an action when the dependency changes.
     /// </summary>
@@ -288,7 +293,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _formBuilder.AddFieldDependency(_fieldConfiguration.FieldName, dependency);
         return this;
     }
-    
+
     /// <summary>
     /// Provides a custom Blazor template for rendering the field instead of the default renderer.
     /// </summary>
@@ -308,7 +313,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.CustomTemplate = template;
         return this;
     }
-    
+
     /// <summary>
     /// Sets the display order of the field within the form. Lower numbers appear first.
     /// </summary>
@@ -324,7 +329,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.Order = order;
         return this;
     }
-    
+
     /// <summary>
     /// Adds another field to the form and returns a FieldBuilder for configuring it.
     /// </summary>
@@ -342,7 +347,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     {
         return _formBuilder.AddField(expression);
     }
-    
+
     /// <summary>
     /// Builds and returns the final form configuration containing all configured fields and settings.
     /// </summary>

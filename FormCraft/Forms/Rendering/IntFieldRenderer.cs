@@ -26,13 +26,13 @@ public class IntFieldRenderer : IFieldRenderer
             {
                 context.OnValueChanged.InvokeAsync(value);
             }));
-            
+
             if (!string.IsNullOrEmpty(context.Field.HelpText))
                 builder.AddAttribute(4, "HelperText", context.Field.HelpText);
-            
+
             builder.AddAttribute(5, "Required", context.Field.IsRequired);
             builder.AddAttribute(6, "Disabled", context.Field.IsDisabled);
-            
+
             builder.CloseComponent();
         };
     }
