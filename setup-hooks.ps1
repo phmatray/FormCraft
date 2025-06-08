@@ -7,29 +7,34 @@ New-Item -ItemType Directory -Force -Path ".git/hooks" | Out-Null
 $hookContent = @'
 #!/bin/bash
 
-# Pre-commit hook to generate changelog before committing
+# Pre-commit hook to generate changelog
+# This version excludes the current commit to avoid "one commit ahead" problem
 
-echo "Generating changelog..."
+echo "Generating changelog (excluding current commit)..."
 
-# Determine which script to run based on OS
+# Get the repository root
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# Generate changelog
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
     # Windows - use PowerShell
-    powershell -ExecutionPolicy Bypass -File "$(git rev-parse --show-toplevel)/generate-changelog.ps1"
+    powershell -ExecutionPolicy Bypass -File "$REPO_ROOT/generate-changelog.ps1"
 else
     # Unix-like systems - use bash
-    bash "$(git rev-parse --show-toplevel)/generate-changelog.sh"
+    bash "$REPO_ROOT/generate-changelog.sh"
 fi
 
 # Check if changelog generation was successful
 if [ $? -ne 0 ]; then
-    echo "Error: Failed to generate changelog"
-    exit 1
+    echo "Warning: Failed to generate changelog, continuing anyway..."
+    exit 0
 fi
 
-# Add the CHANGELOG.md file to the commit if it exists and has changes
-CHANGELOG_PATH="$(git rev-parse --show-toplevel)/CHANGELOG.md"
-if [ -f "$CHANGELOG_PATH" ]; then
-    git add "$CHANGELOG_PATH"
+# Check if changelog was modified
+cd "$REPO_ROOT"
+if ! git diff --quiet --cached CHANGELOG.md || ! git diff --quiet CHANGELOG.md; then
+    # Stage the changelog
+    git add CHANGELOG.md
     echo "CHANGELOG.md has been updated and staged"
 fi
 
@@ -39,14 +44,15 @@ exit 0
 # Write the hook file
 Set-Content -Path ".git/hooks/pre-commit" -Value $hookContent -Encoding UTF8
 
-# Note: On Windows, the hook will work with Git Bash
 Write-Host "Pre-commit hook created at .git/hooks/pre-commit" -ForegroundColor Yellow
-
-# Set up git alias
-git config --local alias.ccommit '!powershell -ExecutionPolicy Bypass -File ./generate-changelog.ps1 && git add CHANGELOG.md 2>$null; git commit'
 
 Write-Host "`nGit hooks have been set up successfully!" -ForegroundColor Green
 Write-Host "`nThe changelog will now be automatically generated before each commit."
-Write-Host "You can also use 'git ccommit' as an alternative to 'git commit'."
+Write-Host "This works with ANY Git interface including:" -ForegroundColor Cyan
+Write-Host "  - JetBrains Rider"
+Write-Host "  - Visual Studio"
+Write-Host "  - VS Code" 
+Write-Host "  - Command line"
+Write-Host "`nThe current commit is excluded from the changelog to avoid the 'one commit ahead' problem." -ForegroundColor Yellow
 Write-Host "`nTo disable automatic changelog generation, run:" -ForegroundColor Yellow
 Write-Host "  Remove-Item .git/hooks/pre-commit"

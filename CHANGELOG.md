@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🔧 Chores
 
+* generate changelog before a commit with the setup-hooks script ([d6fc6af](https://github.com/phmatray/DynamicFormBlazor/commit/d6fc6af))
 * add changelog generation ([7a97344](https://github.com/phmatray/DynamicFormBlazor/commit/7a97344))
 
 ## [1.0.3] - 2025-06-08
