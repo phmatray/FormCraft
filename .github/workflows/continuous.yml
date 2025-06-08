@@ -41,8 +41,10 @@ jobs:
           fetch-depth: 0
       - name: Install git-cliff
         run: |
-          wget -qO- https://github.com/orhun/git-cliff/releases/latest/download/git-cliff-x86_64-unknown-linux-gnu.tar.gz | tar -xz
+          curl -sLO https://github.com/orhun/git-cliff/releases/latest/download/git-cliff-x86_64-unknown-linux-gnu.tar.gz
+          tar -xzf git-cliff-x86_64-unknown-linux-gnu.tar.gz
           sudo mv git-cliff /usr/local/bin/
+          rm git-cliff-x86_64-unknown-linux-gnu.tar.gz
           git-cliff --version
       - name: 'Cache: .nuke/temp, ~/.nuget/packages'
         uses: actions/cache@v4
