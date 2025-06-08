@@ -120,7 +120,7 @@ docs: update API documentation
 
 ### Automatic Changelog Generation
 
-The changelog is automatically generated from commit messages:
+The changelog is automatically generated from commit messages before each commit.
 
 #### Setup (one-time)
 ```bash
@@ -131,17 +131,39 @@ The changelog is automatically generated from commit messages:
 ./setup-hooks.ps1
 ```
 
-This will:
-- Install a pre-commit hook that generates CHANGELOG.md automatically
-- Create a `git ccommit` alias as an alternative
+This installs a pre-commit hook that:
+- Generates the changelog based on existing commits
+- Excludes the current commit to avoid the "one commit ahead" problem
+- Automatically stages the updated CHANGELOG.md
+- Works with ANY Git interface (Rider, VS, VS Code, CLI, etc.)
+
+#### How it Works
+
+When you commit (from any interface):
+1. The pre-commit hook runs automatically
+2. Changelog is generated from existing commits
+3. Updated CHANGELOG.md is staged with your commit
+4. Your commit proceeds normally
 
 #### Manual Generation
+If you need to generate the changelog manually:
 ```bash
 # macOS/Linux
 ./generate-changelog.sh
 
 # Windows
 ./generate-changelog.ps1
+```
+
+#### Disable Auto-Generation
+To temporarily skip changelog generation:
+```bash
+git commit --no-verify
+```
+
+To permanently disable:
+```bash
+rm .git/hooks/pre-commit
 ```
 
 The changelog follows the [Keep a Changelog](https://keepachangelog.com/) format.
