@@ -28,7 +28,7 @@ using static Nuke.Common.Tools.DotNet.DotNetTasks;
     FetchDepth = 0,
     ImportSecrets = ["NUGET_API_KEY"],
     CacheKeyFiles = ["global.json", "**/*.csproj"],
-    WritePermissions = [GitHubActionsPermissions.Contents])]
+    WritePermissions = [GitHubActionsPermissions.Contents, GitHubActionsPermissions.Packages])]
 class Build : NukeBuild
 {
     public static int Main() => Execute<Build>(x => x.Compile);
@@ -44,6 +44,9 @@ class Build : NukeBuild
 
     [GitRepository]
     readonly GitRepository GitRepository;
+
+    [Parameter("GitHub personal access token")]
+    readonly string GitHubToken;
 
     string CurrentVersion => GitRepository?.Tags?.FirstOrDefault()?.Replace("v", "") ?? "1.0.0";
 
@@ -148,6 +151,60 @@ class Build : NukeBuild
             Serilog.Log.Information("🔗 NuGet: https://www.nuget.org/packages/FormCraft/{Version}", CurrentVersion);
         });
 
+    Target CreateGitHubRelease => _ => _
+        .DependsOn(Pack)
+        .Requires(() => GitHubToken)
+        .Requires(() => GitRepository.IsOnMainBranch() || GitRepository.IsOnReleaseBranch())
+        .Requires(() => IsOnVersionTag())
+        .OnlyWhenStatic(() => IsServerBuild)
+        .Executes(async () =>
+        {
+            var releaseTag = $"v{CurrentVersion}";
+            
+            // Generate changelog for this release using git-cliff
+            var changelogContent = GenerateChangelogForRelease(releaseTag);
+            
+            // Get the repository owner and name
+            var (owner, name) = GetOwnerAndRepositoryName();
+            
+            // Initialize GitHub client
+            var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("FormCraft"))
+            {
+                Credentials = new Octokit.Credentials(GitHubToken)
+            };
+            
+            // Create GitHub release
+            var release = await client
+                .Repository
+                .Release
+                .Create(owner, name, new Octokit.NewRelease(releaseTag)
+                {
+                    Name = $"FormCraft {CurrentVersion}",
+                    Body = changelogContent,
+                    Draft = false,
+                    Prerelease = CurrentVersion.Contains("-")
+                });
+            
+            // Upload NuGet packages as release assets
+            var packages = ArtifactsDirectory.GlobFiles("*.nupkg", "*.snupkg");
+            foreach (var package in packages)
+            {
+                await using var stream = File.OpenRead(package);
+                var assetUpload = new Octokit.ReleaseAssetUpload
+                {
+                    FileName = Path.GetFileName(package),
+                    ContentType = "application/octet-stream",
+                    RawData = stream
+                };
+                await client
+                    .Repository
+                    .Release
+                    .UploadAsset(release, assetUpload);
+            }
+            
+            Serilog.Log.Information("📦 GitHub Release created: {ReleaseUrl}", release.HtmlUrl);
+        });
+
     Target Continuous => _ => _
         .DependsOn(Test, Pack)
         .Triggers(PublishIfNeeded);
@@ -155,7 +212,18 @@ class Build : NukeBuild
     Target PublishIfNeeded => _ => _
         .OnlyWhenStatic(() => GitRepository.IsOnMainBranch() && IsOnVersionTag())
         .OnlyWhenStatic(() => IsServerBuild)
-        .DependsOn(Publish);
+        .DependsOn(Publish)
+        .Triggers(CreateGitHubRelease);
+    
+    Target Release => _ => _
+        .Description("Creates a new release (NuGet + GitHub)")
+        .DependsOn(Pack)
+        .Requires(() => Configuration.Equals(Configuration.Release))
+        .Executes(() =>
+        {
+            Serilog.Log.Information("📦 Creating release for version {Version}", CurrentVersion);
+            Serilog.Log.Information("This target should be triggered by CI/CD on version tags");
+        });
 
     // Helper methods
     bool IsOnVersionTag()
@@ -170,5 +238,61 @@ class Build : NukeBuild
         }
         
         return false;
+    }
+
+    string GenerateChangelogForRelease(string tag)
+    {
+        try
+        {
+            // Run git-cliff to generate changelog for this specific release
+            var process = ProcessTasks.StartProcess(
+                "git-cliff", 
+                $"--config cliff.toml --unreleased --tag {tag} --strip all", 
+                RootDirectory, 
+                logOutput: false);
+            process.WaitForExit();
+            
+            if (process.ExitCode == 0)
+            {
+                return string.Join(Environment.NewLine, process.Output.Select(x => x.Text));
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning("Failed to generate changelog with git-cliff: {Message}", ex.Message);
+        }
+        
+        // Fallback to reading from CHANGELOG.md if git-cliff fails
+        if (ChangelogPath.FileExists())
+        {
+            var changelogContent = ChangelogPath.ReadAllText();
+            var versionSection = ExtractVersionSection(changelogContent, CurrentVersion);
+            if (!string.IsNullOrEmpty(versionSection))
+                return versionSection;
+        }
+        
+        // Default changelog if all else fails
+        return $"## What's Changed in v{CurrentVersion}\n\nSee the [full changelog](https://github.com/phmatray/FormCraft/blob/main/CHANGELOG.md) for details.";
+    }
+    
+    string ExtractVersionSection(string changelog, string version)
+    {
+        var pattern = $@"##\s*\[?{Regex.Escape(version)}\]?.*?(?=##\s*\[?|\z)";
+        var match = Regex.Match(changelog, pattern, RegexOptions.Singleline);
+        return match.Success ? match.Value.Trim() : string.Empty;
+    }
+    
+    (string owner, string name) GetOwnerAndRepositoryName()
+    {
+        var remoteUrl = GitRepository.HttpsUrl ?? GitRepository.SshUrl ?? "";
+        var match = Regex.Match(remoteUrl, @"github\.com[:/]([^/]+)/([^/\.]+)");
+        
+        if (match.Success)
+        {
+            return (match.Groups[1].Value, match.Groups[2].Value);
+        }
+        
+        // Fallback values
+        return ("phmatray", "FormCraft");
     }
 }

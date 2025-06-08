@@ -30,6 +30,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   ubuntu-latest:
