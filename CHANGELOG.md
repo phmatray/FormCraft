@@ -18,6 +18,10 @@ All notable changes to this project will be documented in this file.
 
 - Fix some warnings ([9339a76](https://github.com/phmatray/FormCraft/commit/9339a763daabd8fca5e4c4f65cded77c031911ed))
 
+### ✨ Features
+
+- Add FileUpload renderer ([eacbb1f](https://github.com/phmatray/FormCraft/commit/eacbb1fb02903ed1ddfc3af8741419823f7c4d01))
+
 ### 🔧 Miscellaneous Tasks
 
 - Update changelog [skip ci] ([8b745b2](https://github.com/phmatray/FormCraft/commit/8b745b21e1a8f68bc196ecfed6f64053c70d122e))
