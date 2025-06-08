@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - Update the build script to publish release ([2e915d2](https://github.com/phmatray/FormCraft/commit/2e915d2556005ffbd0c955563587106e2523c6ed))
 
+### 🔧 Miscellaneous Tasks
+
+- Update dependency octokit to v14 ([b0b42c7](https://github.com/phmatray/FormCraft/commit/b0b42c7adec99a9c769e0cd5decc91eac0a9380b))
+
 ## [1.3.0] - 2025-06-08
 
 ### Ci
