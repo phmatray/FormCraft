@@ -202,20 +202,30 @@ Show/hide fields based on conditions:
 
 ### Field Groups
 
-Organize related fields:
+Organize related fields into groups with customizable layouts:
 
 ```csharp
-.BeginGroup("Personal Information")
-    .AddField(x => x.FirstName)
-    .AddField(x => x.LastName)
-    .AddField(x => x.DateOfBirth)
-.EndGroup()
-
-.BeginGroup("Contact Information")
-    .AddField(x => x.Email)
-    .AddField(x => x.Phone)
-    .AddField(x => x.Address)
-.EndGroup()
+var formConfig = FormBuilder<UserModel>
+    .Create()
+    .AddFieldGroup(group => group
+        .WithGroupName("Personal Information")
+        .WithColumns(2)  // Two-column layout
+        .ShowInCard(2)   // Show in card with elevation 2
+        .AddField(x => x.FirstName, field => field
+            .WithLabel("First Name")
+            .Required())
+        .AddField(x => x.LastName, field => field
+            .WithLabel("Last Name")
+            .Required())
+        .AddField(x => x.DateOfBirth))
+    .AddFieldGroup(group => group
+        .WithGroupName("Contact Information")
+        .WithColumns(3)  // Three-column layout
+        .ShowInCard()    // Default elevation 1
+        .AddField(x => x.Email)
+        .AddField(x => x.Phone)
+        .AddField(x => x.Address))
+    .Build();
 ```
 
 ### Custom Field Renderers
