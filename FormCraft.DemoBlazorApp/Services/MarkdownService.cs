@@ -28,15 +28,15 @@ public interface IMarkdownService
 public class MarkdownService : IMarkdownService
 {
     private readonly MarkdownPipeline _pipeline;
-    private readonly IWebHostEnvironment _environment;
+    private readonly HttpClient _httpClient;
 
     /// <summary>
     /// Initializes a new instance of the MarkdownService class.
     /// </summary>
-    /// <param name="environment">The web host environment for accessing file paths.</param>
-    public MarkdownService(IWebHostEnvironment environment)
+    /// <param name="httpClient">The HTTP client for loading markdown files.</param>
+    public MarkdownService(HttpClient httpClient)
     {
-        _environment = environment;
+        _httpClient = httpClient;
         _pipeline = new MarkdownPipelineBuilder()
             .UseAdvancedExtensions()
             .Build();
@@ -76,16 +76,16 @@ public class MarkdownService : IMarkdownService
     {
         try
         {
-            var filePath = Path.Combine(_environment.WebRootPath, "docs", $"{fileName}.md");
-
-            if (File.Exists(filePath))
+            var response = await _httpClient.GetAsync($"docs/{fileName}.md");
+            
+            if (response.IsSuccessStatusCode)
             {
-                var content = await File.ReadAllTextAsync(filePath);
+                var content = await response.Content.ReadAsStringAsync();
                 return content;
             }
             else
             {
-                return $"# Document not found\n\nThe document `{fileName}.md` could not be found at path: {filePath}";
+                return $"# Document not found\n\nThe document `{fileName}.md` could not be found.";
             }
         }
         catch (Exception ex)

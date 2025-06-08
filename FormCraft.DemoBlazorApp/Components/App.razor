@@ -1,27 +1,18 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <base href="/"/>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
-  <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
-  <link rel="stylesheet" href="lib/prism/prism.min.css" />
-  <link rel="stylesheet" href="@Assets["app.css"]"/>
-  <link rel="stylesheet" href="@Assets["FormCraft.DemoBlazorApp.styles.css"]"/>
-  <ImportMap/>
-  <HeadOutlet @rendermode="InteractiveServer"/>
-</head>
-
-<body>
-<Routes @rendermode="InteractiveServer"/>
-<script src="_framework/blazor.web.js"></script>
-<script src="_content/MudBlazor/MudBlazor.min.js"></script>
-<script src="lib/prism/prism.min.js"></script>
-<script src="lib/prism/prism-csharp.min.js"></script>
-<script src="lib/prism/prism-razor.min.js"></script>
-<script src="js/docs.js"></script>
-</body>
-
-</html>
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(Layout.MainLayout)">
+            <MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex align-center justify-center" Style="height: 80vh;">
+                <div class="text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Warning" Style="font-size: 5rem;" Color="Color.Warning" />
+                    <MudText Typo="Typo.h3" Class="mt-4">Page Not Found</MudText>
+                    <MudText Typo="Typo.body1" Class="mt-2 mb-4">Sorry, the page you're looking for doesn't exist.</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/">Go to Home</MudButton>
+                </div>
+            </MudContainer>
+        </LayoutView>
+    </NotFound>
+</Router>
