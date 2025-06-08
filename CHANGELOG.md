@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Ci
+
+- Update the build script to publish release ([2e915d2](https://github.com/phmatray/FormCraft/commit/2e915d2556005ffbd0c955563587106e2523c6ed))
+
 ## [1.3.0] - 2025-06-08
 
 ### Ci
