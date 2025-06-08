@@ -1,0 +1,185 @@
+@page "/file-upload"
+@inject FormCodeGeneratorService CodeGenerator
+
+<PageTitle>File Upload Demo</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
+    <MudText Typo="Typo.h3" GutterBottom="true" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Class="me-2" Style="vertical-align: bottom;" />
+        File Upload Demo
+    </MudText>
+    <MudText Typo="Typo.body1" GutterBottom="true" Class="mb-6">
+        This demonstrates how to use file upload fields with various configurations including single and multiple file uploads.
+    </MudText>
+    
+    <MudPaper Elevation="2" Class="pa-0">
+        <MudTabs Elevation="0" Rounded="false" PanelClass="pa-6">
+            <MudTabPanel Text="Form Demo" Icon="@Icons.Material.Filled.ViewQuilt">
+                <MudGrid>
+                    <MudItem xs="12" lg="8">
+                        <MudPaper Elevation="1" Class="pa-6">
+                            <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Class="me-2" />
+                                Job Application
+                            </MudText>
+                            
+                            @if (_isSubmitted)
+                            {
+                                <FormSuccessDisplay DataDisplayItems="@GetDataDisplayItems()"
+                                                   SuccessMessage="Your application has been successfully submitted!"
+                                                   OnReset="@ResetForm" />
+                            }
+                            else
+                            {
+                                <DynamicFormComponent TModel="JobApplicationModel" 
+                                                     Model="@_model" 
+                                                     Configuration="@_formConfiguration"
+                                                     OnValidSubmit="@HandleSubmit" />
+                            }
+                        </MudPaper>
+                    </MudItem>
+                    
+                    <MudItem xs="12" lg="4">
+                        <FormGuidelines Guidelines="@_guidelines" Title="File Upload Features" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+            
+            <MudTabPanel Text="Generated Code" Icon="@Icons.Material.Filled.Code">
+                <CodeExample Title="Form Builder Code" Code="@GetGeneratedCode()" Language="csharp" />
+            </MudTabPanel>
+            
+            <MudTabPanel Text="Guidelines" Icon="@Icons.Material.Filled.Lightbulb">
+                <FormGuidelines Title="File Upload Guidelines">
+                    <MudSimpleTable>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Usage</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Single File</td>
+                                <td>For uploading one file</td>
+                                <td><code>.AddFileUploadField(x => x.Resume)</code></td>
+                            </tr>
+                            <tr>
+                                <td>Multiple Files</td>
+                                <td>For uploading multiple files</td>
+                                <td><code>.AddMultipleFileUploadField(x => x.Documents)</code></td>
+                            </tr>
+                            <tr>
+                                <td>File Types</td>
+                                <td>Restrict accepted formats</td>
+                                <td><code>acceptedFileTypes: new[] { ".pdf", ".doc" }</code></td>
+                            </tr>
+                            <tr>
+                                <td>File Size</td>
+                                <td>Set maximum file size</td>
+                                <td><code>maxFileSize: 5 * 1024 * 1024 // 5MB</code></td>
+                            </tr>
+                            <tr>
+                                <td>Max Files</td>
+                                <td>Limit number of files</td>
+                                <td><code>maxFiles: 3</code></td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </FormGuidelines>
+            </MudTabPanel>
+        </MudTabs>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private JobApplicationModel _model = new();
+    private IFormConfiguration<JobApplicationModel> _formConfiguration = null!;
+    private bool _isSubmitted = false;
+    
+    private List<FormGuidelines.GuidelineItem> _guidelines = new()
+    {
+        new() { Icon = Icons.Material.Filled.Upload, Color = Color.Primary, Text = "Single file upload for resume" },
+        new() { Icon = Icons.Material.Filled.FileCopy, Color = Color.Secondary, Text = "Multiple file upload for certificates" },
+        new() { Icon = Icons.Material.Filled.CheckCircle, Color = Color.Success, Text = "File type validation" },
+        new() { Icon = Icons.Material.Filled.Storage, Color = Color.Info, Text = "File size constraints" },
+        new() { Icon = Icons.Material.Filled.DragIndicator, Color = Color.Warning, Text = "Drag and drop support" }
+    };
+
+    protected override void OnInitialized()
+    {
+        _formConfiguration = FormBuilder<JobApplicationModel>.Create()
+            .AddRequiredTextField(x => x.FullName, "Full Name", "Enter your full name")
+            .AddEmailField(x => x.Email)
+            .AddPhoneField(x => x.Phone, required: true)
+            .AddFileUploadField(x => x.Resume, "Upload Resume",
+                acceptedFileTypes: new[] { ".pdf", ".doc", ".docx" },
+                maxFileSize: 5 * 1024 * 1024, // 5MB
+                required: true)
+            .AddMultipleFileUploadField(x => x.Certificates, "Upload Certificates",
+                maxFiles: 3,
+                acceptedFileTypes: new[] { ".pdf", ".jpg", ".png" },
+                maxFileSize: 2 * 1024 * 1024) // 2MB per file
+            .AddDropdownField(x => x.Position, "Position",
+                ("developer", "Software Developer"),
+                ("designer", "UI/UX Designer"),
+                ("manager", "Project Manager"),
+                ("analyst", "Business Analyst"))
+            .AddField(x => x.CoverLetter)
+                .WithLabel("Cover Letter")
+                .AsTextArea(lines: 5, maxLength: 1000)
+                .WithPlaceholder("Tell us why you're a great fit for this position...")
+                .Required("Please provide a cover letter")
+            .AddCheckboxField(x => x.AgreeToTerms, "I agree to the terms and conditions", 
+                "You must agree to proceed with your application")
+            .Build();
+    }
+
+    private async Task HandleSubmit(JobApplicationModel model)
+    {
+        // In a real application, you would handle file uploads here
+        // For demo purposes, we'll just show success
+        _isSubmitted = true;
+        await Task.CompletedTask;
+    }
+
+    private void ResetForm()
+    {
+        _model = new JobApplicationModel();
+        _isSubmitted = false;
+        StateHasChanged();
+    }
+    
+    private List<FormSuccessDisplay.DataDisplayItem> GetDataDisplayItems()
+    {
+        var items = new List<FormSuccessDisplay.DataDisplayItem>
+        {
+            new() { Label = "Full Name", Value = _model.FullName },
+            new() { Label = "Email", Value = _model.Email },
+            new() { Label = "Phone", Value = _model.Phone ?? "Not provided" },
+            new() { Label = "Position", Value = _model.Position }
+        };
+        
+        if (_model.Resume != null)
+        {
+            var resumeSize = _model.Resume.Size / 1024.0;
+            items.Add(new() { Label = "Resume", Value = $"{_model.Resume.Name} ({resumeSize:F1} KB)" });
+        }
+        
+        if (_model.Certificates?.Any() == true)
+        {
+            items.Add(new() { Label = "Certificates", Value = $"{_model.Certificates.Count} file(s) uploaded" });
+        }
+        
+        items.Add(new() { Label = "Terms Accepted", Value = _model.AgreeToTerms ? "Yes" : "No" });
+        
+        return items;
+    }
+    
+    private string GetGeneratedCode()
+    {
+        // Generate code from the actual form configuration
+        return CodeGenerator.GenerateFormBuilderCode(_formConfiguration);
+    }
+}

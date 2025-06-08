@@ -180,10 +180,16 @@ Choose the layout that fits your design:
     .WithMaxLength(500)
     .WithHelpText("Maximum 500 characters")
 
-// File upload (coming soon)
-.AddFileField(x => x.ProfilePicture, "Profile Picture")
-    .AcceptOnly(".jpg", ".png")
-    .WithMaxSize(5 * 1024 * 1024) // 5MB
+// File upload
+.AddFileUploadField(x => x.Resume, "Upload Resume",
+    acceptedFileTypes: new[] { ".pdf", ".doc", ".docx" },
+    maxFileSize: 5 * 1024 * 1024) // 5MB
+    
+// Multiple file upload
+.AddMultipleFileUploadField(x => x.Documents, "Upload Documents",
+    maxFiles: 3,
+    acceptedFileTypes: new[] { ".pdf", ".jpg", ".png" },
+    maxFileSize: 10 * 1024 * 1024) // 10MB per file
 ```
 
 ## 🛠️ Advanced Features
@@ -317,7 +323,7 @@ dotnet test
 
 ## 🗺️ Roadmap
 
-- [ ] File upload field type
+- [x] File upload field type ✅
 - [ ] Rich text editor field
 - [ ] Drag-and-drop form builder UI
 - [ ] Form templates library

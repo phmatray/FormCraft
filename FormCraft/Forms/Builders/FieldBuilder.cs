@@ -329,6 +329,23 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.Order = order;
         return this;
     }
+    
+    /// <summary>
+    /// Sets a custom field renderer for this field.
+    /// </summary>
+    /// <param name="renderer">The custom field renderer instance.</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .WithCustomRenderer(new FileUploadFieldRenderer())
+    /// </code>
+    /// </example>
+    public FieldBuilder<TModel, TValue> WithCustomRenderer(IFieldRenderer renderer)
+    {
+        _fieldConfiguration.CustomRendererType = renderer.GetType();
+        _fieldConfiguration.AdditionalAttributes["CustomRendererInstance"] = renderer;
+        return this;
+    }
 
     /// <summary>
     /// Adds another field to the form and returns a FieldBuilder for configuring it.
