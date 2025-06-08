@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace FormCraft;
 
@@ -374,6 +375,81 @@ public static class FluentFormBuilderExtensions
     private static bool HasSpecialCharacters(string password)
     {
         return password.Any(c => !char.IsLetterOrDigit(c));
+    }
+    
+    /// <summary>
+    /// Adds a file upload field with specified constraints.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FormBuilder instance to extend.</param>
+    /// <param name="expression">A lambda expression identifying the IBrowserFile property.</param>
+    /// <param name="label">The display label for the field.</param>
+    /// <param name="acceptedFileTypes">Array of accepted file extensions (e.g., ".jpg", ".pdf").</param>
+    /// <param name="maxFileSize">Maximum file size in bytes (default: 10MB).</param>
+    /// <param name="required">Whether the field is required (default: false).</param>
+    /// <returns>The FormBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// builder.AddFileUploadField(x => x.Resume, "Upload Resume", 
+    ///     acceptedFileTypes: new[] { ".pdf", ".doc", ".docx" },
+    ///     maxFileSize: 5 * 1024 * 1024); // 5MB
+    /// </code>
+    /// </example>
+    public static FormBuilder<TModel> AddFileUploadField<TModel>(
+        this FormBuilder<TModel> builder,
+        Expression<Func<TModel, IBrowserFile>> expression,
+        string label,
+        string[]? acceptedFileTypes = null,
+        long maxFileSize = 10 * 1024 * 1024,
+        bool required = false) where TModel : new()
+    {
+        var fieldBuilder = builder.AddField(expression)
+            .WithLabel(label)
+            .AsFileUpload(acceptedFileTypes, maxFileSize, true, true);
+            
+        if (required)
+            fieldBuilder.Required($"{label} is required");
+            
+        return builder;
+    }
+    
+    /// <summary>
+    /// Adds a multiple file upload field with specified constraints.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FormBuilder instance to extend.</param>
+    /// <param name="expression">A lambda expression identifying the IReadOnlyList&lt;IBrowserFile&gt; property.</param>
+    /// <param name="label">The display label for the field.</param>
+    /// <param name="maxFiles">Maximum number of files allowed (default: 5).</param>
+    /// <param name="acceptedFileTypes">Array of accepted file extensions (e.g., ".jpg", ".pdf").</param>
+    /// <param name="maxFileSize">Maximum file size in bytes per file (default: 10MB).</param>
+    /// <param name="required">Whether at least one file is required (default: false).</param>
+    /// <returns>The FormBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// builder.AddMultipleFileUploadField(x => x.Documents, "Upload Documents",
+    ///     maxFiles: 3,
+    ///     acceptedFileTypes: new[] { ".pdf", ".jpg", ".png" },
+    ///     maxFileSize: 5 * 1024 * 1024); // 5MB per file
+    /// </code>
+    /// </example>
+    public static FormBuilder<TModel> AddMultipleFileUploadField<TModel>(
+        this FormBuilder<TModel> builder,
+        Expression<Func<TModel, IReadOnlyList<IBrowserFile>>> expression,
+        string label,
+        int maxFiles = 5,
+        string[]? acceptedFileTypes = null,
+        long maxFileSize = 10 * 1024 * 1024,
+        bool required = false) where TModel : new()
+    {
+        var fieldBuilder = builder.AddField(expression)
+            .WithLabel(label)
+            .AsMultipleFileUpload(maxFiles, acceptedFileTypes, maxFileSize);
+            
+        if (required)
+            fieldBuilder.Required($"At least one {label.ToLower()} is required");
+            
+        return builder;
     }
 
     #endregion

@@ -26,7 +26,7 @@ public class DependencyInjectionIntegrationTests
 
         // Should be able to resolve all individual renderers
         var allRenderers = scopedProvider.GetServices<IFieldRenderer>().ToList();
-        allRenderers.Count.ShouldBe(6); // String, Int, Decimal, Double, Bool, DateTime
+        allRenderers.Count.ShouldBe(7); // String, Int, Decimal, Double, Bool, DateTime, FileUpload
 
         // Should be able to resolve specific renderer types
         var stringRenderer = allRenderers.OfType<StringFieldRenderer>().FirstOrDefault();
@@ -35,6 +35,7 @@ public class DependencyInjectionIntegrationTests
         var doubleRenderer = allRenderers.OfType<DoubleFieldRenderer>().FirstOrDefault();
         var boolRenderer = allRenderers.OfType<BoolFieldRenderer>().FirstOrDefault();
         var dateTimeRenderer = allRenderers.OfType<DateTimeFieldRenderer>().FirstOrDefault();
+        var fileUploadRenderer = allRenderers.OfType<FileUploadFieldRenderer>().FirstOrDefault();
 
         stringRenderer.ShouldNotBeNull();
         intRenderer.ShouldNotBeNull();
@@ -42,6 +43,7 @@ public class DependencyInjectionIntegrationTests
         doubleRenderer.ShouldNotBeNull();
         boolRenderer.ShouldNotBeNull();
         dateTimeRenderer.ShouldNotBeNull();
+        fileUploadRenderer.ShouldNotBeNull();
 
         // Additional services should still work
         var testDependency = scopedProvider.GetRequiredService<ITestDependency>();
@@ -122,7 +124,7 @@ public class DependencyInjectionIntegrationTests
         var rendererService = serviceProvider.GetRequiredService<IFieldRendererService>();
 
         // Assert
-        allRenderers.Count.ShouldBe(7); // 6 built-in + 1 custom
+        allRenderers.Count.ShouldBe(8); // 7 built-in + 1 custom
         allRenderers.ShouldContain(r => r.GetType() == typeof(CustomTestRenderer));
         allRenderers.ShouldContain(r => r.GetType() == typeof(StringFieldRenderer));
         allRenderers.ShouldContain(r => r.GetType() == typeof(IntFieldRenderer));
@@ -130,6 +132,7 @@ public class DependencyInjectionIntegrationTests
         allRenderers.ShouldContain(r => r.GetType() == typeof(DoubleFieldRenderer));
         allRenderers.ShouldContain(r => r.GetType() == typeof(BoolFieldRenderer));
         allRenderers.ShouldContain(r => r.GetType() == typeof(DateTimeFieldRenderer));
+        allRenderers.ShouldContain(r => r.GetType() == typeof(FileUploadFieldRenderer));
 
         // Custom renderer should be available to the service
         var customRenderer = allRenderers.OfType<CustomTestRenderer>().First();
@@ -263,7 +266,7 @@ public class DependencyInjectionIntegrationTests
 
             rendererService.ShouldNotBeNull();
             renderers.ShouldNotBeNull();
-            renderers.Count().ShouldBe(6); // String, Int, Decimal, Double, Bool, DateTime
+            renderers.Count().ShouldBe(7); // String, Int, Decimal, Double, Bool, DateTime, FileUpload
         }
 
         // Assert - After scope disposal, we should be able to create new instances
@@ -274,7 +277,7 @@ public class DependencyInjectionIntegrationTests
 
             newRendererService.ShouldNotBeNull();
             newRenderers.ShouldNotBeNull();
-            newRenderers.Count().ShouldBe(6); // String, Int, Decimal, Double, Bool, DateTime
+            newRenderers.Count().ShouldBe(7); // String, Int, Decimal, Double, Bool, DateTime, FileUpload
 
             // Should be different instances
             newRendererService.ShouldNotBeSameAs(rendererService);

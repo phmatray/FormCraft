@@ -126,3 +126,19 @@ h1:focus {
     margin-bottom: 0.5rem;
     line-height: 1.6;
 }
+
+/* ==========================================================================
+   File Upload Styles
+   ========================================================================== */
+
+.drag-drop-zone {
+    min-height: 150px;
+    border: 2px dashed rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.drag-drop-zone:hover {
+    border-color: var(--mud-palette-primary);
+    background-color: rgba(var(--mud-palette-primary-rgb), 0.05);
+}

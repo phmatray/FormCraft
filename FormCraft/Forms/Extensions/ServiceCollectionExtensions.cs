@@ -29,6 +29,7 @@ public static class ServiceCollectionExtensions
     /// <item>DoubleFieldRenderer - Handles double/float input fields</item>
     /// <item>BoolFieldRenderer - Handles checkbox and switch fields</item>
     /// <item>DateTimeFieldRenderer - Handles date and time picker fields</item>
+    /// <item>FileUploadFieldRenderer - Handles file upload fields</item>
     /// </list>
     /// </remarks>
     public static IServiceCollection AddDynamicForms(this IServiceCollection services)
@@ -40,6 +41,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFieldRenderer, DoubleFieldRenderer>();
         services.AddScoped<IFieldRenderer, BoolFieldRenderer>();
         services.AddScoped<IFieldRenderer, DateTimeFieldRenderer>();
+        services.AddScoped<IFieldRenderer, FileUploadFieldRenderer>();
 
         return services;
     }

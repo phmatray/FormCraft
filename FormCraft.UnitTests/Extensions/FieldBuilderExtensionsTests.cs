@@ -103,42 +103,6 @@ public class FieldBuilderExtensionsTests
         options.Count().ShouldBe(2);
     }
 
-    [Fact]
-    public void AsFileUpload_Should_Set_File_Attributes()
-    {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.ProfileImage);
-
-        // Act
-        var result = fieldBuilder.AsFileUpload(5 * 1024 * 1024, ".jpg,.png");
-        var config = result.Build();
-
-        // Assert
-        result.ShouldBeSameAs(fieldBuilder);
-        var field = config.Fields.First(f => f.FieldName == "ProfileImage");
-        field.AdditionalAttributes.ShouldContainKey("MaxFileSize");
-        field.AdditionalAttributes.ShouldContainKey("AcceptedFileTypes");
-        field.AdditionalAttributes["MaxFileSize"].ShouldBe(5 * 1024 * 1024);
-        field.AdditionalAttributes["AcceptedFileTypes"].ShouldBe(".jpg,.png");
-    }
-
-    [Fact]
-    public void AsFileUpload_Should_Use_Default_Values()
-    {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.ProfileImage);
-
-        // Act
-        var result = fieldBuilder.AsFileUpload();
-        var config = result.Build();
-
-        // Assert
-        var field = config.Fields.First(f => f.FieldName == "ProfileImage");
-        field.AdditionalAttributes["MaxFileSize"].ShouldBe(10 * 1024 * 1024);
-        field.AdditionalAttributes["AcceptedFileTypes"].ShouldBe(".jpg,.jpeg,.png,.pdf");
-    }
 
     [Fact]
     public void AsSlider_Should_Set_Slider_Attributes()

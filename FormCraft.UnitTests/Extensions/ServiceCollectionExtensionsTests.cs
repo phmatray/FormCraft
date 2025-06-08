@@ -19,13 +19,14 @@ public class ServiceCollectionExtensionsTests
 
         // Verify field renderers are registered as IFieldRenderer
         var fieldRendererRegistrations = services.Where(s => s.ServiceType == typeof(IFieldRenderer)).ToList();
-        fieldRendererRegistrations.Count.ShouldBe(6);
+        fieldRendererRegistrations.Count.ShouldBe(7);
         fieldRendererRegistrations.ShouldContain(s => s.ImplementationType == typeof(StringFieldRenderer));
         fieldRendererRegistrations.ShouldContain(s => s.ImplementationType == typeof(IntFieldRenderer));
         fieldRendererRegistrations.ShouldContain(s => s.ImplementationType == typeof(DecimalFieldRenderer));
         fieldRendererRegistrations.ShouldContain(s => s.ImplementationType == typeof(DoubleFieldRenderer));
         fieldRendererRegistrations.ShouldContain(s => s.ImplementationType == typeof(BoolFieldRenderer));
         fieldRendererRegistrations.ShouldContain(s => s.ImplementationType == typeof(DateTimeFieldRenderer));
+        fieldRendererRegistrations.ShouldContain(s => s.ImplementationType == typeof(FileUploadFieldRenderer));
 
         // Verify all field renderers are scoped
         foreach (var registration in fieldRendererRegistrations)
@@ -49,13 +50,14 @@ public class ServiceCollectionExtensionsTests
 
         // Act & Assert - Should be able to resolve all field renderers
         var fieldRenderers = serviceProvider.GetServices<IFieldRenderer>().ToList();
-        fieldRenderers.Count.ShouldBe(6);
+        fieldRenderers.Count.ShouldBe(7);
         fieldRenderers.ShouldContain(r => r.GetType() == typeof(StringFieldRenderer));
         fieldRenderers.ShouldContain(r => r.GetType() == typeof(IntFieldRenderer));
         fieldRenderers.ShouldContain(r => r.GetType() == typeof(DecimalFieldRenderer));
         fieldRenderers.ShouldContain(r => r.GetType() == typeof(DoubleFieldRenderer));
         fieldRenderers.ShouldContain(r => r.GetType() == typeof(BoolFieldRenderer));
         fieldRenderers.ShouldContain(r => r.GetType() == typeof(DateTimeFieldRenderer));
+        fieldRenderers.ShouldContain(r => r.GetType() == typeof(FileUploadFieldRenderer));
     }
 
     [Fact]
@@ -115,7 +117,7 @@ public class ServiceCollectionExtensionsTests
 
         // Assert - Should still work and have multiple registrations for IFieldRenderer
         var fieldRenderers = serviceProvider.GetServices<IFieldRenderer>().ToList();
-        fieldRenderers.Count.ShouldBe(12); // 6 renderers x 2 registrations
+        fieldRenderers.Count.ShouldBe(14); // 7 renderers x 2 registrations
 
         var fieldRendererService = serviceProvider.GetService<IFieldRendererService>();
         fieldRendererService.ShouldNotBeNull();

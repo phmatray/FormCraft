@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.AspNetCore.Components.Forms;
 
 namespace FormCraft;
@@ -7,6 +8,38 @@ namespace FormCraft;
 /// </summary>
 public static class FieldBuilderExtensions
 {
+    /// <summary>
+    /// Adds a checkbox field for boolean properties with optional help text.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <typeparam name="TValue">The type of the current field value.</typeparam>
+    /// <param name="builder">The FieldBuilder instance to extend.</param>
+    /// <param name="expression">A lambda expression identifying the boolean property.</param>
+    /// <param name="label">The display label/text for the checkbox.</param>
+    /// <param name="helpText">Optional help text to display below the checkbox.</param>
+    /// <returns>A FieldBuilder for the new checkbox field.</returns>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Email)
+    ///     .Required()
+    /// .AddCheckboxField(x => x.AcceptTerms, "I accept the terms and conditions",
+    ///     "You must accept to continue")
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, bool> AddCheckboxField<TModel, TValue>(
+        this FieldBuilder<TModel, TValue> builder,
+        Expression<Func<TModel, bool>> expression,
+        string label,
+        string? helpText = null) where TModel : new()
+    {
+        var fieldBuilder = builder.AddField(expression)
+            .WithLabel(label);
+
+        if (!string.IsNullOrEmpty(helpText))
+            fieldBuilder.WithHelpText(helpText);
+
+        return fieldBuilder;
+    }
     /// <summary>
     /// Configures a string field to be rendered as a multi-line text area.
     /// </summary>
@@ -107,29 +140,6 @@ public static class FieldBuilderExtensions
         return builder.WithAttribute("MultiSelectOptions", selectOptions);
     }
 
-    /// <summary>
-    /// Configures a field for file uploads with size and type restrictions.
-    /// </summary>
-    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
-    /// <param name="builder">The FieldBuilder instance for an IBrowserFile field.</param>
-    /// <param name="maxFileSize">Maximum file size in bytes (default: 10MB).</param>
-    /// <param name="acceptedFileTypes">Comma-separated list of accepted file extensions (default: ".jpg,.jpeg,.png,.pdf").</param>
-    /// <returns>The FieldBuilder instance for method chaining.</returns>
-    /// <example>
-    /// <code>
-    /// .AddField(x => x.ProfileImage)
-    ///     .AsFileUpload(maxFileSize: 5 * 1024 * 1024, acceptedFileTypes: ".jpg,.png")
-    /// </code>
-    /// </example>
-    public static FieldBuilder<TModel, IBrowserFile?> AsFileUpload<TModel>(
-        this FieldBuilder<TModel, IBrowserFile?> builder,
-        long maxFileSize = 10 * 1024 * 1024,
-        string acceptedFileTypes = ".jpg,.jpeg,.png,.pdf") where TModel : new()
-    {
-        return builder
-            .WithAttribute("MaxFileSize", maxFileSize)
-            .WithAttribute("AcceptedFileTypes", acceptedFileTypes);
-    }
 
     /// <summary>
     /// Configures a numeric field to be rendered as a slider with min/max values.
@@ -258,6 +268,91 @@ public static class FieldBuilderExtensions
         return builder.WithValidator(
             value => value.CompareTo(min) >= 0 && value.CompareTo(max) <= 0,
             errorMessage ?? $"Must be between {min} and {max}");
+    }
+
+    /// <summary>
+    /// Configures a field for file upload with specified constraints.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FieldBuilder instance for an IBrowserFile field.</param>
+    /// <param name="acceptedFileTypes">Array of accepted file extensions (e.g., ".jpg", ".pdf").</param>
+    /// <param name="maxFileSize">Maximum file size in bytes.</param>
+    /// <param name="showPreview">Whether to show image preview for image files.</param>
+    /// <param name="enableDragDrop">Whether to enable drag and drop functionality.</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Resume)
+    ///     .AsFileUpload(
+    ///         acceptedFileTypes: new[] { ".pdf", ".doc", ".docx" },
+    ///         maxFileSize: 5 * 1024 * 1024 // 5MB
+    ///     )
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, IBrowserFile> AsFileUpload<TModel>(
+        this FieldBuilder<TModel, IBrowserFile> builder,
+        string[]? acceptedFileTypes = null,
+        long? maxFileSize = null,
+        bool showPreview = true,
+        bool enableDragDrop = true) where TModel : new()
+    {
+        var config = new FileUploadConfiguration
+        {
+            AcceptedFileTypes = acceptedFileTypes,
+            MaxFileSize = maxFileSize,
+            MaxFiles = 1,
+            ShowPreview = showPreview,
+            EnableDragDrop = enableDragDrop
+        };
+        
+        builder.WithAttribute("FileUploadConfiguration", config);
+        builder.WithCustomRenderer(new FileUploadFieldRenderer());
+        
+        return builder;
+    }
+    
+    /// <summary>
+    /// Configures a field for multiple file uploads with specified constraints.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FieldBuilder instance for an IReadOnlyList&lt;IBrowserFile&gt; field.</param>
+    /// <param name="maxFiles">Maximum number of files allowed.</param>
+    /// <param name="acceptedFileTypes">Array of accepted file extensions (e.g., ".jpg", ".pdf").</param>
+    /// <param name="maxFileSize">Maximum file size in bytes per file.</param>
+    /// <param name="showPreview">Whether to show image preview for image files.</param>
+    /// <param name="enableDragDrop">Whether to enable drag and drop functionality.</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Documents)
+    ///     .AsMultipleFileUpload(
+    ///         maxFiles: 5,
+    ///         acceptedFileTypes: new[] { ".pdf", ".jpg", ".png" },
+    ///         maxFileSize: 10 * 1024 * 1024 // 10MB per file
+    ///     )
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, IReadOnlyList<IBrowserFile>> AsMultipleFileUpload<TModel>(
+        this FieldBuilder<TModel, IReadOnlyList<IBrowserFile>> builder,
+        int maxFiles = 10,
+        string[]? acceptedFileTypes = null,
+        long? maxFileSize = null,
+        bool showPreview = true,
+        bool enableDragDrop = true) where TModel : new()
+    {
+        var config = new FileUploadConfiguration
+        {
+            AcceptedFileTypes = acceptedFileTypes,
+            MaxFileSize = maxFileSize,
+            MaxFiles = maxFiles,
+            ShowPreview = showPreview,
+            EnableDragDrop = enableDragDrop
+        };
+        
+        builder.WithAttribute("FileUploadConfiguration", config);
+        builder.WithCustomRenderer(new FileUploadFieldRenderer());
+        
+        return builder;
     }
 
     private static bool IsValidEmail(string email)
