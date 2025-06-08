@@ -63,8 +63,9 @@ public class FileUploadFieldRenderer : IFieldRenderer
             if (!string.IsNullOrEmpty(helpText))
                 builder.AddAttribute(11, "HelperText", helpText);
             
-            // Error handling - simplified for now
-            // TODO: Get validation messages from context when available
+            // Error handling
+            // Note: Field-level validation messages are handled by FieldValidationMessage component
+            // This adds file-specific validation state to the MudFileUpload
             
             // Required indicator
             if (context.Field.IsRequired)
@@ -74,12 +75,20 @@ public class FileUploadFieldRenderer : IFieldRenderer
             if (context.Field.IsReadOnly || context.Field.IsDisabled)
                 builder.AddAttribute(13, "Disabled", true);
                 
-            // File selection handler
+            // File selection handler with validation
             builder.AddAttribute(14, "OnFilesChanged", EventCallback.Factory.Create<InputFileChangeEventArgs>(
                 this, async (args) => await HandleFileSelectionAsync(args, context, uploadConfig)));
+                
+            // Store validation errors in field attributes for display
+            if (context.Field.AdditionalAttributes.TryGetValue("FileUploadErrors", out var errors) && 
+                errors is List<string> errorList && errorList.Any())
+            {
+                builder.AddAttribute(15, "Error", true);
+                builder.AddAttribute(16, "ErrorText", string.Join(" ", errorList));
+            }
             
             // Child content for custom upload button
-            builder.AddAttribute(15, "ChildContent", (RenderFragment)(contentBuilder =>
+            builder.AddAttribute(17, "ChildContent", (RenderFragment)(contentBuilder =>
             {
                 if (uploadConfig.EnableDragDrop)
                 {
@@ -127,16 +136,16 @@ public class FileUploadFieldRenderer : IFieldRenderer
             var currentValue = context.CurrentValue;
             if (currentValue != null)
             {
-                builder.OpenElement(19, "div");
-                builder.AddAttribute(20, "class", "mt-2");
+                builder.OpenElement(21, "div");
+                builder.AddAttribute(22, "class", "mt-2");
                 
                 if (currentValue is IBrowserFile singleFile)
                 {
-                    RenderFileItem(builder, singleFile, uploadConfig, 21);
+                    RenderFileItem(builder, singleFile, uploadConfig, 23);
                 }
                 else if (currentValue is IReadOnlyList<IBrowserFile> fileList)
                 {
-                    var startIndex = 21;
+                    var startIndex = 23;
                     foreach (var file in fileList)
                     {
                         RenderFileItem(builder, file, uploadConfig, startIndex);
@@ -183,11 +192,22 @@ public class FileUploadFieldRenderer : IFieldRenderer
                 await context.OnValueChanged.InvokeAsync(validFiles.First());
             }
             
-            // Notify about validation errors
+            // Store validation errors for display
             if (validationErrors.Any())
             {
-                // TODO: Show validation errors to the user
-                // This would require enhancing the context to support adding validation messages
+                // Store errors in field attributes so they can be displayed by the component
+                context.Field.AdditionalAttributes["FileUploadErrors"] = validationErrors;
+                
+                // Clear any previous successful uploads if there are errors
+                if (!validFiles.Any())
+                {
+                    await context.OnValueChanged.InvokeAsync(null);
+                }
+            }
+            else
+            {
+                // Clear any previous errors on successful upload
+                context.Field.AdditionalAttributes.Remove("FileUploadErrors");
             }
         }
         catch (Exception ex)

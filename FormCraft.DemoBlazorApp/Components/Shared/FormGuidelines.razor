@@ -4,20 +4,28 @@
             <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2 text-primary" />
             @Title
         </MudText>
-        <MudList T="string" Dense="true">
-            @foreach (var guideline in Guidelines)
-            {
-                <MudListItem T="string" Icon="@guideline.Icon" IconColor="@guideline.Color">
-                    <MudText Typo="Typo.body2">@guideline.Text</MudText>
-                </MudListItem>
-            }
-        </MudList>
+        @if (ChildContent != null)
+        {
+            @ChildContent
+        }
+        else if (Guidelines.Any())
+        {
+            <MudList T="string" Dense="true">
+                @foreach (var guideline in Guidelines)
+                {
+                    <MudListItem T="string" Icon="@guideline.Icon" IconColor="@guideline.Color">
+                        <MudText Typo="Typo.body2">@guideline.Text</MudText>
+                    </MudListItem>
+                }
+            </MudList>
+        }
     </MudCardContent>
 </MudCard>
 
 @code {
     [Parameter] public string Title { get; set; } = "Form Guidelines";
     [Parameter] public List<GuidelineItem> Guidelines { get; set; } = new();
+    [Parameter] public RenderFragment? ChildContent { get; set; }
     
     public class GuidelineItem
     {
