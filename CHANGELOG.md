@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ✨ Features
 
+* add FieldGroupBuilder ([4a2b6a1](https://github.com/phmatray/DynamicFormBlazor/commit/4a2b6a1))
 * add decimal and double field renderers ([0e5dc5d](https://github.com/phmatray/DynamicFormBlazor/commit/0e5dc5d))
 
 ### 🔧 Chores
