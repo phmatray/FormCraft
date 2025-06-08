@@ -23,10 +23,10 @@ namespace FormCraft;
 public class CustomValidator<TModel, TValue> : IFieldValidator<TModel, TValue>
 {
     private readonly Func<TValue, bool> _validation;
-    
+
     /// <inheritdoc />
     public string? ErrorMessage { get; set; }
-    
+
     /// <summary>
     /// Initializes a new instance of the CustomValidator class.
     /// </summary>
@@ -37,7 +37,7 @@ public class CustomValidator<TModel, TValue> : IFieldValidator<TModel, TValue>
         _validation = validation;
         ErrorMessage = errorMessage;
     }
-    
+
     /// <summary>
     /// Validates the field value using the custom validation function.
     /// </summary>
@@ -50,8 +50,8 @@ public class CustomValidator<TModel, TValue> : IFieldValidator<TModel, TValue>
         try
         {
             var isValid = _validation(value);
-            return Task.FromResult(isValid 
-                ? ValidationResult.Success() 
+            return Task.FromResult(isValid
+                ? ValidationResult.Success()
                 : ValidationResult.Failure(ErrorMessage!));
         }
         catch

@@ -40,7 +40,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFieldRenderer, DoubleFieldRenderer>();
         services.AddScoped<IFieldRenderer, BoolFieldRenderer>();
         services.AddScoped<IFieldRenderer, DateTimeFieldRenderer>();
-        
+
         return services;
     }
 }

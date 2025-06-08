@@ -9,7 +9,7 @@ public class FieldValidationMessageTests
     {
         // Arrange & Act
         var component = new FieldValidationMessage();
-        
+
         // Assert
         component.FieldName.ShouldBe(string.Empty);
     }
@@ -19,10 +19,10 @@ public class FieldValidationMessageTests
     {
         // Arrange
         var component = new FieldValidationMessage();
-        
+
         // Act
         component.FieldName = "TestField";
-        
+
         // Assert
         component.FieldName.ShouldBe("TestField");
     }
@@ -33,12 +33,12 @@ public class FieldValidationMessageTests
         // Arrange
         var component = new FieldValidationMessage();
         component.FieldName = "TestField";
-        
+
         // Act - Use reflection to access private property
         var validationErrorsProperty = typeof(FieldValidationMessage)
             .GetProperty("ValidationErrors", BindingFlags.NonPublic | BindingFlags.Instance);
         var validationErrors = (IEnumerable<string>)validationErrorsProperty!.GetValue(component)!;
-        
+
         // Assert
         validationErrors.ShouldNotBeNull();
         validationErrors.Count().ShouldBe(0);
@@ -50,12 +50,12 @@ public class FieldValidationMessageTests
         // Arrange
         var component = new FieldValidationMessage();
         component.FieldName = "TestField";
-        
+
         // Act - Use reflection to access private property
         var hasValidationErrorsProperty = typeof(FieldValidationMessage)
             .GetProperty("HasValidationErrors", BindingFlags.NonPublic | BindingFlags.Instance);
         var hasValidationErrors = (bool)hasValidationErrorsProperty!.GetValue(component)!;
-        
+
         // Assert
         hasValidationErrors.ShouldBeFalse();
     }
@@ -70,20 +70,20 @@ public class FieldValidationMessageTests
         var validationMessageStore = new ValidationMessageStore(editContext);
         validationMessageStore.Add(fieldIdentifier, "Name is required");
         validationMessageStore.Add(fieldIdentifier, "Name must be at least 2 characters");
-        
+
         var component = new FieldValidationMessage();
         component.FieldName = "Name";
-        
+
         // Set the cascading parameter using reflection
         var editContextProperty = typeof(FieldValidationMessage)
             .GetProperty("EditContext", BindingFlags.NonPublic | BindingFlags.Instance);
         editContextProperty!.SetValue(component, editContext);
-        
+
         // Act - Use reflection to access private property
         var validationErrorsProperty = typeof(FieldValidationMessage)
             .GetProperty("ValidationErrors", BindingFlags.NonPublic | BindingFlags.Instance);
         var validationErrors = (IEnumerable<string>)validationErrorsProperty!.GetValue(component)!;
-        
+
         // Assert
         validationErrors.Count().ShouldBe(2);
         validationErrors.ShouldContain("Name is required");
@@ -99,20 +99,20 @@ public class FieldValidationMessageTests
         var fieldIdentifier = editContext.Field("Name");
         var validationMessageStore = new ValidationMessageStore(editContext);
         validationMessageStore.Add(fieldIdentifier, "Name is required");
-        
+
         var component = new FieldValidationMessage();
         component.FieldName = "Name";
-        
+
         // Set the cascading parameter using reflection
         var editContextProperty = typeof(FieldValidationMessage)
             .GetProperty("EditContext", BindingFlags.NonPublic | BindingFlags.Instance);
         editContextProperty!.SetValue(component, editContext);
-        
+
         // Act - Use reflection to access private property
         var hasValidationErrorsProperty = typeof(FieldValidationMessage)
             .GetProperty("HasValidationErrors", BindingFlags.NonPublic | BindingFlags.Instance);
         var hasValidationErrors = (bool)hasValidationErrorsProperty!.GetValue(component)!;
-        
+
         // Assert
         hasValidationErrors.ShouldBeTrue();
     }
@@ -126,20 +126,20 @@ public class FieldValidationMessageTests
         var fieldIdentifier = editContext.Field("Name");
         var validationMessageStore = new ValidationMessageStore(editContext);
         validationMessageStore.Add(fieldIdentifier, "Name is required");
-        
+
         var component = new FieldValidationMessage();
         component.FieldName = "NonexistentField";
-        
+
         // Set the cascading parameter using reflection
         var editContextProperty = typeof(FieldValidationMessage)
             .GetProperty("EditContext", BindingFlags.NonPublic | BindingFlags.Instance);
         editContextProperty!.SetValue(component, editContext);
-        
+
         // Act - Use reflection to access private property
         var validationErrorsProperty = typeof(FieldValidationMessage)
             .GetProperty("ValidationErrors", BindingFlags.NonPublic | BindingFlags.Instance);
         var validationErrors = (IEnumerable<string>)validationErrorsProperty!.GetValue(component)!;
-        
+
         // Assert
         validationErrors.Count().ShouldBe(0);
     }
@@ -153,20 +153,20 @@ public class FieldValidationMessageTests
         var fieldIdentifier = editContext.Field("Name");
         var validationMessageStore = new ValidationMessageStore(editContext);
         validationMessageStore.Add(fieldIdentifier, "Name is required");
-        
+
         var component = new FieldValidationMessage();
         component.FieldName = "";
-        
+
         // Set the cascading parameter using reflection
         var editContextProperty = typeof(FieldValidationMessage)
             .GetProperty("EditContext", BindingFlags.NonPublic | BindingFlags.Instance);
         editContextProperty!.SetValue(component, editContext);
-        
+
         // Act - Use reflection to access private property
         var validationErrorsProperty = typeof(FieldValidationMessage)
             .GetProperty("ValidationErrors", BindingFlags.NonPublic | BindingFlags.Instance);
         var validationErrors = (IEnumerable<string>)validationErrorsProperty!.GetValue(component)!;
-        
+
         // Assert
         validationErrors.Count().ShouldBe(0);
     }
@@ -178,16 +178,16 @@ public class FieldValidationMessageTests
         var model = new TestModel();
         var editContext = new EditContext(model);
         var component = new FieldValidationMessage();
-        
+
         // Set the cascading parameter using reflection
         var editContextProperty = typeof(FieldValidationMessage)
             .GetProperty("EditContext", BindingFlags.NonPublic | BindingFlags.Instance);
         editContextProperty!.SetValue(component, editContext);
-        
+
         // Act & Assert - Call OnInitialized using reflection should not throw
         var onInitializedMethod = typeof(FieldValidationMessage)
             .GetMethod("OnInitialized", BindingFlags.NonPublic | BindingFlags.Instance);
-        
+
         Should.NotThrow(() => onInitializedMethod!.Invoke(component, null));
     }
 
@@ -197,11 +197,11 @@ public class FieldValidationMessageTests
         // Arrange
         var component = new FieldValidationMessage();
         // EditContext remains null
-        
+
         // Act & Assert - Should not throw
         var onInitializedMethod = typeof(FieldValidationMessage)
             .GetMethod("OnInitialized", BindingFlags.NonPublic | BindingFlags.Instance);
-        
+
         Should.NotThrow(() => onInitializedMethod!.Invoke(component, null));
     }
 
@@ -212,20 +212,20 @@ public class FieldValidationMessageTests
         var model = new TestModel();
         var editContext = new EditContext(model);
         var component = new FieldValidationMessage();
-        
+
         // Set the cascading parameter using reflection
         var editContextProperty = typeof(FieldValidationMessage)
             .GetProperty("EditContext", BindingFlags.NonPublic | BindingFlags.Instance);
         editContextProperty!.SetValue(component, editContext);
-        
+
         // Initialize the component first
         var onInitializedMethod = typeof(FieldValidationMessage)
             .GetMethod("OnInitialized", BindingFlags.NonPublic | BindingFlags.Instance);
         onInitializedMethod!.Invoke(component, null);
-        
+
         // Act - Dispose the component
         component.Dispose();
-        
+
         // Assert - Should not throw when validation state changes after disposal
         Should.NotThrow(() => editContext.NotifyValidationStateChanged());
     }
@@ -236,7 +236,7 @@ public class FieldValidationMessageTests
         // Arrange
         var component = new FieldValidationMessage();
         // EditContext remains null
-        
+
         // Act & Assert - Should not throw
         Should.NotThrow(() => component.Dispose());
     }
@@ -247,7 +247,7 @@ public class FieldValidationMessageTests
         // Act - Get the handle method using reflection
         var handleMethod = typeof(FieldValidationMessage)
             .GetMethod("HandleValidationStateChanged", BindingFlags.NonPublic | BindingFlags.Instance);
-        
+
         // Assert - Method should exist
         handleMethod.ShouldNotBeNull();
         handleMethod.Name.ShouldBe("HandleValidationStateChanged");

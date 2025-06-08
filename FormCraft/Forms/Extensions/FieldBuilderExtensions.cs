@@ -22,8 +22,8 @@ public static class FieldBuilderExtensions
     /// </code>
     /// </example>
     public static FieldBuilder<TModel, string> AsTextArea<TModel>(
-        this FieldBuilder<TModel, string> builder, 
-        int lines = 3, 
+        this FieldBuilder<TModel, string> builder,
+        int lines = 3,
         int? maxLength = null) where TModel : new()
     {
         builder.WithAttribute("Lines", lines);
@@ -33,7 +33,30 @@ public static class FieldBuilderExtensions
         }
         return builder;
     }
-    
+
+    /// <summary>
+    /// Configures the field to use a custom renderer.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <typeparam name="TValue">The type of the field value.</typeparam>
+    /// <typeparam name="TRenderer">The type of the custom renderer.</typeparam>
+    /// <param name="builder">The FieldBuilder instance.</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Color)
+    ///     .WithCustomRenderer&lt;ColorPickerRenderer&gt;()
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, TValue> WithCustomRenderer<TModel, TValue, TRenderer>(
+        this FieldBuilder<TModel, TValue> builder)
+        where TModel : new()
+        where TRenderer : ICustomFieldRenderer<TValue>
+    {
+        builder.Configuration.CustomRendererType = typeof(TRenderer);
+        return builder;
+    }
+
     /// <summary>
     /// Adds options to a field for rendering as a dropdown or select list.
     /// </summary>
@@ -58,7 +81,7 @@ public static class FieldBuilderExtensions
         var selectOptions = options.Select(o => new SelectOption<TValue>(o.value, o.label));
         return builder.WithAttribute("Options", selectOptions);
     }
-    
+
     /// <summary>
     /// Configures a field to allow multiple selections.
     /// </summary>
@@ -83,7 +106,7 @@ public static class FieldBuilderExtensions
         var selectOptions = options.Select(o => new SelectOption<TValue>(o.value, o.label));
         return builder.WithAttribute("MultiSelectOptions", selectOptions);
     }
-    
+
     /// <summary>
     /// Configures a field for file uploads with size and type restrictions.
     /// </summary>
@@ -107,7 +130,7 @@ public static class FieldBuilderExtensions
             .WithAttribute("MaxFileSize", maxFileSize)
             .WithAttribute("AcceptedFileTypes", acceptedFileTypes);
     }
-    
+
     /// <summary>
     /// Configures a numeric field to be rendered as a slider with min/max values.
     /// </summary>
@@ -139,7 +162,7 @@ public static class FieldBuilderExtensions
             .WithAttribute("Step", step)
             .WithAttribute("ShowValue", showValue);
     }
-    
+
     /// <summary>
     /// Adds email format validation to a string field.
     /// </summary>
@@ -161,7 +184,7 @@ public static class FieldBuilderExtensions
             value => IsValidEmail(value),
             errorMessage ?? "Please enter a valid email address");
     }
-    
+
     /// <summary>
     /// Adds minimum length validation to a string field.
     /// </summary>
@@ -185,7 +208,7 @@ public static class FieldBuilderExtensions
             value => string.IsNullOrEmpty(value) || value.Length >= minLength,
             errorMessage ?? $"Must be at least {minLength} characters long");
     }
-    
+
     /// <summary>
     /// Adds maximum length validation to a string field.
     /// </summary>
@@ -209,7 +232,7 @@ public static class FieldBuilderExtensions
             value => string.IsNullOrEmpty(value) || value.Length <= maxLength,
             errorMessage ?? $"Must be no more than {maxLength} characters long");
     }
-    
+
     /// <summary>
     /// Adds range validation to a field with comparable values.
     /// </summary>
@@ -236,12 +259,12 @@ public static class FieldBuilderExtensions
             value => value.CompareTo(min) >= 0 && value.CompareTo(max) <= 0,
             errorMessage ?? $"Must be between {min} and {max}");
     }
-    
+
     private static bool IsValidEmail(string email)
     {
         if (string.IsNullOrWhiteSpace(email))
             return false;
-        
+
         try
         {
             var addr = new System.Net.Mail.MailAddress(email);

@@ -280,7 +280,7 @@ public static class FluentFormBuilderExtensions
         var fieldBuilder = builder.AddField(expression)
             .WithLabel(label)
             .WithPlaceholder("(555) 123-4567")
-            .WithValidator(phone => string.IsNullOrEmpty(phone) || IsValidPhone(phone), 
+            .WithValidator(phone => string.IsNullOrEmpty(phone) || IsValidPhone(phone),
                 "Please enter a valid phone number");
 
         if (required)
@@ -318,7 +318,7 @@ public static class FluentFormBuilderExtensions
 
         if (requireSpecialChars)
         {
-            fieldBuilder.WithValidator(password => 
+            fieldBuilder.WithValidator(password =>
                 string.IsNullOrEmpty(password) || HasSpecialCharacters(password),
                 "Must contain at least one special character");
         }
@@ -358,7 +358,7 @@ public static class FluentFormBuilderExtensions
 
 
     #region Helper Methods
-    
+
     private static bool IsValidPhone(string phone)
     {
         if (string.IsNullOrWhiteSpace(phone))
@@ -366,7 +366,7 @@ public static class FluentFormBuilderExtensions
 
         // Remove common phone formatting
         var cleanPhone = phone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "").Replace(".", "");
-        
+
         // Check if it's 10 or 11 digits (US format)
         return cleanPhone.Length >= 10 && cleanPhone.Length <= 11 && cleanPhone.All(char.IsDigit);
     }

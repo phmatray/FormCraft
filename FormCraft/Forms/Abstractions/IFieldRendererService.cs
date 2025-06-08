@@ -16,6 +16,6 @@ public interface IFieldRendererService
     /// <param name="onValueChanged">Callback to invoke when the field value changes.</param>
     /// <param name="onDependencyChanged">Callback to invoke when field dependencies change.</param>
     /// <returns>A RenderFragment that generates the appropriate UI component for the field.</returns>
-    RenderFragment RenderField<TModel>(TModel model, IFieldConfiguration<TModel, object> field, 
+    RenderFragment RenderField<TModel>(TModel model, IFieldConfiguration<TModel, object> field,
         EventCallback<object?> onValueChanged, EventCallback onDependencyChanged);
 }

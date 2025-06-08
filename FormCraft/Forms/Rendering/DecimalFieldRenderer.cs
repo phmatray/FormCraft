@@ -20,7 +20,7 @@ public class DecimalFieldRenderer : IFieldRenderer
         return builder =>
         {
             var isNullable = context.ActualFieldType == typeof(decimal?);
-            
+
             if (isNullable)
             {
                 builder.OpenComponent<MudNumericField<decimal?>>(0);
@@ -41,16 +41,16 @@ public class DecimalFieldRenderer : IFieldRenderer
                     context.OnValueChanged.InvokeAsync(value);
                 }));
             }
-            
+
             if (!string.IsNullOrEmpty(context.Field.Placeholder))
                 builder.AddAttribute(4, "Placeholder", context.Field.Placeholder);
-                
+
             if (!string.IsNullOrEmpty(context.Field.HelpText))
                 builder.AddAttribute(5, "HelperText", context.Field.HelpText);
-            
+
             builder.AddAttribute(6, "Required", context.Field.IsRequired);
             builder.AddAttribute(7, "Disabled", context.Field.IsDisabled);
-            
+
             builder.CloseComponent();
         };
     }

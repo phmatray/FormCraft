@@ -21,7 +21,7 @@ public class StringFieldRenderer : IFieldRenderer
         {
             return RenderSelectField(context);
         }
-        
+
         return RenderTextField(context);
     }
 
@@ -36,16 +36,16 @@ public class StringFieldRenderer : IFieldRenderer
             {
                 context.OnValueChanged.InvokeAsync(value);
             }));
-            
+
             if (!string.IsNullOrEmpty(context.Field.Placeholder))
                 builder.AddAttribute(4, "Placeholder", context.Field.Placeholder);
-            
+
             if (!string.IsNullOrEmpty(context.Field.HelpText))
                 builder.AddAttribute(5, "HelperText", context.Field.HelpText);
-            
+
             builder.AddAttribute(6, "Required", context.Field.IsRequired);
             builder.AddAttribute(7, "Disabled", context.Field.IsDisabled);
-            
+
             builder.CloseComponent();
         };
     }
@@ -62,8 +62,8 @@ public class StringFieldRenderer : IFieldRenderer
                 context.OnValueChanged.InvokeAsync(value);
                 context.OnDependencyChanged.InvokeAsync();
             }));
-            
-            
+
+
             if (context.Field.AdditionalAttributes.TryGetValue("Options", out var optionsObj) &&
                 optionsObj is IEnumerable<SelectOption<string>> options)
             {
@@ -80,9 +80,9 @@ public class StringFieldRenderer : IFieldRenderer
                     }
                 }));
             }
-            
+
             builder.CloseComponent();
         };
     }
-    
+
 }

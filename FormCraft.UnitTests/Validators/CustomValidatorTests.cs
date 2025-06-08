@@ -66,9 +66,9 @@ public class CustomValidatorTests
             if (string.IsNullOrEmpty(value)) return false;
             return value.Length >= 3 && value.Length <= 20 && value.All(char.IsLetterOrDigit);
         };
-        
+
         var validator = new CustomValidator<TestModel, string>(
-            validationFunction, 
+            validationFunction,
             "Value must be 3-20 alphanumeric characters");
         var model = new TestModel();
 
@@ -92,7 +92,7 @@ public class CustomValidatorTests
         // Arrange
         Func<int, bool> validationFunction = value => value >= 18 && value <= 65;
         var validator = new CustomValidator<TestModel, int>(
-            validationFunction, 
+            validationFunction,
             "Age must be between 18 and 65");
         var model = new TestModel();
 
@@ -113,7 +113,7 @@ public class CustomValidatorTests
         // Arrange
         Func<bool, bool> validationFunction = value => value;
         var validator = new CustomValidator<TestModel, bool>(
-            validationFunction, 
+            validationFunction,
             "You must accept the terms");
         var model = new TestModel();
 
@@ -133,7 +133,7 @@ public class CustomValidatorTests
         var today = DateTime.Today;
         Func<DateTime, bool> validationFunction = value => value <= today;
         var validator = new CustomValidator<TestModel, DateTime>(
-            validationFunction, 
+            validationFunction,
             "Date cannot be in the future");
         var model = new TestModel();
 
@@ -155,7 +155,7 @@ public class CustomValidatorTests
         // Arrange
         Func<string, bool> validationFunction = value => throw new InvalidOperationException("Test exception");
         var validator = new CustomValidator<TestModel, string>(
-            validationFunction, 
+            validationFunction,
             "Validation error");
         var model = new TestModel();
 
@@ -174,7 +174,7 @@ public class CustomValidatorTests
         Func<string, bool> emailValidation = value =>
         {
             if (string.IsNullOrWhiteSpace(value)) return false;
-            
+
             try
             {
                 var addr = new System.Net.Mail.MailAddress(value);
@@ -185,9 +185,9 @@ public class CustomValidatorTests
                 return false;
             }
         };
-        
+
         var validator = new CustomValidator<TestModel, string>(
-            emailValidation, 
+            emailValidation,
             "Please enter a valid email address");
         var model = new TestModel();
 

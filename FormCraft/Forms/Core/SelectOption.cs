@@ -10,17 +10,17 @@ public class SelectOption<T>
     /// Gets or sets the value that will be bound to the model when this option is selected.
     /// </summary>
     public T Value { get; set; } = default!;
-    
+
     /// <summary>
     /// Gets or sets the display text shown to the user for this option.
     /// </summary>
     public string Label { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Initializes a new instance of the SelectOption class.
     /// </summary>
     public SelectOption() { }
-    
+
     /// <summary>
     /// Initializes a new instance of the SelectOption class with a value and label.
     /// </summary>

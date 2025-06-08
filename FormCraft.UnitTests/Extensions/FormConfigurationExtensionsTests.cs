@@ -15,7 +15,7 @@ public class FormConfigurationExtensionsTests
                 .Required()
             .AddField(x => x.Email)
                 .WithLabel("Email")
-                // Not required
+            // Not required
             .AddField(x => x.Phone)
                 .WithLabel("Phone")
                 .Required()
@@ -94,9 +94,9 @@ public class FormConfigurationExtensionsTests
             .Build();
 
         // Test with model where ShowOptionalFields is false and FirstName is empty
-        var model1 = new TestModel 
-        { 
-            ShowOptionalFields = false, 
+        var model1 = new TestModel
+        {
+            ShowOptionalFields = false,
             FirstName = "",
             Email = ""
         };
@@ -112,9 +112,9 @@ public class FormConfigurationExtensionsTests
         visibleFields1.ShouldNotContain("Phone"); // ShowOptionalFields is false
 
         // Test with model where conditions are met
-        var model2 = new TestModel 
-        { 
-            ShowOptionalFields = true, 
+        var model2 = new TestModel
+        {
+            ShowOptionalFields = true,
             FirstName = "John",
             Email = "john@example.com"
         };
@@ -135,16 +135,16 @@ public class FormConfigurationExtensionsTests
     {
         // Arrange
         var builder = FormBuilder<TestModel>.Create();
-        
+
         // Add field and get direct access to configuration to set IsVisible
         var fieldBuilder = builder.AddField(x => x.FirstName)
             .WithLabel("First Name");
-        
+
         builder.AddField(x => x.LastName)
             .WithLabel("Last Name");
 
         var config = builder.Build();
-        
+
         // Manually set IsVisible to false for the first field
         config.Fields.First(f => f.FieldName == "FirstName").IsVisible = false;
 
@@ -164,13 +164,13 @@ public class FormConfigurationExtensionsTests
     {
         // Arrange
         var builder = FormBuilder<TestModel>.Create();
-        
+
         var fieldBuilder = builder.AddField(x => x.FirstName)
             .WithLabel("First Name")
             .VisibleWhen(m => true); // Always visible via condition
 
         var config = builder.Build();
-        
+
         // Set IsVisible to false, but condition should override
         config.Fields.First(f => f.FieldName == "FirstName").IsVisible = false;
 

@@ -15,7 +15,7 @@ public class ContactFormTemplateTests
         // Assert
         config.ShouldNotBeNull();
         config.Fields.Count().ShouldBe(4); // FirstName, LastName, Email, Phone
-        
+
         // Check field names
         var fieldNames = config.Fields.Select(f => f.FieldName).ToArray();
         fieldNames.ShouldContain("FirstName");
@@ -123,7 +123,7 @@ public class ContactFormTemplateTests
         // Assert
         config.ShouldNotBeNull();
         config.Fields.Count().ShouldBe(5); // FirstName, LastName, Email, Password, AcceptTerms
-        
+
         // Check field names
         var fieldNames = config.Fields.Select(f => f.FieldName).ToArray();
         fieldNames.ShouldContain("FirstName");
@@ -202,7 +202,7 @@ public class ContactFormTemplateTests
         var builder = FormBuilder<IncompleteModel>.Create();
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => 
+        var exception = Assert.Throws<ArgumentException>(() =>
         {
             builder.AsContactForm().Build();
         });
@@ -217,7 +217,7 @@ public class ContactFormTemplateTests
         var builder = FormBuilder<IncompleteModel>.Create();
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => 
+        var exception = Assert.Throws<ArgumentException>(() =>
         {
             builder.AsRegistrationForm().Build();
         });

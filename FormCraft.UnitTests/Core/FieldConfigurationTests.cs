@@ -164,14 +164,14 @@ public class FieldConfigurationTests
         // Arrange
         var config = new FieldConfiguration<TestModel, string>(x => x.Name);
         var model = new TestModel { Name = "Test" };
-        
+
         // Act
         config.VisibilityCondition = m => !string.IsNullOrEmpty(m.Name);
 
         // Assert
         config.VisibilityCondition.ShouldNotBeNull();
         config.VisibilityCondition!(model).ShouldBeTrue();
-        
+
         model.Name = string.Empty;
         config.VisibilityCondition!(model).ShouldBeFalse();
     }
@@ -182,14 +182,14 @@ public class FieldConfigurationTests
         // Arrange
         var config = new FieldConfiguration<TestModel, string>(x => x.Name);
         var model = new TestModel { Name = "Test" };
-        
+
         // Act
         config.DisabledCondition = m => string.IsNullOrEmpty(m.Name);
 
         // Assert
         config.DisabledCondition.ShouldNotBeNull();
         config.DisabledCondition!(model).ShouldBeFalse();
-        
+
         model.Name = string.Empty;
         config.DisabledCondition!(model).ShouldBeTrue();
     }

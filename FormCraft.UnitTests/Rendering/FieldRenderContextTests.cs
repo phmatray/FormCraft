@@ -87,7 +87,7 @@ public class FieldRenderContextTests
         // Assert
         intContext.ActualFieldType.ShouldBe(typeof(int));
         intContext.CurrentValue.ShouldBe(42);
-        
+
         boolContext.ActualFieldType.ShouldBe(typeof(bool));
         boolContext.CurrentValue.ShouldBe(true);
     }

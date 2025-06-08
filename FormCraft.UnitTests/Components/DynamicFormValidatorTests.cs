@@ -39,7 +39,7 @@ public class DynamicFormValidatorTests
             .AddField(x => x.Name)
                 .WithLabel("Name")
             .Build();
-            
+
         var config2 = FormBuilder<TestModel>.Create()
             .AddField(x => x.Email)
                 .WithLabel("Email")
@@ -52,7 +52,7 @@ public class DynamicFormValidatorTests
         validator.Configuration.ShouldBe(config1);
 
         validator.Configuration = config2;
-        
+
         // Assert
         validator.Configuration.ShouldBe(config2);
     }
@@ -86,7 +86,7 @@ public class DynamicFormValidatorTests
         validator.Configuration = config;
 
         // Act & Assert
-        Should.NotThrow(() => 
+        Should.NotThrow(() =>
         {
             validator.Dispose();
             validator.Dispose(); // Should not throw on second disposal

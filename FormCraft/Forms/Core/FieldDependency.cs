@@ -11,10 +11,10 @@ public class FieldDependency<TModel, TDependsOn> : IFieldDependency<TModel>
 {
     private readonly Expression<Func<TModel, TDependsOn>> _dependsOnExpression;
     private readonly Action<TModel, TDependsOn> _onChanged;
-    
+
     /// <inheritdoc />
     public string DependentFieldName { get; }
-    
+
     /// <summary>
     /// Initializes a new instance of the FieldDependency class.
     /// </summary>
@@ -27,11 +27,11 @@ public class FieldDependency<TModel, TDependsOn> : IFieldDependency<TModel>
     {
         _dependsOnExpression = dependsOnExpression;
         _onChanged = onChanged;
-        
+
         var memberExpression = dependsOnExpression.Body as MemberExpression;
         DependentFieldName = memberExpression?.Member.Name ?? throw new ArgumentException("Invalid expression");
     }
-    
+
     /// <inheritdoc />
     public void OnDependencyChanged(TModel model)
     {

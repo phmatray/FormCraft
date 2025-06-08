@@ -26,12 +26,12 @@ public class BoolFieldRenderer : IFieldRenderer
             {
                 context.OnValueChanged.InvokeAsync(value);
             }));
-            
+
             if (!string.IsNullOrEmpty(context.Field.HelpText))
                 builder.AddAttribute(4, "HelperText", context.Field.HelpText);
-            
+
             builder.AddAttribute(5, "Disabled", context.Field.IsDisabled);
-            
+
             builder.CloseComponent();
         };
     }

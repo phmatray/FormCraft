@@ -60,7 +60,7 @@ public class StringFieldRendererTests
             new SelectOption<string>("Option1", "Option 1"),
             new SelectOption<string>("Option2", "Option 2")
         };
-        
+
         var field = CreateMockFieldWithOptions("Test Label", options);
         var context = CreateContext(model, field, "Option1");
 
@@ -204,55 +204,55 @@ public class StringFieldRendererTests
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockField(
-        string label, 
-        string? placeholder = null, 
+        string label,
+        string? placeholder = null,
         string? helpText = null,
         bool isRequired = false,
         bool isDisabled = false)
     {
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
-        
+
         A.CallTo(() => field.Label).Returns(label);
         A.CallTo(() => field.Placeholder).Returns(placeholder ?? string.Empty);
         A.CallTo(() => field.HelpText).Returns(helpText ?? string.Empty);
         A.CallTo(() => field.IsRequired).Returns(isRequired);
         A.CallTo(() => field.IsDisabled).Returns(isDisabled);
         A.CallTo(() => field.AdditionalAttributes).Returns(new Dictionary<string, object?>());
-        
+
         return field;
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockFieldWithOptions(
-        string label, 
+        string label,
         IEnumerable<SelectOption<string>> options)
     {
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
         var attributes = new Dictionary<string, object?> { { "Options", options } };
-        
+
         A.CallTo(() => field.Label).Returns(label);
         A.CallTo(() => field.Placeholder).Returns(string.Empty);
         A.CallTo(() => field.HelpText).Returns(string.Empty);
         A.CallTo(() => field.IsRequired).Returns(false);
         A.CallTo(() => field.IsDisabled).Returns(false);
         A.CallTo(() => field.AdditionalAttributes).Returns(attributes);
-        
+
         return field;
     }
 
     private IFieldRenderContext<TestModel> CreateContext(
-        TestModel model, 
-        IFieldConfiguration<TestModel, object> field, 
+        TestModel model,
+        IFieldConfiguration<TestModel, object> field,
         object? currentValue)
     {
         var context = A.Fake<IFieldRenderContext<TestModel>>();
-        
+
         A.CallTo(() => context.Model).Returns(model);
         A.CallTo(() => context.Field).Returns(field);
         A.CallTo(() => context.CurrentValue).Returns(currentValue);
         A.CallTo(() => context.ActualFieldType).Returns(typeof(string));
         A.CallTo(() => context.OnValueChanged).Returns(EventCallback.Factory.Create<object?>(this, _ => { }));
         A.CallTo(() => context.OnDependencyChanged).Returns(EventCallback.Factory.Create(this, () => { }));
-        
+
         return context;
     }
 
@@ -513,7 +513,7 @@ public class StringFieldRendererTests
 
         // Act & Assert - Test string type variations
         _renderer.CanRender(typeof(string), mockField).ShouldBeTrue();
-        
+
         // Test with different string-like scenarios
         var stringType = typeof(string);
         var result = _renderer.CanRender(stringType, mockField);
@@ -544,36 +544,36 @@ public class StringFieldRendererTests
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockFieldWithAttribute(
-        string label, 
-        string attributeName, 
+        string label,
+        string attributeName,
         object? attributeValue)
     {
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
         var attributes = new Dictionary<string, object?> { { attributeName, attributeValue } };
-        
+
         A.CallTo(() => field.Label).Returns(label);
         A.CallTo(() => field.Placeholder).Returns(string.Empty);
         A.CallTo(() => field.HelpText).Returns(string.Empty);
         A.CallTo(() => field.IsRequired).Returns(false);
         A.CallTo(() => field.IsDisabled).Returns(false);
         A.CallTo(() => field.AdditionalAttributes).Returns(attributes);
-        
+
         return field;
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockFieldWithAttributes(
-        string label, 
+        string label,
         Dictionary<string, object?> attributes)
     {
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
-        
+
         A.CallTo(() => field.Label).Returns(label);
         A.CallTo(() => field.Placeholder).Returns(string.Empty);
         A.CallTo(() => field.HelpText).Returns(string.Empty);
         A.CallTo(() => field.IsRequired).Returns(false);
         A.CallTo(() => field.IsDisabled).Returns(false);
         A.CallTo(() => field.AdditionalAttributes).Returns(attributes);
-        
+
         return field;
     }
 

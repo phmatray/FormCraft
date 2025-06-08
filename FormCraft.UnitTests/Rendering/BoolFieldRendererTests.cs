@@ -189,34 +189,34 @@ public class BoolFieldRendererTests
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockField(
-        string label, 
+        string label,
         string? helpText = null,
         bool isDisabled = false)
     {
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
-        
+
         A.CallTo(() => field.Label).Returns(label);
         A.CallTo(() => field.HelpText).Returns(helpText ?? string.Empty);
         A.CallTo(() => field.IsDisabled).Returns(isDisabled);
         A.CallTo(() => field.AdditionalAttributes).Returns(new Dictionary<string, object>());
-        
+
         return field;
     }
 
     private IFieldRenderContext<TestModel> CreateContext(
-        TestModel model, 
-        IFieldConfiguration<TestModel, object> field, 
+        TestModel model,
+        IFieldConfiguration<TestModel, object> field,
         object? currentValue)
     {
         var context = A.Fake<IFieldRenderContext<TestModel>>();
-        
+
         A.CallTo(() => context.Model).Returns(model);
         A.CallTo(() => context.Field).Returns(field);
         A.CallTo(() => context.CurrentValue).Returns(currentValue);
         A.CallTo(() => context.ActualFieldType).Returns(typeof(bool));
         A.CallTo(() => context.OnValueChanged).Returns(EventCallback.Factory.Create<object?>(this, _ => { }));
         A.CallTo(() => context.OnDependencyChanged).Returns(EventCallback.Factory.Create(this, () => { }));
-        
+
         return context;
     }
 
@@ -565,62 +565,62 @@ public class BoolFieldRendererTests
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockFieldWithAttributes(
-        string label, 
+        string label,
         Dictionary<string, object> attributes)
     {
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
-        
+
         A.CallTo(() => field.Label).Returns(label);
         A.CallTo(() => field.HelpText).Returns(string.Empty);
         A.CallTo(() => field.IsDisabled).Returns(false);
         A.CallTo(() => field.IsRequired).Returns(false);
         A.CallTo(() => field.AdditionalAttributes).Returns(attributes);
-        
+
         return field;
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockFieldWithRequired(
-        string label, 
+        string label,
         bool isRequired)
     {
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
-        
+
         A.CallTo(() => field.Label).Returns(label);
         A.CallTo(() => field.HelpText).Returns(string.Empty);
         A.CallTo(() => field.IsDisabled).Returns(false);
         A.CallTo(() => field.IsRequired).Returns(isRequired);
         A.CallTo(() => field.AdditionalAttributes).Returns(new Dictionary<string, object>());
-        
+
         return field;
     }
 
     private IFieldConfiguration<NullableTestModel, object> CreateMockFieldForNullableModel(string label)
     {
         var field = A.Fake<IFieldConfiguration<NullableTestModel, object>>();
-        
+
         A.CallTo(() => field.Label).Returns(label);
         A.CallTo(() => field.HelpText).Returns(string.Empty);
         A.CallTo(() => field.IsDisabled).Returns(false);
         A.CallTo(() => field.IsRequired).Returns(false);
         A.CallTo(() => field.AdditionalAttributes).Returns(new Dictionary<string, object>());
-        
+
         return field;
     }
 
     private IFieldRenderContext<NullableTestModel> CreateContextForNullableModel(
-        NullableTestModel model, 
-        IFieldConfiguration<NullableTestModel, object> field, 
+        NullableTestModel model,
+        IFieldConfiguration<NullableTestModel, object> field,
         object? currentValue)
     {
         var context = A.Fake<IFieldRenderContext<NullableTestModel>>();
-        
+
         A.CallTo(() => context.Model).Returns(model);
         A.CallTo(() => context.Field).Returns(field);
         A.CallTo(() => context.CurrentValue).Returns(currentValue);
         A.CallTo(() => context.ActualFieldType).Returns(typeof(bool?));
         A.CallTo(() => context.OnValueChanged).Returns(EventCallback.Factory.Create<object?>(this, _ => { }));
         A.CallTo(() => context.OnDependencyChanged).Returns(EventCallback.Factory.Create(this, () => { }));
-        
+
         return context;
     }
 

@@ -10,6 +10,11 @@ builder.Services.AddMudServices();
 builder.Services.AddDynamicForms();
 builder.Services.AddScoped<IMarkdownService, MarkdownService>();
 builder.Services.AddScoped<FormCodeGeneratorService>();
+
+// Register custom field renderers
+builder.Services.AddScoped<ColorPickerRenderer>();
+builder.Services.AddScoped<RatingRenderer>();
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

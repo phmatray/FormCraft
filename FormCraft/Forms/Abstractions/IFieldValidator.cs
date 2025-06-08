@@ -27,7 +27,7 @@ public interface IFieldValidator<TModel, TValue>
     /// Gets or sets the error message to display when validation fails.
     /// </summary>
     string? ErrorMessage { get; set; }
-    
+
     /// <summary>
     /// Validates the field value asynchronously and returns the validation result.
     /// </summary>

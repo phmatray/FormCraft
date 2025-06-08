@@ -23,7 +23,7 @@ public class FieldDependencyTests
         var model = new TestModel { Country = "USA", City = "New York" };
         string? capturedCountry = null;
         TestModel? capturedModel = null;
-        
+
         Action<TestModel, string> onChanged = (m, v) =>
         {
             capturedModel = m;
@@ -46,7 +46,7 @@ public class FieldDependencyTests
         // Arrange
         var model = new TestModel { Country = null };
         string? capturedCountry = "initial";
-        
+
         Action<TestModel, string?> onChanged = (m, v) =>
         {
             capturedCountry = v;
@@ -67,9 +67,9 @@ public class FieldDependencyTests
         // Arrange for int
         var model = new TestModel { Age = 25 };
         int capturedAge = 0;
-        
+
         var intDependency = new FieldDependency<TestModel, int>(
-            x => x.Age, 
+            x => x.Age,
             (m, v) => capturedAge = v);
 
         // Act
@@ -81,9 +81,9 @@ public class FieldDependencyTests
         // Arrange for bool
         bool capturedIsActive = false;
         model.IsActive = true;
-        
+
         var boolDependency = new FieldDependency<TestModel, bool>(
-            x => x.IsActive, 
+            x => x.IsActive,
             (m, v) => capturedIsActive = v);
 
         // Act
@@ -98,7 +98,7 @@ public class FieldDependencyTests
     {
         // Arrange
         var model = new TestModel { Country = "Canada", City = "Toronto" };
-        
+
         Action<TestModel, string> onChanged = (m, country) =>
         {
             if (country == "USA")
@@ -136,14 +136,14 @@ public class FieldDependencyTests
     public void Should_Handle_Nested_Property_Dependencies()
     {
         // Arrange
-        var model = new TestModel 
-        { 
-            Address = new AddressModel { PostalCode = "12345" } 
+        var model = new TestModel
+        {
+            Address = new AddressModel { PostalCode = "12345" }
         };
         string? capturedPostalCode = null;
-        
+
         var dependency = new FieldDependency<TestModel, string>(
-            x => x.Address.PostalCode, 
+            x => x.Address.PostalCode,
             (m, v) => capturedPostalCode = v);
 
         // Act

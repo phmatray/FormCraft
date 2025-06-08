@@ -29,65 +29,65 @@ public interface IFieldConfiguration<TModel, TValue>
     /// This corresponds to the property name extracted from the ValueExpression.
     /// </summary>
     string FieldName { get; }
-    
+
     /// <summary>
     /// Gets the lambda expression that identifies which property on the model this field binds to.
     /// This expression is used for model binding, validation, and value retrieval.
     /// </summary>
     Expression<Func<TModel, TValue>> ValueExpression { get; }
-    
+
     /// <summary>
     /// Gets or sets the display label for the field that appears in the UI.
     /// This is typically shown above or beside the input control.
     /// </summary>
     string Label { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the placeholder text displayed inside empty input fields to guide user input.
     /// </summary>
     string? Placeholder { get; set; }
-    
+
     /// <summary>
     /// Gets or sets optional help text that provides additional guidance about the field.
     /// This is typically displayed below the input control or as a tooltip.
     /// </summary>
     string? HelpText { get; set; }
-    
+
     /// <summary>
     /// Gets or sets additional CSS classes to apply to the field container for custom styling.
     /// </summary>
     string? CssClass { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether this field is required and must have a value for the form to be valid.
     /// Required fields typically show visual indicators and validation messages when empty.
     /// </summary>
     bool IsRequired { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether this field is visible in the form.
     /// Hidden fields are not rendered but may still participate in validation and model binding.
     /// </summary>
     bool IsVisible { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether this field is disabled and cannot be edited by the user.
     /// Disabled fields are typically rendered with a grayed-out appearance.
     /// </summary>
     bool IsDisabled { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether this field is read-only and displays its value without allowing changes.
     /// Read-only fields can be focused but not modified.
     /// </summary>
     bool IsReadOnly { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the display order of this field relative to other fields in the form.
     /// Fields are typically rendered in ascending order of this value.
     /// </summary>
     int Order { get; set; }
-    
+
     /// <summary>
     /// Gets a dictionary of additional attributes that can be passed to the rendered field component.
     /// This allows for field-specific configuration beyond the standard properties.
@@ -101,19 +101,19 @@ public interface IFieldConfiguration<TModel, TValue>
     /// </code>
     /// </example>
     Dictionary<string, object> AdditionalAttributes { get; }
-    
+
     /// <summary>
     /// Gets the list of validators that will be applied to this field's value.
     /// Validators are executed in the order they appear in this list.
     /// </summary>
     List<IFieldValidator<TModel, TValue>> Validators { get; }
-    
+
     /// <summary>
     /// Gets the list of dependencies that define how this field reacts to changes in other fields.
     /// These dependencies enable conditional behavior and field interactions.
     /// </summary>
     List<IFieldDependency<TModel>> Dependencies { get; }
-    
+
     /// <summary>
     /// Gets or sets a function that determines whether this field should be visible based on the current model state.
     /// When specified, this takes precedence over the IsVisible property.
@@ -125,7 +125,7 @@ public interface IFieldConfiguration<TModel, TValue>
     /// </code>
     /// </example>
     Func<TModel, bool>? VisibilityCondition { get; set; }
-    
+
     /// <summary>
     /// Gets or sets a function that determines whether this field should be disabled based on the current model state.
     /// When specified, this takes precedence over the IsDisabled property.
@@ -137,7 +137,7 @@ public interface IFieldConfiguration<TModel, TValue>
     /// </code>
     /// </example>
     Func<TModel, bool>? DisabledCondition { get; set; }
-    
+
     /// <summary>
     /// Gets or sets a custom Razor template for rendering this field.
     /// When specified, this template is used instead of the default field renderer.
@@ -155,4 +155,17 @@ public interface IFieldConfiguration<TModel, TValue>
     /// </code>
     /// </example>
     RenderFragment<IFieldContext<TModel, TValue>>? CustomTemplate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the custom field renderer type for this field.
+    /// When specified, an instance of this renderer type is used instead of the default field renderer.
+    /// The type must implement ICustomFieldRenderer&lt;TValue&gt;.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// // Using a custom color picker renderer
+    /// fieldConfig.CustomRendererType = typeof(ColorPickerRenderer);
+    /// </code>
+    /// </example>
+    Type? CustomRendererType { get; set; }
 }

@@ -92,7 +92,7 @@ public class DynamicFormComponentTests : Bunit.TestContext
 
         // Assert
         component.FindAll(".form-field-container").Count.ShouldBe(1); // Only Name field should be visible
-        
+
         // Verify only Name field was rendered
         A.CallTo(() => _fieldRendererService.RenderField(A<TestModel>._, A<IFieldConfiguration<TestModel, object>>.That.Matches(f => f.FieldName == "Name"), A<EventCallback<object?>>._, A<EventCallback>._))
             .MustHaveHappenedOnceExactly();

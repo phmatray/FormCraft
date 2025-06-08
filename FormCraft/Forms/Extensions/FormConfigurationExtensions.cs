@@ -26,7 +26,7 @@ public static class FormConfigurationExtensions
             .Where(f => f.IsRequired)
             .Select(f => f.FieldName);
     }
-    
+
     /// <summary>
     /// Gets all visible field names from the form configuration for a given model instance.
     /// This method evaluates visibility conditions and returns only fields that should be displayed.

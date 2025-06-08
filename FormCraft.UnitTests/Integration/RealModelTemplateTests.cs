@@ -48,12 +48,12 @@ public class RealModelTemplateTests
         lastNameField.Placeholder.ShouldBe("Enter your last name");
 
         // Verify all fields can be rendered
-        var testModel = new RealContactModel 
-        { 
-            FirstName = "John", 
-            LastName = "Doe", 
-            Email = "john.doe@example.com", 
-            Phone = "123-456-7890" 
+        var testModel = new RealContactModel
+        {
+            FirstName = "John",
+            LastName = "Doe",
+            Email = "john.doe@example.com",
+            Phone = "123-456-7890"
         };
 
         foreach (var field in contactForm.Fields)
@@ -135,17 +135,17 @@ public class RealModelTemplateTests
         extendedContactForm.Fields.Count().ShouldBe(7); // 4 from template + 3 additional
 
         // Verify original template fields are present
-        var originalFields = extendedContactForm.Fields.Where(f => 
-            f.FieldName == "FirstName" || 
-            f.FieldName == "LastName" || 
-            f.FieldName == "Email" || 
+        var originalFields = extendedContactForm.Fields.Where(f =>
+            f.FieldName == "FirstName" ||
+            f.FieldName == "LastName" ||
+            f.FieldName == "Email" ||
             f.FieldName == "Phone").ToList();
         originalFields.Count.ShouldBe(4);
 
         // Verify additional fields are present
-        var additionalFields = extendedContactForm.Fields.Where(f => 
-            f.FieldName == "Company" || 
-            f.FieldName == "DateOfBirth" || 
+        var additionalFields = extendedContactForm.Fields.Where(f =>
+            f.FieldName == "Company" ||
+            f.FieldName == "DateOfBirth" ||
             f.FieldName == "IsSubscribed").ToList();
         additionalFields.Count.ShouldBe(3);
 
@@ -180,11 +180,11 @@ public class RealModelTemplateTests
         // Assert - Form should have more fields due to template + additional fields
         validatedContactForm.ShouldNotBeNull();
         validatedContactForm.Fields.Count().ShouldBeGreaterThan(4); // Template fields + additional validation fields
-        
+
         // Should have email and phone fields with validation
         var emailFields = validatedContactForm.Fields.Where(f => f.FieldName == "Email").ToList();
         var phoneFields = validatedContactForm.Fields.Where(f => f.FieldName == "Phone").ToList();
-        
+
         emailFields.Count.ShouldBeGreaterThan(0);
         phoneFields.Count.ShouldBeGreaterThan(0);
     }
@@ -202,7 +202,7 @@ public class RealModelTemplateTests
 
         // Act - Create multiple template instances
         var forms = new List<IFormConfiguration<RealContactModel>>();
-        
+
         for (int i = 0; i < 100; i++)
         {
             var form = FormBuilder<RealContactModel>.Create()
@@ -212,12 +212,12 @@ public class RealModelTemplateTests
         }
 
         // Test rendering performance
-        var testModel = new RealContactModel 
-        { 
-            FirstName = "Test", 
-            LastName = "User", 
-            Email = "test@example.com", 
-            Phone = "1234567890" 
+        var testModel = new RealContactModel
+        {
+            FirstName = "Test",
+            LastName = "User",
+            Email = "test@example.com",
+            Phone = "1234567890"
         };
 
         foreach (var form in forms.Take(10)) // Test first 10 forms for rendering
@@ -232,9 +232,9 @@ public class RealModelTemplateTests
         stopwatch.Stop();
 
         // Assert
-        stopwatch.ElapsedMilliseconds.ShouldBeLessThan(2000, 
+        stopwatch.ElapsedMilliseconds.ShouldBeLessThan(2000,
             $"Template creation and rendering took too long: {stopwatch.ElapsedMilliseconds}ms");
-        
+
         forms.Count.ShouldBe(100);
         forms.All(f => f.Fields.Count() == 4).ShouldBeTrue();
     }
@@ -249,13 +249,13 @@ public class RealModelTemplateTests
 
         // Act - Create many template instances and verify they can be garbage collected
         var weakReferences = new List<WeakReference>();
-        
+
         for (int i = 0; i < 1000; i++)
         {
             var form = FormBuilder<RealContactModel>.Create()
                 .AsContactForm()
                 .Build();
-            
+
             weakReferences.Add(new WeakReference(form));
         }
 
@@ -268,7 +268,7 @@ public class RealModelTemplateTests
         // (This is a heuristic test - not all objects may be collected immediately)
         var aliveCount = weakReferences.Count(wr => wr.IsAlive);
         var totalCount = weakReferences.Count;
-        
+
         // At least some objects should be collectable (this is implementation-dependent)
         (aliveCount < totalCount).ShouldBeTrue($"Expected some objects to be garbage collected. Alive: {aliveCount}, Total: {totalCount}");
     }

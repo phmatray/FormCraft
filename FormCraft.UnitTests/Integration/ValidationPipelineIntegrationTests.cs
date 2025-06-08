@@ -46,7 +46,7 @@ public class ValidationPipelineIntegrationTests
         // Assert - Field should have all validation rules configured
         field.Validators.Count.ShouldBe(3);
         field.IsRequired.ShouldBeTrue();
-        
+
         // Verify field configuration
         field.FieldName.ShouldBe("Name");
         field.Label.ShouldBe("Name");
@@ -75,7 +75,7 @@ public class ValidationPipelineIntegrationTests
 
         nameField.Validators.Count.ShouldBeGreaterThan(0);
         emailField.Validators.Count.ShouldBeGreaterThan(0);
-        
+
         // Verify field structure
         formConfig.Fields.Count().ShouldBe(2);
     }
@@ -131,7 +131,7 @@ public class ValidationPipelineIntegrationTests
         field.Validators.Count.ShouldBeGreaterThan(0);
         field.FieldName.ShouldBe("Email");
         field.Label.ShouldBe("Email");
-        
+
         // Verify service is available
         var validationService = serviceProvider.GetRequiredService<IValidationService>();
         validationService.ShouldNotBeNull();
@@ -157,7 +157,7 @@ public class ValidationPipelineIntegrationTests
         field.Validators.Count.ShouldBe(1);
         field.FieldName.ShouldBe("Name");
         field.Label.ShouldBe("Name");
-        
+
         // Verify form structure
         formConfig.Fields.Count().ShouldBe(1);
     }
@@ -199,12 +199,12 @@ public class ValidationPipelineIntegrationTests
 
         // Verify form structure has fields with validators
         formConfig.Fields.Count().ShouldBe(4);
-        
+
         var usernameField = formConfig.Fields.First(f => f.FieldName == "Username");
         var emailField = formConfig.Fields.First(f => f.FieldName == "Email");
         var ageField = formConfig.Fields.First(f => f.FieldName == "Age");
         var termsField = formConfig.Fields.First(f => f.FieldName == "AcceptTerms");
-        
+
         // All fields should have validators
         usernameField.Validators.Count.ShouldBeGreaterThan(0);
         emailField.Validators.Count.ShouldBeGreaterThan(0);
@@ -213,7 +213,7 @@ public class ValidationPipelineIntegrationTests
 
         // Verify form has validation rules configured
         formConfig.ShouldNotBeNull();
-        
+
         // Check required fields
         usernameField.IsRequired.ShouldBeTrue();
         emailField.IsRequired.ShouldBeTrue();
@@ -251,9 +251,9 @@ public class ValidationPipelineIntegrationTests
         {
             var validationService = services.GetRequiredService<IValidationService>();
             var isValid = validationService.IsEmailValid(value ?? "");
-            
-            return await Task.FromResult(isValid 
-                ? ValidationResult.Success() 
+
+            return await Task.FromResult(isValid
+                ? ValidationResult.Success()
                 : ValidationResult.Failure("Invalid email format"));
         }
     }

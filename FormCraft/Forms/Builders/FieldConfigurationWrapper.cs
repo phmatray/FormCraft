@@ -12,7 +12,7 @@ namespace FormCraft;
 public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TModel, object>
 {
     private readonly IFieldConfiguration<TModel, TValue> _inner;
-    
+
     /// <summary>
     /// Initializes a new instance of the FieldConfigurationWrapper class.
     /// </summary>
@@ -21,86 +21,93 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
     {
         _inner = inner;
     }
-    
+
     /// <inheritdoc />
     public string FieldName => _inner.FieldName;
-    
+
     /// <inheritdoc />
-    public Expression<Func<TModel, object>> ValueExpression => 
+    public Expression<Func<TModel, object>> ValueExpression =>
         Expression.Lambda<Func<TModel, object>>(
-            Expression.Convert(_inner.ValueExpression.Body, typeof(object)), 
+            Expression.Convert(_inner.ValueExpression.Body, typeof(object)),
             _inner.ValueExpression.Parameters);
-    
+
     /// <inheritdoc />
     public string Label { get => _inner.Label; set => _inner.Label = value; }
-    
+
     /// <inheritdoc />
     public string? Placeholder { get => _inner.Placeholder; set => _inner.Placeholder = value; }
-    
+
     /// <inheritdoc />
     public string? HelpText { get => _inner.HelpText; set => _inner.HelpText = value; }
-    
+
     /// <inheritdoc />
     public string? CssClass { get => _inner.CssClass; set => _inner.CssClass = value; }
-    
+
     /// <inheritdoc />
     public bool IsRequired { get => _inner.IsRequired; set => _inner.IsRequired = value; }
-    
+
     /// <inheritdoc />
     public bool IsVisible { get => _inner.IsVisible; set => _inner.IsVisible = value; }
-    
+
     /// <inheritdoc />
     public bool IsDisabled { get => _inner.IsDisabled; set => _inner.IsDisabled = value; }
-    
+
     /// <inheritdoc />
     public bool IsReadOnly { get => _inner.IsReadOnly; set => _inner.IsReadOnly = value; }
-    
+
     /// <inheritdoc />
     public int Order { get => _inner.Order; set => _inner.Order = value; }
-    
+
     /// <inheritdoc />
     public Dictionary<string, object> AdditionalAttributes => _inner.AdditionalAttributes;
-    
+
     /// <inheritdoc />
-    public List<IFieldValidator<TModel, object>> Validators => 
+    public List<IFieldValidator<TModel, object>> Validators =>
         _inner.Validators.Select<IFieldValidator<TModel, TValue>, IFieldValidator<TModel, object>>(v => new ValidatorWrapper<TModel, TValue>(v)).ToList();
-    
+
     /// <inheritdoc />
     public List<IFieldDependency<TModel>> Dependencies => _inner.Dependencies;
-    
+
     /// <inheritdoc />
-    public Func<TModel, bool>? VisibilityCondition 
-    { 
-        get => _inner.VisibilityCondition; 
-        set => _inner.VisibilityCondition = value; 
+    public Func<TModel, bool>? VisibilityCondition
+    {
+        get => _inner.VisibilityCondition;
+        set => _inner.VisibilityCondition = value;
     }
-    
+
     /// <inheritdoc />
-    public Func<TModel, bool>? DisabledCondition 
-    { 
-        get => _inner.DisabledCondition; 
-        set => _inner.DisabledCondition = value; 
+    public Func<TModel, bool>? DisabledCondition
+    {
+        get => _inner.DisabledCondition;
+        set => _inner.DisabledCondition = value;
     }
-    
+
     private RenderFragment<IFieldContext<TModel, object>>? _customTemplate;
-    
+
     /// <inheritdoc />
-    public RenderFragment<IFieldContext<TModel, object>>? CustomTemplate 
-    { 
+    public RenderFragment<IFieldContext<TModel, object>>? CustomTemplate
+    {
         get => _customTemplate;
-        set 
-        { 
+        set
+        {
             _customTemplate = value;
             // For now, we can't easily convert between typed and object templates
             // This would require a more complex adapter pattern
         }
     }
-    
+
+    /// <inheritdoc />
+    public Type? CustomRendererType
+    {
+        get => _inner.CustomRendererType;
+        set => _inner.CustomRendererType = value;
+    }
+
     /// <summary>
     /// Gets access to the original typed configuration.
     /// </summary>
     public IFieldConfiguration<TModel, TValue> TypedConfiguration => _inner;
-    
+
     /// <summary>
     /// Gets the actual runtime type of the field value.
     /// </summary>

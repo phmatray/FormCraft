@@ -13,7 +13,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable
 {
     [Inject]
     private IServiceProvider ServiceProvider { get; set; } = null!;
-    
+
     /// <summary>
     /// Gets or sets the form configuration containing field definitions and validation rules.
     /// </summary>

@@ -26,7 +26,7 @@ public interface IFieldDependency<TModel>
     /// Gets the name of the field that this dependency depends on.
     /// </summary>
     string DependentFieldName { get; }
-    
+
     /// <summary>
     /// Called when the dependent field's value changes, allowing this field to react accordingly.
     /// </summary>
