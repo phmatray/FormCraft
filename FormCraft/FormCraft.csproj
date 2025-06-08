@@ -56,12 +56,22 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Include README and icon in package -->
+    <!-- Include README, CHANGELOG, and icon in package -->
     <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="../CHANGELOG.md" Pack="true" PackagePath="\" Condition="Exists('../CHANGELOG.md')" />
     <None Include="icon.png" Pack="true" PackagePath="\" Condition="Exists('icon.png')" />
   </ItemGroup>
+
+  <!-- Changelog Generation Target -->
+  <Target Name="GenerateChangelog" BeforeTargets="GenerateNuspec" Condition="'$(Configuration)' == 'Release'">
+    <Exec Command="pwsh -File &quot;$(MSBuildProjectDirectory)/../generate-changelog.ps1&quot;" 
+          Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+    <Exec Command="bash &quot;$(MSBuildProjectDirectory)/../generate-changelog.sh&quot;" 
+          Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+  </Target>
 
 </Project>
