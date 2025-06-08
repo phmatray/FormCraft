@@ -1,28 +1,61 @@
 @inherits LayoutComponentBase
 
-<MudThemeProvider />
+<MudThemeProvider Theme="_theme" IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1">
+    <MudAppBar Elevation="1" Dense="false">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
-        <MudText Typo="Typo.h5" Class="ml-3">FormCraft Demo</MudText>
+        <MudIcon Icon="@Icons.Material.Filled.DynamicForm" Class="ml-3 me-2" Size="Size.Large" />
+        <MudText Typo="Typo.h5" Class="font-weight-bold">
+            FormCraft
+        </MudText>
+        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-2 mt-1">v1.2.1</MudChip>
         <MudSpacer />
+        
+        <MudTooltip Text="Toggle light/dark mode">
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
+                           Color="Color.Inherit" 
+                           OnClick="@ToggleTheme" />
+        </MudTooltip>
+        
+        <MudDivider Vertical="true" FlexItem="true" Class="mx-2 my-2" />
+        
+        <MudButton Variant="Variant.Text" 
+                   Color="Color.Inherit" 
+                   StartIcon="@Icons.Material.Filled.MenuBook"
+                   Href="/docs/getting-started">
+            Docs
+        </MudButton>
+        
         <MudButton Variant="Variant.Text" 
                    Color="Color.Inherit" 
                    StartIcon="@Icons.Custom.Brands.GitHub" 
-                   Href="https://github.com" 
+                   Href="https://github.com/phmatray/FormCraft" 
                    Target="_blank">
             GitHub
+        </MudButton>
+        
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   StartIcon="@Icons.Material.Filled.GetApp"
+                   Href="https://www.nuget.org/packages/FormCraft"
+                   Target="_blank"
+                   Class="ml-2">
+            Get Started
         </MudButton>
     </MudAppBar>
     
     <MudDrawer @bind-Open="@_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <MudNavMenu>
-            <MudNavGroup Title="FormCraft Demos" Icon="@Icons.Material.Filled.Dashboard" Expanded="true">
-                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.AutoFixHigh">
+            <MudNavLink Href="/home" Icon="@Icons.Material.Filled.Home">
+                Home
+            </MudNavLink>
+            
+            <MudNavGroup Title="Form Examples" Icon="@Icons.Material.Filled.Dashboard" Expanded="true">
+                <MudNavLink Href="/simplified" Icon="@Icons.Material.Filled.AutoFixHigh">
                     Simplified API
                 </MudNavLink>
                 <MudNavLink Href="/improved" Icon="@Icons.Material.Filled.Engineering">
@@ -77,9 +110,48 @@
 
 @code {
     private bool _drawerOpen = true;
+    private bool _isDarkMode = false;
+    
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = Colors.Blue.Default,
+            Secondary = Colors.Teal.Default,
+            AppbarBackground = Colors.Blue.Default,
+            AppbarText = Colors.Shades.White,
+            DrawerBackground = "#f5f5f5",
+            DrawerText = "#424242",
+            DrawerIcon = "#616161"
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = Colors.Blue.Lighten1,
+            Secondary = Colors.Teal.Lighten1,
+            AppbarBackground = "#212121",
+            AppbarText = Colors.Shades.White,
+            DrawerBackground = "#212121",
+            DrawerText = "#e0e0e0",
+            DrawerIcon = "#bdbdbd",
+            Surface = "#424242",
+            Background = "#303030",
+            BackgroundGray = "#424242"
+        }
+    };
 
     private void ToggleDrawer()
     {
         _drawerOpen = !_drawerOpen;
     }
+    
+    private void ToggleTheme()
+    {
+        _isDarkMode = !_isDarkMode;
+    }
 }
+
+<style>
+    .text-secondary {
+        color: #6c757d !important;
+    }
+</style>

@@ -70,6 +70,47 @@
             <MudTabPanel Text="Code Example" Icon="@Icons.Material.Filled.Code">
                 <CodeExample Title="Field Groups Configuration" Language="csharp" Code="@GetGeneratedCode()" />
             </MudTabPanel>
+            
+            <MudTabPanel Text="Guidelines" Icon="@Icons.Material.Filled.Lightbulb">
+                <FormGuidelines Title="Field Groups Guidelines">
+                    <MudSimpleTable>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Usage</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Field Groups</td>
+                                <td>Organize fields into logical sections</td>
+                                <td><code>.AddFieldGroup(group => group...)</code></td>
+                            </tr>
+                            <tr>
+                                <td>Group Name</td>
+                                <td>Provide a title for each section</td>
+                                <td><code>.WithGroupName("Personal Information")</code></td>
+                            </tr>
+                            <tr>
+                                <td>Column Layout</td>
+                                <td>Set number of columns per row</td>
+                                <td><code>.WithColumns(2)</code></td>
+                            </tr>
+                            <tr>
+                                <td>Card Display</td>
+                                <td>Show group in a card container</td>
+                                <td><code>.ShowInCard()</code></td>
+                            </tr>
+                            <tr>
+                                <td>Responsive Design</td>
+                                <td>Columns automatically stack on mobile</td>
+                                <td>Built-in responsive behavior</td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </FormGuidelines>
+            </MudTabPanel>
         </MudTabs>
     </MudPaper>
 </MudContainer>

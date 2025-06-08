@@ -73,6 +73,47 @@
             <MudTabPanel Text="Code Example" Icon="@Icons.Material.Filled.Code">
                 <CodeExample Title="Custom Renderer Configuration" Language="csharp" Code="@GetGeneratedCode()" />
             </MudTabPanel>
+            
+            <MudTabPanel Text="Guidelines" Icon="@Icons.Material.Filled.Lightbulb">
+                <FormGuidelines Title="Custom Renderer Guidelines">
+                    <MudSimpleTable>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Usage</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Color Picker</td>
+                                <td>Visual color selection control</td>
+                                <td><code>.WithCustomRenderer&lt;TModel, string, ColorPickerRenderer&gt;()</code></td>
+                            </tr>
+                            <tr>
+                                <td>Rating Control</td>
+                                <td>Star-based rating input</td>
+                                <td><code>.WithCustomRenderer&lt;TModel, int, RatingRenderer&gt;()</code></td>
+                            </tr>
+                            <tr>
+                                <td>Custom Attributes</td>
+                                <td>Pass parameters to renderers</td>
+                                <td><code>.WithAttribute("MaxRating", 5)</code></td>
+                            </tr>
+                            <tr>
+                                <td>Help Text</td>
+                                <td>Provide user guidance</td>
+                                <td><code>.WithHelpText("Select the primary color")</code></td>
+                            </tr>
+                            <tr>
+                                <td>Creating Renderers</td>
+                                <td>Implement ICustomFieldRenderer</td>
+                                <td><code>public class MyRenderer : ICustomFieldRenderer</code></td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </FormGuidelines>
+            </MudTabPanel>
         </MudTabs>
     </MudPaper>
 </MudContainer>
