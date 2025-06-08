@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### 🔧 Miscellaneous Tasks
+
+- Update dependency octokit to v14 ([b0b42c7](https://github.com/phmatray/FormCraft/commit/b0b42c7adec99a9c769e0cd5decc91eac0a9380b))
+
 ## [1.3.1] - 2025-06-08
 
 ### Ci
