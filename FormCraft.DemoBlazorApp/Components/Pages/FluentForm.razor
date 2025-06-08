@@ -1,47 +1,62 @@
 @page "/fluent"
-@using FormCraft.DemoBlazorApp.Models
-@using FormCraft.DemoBlazorApp.Components.Shared
-@using FormCraft.DemoBlazorApp.Components.Layout
-@using FormCraft
+@inject FormCodeGeneratorService CodeGenerator
 
 <PageTitle>Fluent API Dynamic Form</PageTitle>
 
-<FormPageLayout PageTitle="Fluent API Dynamic Form"
-                PageDescription="This demonstrates the fluent API with helper methods for common field types and streamlined form building."
-                PageIcon="@Icons.Material.Filled.FlashOn"
-                FormTitle="Contact Information Form"
-                FormIcon="@Icons.Material.Filled.ContactPage">
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
+    <MudText Typo="Typo.h3" GutterBottom="true" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.FlashOn" Class="me-2" Style="vertical-align: bottom;" />
+        Fluent API Dynamic Form
+    </MudText>
+    <MudText Typo="Typo.body1" GutterBottom="true" Class="mb-6">
+        This demonstrates the fluent API with helper methods for common field types and streamlined form building.
+    </MudText>
     
-    <FormContent>
-        <DynamicFormComponent TModel="ContactModel" 
-                            Model="@_model" 
-                            Configuration="@_formConfiguration"
-                            OnValidSubmit="@HandleValidSubmit"
-                            OnFieldChanged="@(args => HandleFieldChanged(args.fieldName, args.value))"
-                            IsSubmitting="@_isSubmitting"
-                            ShowSubmitButton="true"
-                            SubmitButtonText="Submit Information"
-                            SubmittingText="Submitting..."
-                            SubmitButtonClass="px-8" />
-    </FormContent>
-    
-    <SidebarContent>
-        <FormGuidelines Guidelines="@_guidelines" Title="Fluent API Features" />
-        
-        <CodeExample Title="Fluent Methods Example" Language="csharp" Code="@_codeExample" />
-        
-    </SidebarContent>
-    
-    <SuccessContent>
-        @if (_isSubmitted)
-        {
-            <FormSuccessDisplay TModel="ContactModel" 
-                               DataDisplayItems="@GetDataDisplayItems()"
-                               OnReset="@ResetForm" />
-        }
-    </SuccessContent>
-    
-</FormPageLayout>
+    <MudPaper Elevation="2" Class="pa-0">
+        <MudTabs Elevation="0" Rounded="false" PanelClass="pa-6">
+            <MudTabPanel Text="Form Demo" Icon="@Icons.Material.Filled.ContactPage">
+                <MudGrid>
+                    <MudItem xs="12" lg="8">
+                        <MudPaper Elevation="1" Class="pa-6">
+                            <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Assignment" Class="me-2" />
+                                Contact Information Form
+                            </MudText>
+                            
+                            @if (_isSubmitted)
+                            {
+                                <FormSuccessDisplay TModel="ContactModel" 
+                                                   DataDisplayItems="@GetDataDisplayItems()"
+                                                   OnReset="@ResetForm" />
+                            }
+                            else
+                            {
+                                <DynamicFormComponent TModel="ContactModel" 
+                                                    Model="@_model" 
+                                                    Configuration="@_formConfiguration"
+                                                    OnValidSubmit="@HandleValidSubmit"
+                                                    OnFieldChanged="@(args => HandleFieldChanged(args.fieldName, args.value))"
+                                                    IsSubmitting="@_isSubmitting"
+                                                    ShowSubmitButton="true"
+                                                    SubmitButtonText="Submit Information"
+                                                    SubmittingText="Submitting..."
+                                                    SubmitButtonClass="px-8" />
+                            }
+                        </MudPaper>
+                    </MudItem>
+                    
+                    <MudItem xs="12" lg="4">
+                        <FormGuidelines Guidelines="@_guidelines" Title="Fluent API Features" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+            
+            <MudTabPanel Text="Code Example" Icon="@Icons.Material.Filled.Code">
+                <CodeExample Title="Fluent API Configuration" Language="csharp" Code="@GetGeneratedCode()" />
+            </MudTabPanel>
+        </MudTabs>
+    </MudPaper>
+</MudContainer>
 
 @code {
     private ContactModel _model = new();
@@ -59,18 +74,6 @@
         new() { Icon = Icons.Material.Filled.Security, Color = Color.Success, Text = "Built-in field validation rules" },
         new() { Icon = Icons.Material.Filled.Psychology, Color = Color.Warning, Text = "Intelligent dependency handling" }
     };
-    
-    private string _codeExample = @"FormBuilder<ContactModel>
-    .Create()
-    .WithLayout(FormLayout.Horizontal)
-    .AddRequiredTextField(x => x.FirstName, 
-        ""First Name"", ""Enter first name"", 2)
-    .AddEmailField(x => x.Email)
-    .AddNumericField(x => x.Age, ""Age"", 16, 100)
-    .AddDropdownField(x => x.Country, ""Country"",
-        (""US"", ""United States""),
-        (""CA"", ""Canada""))
-    .Build();";
     
     protected override void OnInitialized()
     {
@@ -171,5 +174,24 @@
             items.Add(new() { Label = "Field Changes", Value = $"{_fieldChanges.Count} changes tracked" });
         
         return items;
+    }
+    
+    private string GetGeneratedCode()
+    {
+        var formCode = CodeGenerator.GenerateFormBuilderCode(_formConfiguration);
+        
+        // Add usage example
+        var usageExample = @"
+
+// Use in Razor component
+<DynamicFormComponent TModel=""ContactModel"" 
+    Model=""@_model"" 
+    Configuration=""@_formConfiguration""
+    OnValidSubmit=""@HandleValidSubmit""
+    OnFieldChanged=""@(args => HandleFieldChanged(args.fieldName, args.value))""
+    ShowSubmitButton=""true""
+    SubmitButtonText=""Submit Information"" />";
+        
+        return formCode + usageExample;
     }
 }

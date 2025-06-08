@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMudServices();
 builder.Services.AddDynamicForms();
 builder.Services.AddScoped<IMarkdownService, MarkdownService>();
+builder.Services.AddScoped<FormCodeGeneratorService>();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
