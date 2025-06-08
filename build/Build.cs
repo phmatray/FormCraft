@@ -143,8 +143,9 @@ class Build : NukeBuild
         .Description("Generate changelog using git-cliff")
         .Executes(() =>
         {
-            // Install git-cliff if not available
-            if (!IsGitCliffInstalled())
+            // In CI, git-cliff is installed by the GitHub Action
+            // Locally, install if not available
+            if (IsLocalBuild && !IsGitCliffInstalled())
             {
                 InstallGitCliff();
             }

@@ -39,13 +39,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Install git-cliff
-        run: |
-          curl -sLO https://github.com/orhun/git-cliff/releases/latest/download/git-cliff-x86_64-unknown-linux-gnu.tar.gz
-          tar -xzf git-cliff-x86_64-unknown-linux-gnu.tar.gz
-          sudo mv git-cliff /usr/local/bin/
-          rm git-cliff-x86_64-unknown-linux-gnu.tar.gz
-          git-cliff --version
+      - name: Setup git-cliff
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --version
       - name: 'Cache: .nuke/temp, ~/.nuget/packages'
         uses: actions/cache@v4
         with:
