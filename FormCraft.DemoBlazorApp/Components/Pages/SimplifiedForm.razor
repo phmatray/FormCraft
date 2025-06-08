@@ -1,4 +1,3 @@
-@page "/"
 @page "/simplified"
 @inject FormCodeGeneratorService CodeGenerator
 
@@ -69,6 +68,47 @@
             
             <MudTabPanel Text="Code Example" Icon="@Icons.Material.Filled.Code">
                 <CodeExample Title="Complete Form Configuration" Language="csharp" Code="@GetGeneratedCode()" />
+            </MudTabPanel>
+            
+            <MudTabPanel Text="Guidelines" Icon="@Icons.Material.Filled.Lightbulb">
+                <FormGuidelines Title="Simplified API Guidelines">
+                    <MudSimpleTable>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Usage</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Dynamic Component</td>
+                                <td>Single component for complete forms</td>
+                                <td><code>&lt;DynamicFormComponent TModel="ContactModel" /&gt;</code></td>
+                            </tr>
+                            <tr>
+                                <td>Field Events</td>
+                                <td>Track field changes in real-time</td>
+                                <td><code>OnFieldChanged="@@(args => HandleFieldChanged(...))"</code></td>
+                            </tr>
+                            <tr>
+                                <td>Submit Handling</td>
+                                <td>Async form submission support</td>
+                                <td><code>OnValidSubmit="@@HandleValidSubmit"</code></td>
+                            </tr>
+                            <tr>
+                                <td>Loading States</td>
+                                <td>Built-in loading indicators</td>
+                                <td><code>IsSubmitting="@@_isSubmitting"</code></td>
+                            </tr>
+                            <tr>
+                                <td>Automatic Binding</td>
+                                <td>Two-way binding out of the box</td>
+                                <td>No manual binding code needed</td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </FormGuidelines>
             </MudTabPanel>
         </MudTabs>
     </MudPaper>

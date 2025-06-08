@@ -53,6 +53,47 @@
             <MudTabPanel Text="Code Example" Icon="@Icons.Material.Filled.Code">
                 <CodeExample Title="Fluent API Configuration" Language="csharp" Code="@GetGeneratedCode()" />
             </MudTabPanel>
+            
+            <MudTabPanel Text="Guidelines" Icon="@Icons.Material.Filled.Lightbulb">
+                <FormGuidelines Title="Fluent API Guidelines">
+                    <MudSimpleTable>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Usage</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Text Fields</td>
+                                <td>Quick text field creation</td>
+                                <td><code>.AddRequiredTextField(x => x.Name, "Name", "Enter name")</code></td>
+                            </tr>
+                            <tr>
+                                <td>Email Fields</td>
+                                <td>Email with built-in validation</td>
+                                <td><code>.AddEmailField(x => x.Email)</code></td>
+                            </tr>
+                            <tr>
+                                <td>Numeric Fields</td>
+                                <td>Numbers with min/max constraints</td>
+                                <td><code>.AddNumericField(x => x.Age, "Age", 16, 100)</code></td>
+                            </tr>
+                            <tr>
+                                <td>Field Dependencies</td>
+                                <td>Conditional visibility/updates</td>
+                                <td><code>.VisibleWhen(m => !string.IsNullOrEmpty(m.Country))</code></td>
+                            </tr>
+                            <tr>
+                                <td>Layout Control</td>
+                                <td>Form layout configuration</td>
+                                <td><code>.WithLayout(FormLayout.Horizontal)</code></td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </FormGuidelines>
+            </MudTabPanel>
         </MudTabs>
     </MudPaper>
 </MudContainer>

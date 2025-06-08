@@ -79,6 +79,47 @@
             <MudTabPanel Text="Code Example" Icon="@Icons.Material.Filled.Code">
                 <CodeExample Title="Type-Safe Form Configuration" Language="csharp" Code="@GetGeneratedCode()" />
             </MudTabPanel>
+            
+            <MudTabPanel Text="Guidelines" Icon="@Icons.Material.Filled.Lightbulb">
+                <FormGuidelines Title="Improved API Guidelines">
+                    <MudSimpleTable>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Usage</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Type-Safe Builder</td>
+                                <td>Strongly typed field configuration</td>
+                                <td><code>.AddField(x => x.FirstName)</code></td>
+                            </tr>
+                            <tr>
+                                <td>Built-in Validation</td>
+                                <td>Common validation rules</td>
+                                <td><code>.WithMinLength(2, "Must be at least 2 characters")</code></td>
+                            </tr>
+                            <tr>
+                                <td>Email Validation</td>
+                                <td>Pre-built email validator</td>
+                                <td><code>.WithEmailValidation()</code></td>
+                            </tr>
+                            <tr>
+                                <td>Range Validation</td>
+                                <td>Min/max value constraints</td>
+                                <td><code>.WithRange(16, 100, "Age must be between 16 and 100")</code></td>
+                            </tr>
+                            <tr>
+                                <td>Manual Rendering</td>
+                                <td>Full control over rendering</td>
+                                <td><code>FieldRendererService.RenderField(...)</code></td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </FormGuidelines>
+            </MudTabPanel>
         </MudTabs>
     </MudPaper>
 </MudContainer>
