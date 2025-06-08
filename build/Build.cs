@@ -260,15 +260,23 @@ class Build : NukeBuild
         else if (EnvironmentInfo.IsLinux)
         {
             // Download binary for Linux
-            var downloadProcess = ProcessTasks.StartProcess(
-                "curl", 
-                "-L https://github.com/orhun/git-cliff/releases/latest/download/git-cliff-x86_64-unknown-linux-musl.tar.gz | tar -xz -C /usr/local/bin", 
-                RootDirectory);
-            downloadProcess.WaitForExit();
-            
-            if (downloadProcess.ExitCode != 0)
+            var commands = new[]
             {
-                throw new Exception("Failed to install git-cliff. Please install manually: https://github.com/orhun/git-cliff#installation");
+                "curl -sLO https://github.com/orhun/git-cliff/releases/latest/download/git-cliff-x86_64-unknown-linux-gnu.tar.gz",
+                "tar -xzf git-cliff-x86_64-unknown-linux-gnu.tar.gz",
+                "sudo mv git-cliff /usr/local/bin/",
+                "rm git-cliff-x86_64-unknown-linux-gnu.tar.gz"
+            };
+            
+            foreach (var command in commands)
+            {
+                var process = ProcessTasks.StartProcess("/bin/bash", $"-c \"{command}\"", RootDirectory);
+                process.WaitForExit();
+                
+                if (process.ExitCode != 0)
+                {
+                    throw new Exception($"Failed to install git-cliff at command: {command}. Please install manually: https://github.com/orhun/git-cliff#installation");
+                }
             }
         }
         else if (EnvironmentInfo.IsWin)
