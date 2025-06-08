@@ -118,6 +118,115 @@ public static class FluentFormBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a decimal field with optional range validation for currency, percentages, or other decimal values.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FormBuilder instance to extend.</param>
+    /// <param name="expression">A lambda expression identifying the decimal property.</param>
+    /// <param name="label">The display label for the field.</param>
+    /// <param name="min">Minimum value allowed (default: decimal.MinValue).</param>
+    /// <param name="max">Maximum value allowed (default: decimal.MaxValue).</param>
+    /// <param name="required">Whether the field is required (default: true).</param>
+    /// <param name="placeholder">Optional placeholder text.</param>
+    /// <returns>The FormBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// builder.AddDecimalField(x => x.Price, "Price", min: 0, max: 1000, placeholder: "0.00");
+    /// </code>
+    /// </example>
+    public static FormBuilder<TModel> AddDecimalField<TModel>(
+        this FormBuilder<TModel> builder,
+        Expression<Func<TModel, decimal>> expression,
+        string label,
+        decimal min = decimal.MinValue,
+        decimal max = decimal.MaxValue,
+        bool required = true,
+        string? placeholder = null) where TModel : new()
+    {
+        var fieldBuilder = builder.AddField(expression)
+            .WithLabel(label);
+
+        if (required)
+            fieldBuilder.Required($"{label} is required");
+
+        if (min != decimal.MinValue || max != decimal.MaxValue)
+            fieldBuilder.WithRange(min, max, $"Must be between {min} and {max}");
+
+        if (!string.IsNullOrEmpty(placeholder))
+            fieldBuilder.WithPlaceholder(placeholder);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a currency field with decimal support and formatting.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FormBuilder instance to extend.</param>
+    /// <param name="expression">A lambda expression identifying the decimal property for currency.</param>
+    /// <param name="label">The display label for the field.</param>
+    /// <param name="currencySymbol">Currency symbol to display (default: "$").</param>
+    /// <param name="required">Whether the field is required (default: true).</param>
+    /// <returns>The FormBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// builder.AddCurrencyField(x => x.Amount, "Amount", currencySymbol: "€");
+    /// </code>
+    /// </example>
+    public static FormBuilder<TModel> AddCurrencyField<TModel>(
+        this FormBuilder<TModel> builder,
+        Expression<Func<TModel, decimal>> expression,
+        string label,
+        string currencySymbol = "$",
+        bool required = true) where TModel : new()
+    {
+        var fieldBuilder = builder.AddField(expression)
+            .WithLabel(label)
+            .WithPlaceholder($"{currencySymbol}0.00")
+            .WithHelpText($"Enter amount in {currencySymbol}");
+
+        if (required)
+            fieldBuilder.Required($"{label} is required");
+
+        // Ensure non-negative values for currency
+        fieldBuilder.WithRange(0, decimal.MaxValue, "Amount must be positive");
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a percentage field with decimal support (0-100 range).
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FormBuilder instance to extend.</param>
+    /// <param name="expression">A lambda expression identifying the decimal property for percentage.</param>
+    /// <param name="label">The display label for the field.</param>
+    /// <param name="required">Whether the field is required (default: true).</param>
+    /// <returns>The FormBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// builder.AddPercentageField(x => x.DiscountRate, "Discount Rate");
+    /// </code>
+    /// </example>
+    public static FormBuilder<TModel> AddPercentageField<TModel>(
+        this FormBuilder<TModel> builder,
+        Expression<Func<TModel, decimal>> expression,
+        string label,
+        bool required = true) where TModel : new()
+    {
+        var fieldBuilder = builder.AddField(expression)
+            .WithLabel(label)
+            .WithPlaceholder("0.00")
+            .WithHelpText("Enter percentage (0-100)")
+            .WithRange(0, 100, "Percentage must be between 0 and 100");
+
+        if (required)
+            fieldBuilder.Required($"{label} is required");
+
+        return builder;
+    }
+
+    /// <summary>
     /// Adds a dropdown selection field with predefined options and required validation.
     /// </summary>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>

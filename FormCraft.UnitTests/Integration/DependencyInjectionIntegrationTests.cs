@@ -26,16 +26,20 @@ public class DependencyInjectionIntegrationTests
 
         // Should be able to resolve all individual renderers
         var allRenderers = scopedProvider.GetServices<IFieldRenderer>().ToList();
-        allRenderers.Count.ShouldBe(4);
+        allRenderers.Count.ShouldBe(6); // String, Int, Decimal, Double, Bool, DateTime
 
         // Should be able to resolve specific renderer types
         var stringRenderer = allRenderers.OfType<StringFieldRenderer>().FirstOrDefault();
         var intRenderer = allRenderers.OfType<IntFieldRenderer>().FirstOrDefault();
+        var decimalRenderer = allRenderers.OfType<DecimalFieldRenderer>().FirstOrDefault();
+        var doubleRenderer = allRenderers.OfType<DoubleFieldRenderer>().FirstOrDefault();
         var boolRenderer = allRenderers.OfType<BoolFieldRenderer>().FirstOrDefault();
         var dateTimeRenderer = allRenderers.OfType<DateTimeFieldRenderer>().FirstOrDefault();
 
         stringRenderer.ShouldNotBeNull();
         intRenderer.ShouldNotBeNull();
+        decimalRenderer.ShouldNotBeNull();
+        doubleRenderer.ShouldNotBeNull();
         boolRenderer.ShouldNotBeNull();
         dateTimeRenderer.ShouldNotBeNull();
 
@@ -118,10 +122,12 @@ public class DependencyInjectionIntegrationTests
         var rendererService = serviceProvider.GetRequiredService<IFieldRendererService>();
 
         // Assert
-        allRenderers.Count.ShouldBe(5); // 4 built-in + 1 custom
+        allRenderers.Count.ShouldBe(7); // 6 built-in + 1 custom
         allRenderers.ShouldContain(r => r.GetType() == typeof(CustomTestRenderer));
         allRenderers.ShouldContain(r => r.GetType() == typeof(StringFieldRenderer));
         allRenderers.ShouldContain(r => r.GetType() == typeof(IntFieldRenderer));
+        allRenderers.ShouldContain(r => r.GetType() == typeof(DecimalFieldRenderer));
+        allRenderers.ShouldContain(r => r.GetType() == typeof(DoubleFieldRenderer));
         allRenderers.ShouldContain(r => r.GetType() == typeof(BoolFieldRenderer));
         allRenderers.ShouldContain(r => r.GetType() == typeof(DateTimeFieldRenderer));
 
@@ -257,7 +263,7 @@ public class DependencyInjectionIntegrationTests
             
             rendererService.ShouldNotBeNull();
             renderers.ShouldNotBeNull();
-            renderers.Count().ShouldBe(4);
+            renderers.Count().ShouldBe(6); // String, Int, Decimal, Double, Bool, DateTime
         }
 
         // Assert - After scope disposal, we should be able to create new instances
@@ -268,7 +274,7 @@ public class DependencyInjectionIntegrationTests
             
             newRendererService.ShouldNotBeNull();
             newRenderers.ShouldNotBeNull();
-            newRenderers.Count().ShouldBe(4);
+            newRenderers.Count().ShouldBe(6); // String, Int, Decimal, Double, Bool, DateTime
             
             // Should be different instances
             newRendererService.ShouldNotBeSameAs(rendererService);

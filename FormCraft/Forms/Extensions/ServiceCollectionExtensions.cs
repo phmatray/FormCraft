@@ -25,6 +25,8 @@ public static class ServiceCollectionExtensions
     /// <item>IFieldRendererService - Coordinates field rendering</item>
     /// <item>StringFieldRenderer - Handles text input fields</item>
     /// <item>IntFieldRenderer - Handles numeric input fields</item>
+    /// <item>DecimalFieldRenderer - Handles decimal input fields</item>
+    /// <item>DoubleFieldRenderer - Handles double/float input fields</item>
     /// <item>BoolFieldRenderer - Handles checkbox and switch fields</item>
     /// <item>DateTimeFieldRenderer - Handles date and time picker fields</item>
     /// </list>
@@ -34,6 +36,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFieldRendererService, FieldRendererService>();
         services.AddScoped<IFieldRenderer, StringFieldRenderer>();
         services.AddScoped<IFieldRenderer, IntFieldRenderer>();
+        services.AddScoped<IFieldRenderer, DecimalFieldRenderer>();
+        services.AddScoped<IFieldRenderer, DoubleFieldRenderer>();
         services.AddScoped<IFieldRenderer, BoolFieldRenderer>();
         services.AddScoped<IFieldRenderer, DateTimeFieldRenderer>();
         

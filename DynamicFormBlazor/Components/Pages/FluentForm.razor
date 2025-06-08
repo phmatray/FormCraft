@@ -111,13 +111,24 @@
             .AddRequiredTextField(x => x.LastName, "Last Name", "Enter your last name", 2)
             .AddEmailField(x => x.Email)
             .AddNumericField(x => x.Age, "Age", 16, 100)
-            .AddDropdownField(x => x.Country, "Country",
+            .AddField(x => x.ExpectedSalary)
+                .WithLabel("Expected Salary")
+                .WithPlaceholder("$0.00")
+                .WithHelpText("Enter amount in $")
+            .AddField(x => x.HourlyRate)
+                .WithLabel("Hourly Rate")
+                .WithPlaceholder("50.00")
+                .WithHelpText("Enter hourly rate")
+            .AddField(x => x.Country)
+                .WithLabel("Country")
+                .Required("Please select a country")
+                .WithOptions(
                 ("US", "United States"),
                 ("CA", "Canada"),
                 ("UK", "United Kingdom"),
                 ("DE", "Germany"),
                 ("FR", "France")
-            )
+                )
             .AddField(x => x.City)
                 .WithLabel("City")
                 .WithPlaceholder("Enter your city")
@@ -169,13 +180,19 @@
         var items = new List<FormSuccessDisplay<ContactModel>.DataDisplayItem>
         {
             new() { Label = "Full Name", Value = $"{_model.FirstName} {_model.LastName}" },
-            new() { Label = "Email", Value = _model.Email ?? "" },
+            new() { Label = "Email", Value = _model.Email },
             new() { Label = "Age", Value = $"{_model.Age} years old" },
-            new() { Label = "Country", Value = _model.Country ?? "" }
+            new() { Label = "Country", Value = _model.Country }
         };
         
         if (!string.IsNullOrEmpty(_model.City))
             items.Add(new() { Label = "City", Value = _model.City });
+            
+        if (_model.ExpectedSalary.HasValue)
+            items.Add(new() { Label = "Expected Salary", Value = $"${_model.ExpectedSalary.Value:N2}" });
+            
+        if (_model.HourlyRate.HasValue)
+            items.Add(new() { Label = "Hourly Rate", Value = $"${_model.HourlyRate.Value:N2}/hr" });
             
         items.Add(new() { Label = "Newsletter", Value = _model.SubscribeToNewsletter ? "Subscribed" : "Not Subscribed" });
         
