@@ -179,7 +179,9 @@ Creates field dependencies with actions.
 - `OnFieldChanged` - Callback when any field value changes
 - `ShowSubmitButton` - Whether to show the submit button (default: true)
 - `SubmitButtonText` - Text for submit button (default: "Submit")
+- `SubmittingText` - Text to show while form is submitting (default: "Submitting...")
 - `IsSubmitting` - Whether form is in submitting state
+- `SubmitButtonClass` - CSS class to apply to the submit button
 
 #### Example
 ```html

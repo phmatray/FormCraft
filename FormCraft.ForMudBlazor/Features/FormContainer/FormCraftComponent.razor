@@ -22,6 +22,7 @@
         <MudButton ButtonType="ButtonType.Submit"
                    Variant="Variant.Filled"
                    Color="Color.Primary"
+                   Class="@SubmitButtonClass"
                    Disabled="@IsSubmitting">
             @(IsSubmitting ? SubmittingText : SubmitButtonText)
         </MudButton>
