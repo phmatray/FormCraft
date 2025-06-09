@@ -53,10 +53,11 @@ var formConfiguration = FormBuilder<ContactModel>
 Add the form component to your Razor page:
 
 ```html
-<DynamicFormComponent TModel="ContactModel" 
-                     Model="@model" 
-                     Configuration="@formConfiguration"
-                     OnValidSubmit="@HandleSubmit" />
+<FormCraftComponent TModel="ContactModel" 
+                   Model="@model" 
+                   Configuration="@formConfiguration"
+                   OnValidSubmit="@HandleSubmit"
+                   ShowSubmitButton="true" />
 ```
 
 ## Next Steps

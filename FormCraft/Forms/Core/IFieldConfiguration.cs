@@ -40,7 +40,7 @@ public interface IFieldConfiguration<TModel, TValue>
     /// Gets or sets the display label for the field that appears in the UI.
     /// This is typically shown above or beside the input control.
     /// </summary>
-    string Label { get; set; }
+    string? Label { get; set; }
 
     /// <summary>
     /// Gets or sets the placeholder text displayed inside empty input fields to guide user input.

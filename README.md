@@ -76,13 +76,15 @@ public class UserRegistration
 ```csharp
 @page "/register"
 @using FormCraft
+@using FormCraft.ForMudBlazor
 
 <h3>User Registration</h3>
 
-<DynamicFormComponent TModel="UserRegistration" 
-                     Model="@model" 
-                     Configuration="@formConfig"
-                     OnValidSubmit="@HandleSubmit" />
+<FormCraftComponent TModel="UserRegistration" 
+                   Model="@model" 
+                   Configuration="@formConfig"
+                   OnValidSubmit="@HandleSubmit"
+                   ShowSubmitButton="true" />
 
 @code {
     private UserRegistration model = new();

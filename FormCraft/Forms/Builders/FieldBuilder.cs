@@ -368,7 +368,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// <summary>
     /// Builds and returns the final form configuration containing all configured fields and settings.
     /// </summary>
-    /// <returns>An IFormConfiguration instance that can be used with DynamicFormComponent.</returns>
+    /// <returns>An IFormConfiguration instance that can be used with FormCraftComponent.</returns>
     /// <example>
     /// <code>
     /// var config = builder.Build();

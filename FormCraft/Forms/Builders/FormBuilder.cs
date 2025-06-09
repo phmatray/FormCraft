@@ -159,7 +159,7 @@ public class FormBuilder<TModel> where TModel : new()
     }
 
     /// <summary>
-    /// Builds and returns the final form configuration that can be used with DynamicFormComponent.
+    /// Builds and returns the final form configuration that can be used with FormCraftComponent.
     /// </summary>
     /// <returns>An IFormConfiguration instance containing all configured fields and settings.</returns>
     /// <example>

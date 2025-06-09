@@ -37,11 +37,11 @@ public class FieldValidationMessageTests
         // Act - Use reflection to access private property
         var validationErrorsProperty = typeof(FieldValidationMessage)
             .GetProperty("ValidationErrors", BindingFlags.NonPublic | BindingFlags.Instance);
-        var validationErrors = (IEnumerable<string>)validationErrorsProperty!.GetValue(component)!;
+        var validationErrors = ((IEnumerable<string>)validationErrorsProperty!.GetValue(component)!).ToList();
 
         // Assert
         validationErrors.ShouldNotBeNull();
-        validationErrors.Count().ShouldBe(0);
+        validationErrors.Count.ShouldBe(0);
     }
 
     [Fact]
@@ -82,10 +82,10 @@ public class FieldValidationMessageTests
         // Act - Use reflection to access private property
         var validationErrorsProperty = typeof(FieldValidationMessage)
             .GetProperty("ValidationErrors", BindingFlags.NonPublic | BindingFlags.Instance);
-        var validationErrors = (IEnumerable<string>)validationErrorsProperty!.GetValue(component)!;
+        var validationErrors = ((IEnumerable<string>)validationErrorsProperty!.GetValue(component)!).ToList();
 
         // Assert
-        validationErrors.Count().ShouldBe(2);
+        validationErrors.Count.ShouldBe(2);
         validationErrors.ShouldContain("Name is required");
         validationErrors.ShouldContain("Name must be at least 2 characters");
     }
@@ -138,10 +138,10 @@ public class FieldValidationMessageTests
         // Act - Use reflection to access private property
         var validationErrorsProperty = typeof(FieldValidationMessage)
             .GetProperty("ValidationErrors", BindingFlags.NonPublic | BindingFlags.Instance);
-        var validationErrors = (IEnumerable<string>)validationErrorsProperty!.GetValue(component)!;
+        var validationErrors = ((IEnumerable<string>)validationErrorsProperty!.GetValue(component)!).ToList();
 
         // Assert
-        validationErrors.Count().ShouldBe(0);
+        validationErrors.Count.ShouldBe(0);
     }
 
     [Fact]
@@ -165,10 +165,10 @@ public class FieldValidationMessageTests
         // Act - Use reflection to access private property
         var validationErrorsProperty = typeof(FieldValidationMessage)
             .GetProperty("ValidationErrors", BindingFlags.NonPublic | BindingFlags.Instance);
-        var validationErrors = (IEnumerable<string>)validationErrorsProperty!.GetValue(component)!;
+        var validationErrors = ((IEnumerable<string>)validationErrorsProperty!.GetValue(component)!).ToList();
 
         // Assert
-        validationErrors.Count().ShouldBe(0);
+        validationErrors.Count.ShouldBe(0);
     }
 
     [Fact]

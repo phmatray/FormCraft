@@ -312,11 +312,12 @@ var formConfig = FormBuilder&lt;ContactModel&gt;
     .Build();
 
 // 3. Use in your component
-&lt;DynamicFormComponent
+&lt;FormCraftComponent
     TModel="ContactModel"
     Model="@@model"
     Configuration="@@formConfig"
-    OnValidSubmit="@@HandleSubmit" /&gt;</code></pre>
+    OnValidSubmit="@@HandleSubmit"
+    ShowSubmitButton="true" /&gt;</code></pre>
                     </MudCardContent>
                 </MudCard>
             </MudItem>

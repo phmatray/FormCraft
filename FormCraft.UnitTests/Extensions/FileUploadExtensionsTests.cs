@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Components.Forms;
-
 namespace FormCraft.UnitTests.Extensions;
 
 public class FileUploadExtensionsTests

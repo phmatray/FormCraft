@@ -53,17 +53,23 @@ public class UIFrameworkConfiguration
         {
             throw new InvalidOperationException("No UI framework is configured.");
         }
+
+        if (fieldType is { } t1 && t1 == typeof(string))
+            return CurrentFramework.TextFieldRenderer;
         
-        return fieldType switch
-        {
-            Type t when t == typeof(string) => CurrentFramework.TextFieldRenderer,
-            Type t when IsNumericType(t) => CurrentFramework.NumericFieldRenderer,
-            Type t when t == typeof(bool) || t == typeof(bool?) => CurrentFramework.BooleanFieldRenderer,
-            Type t when t == typeof(DateTime) || t == typeof(DateTime?) || 
-                        t == typeof(DateOnly) || t == typeof(DateOnly?) => CurrentFramework.DateTimeFieldRenderer,
-            Type t when IsFileUploadType(t) => CurrentFramework.FileUploadFieldRenderer,
-            _ => throw new NotSupportedException($"No renderer available for type {fieldType}")
-        };
+        if (fieldType is { } t2 && IsNumericType(t2))
+            return CurrentFramework.NumericFieldRenderer;
+        
+        if (fieldType is { } t3 && (t3 == typeof(bool) || t3 == typeof(bool?)))
+            return CurrentFramework.BooleanFieldRenderer;
+        
+        if (fieldType is { } t4 && (t4 == typeof(DateTime) || t4 == typeof(DateTime?) || t4 == typeof(DateOnly) || t4 == typeof(DateOnly?)))
+            return CurrentFramework.DateTimeFieldRenderer;
+        
+        if (fieldType is { } t5 && IsFileUploadType(t5))
+            return CurrentFramework.FileUploadFieldRenderer;
+        
+        throw new NotSupportedException($"No renderer available for type {fieldType}");
     }
     
     private static bool IsNumericType(Type type)

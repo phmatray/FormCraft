@@ -72,9 +72,9 @@ public class FieldBuilderExtensionsTests
         var field = config.Fields.First(f => f.FieldName == "Status");
         field.AdditionalAttributes.ShouldContainKey("Options");
 
-        var options = field.AdditionalAttributes["Options"] as IEnumerable<SelectOption<string>>;
+        var options = (field.AdditionalAttributes["Options"] as IEnumerable<SelectOption<string>>)?.ToList();
         options.ShouldNotBeNull();
-        options.Count().ShouldBe(3);
+        options.Count.ShouldBe(3);
         options.ShouldContain(o => o.Value == "active" && o.Label == "Active");
         options.ShouldContain(o => o.Value == "inactive" && o.Label == "Inactive");
         options.ShouldContain(o => o.Value == "pending" && o.Label == "Pending");
@@ -98,9 +98,9 @@ public class FieldBuilderExtensionsTests
         var field = config.Fields.First(f => f.FieldName == "Categories");
         field.AdditionalAttributes.ShouldContainKey("MultiSelectOptions");
 
-        var options = field.AdditionalAttributes["MultiSelectOptions"] as IEnumerable<SelectOption<string>>;
+        var options = (field.AdditionalAttributes["MultiSelectOptions"] as IEnumerable<SelectOption<string>>)?.ToList();
         options.ShouldNotBeNull();
-        options.Count().ShouldBe(2);
+        options.Count.ShouldBe(2);
     }
 
 
