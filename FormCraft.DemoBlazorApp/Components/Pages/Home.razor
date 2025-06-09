@@ -245,13 +245,29 @@ var form = FormTemplates
                     FormCraft is available as a NuGet package. Simply install it and start building dynamic forms immediately.
                 </MudText>
                 
-                <MudPaper Elevation="2" Class="pa-4 mb-4 rounded">
-                    <MudText Typo="Typo.overline" Color="Color.Primary">Package Manager</MudText>
+                <MudPaper Elevation="2" Class="pa-4 mb-4 rounded position-relative">
+                    <div class="d-flex justify-space-between align-center mb-2">
+                        <MudText Typo="Typo.overline" Color="Color.Primary" Class="mb-0">Package Manager</MudText>
+                        <MudTooltip Text="@(_copiedPM ? "Copied!" : "Copy to clipboard")">
+                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" 
+                                           Size="Size.Small" 
+                                           Color="@(_copiedPM ? Color.Success : Color.Default)"
+                                           OnClick='@(() => CopyToClipboard("Install-Package FormCraft", true))' />
+                        </MudTooltip>
+                    </div>
                     <pre class="mb-0 language-bash"><code class="language-bash">Install-Package FormCraft</code></pre>
                 </MudPaper>
                 
-                <MudPaper Elevation="2" Class="pa-4 mb-4 rounded">
-                    <MudText Typo="Typo.overline" Color="Color.Primary">.NET CLI</MudText>
+                <MudPaper Elevation="2" Class="pa-4 mb-4 rounded position-relative">
+                    <div class="d-flex justify-space-between align-center mb-2">
+                        <MudText Typo="Typo.overline" Color="Color.Primary" Class="mb-0">.NET CLI</MudText>
+                        <MudTooltip Text="@(_copiedCLI ? "Copied!" : "Copy to clipboard")">
+                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" 
+                                           Size="Size.Small" 
+                                           Color="@(_copiedCLI ? Color.Success : Color.Default)"
+                                           OnClick='@(() => CopyToClipboard("dotnet add package FormCraft", false))' />
+                        </MudTooltip>
+                    </div>
                     <pre class="mb-0 language-bash"><code class="language-bash">dotnet add package FormCraft</code></pre>
                 </MudPaper>
                 
@@ -371,6 +387,8 @@ var formConfig = FormBuilder&lt;ContactModel&gt;
 </style>
 
 @code {
+    private bool _copiedPM = false;
+    private bool _copiedCLI = false;
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -378,6 +396,35 @@ var formConfig = FormBuilder&lt;ContactModel&gt;
         {
             // Apply Prism.js syntax highlighting
             await JS.InvokeVoidAsync("Prism.highlightAll");
+        }
+    }
+    
+    private async Task CopyToClipboard(string text, bool isPM)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            
+            if (isPM)
+            {
+                _copiedPM = true;
+                StateHasChanged();
+                await Task.Delay(2000);
+                _copiedPM = false;
+                StateHasChanged();
+            }
+            else
+            {
+                _copiedCLI = true;
+                StateHasChanged();
+                await Task.Delay(2000);
+                _copiedCLI = false;
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+            // Fallback if clipboard API is not available
         }
     }
 }
