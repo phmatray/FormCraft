@@ -36,7 +36,11 @@ jobs:
         run: dotnet publish FormCraft.DemoBlazorApp/FormCraft.DemoBlazorApp.csproj -c Release -o release --nologo
         
       - name: Change base href in index.html
-        run: sed -i 's/<base href="\/" \/>/<base href="\/FormCraft\/" \/>/g' release/wwwroot/index.html
+        run: |
+          cd release/wwwroot
+          sed -i 's|<base href="/" />|<base href="https://phmatray.github.io/FormCraft/" />|g' index.html
+          echo "Base href updated in index.html"
+          grep '<base href' index.html
           
       - name: Add .nojekyll file
         run: touch release/wwwroot/.nojekyll

@@ -6,7 +6,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FormCraft", "FormCraft\Form
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FormCraft.UnitTests", "FormCraft.UnitTests\FormCraft.UnitTests.csproj", "{5645C5E1-BF89-4C66-B8B7-68CC466F50F0}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{00000000-0000-0000-0000-000000000000}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A1B2C3D4-5E6F-7890-1234-567890ABCDEF}"
 	ProjectSection(SolutionItems) = preProject
 		Directory.Build.props = Directory.Build.props
 	EndProjectSection
@@ -39,7 +39,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build-config", "build-confi
 		renovate.json = renovate.json
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{00000000-0000-0000-0000-000000000000}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{D1A2B3C4-6E5F-4D7E-8B9A-0C1D2E3F4A5B}"
 	ProjectSection(SolutionItems) = preProject
 		build.sh = build.sh
 		build.ps1 = build.ps1
@@ -50,7 +50,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{0000
 		setup-hooks.ps1 = setup-hooks.ps1
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{00000000-0000-0000-0000-000000000000}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{E1F2A3B4-7C8D-4E9F-A0B1-2C3D4E5F6A7B}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\continuous.yml = .github\workflows\continuous.yml
 		.github\workflows\deploy-docs.yml = .github\workflows\deploy-docs.yml
@@ -81,8 +81,8 @@ Global
 		{F6DD27E9-766F-4426-82C7-03E6CF7AE348} = {7A77639B-9BA4-4910-8A56-88E2F0E80F3A}
 		{0E605901-5186-4D76-AC90-EC845675DB9C} = {46016334-212A-4404-A07F-4B5FC8F9DB64}
 		{5645C5E1-BF89-4C66-B8B7-68CC466F50F0} = {6ED59F2D-69C9-4F71-A95F-6115C1775B36}
-		{46016334-212A-4404-A07F-4B5FC8F9DB64} = {00000000-0000-0000-0000-000000000000}
-		{7A77639B-9BA4-4910-8A56-88E2F0E80F3A} = {00000000-0000-0000-0000-000000000000}
-		{6ED59F2D-69C9-4F71-A95F-6115C1775B36} = {00000000-0000-0000-0000-000000000000}
+		{46016334-212A-4404-A07F-4B5FC8F9DB64} = {A1B2C3D4-5E6F-7890-1234-567890ABCDEF}
+		{7A77639B-9BA4-4910-8A56-88E2F0E80F3A} = {A1B2C3D4-5E6F-7890-1234-567890ABCDEF}
+		{6ED59F2D-69C9-4F71-A95F-6115C1775B36} = {A1B2C3D4-5E6F-7890-1234-567890ABCDEF}
 	EndGlobalSection
 EndGlobal
