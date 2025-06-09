@@ -29,7 +29,7 @@ public class RatingRenderer : CustomFieldRendererBase<int>
             builder.AddAttribute(sequence++, "type", "range");
             builder.AddAttribute(sequence++, "min", "0");
             builder.AddAttribute(sequence++, "max", "5");
-            builder.AddAttribute(sequence++, "value", GetValue(context));
+            builder.AddAttribute(sequence, "value", GetValue(context));
             builder.CloseElement();
             
             builder.CloseElement();

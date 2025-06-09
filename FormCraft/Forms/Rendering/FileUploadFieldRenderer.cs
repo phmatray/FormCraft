@@ -28,7 +28,7 @@ public class FileUploadFieldRenderer : IFieldRenderer
         {
             var sequence = 0;
             builder.OpenComponent(sequence++, typeof(TestStubComponent<TModel>));
-            builder.AddAttribute(sequence++, "Context", context);
+            builder.AddAttribute(sequence, "Context", context);
             builder.CloseComponent();
         };
     }
@@ -78,7 +78,7 @@ public class FileUploadFieldRenderer : IFieldRenderer
             {
                 builder.OpenElement(sequence++, "div");
                 builder.AddAttribute(sequence++, "class", "help-text");
-                builder.AddContent(sequence++, Context.Field.HelpText);
+                builder.AddContent(sequence, Context.Field.HelpText);
                 builder.CloseElement();
             }
             

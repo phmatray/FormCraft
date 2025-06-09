@@ -51,7 +51,7 @@ public class DecimalFieldRenderer : FieldRendererBase<decimal>
             {
                 builder.OpenElement(sequence++, "div");
                 builder.AddAttribute(sequence++, "class", "help-text");
-                builder.AddContent(sequence++, Context.Field.HelpText);
+                builder.AddContent(sequence, Context.Field.HelpText);
                 builder.CloseElement();
             }
             
