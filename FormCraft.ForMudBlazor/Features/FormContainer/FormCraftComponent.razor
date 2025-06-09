@@ -1,6 +1,8 @@
+@using Microsoft.JSInterop
 @namespace FormCraft.ForMudBlazor
 @typeparam TModel where TModel : new()
 @inject IFieldRendererService FieldRendererService
+@inject IJSRuntime JSRuntime
 
 <EditForm Model="@Model" OnValidSubmit="@OnSubmit">
     <DataAnnotationsValidator />
@@ -28,3 +30,14 @@
         </MudButton>
     }
 </EditForm>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Disable browser validation using JavaScript
+            await JSRuntime.InvokeVoidAsync("eval", "document.querySelector('form')?.setAttribute('novalidate', 'novalidate')");
+        }
+    }
+}

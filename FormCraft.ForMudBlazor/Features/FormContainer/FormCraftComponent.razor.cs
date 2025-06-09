@@ -6,15 +6,32 @@ namespace FormCraft.ForMudBlazor;
 
 public partial class FormCraftComponent<TModel>
 {
-    [Parameter] public TModel Model { get; set; } = new();
-    [Parameter] public IFormConfiguration<TModel> Configuration { get; set; } = null!;
-    [Parameter] public EventCallback<TModel> OnValidSubmit { get; set; }
-    [Parameter] public EventCallback<(string fieldName, object? value)> OnFieldChanged { get; set; }
-    [Parameter] public bool ShowSubmitButton { get; set; } = true;
-    [Parameter] public string SubmitButtonText { get; set; } = "Submit";
-    [Parameter] public string SubmittingText { get; set; } = "Submitting...";
-    [Parameter] public bool IsSubmitting { get; set; }
-    [Parameter] public string? SubmitButtonClass { get; set; }
+    [Parameter]
+    public TModel Model { get; set; } = new();
+    
+    [Parameter]
+    public IFormConfiguration<TModel> Configuration { get; set; } = null!;
+    
+    [Parameter]
+    public EventCallback<TModel> OnValidSubmit { get; set; }
+    
+    [Parameter]
+    public EventCallback<(string fieldName, object? value)> OnFieldChanged { get; set; }
+    
+    [Parameter]
+    public bool ShowSubmitButton { get; set; } = true;
+    
+    [Parameter]
+    public string SubmitButtonText { get; set; } = "Submit";
+    
+    [Parameter]
+    public string SubmittingText { get; set; } = "Submitting...";
+    
+    [Parameter]
+    public bool IsSubmitting { get; set; }
+    
+    [Parameter]
+    public string? SubmitButtonClass { get; set; }
 
     private RenderFragment RenderField(IFieldConfiguration<TModel, object> field)
     {
