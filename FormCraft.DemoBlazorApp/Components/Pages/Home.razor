@@ -23,14 +23,14 @@
                                    Color="Color.Primary" 
                                    Size="Size.Large"
                                    StartIcon="@Icons.Material.Filled.RocketLaunch"
-                                   Href="/docs/getting-started">
+                                   Href="docs/getting-started">
                             Get Started
                         </MudButton>
                         <MudButton Variant="Variant.Outlined" 
                                    Color="Color.Primary" 
                                    Size="Size.Large"
                                    StartIcon="@Icons.Material.Filled.Code"
-                                   Href="/simplified">
+                                   Href="simplified">
                             View Examples
                         </MudButton>
                     </div>
@@ -167,7 +167,7 @@ var form = FormTemplates
     .CreateContactForm();</code></pre>
                         </MudCardContent>
                         <MudCardActions Class="mt-auto">
-                            <MudButton Color="Color.Primary" Variant="Variant.Text" Href="/simplified">
+                            <MudButton Color="Color.Primary" Variant="Variant.Text" Href="simplified">
                                 View Demo
                             </MudButton>
                         </MudCardActions>
@@ -196,7 +196,7 @@ var form = FormTemplates
     .Build();</code></pre>
                         </MudCardContent>
                         <MudCardActions Class="mt-auto">
-                            <MudButton Color="Color.Primary" Variant="Variant.Text" Href="/improved">
+                            <MudButton Color="Color.Primary" Variant="Variant.Text" Href="improved">
                                 View Demo
                             </MudButton>
                         </MudCardActions>
@@ -224,7 +224,7 @@ var form = FormTemplates
     .Build();</code></pre>
                         </MudCardContent>
                         <MudCardActions Class="mt-auto">
-                            <MudButton Color="Color.Primary" Variant="Variant.Text" Href="/fluent">
+                            <MudButton Color="Color.Primary" Variant="Variant.Text" Href="fluent">
                                 View Demo
                             </MudButton>
                         </MudCardActions>
@@ -275,7 +275,7 @@ var form = FormTemplates
                     <MudButton Variant="Variant.Filled" 
                                Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.MenuBook"
-                               Href="/docs/getting-started">
+                               Href="docs/getting-started">
                         Read Documentation
                     </MudButton>
                     <MudButton Variant="Variant.Outlined" 
@@ -312,10 +312,11 @@ var formConfig = FormBuilder&lt;ContactModel&gt;
     .Build();
 
 // 3. Use in your component
-&lt;DynamicFormComponent TModel="ContactModel"
-                     Model="@@model"
-                     Configuration="@@formConfig"
-                     OnValidSubmit="@@HandleSubmit" /&gt;</code></pre>
+&lt;DynamicFormComponent
+    TModel="ContactModel"
+    Model="@@model"
+    Configuration="@@formConfig"
+    OnValidSubmit="@@HandleSubmit" /&gt;</code></pre>
                     </MudCardContent>
                 </MudCard>
             </MudItem>
@@ -336,14 +337,14 @@ var formConfig = FormBuilder&lt;ContactModel&gt;
                            Color="Color.Secondary"
                            Size="Size.Large"
                            StartIcon="@Icons.Material.Filled.RocketLaunch"
-                           Href="/docs/getting-started">
+                           Href="docs/getting-started">
                     Get Started Now
                 </MudButton>
                 <MudButton Variant="Variant.Filled" 
                            Color="Color.Secondary"
                            Size="Size.Large"
                            StartIcon="@Icons.Material.Filled.LiveHelp"
-                           Href="/docs/troubleshooting">
+                           Href="docs/troubleshooting">
                     View Documentation
                 </MudButton>
             </div>
