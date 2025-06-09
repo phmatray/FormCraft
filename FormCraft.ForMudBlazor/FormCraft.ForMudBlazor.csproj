@@ -1,0 +1,83 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    
+    <!-- Package Information -->
+    <PackageId>FormCraft.ForMudBlazor</PackageId>
+    <Title>FormCraft for MudBlazor</Title>
+    <Description>MudBlazor UI framework implementation for FormCraft dynamic forms. Provides beautiful Material Design components for your dynamic forms.</Description>
+    <Authors>phmatray</Authors>
+    <Company>phmatray</Company>
+    <Copyright>Copyright © 2025 phmatray</Copyright>
+    
+    <!-- Package URLs -->
+    <PackageProjectUrl>https://github.com/phmatray/FormCraft</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/phmatray/FormCraft</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    
+    <!-- Package Tags -->
+    <PackageTags>blazor;forms;dynamic;mudblazor;material-design;ui;form-builder</PackageTags>
+    
+    <!-- Build Settings -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
+    <PackageReference Include="MudBlazor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FormCraft\FormCraft.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <!-- Include README in package -->
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <!-- Versioning and Source Link -->
+    <PackageReference Include="Microsoft.SourceLink.GitHub">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="Fields\" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <AdditionalFiles Include="Fields\BooleanField\MudBlazorBooleanFieldComponent.razor" />
+    <AdditionalFiles Include="Fields\DateTimeField\MudBlazorDateTimeFieldComponent.razor" />
+    <AdditionalFiles Include="Fields\FileUploadField\MudBlazorFileUploadFieldComponent.razor" />
+    <AdditionalFiles Include="Fields\NumericField\MudBlazorNumericFieldComponent.razor" />
+    <AdditionalFiles Include="Fields\SelectField\MudBlazorSelectFieldComponent.razor" />
+    <AdditionalFiles Include="Fields\TextField\MudBlazorTextFieldComponent.razor" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <UpToDateCheckInput Remove="Features\DateTimeField\MudBlazorDateTimeFieldComponent.razor" />
+    <UpToDateCheckInput Remove="Features\FileUploadField\MudBlazorFileUploadFieldComponent.razor" />
+    <UpToDateCheckInput Remove="Features\NumericField\MudBlazorNumericFieldComponent.razor" />
+    <UpToDateCheckInput Remove="Features\SelectField\MudBlazorSelectFieldComponent.razor" />
+    <UpToDateCheckInput Remove="Features\TextField\MudBlazorTextFieldComponent.razor" />
+  </ItemGroup>
+
+</Project>

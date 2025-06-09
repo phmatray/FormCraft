@@ -23,7 +23,7 @@ dotnet add package FormCraft
 
 2. Register services in `Program.cs`:
 ```csharp
-builder.Services.AddDynamicForms();
+builder.Services.AddFormCraft();
 ```
 
 3. Create a form:

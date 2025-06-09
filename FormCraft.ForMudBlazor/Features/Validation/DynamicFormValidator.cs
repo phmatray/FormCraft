@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 
-namespace FormCraft;
+namespace FormCraft.ForMudBlazor;
 
 /// <summary>
 /// A validation component that integrates Dynamic Form validation with Blazor's EditContext.

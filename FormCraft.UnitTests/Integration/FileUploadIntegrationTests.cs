@@ -12,7 +12,7 @@ public class FileUploadIntegrationTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         _serviceProvider = services.BuildServiceProvider();
         _rendererService = _serviceProvider.GetRequiredService<IFieldRendererService>();
     }

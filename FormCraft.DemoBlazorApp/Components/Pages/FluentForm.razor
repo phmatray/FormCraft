@@ -30,11 +30,11 @@
                             }
                             else
                             {
-                                <DynamicFormComponent TModel="ContactModel" 
+                                <FormCraftComponent TModel="ContactModel" 
                                                     Model="@_model" 
                                                     Configuration="@_formConfiguration"
                                                     OnValidSubmit="@HandleValidSubmit"
-                                                    OnFieldChanged="@(args => HandleFieldChanged(args.fieldName, args.value))"
+                                                    OnFieldChanged="@((args) => HandleFieldChanged(args.fieldName, args.value))"
                                                     IsSubmitting="@_isSubmitting"
                                                     ShowSubmitButton="true"
                                                     SubmitButtonText="Submit Information"
@@ -224,7 +224,7 @@
         const string usageExample = @"
 
 // Use in Razor component
-<DynamicFormComponent TModel=""ContactModel"" 
+<FormCraftComponent TModel=""ContactModel"" 
     Model=""@_model"" 
     Configuration=""@_formConfiguration""
     OnValidSubmit=""@HandleValidSubmit""

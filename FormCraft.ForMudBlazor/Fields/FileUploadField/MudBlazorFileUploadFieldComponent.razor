@@ -1,0 +1,78 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel
+@inherits FieldComponentBase<TModel, IBrowserFile?>
+@implements IFileUploadFieldComponent<TModel>
+
+<MudFileUpload T="IBrowserFile"
+               Accept="@Accept"
+               MaximumFileCount="1"
+               OnFilesChanged="@(async (e) => await OnFileChanged(e.File))"
+               Hidden="false"
+               InputClass="absolute mud-width-full mud-height-full overflow-hidden z-20"
+               InputStyle="opacity:0"
+               @ondragenter="@SetDragClass"
+               @ondragleave="@ClearDragClass"
+               @ondragend="@ClearDragClass">
+    <ActivatorContent>
+        <MudPaper Height="100px"
+                  Outlined="true"
+                  Class="@_dragClass">
+            <MudText Typo="Typo.subtitle2">
+                @if (CurrentValue != null)
+                {
+                    @CurrentValue.Name
+                }
+                else
+                {
+                    @($"Drag and drop file here or click to browse")
+                }
+            </MudText>
+        </MudPaper>
+    </ActivatorContent>
+</MudFileUpload>
+
+@if (!string.IsNullOrEmpty(HelpText))
+{
+    <MudText Typo="Typo.caption" Class="mt-1">@HelpText</MudText>
+}
+
+@code {
+    private string _dragClass = "";
+    
+    public string? Accept { get; set; }
+    public bool AllowMultiple { get; set; }
+    public long? MaxFileSize { get; set; }
+    public int? MaxFiles { get; set; }
+    public bool ShowPreview { get; set; }
+    public bool EnableDragDrop { get; set; } = true;
+    public FileUploadMode UploadMode { get; set; } = FileUploadMode.Immediate;
+    
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Accept = GetAttribute<string>("Accept");
+        AllowMultiple = GetAttribute<bool>("AllowMultiple");
+        MaxFileSize = GetAttribute<long?>("MaxFileSize");
+        MaxFiles = GetAttribute<int?>("MaxFiles");
+        ShowPreview = GetAttribute<bool>("ShowPreview");
+        EnableDragDrop = GetAttribute("EnableDragDrop", true);
+        UploadMode = GetAttribute("UploadMode", FileUploadMode.Immediate);
+    }
+    
+    private Task OnFileChanged(IBrowserFile? file)
+    {
+        CurrentValue = file;
+        ClearDragClass();
+        return Task.CompletedTask;
+    }
+    
+    private void SetDragClass()
+    {
+        _dragClass = "mud-border-primary";
+    }
+    
+    private void ClearDragClass()
+    {
+        _dragClass = "";
+    }
+}

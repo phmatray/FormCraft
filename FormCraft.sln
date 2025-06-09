@@ -56,6 +56,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 		.github\workflows\deploy-docs.yml = .github\workflows\deploy-docs.yml
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FormCraft.ForMudBlazor", "FormCraft.ForMudBlazor\FormCraft.ForMudBlazor.csproj", "{DE15024B-BF9D-4D15-A205-AACF6A8EE670}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -76,6 +78,10 @@ Global
 		{5645C5E1-BF89-4C66-B8B7-68CC466F50F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5645C5E1-BF89-4C66-B8B7-68CC466F50F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5645C5E1-BF89-4C66-B8B7-68CC466F50F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DE15024B-BF9D-4D15-A205-AACF6A8EE670}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DE15024B-BF9D-4D15-A205-AACF6A8EE670}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DE15024B-BF9D-4D15-A205-AACF6A8EE670}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DE15024B-BF9D-4D15-A205-AACF6A8EE670}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{F6DD27E9-766F-4426-82C7-03E6CF7AE348} = {7A77639B-9BA4-4910-8A56-88E2F0E80F3A}
@@ -84,5 +90,6 @@ Global
 		{46016334-212A-4404-A07F-4B5FC8F9DB64} = {A1B2C3D4-5E6F-7890-1234-567890ABCDEF}
 		{7A77639B-9BA4-4910-8A56-88E2F0E80F3A} = {A1B2C3D4-5E6F-7890-1234-567890ABCDEF}
 		{6ED59F2D-69C9-4F71-A95F-6115C1775B36} = {A1B2C3D4-5E6F-7890-1234-567890ABCDEF}
+		{DE15024B-BF9D-4D15-A205-AACF6A8EE670} = {7A77639B-9BA4-4910-8A56-88E2F0E80F3A}
 	EndGlobalSection
 EndGlobal

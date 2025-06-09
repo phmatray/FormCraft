@@ -51,7 +51,7 @@ protected override void OnInitialized()
 2. **Verify field renderer registration**:
 ```csharp
 // In Program.cs
-builder.Services.AddDynamicForms(); // This registers default renderers
+builder.Services.AddFormCraft(); // This registers default renderers
 ```
 
 3. **Check field type support**:
