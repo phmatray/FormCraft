@@ -14,6 +14,7 @@ public partial class FormCraftComponent<TModel>
     [Parameter] public string SubmitButtonText { get; set; } = "Submit";
     [Parameter] public string SubmittingText { get; set; } = "Submitting...";
     [Parameter] public bool IsSubmitting { get; set; }
+    [Parameter] public string? SubmitButtonClass { get; set; }
 
     private RenderFragment RenderField(IFieldConfiguration<TModel, object> field)
     {
