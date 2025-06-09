@@ -43,7 +43,7 @@ public class BoolFieldRenderer : FieldRendererBase<bool>
             builder.CloseElement();
             
             builder.OpenElement(sequence++, "label");
-            builder.AddContent(sequence++, Context.Field.Label);
+            builder.AddContent(sequence, Context.Field.Label);
             builder.CloseElement();
             
             builder.CloseElement();

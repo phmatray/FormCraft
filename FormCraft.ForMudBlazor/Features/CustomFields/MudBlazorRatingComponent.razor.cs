@@ -7,6 +7,6 @@ public partial class MudBlazorRatingComponent<TModel>
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        MaxValue = GetAttribute<int>("MaxRating", 5);
+        MaxValue = GetAttribute("MaxRating", 5);
     }
 }

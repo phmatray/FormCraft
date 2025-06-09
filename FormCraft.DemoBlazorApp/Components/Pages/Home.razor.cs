@@ -4,8 +4,8 @@ namespace FormCraft.DemoBlazorApp.Components.Pages;
 
 public partial class Home
 {
-    private bool _copiedPM = false;
-    private bool _copiedCLI = false;
+    private bool _copiedPM;
+    private bool _copiedCLI;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

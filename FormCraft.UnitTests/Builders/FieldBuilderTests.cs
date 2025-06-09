@@ -327,7 +327,7 @@ public class FieldBuilderTests
         var field = config.Fields.First(f => f.FieldName == "Name");
         var wrapper = field as FieldConfigurationWrapper<TestModel, string>;
         wrapper.ShouldNotBeNull();
-        wrapper!.TypedConfiguration.CustomTemplate.ShouldBeSameAs(template);
+        wrapper.TypedConfiguration.CustomTemplate.ShouldBeSameAs(template);
     }
 
     [Fact]
