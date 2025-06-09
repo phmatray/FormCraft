@@ -269,7 +269,7 @@ public partial class FormCraftComponent<TModel>
         }
     }
 
-    private async Task HandleFieldDependencyChanged(string fieldName)
+    private Task HandleFieldDependencyChanged(string fieldName)
     {
         if (Configuration.FieldDependencies.TryGetValue(fieldName, out var dependencies))
         {
@@ -278,6 +278,8 @@ public partial class FormCraftComponent<TModel>
                 dependency.OnDependencyChanged(Model);
             }
         }
+
+        return Task.CompletedTask;
     }
 
     private bool ShouldShowField(IFieldConfiguration<TModel, object> field)

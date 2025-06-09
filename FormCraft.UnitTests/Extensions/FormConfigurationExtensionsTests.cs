@@ -7,18 +7,18 @@ public class FormConfigurationExtensionsTests
     {
         // Arrange
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.FirstName)
+            .AddField(x => x.FirstName, field => field
                 .WithLabel("First Name")
-                .Required()
-            .AddField(x => x.LastName)
+                .Required())
+            .AddField(x => x.LastName, field => field
                 .WithLabel("Last Name")
-                .Required()
-            .AddField(x => x.Email)
-                .WithLabel("Email")
+                .Required())
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email"))
             // Not required
-            .AddField(x => x.Phone)
+            .AddField(x => x.Phone, field => field
                 .WithLabel("Phone")
-                .Required()
+                .Required())
             .Build();
 
         // Act
@@ -37,10 +37,10 @@ public class FormConfigurationExtensionsTests
     {
         // Arrange
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.FirstName)
-                .WithLabel("First Name")
-            .AddField(x => x.Email)
-                .WithLabel("Email")
+            .AddField(x => x.FirstName, field => field
+                .WithLabel("First Name"))
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email"))
             .Build();
 
         // Act
@@ -55,12 +55,12 @@ public class FormConfigurationExtensionsTests
     {
         // Arrange
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.FirstName)
-                .WithLabel("First Name")
-            .AddField(x => x.LastName)
-                .WithLabel("Last Name")
-            .AddField(x => x.Email)
-                .WithLabel("Email")
+            .AddField(x => x.FirstName, field => field
+                .WithLabel("First Name"))
+            .AddField(x => x.LastName, field => field
+                .WithLabel("Last Name"))
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email"))
             .Build();
 
         var model = new TestModel();
@@ -80,17 +80,17 @@ public class FormConfigurationExtensionsTests
     {
         // Arrange
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.FirstName)
-                .WithLabel("First Name")
-            .AddField(x => x.LastName)
+            .AddField(x => x.FirstName, field => field
+                .WithLabel("First Name"))
+            .AddField(x => x.LastName, field => field
                 .WithLabel("Last Name")
-                .VisibleWhen(m => m.ShowOptionalFields)
-            .AddField(x => x.Email)
+                .VisibleWhen(m => m.ShowOptionalFields))
+            .AddField(x => x.Email, field => field
                 .WithLabel("Email")
-                .VisibleWhen(m => !string.IsNullOrEmpty(m.FirstName))
-            .AddField(x => x.Phone)
+                .VisibleWhen(m => !string.IsNullOrEmpty(m.FirstName)))
+            .AddField(x => x.Phone, field => field
                 .WithLabel("Phone")
-                .VisibleWhen(m => m.ShowOptionalFields && !string.IsNullOrEmpty(m.Email))
+                .VisibleWhen(m => m.ShowOptionalFields && !string.IsNullOrEmpty(m.Email)))
             .Build();
 
         // Test with model where ShowOptionalFields is false and FirstName is empty
@@ -136,12 +136,12 @@ public class FormConfigurationExtensionsTests
         // Arrange
         var builder = FormBuilder<TestModel>.Create();
 
-        // Add field and get direct access to configuration to set IsVisible
-        var fieldBuilder = builder.AddField(x => x.FirstName)
-            .WithLabel("First Name");
+        // Add fields
+        builder.AddField(x => x.FirstName, field => field
+            .WithLabel("First Name"));
 
-        builder.AddField(x => x.LastName)
-            .WithLabel("Last Name");
+        builder.AddField(x => x.LastName, field => field
+            .WithLabel("Last Name"));
 
         var config = builder.Build();
 
@@ -165,9 +165,9 @@ public class FormConfigurationExtensionsTests
         // Arrange
         var builder = FormBuilder<TestModel>.Create();
 
-        var fieldBuilder = builder.AddField(x => x.FirstName)
+        builder.AddField(x => x.FirstName, field => field
             .WithLabel("First Name")
-            .VisibleWhen(m => true); // Always visible via condition
+            .VisibleWhen(m => true)); // Always visible via condition
 
         var config = builder.Build();
 
@@ -189,14 +189,14 @@ public class FormConfigurationExtensionsTests
     {
         // Arrange
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.FirstName)
-                .WithLabel("First Name")
-            .AddField(x => x.LastName)
+            .AddField(x => x.FirstName, field => field
+                .WithLabel("First Name"))
+            .AddField(x => x.LastName, field => field
                 .WithLabel("Last Name")
-                .VisibleWhen(m => !string.IsNullOrEmpty(m.FirstName))
-            .AddField(x => x.Email)
+                .VisibleWhen(m => !string.IsNullOrEmpty(m.FirstName)))
+            .AddField(x => x.Email, field => field
                 .WithLabel("Email")
-                .VisibleWhen(m => !string.IsNullOrEmpty(m.FirstName) && !string.IsNullOrEmpty(m.LastName))
+                .VisibleWhen(m => !string.IsNullOrEmpty(m.FirstName) && !string.IsNullOrEmpty(m.LastName)))
             .Build();
 
         // Test progressive visibility

@@ -33,20 +33,20 @@ public static class FluentFormBuilderExtensions
         int minLength = 1,
         int maxLength = 255) where TModel : new()
     {
-        var fieldBuilder = builder.AddField(expression)
-            .WithLabel(label)
-            .Required($"{label} is required");
+        return builder.AddField(expression, field => 
+        {
+            field.WithLabel(label)
+                 .Required($"{label} is required");
 
-        if (minLength > 1)
-            fieldBuilder.WithMinLength(minLength, $"Must be at least {minLength} characters");
+            if (minLength > 1)
+                field.WithMinLength(minLength, $"Must be at least {minLength} characters");
 
-        if (maxLength < 255)
-            fieldBuilder.WithMaxLength(maxLength, $"Must be no more than {maxLength} characters");
+            if (maxLength < 255)
+                field.WithMaxLength(maxLength, $"Must be no more than {maxLength} characters");
 
-        if (!string.IsNullOrEmpty(placeholder))
-            fieldBuilder.WithPlaceholder(placeholder);
-
-        return builder;
+            if (!string.IsNullOrEmpty(placeholder))
+                field.WithPlaceholder(placeholder);
+        });
     }
 
     /// <summary>
@@ -71,13 +71,13 @@ public static class FluentFormBuilderExtensions
         string label = "Email Address",
         string? placeholder = null) where TModel : new()
     {
-        builder.AddField(expression)
-            .WithLabel(label)
-            .Required($"{label} is required")
-            .WithEmailValidation()
-            .WithPlaceholder(placeholder ?? "your.email@example.com");
-
-        return builder;
+        return builder.AddField(expression, field => 
+        {
+            field.WithLabel(label)
+                 .Required($"{label} is required")
+                 .WithEmailValidation()
+                 .WithPlaceholder(placeholder ?? "your.email@example.com");
+        });
     }
 
     /// <summary>
@@ -106,16 +106,16 @@ public static class FluentFormBuilderExtensions
         int max = int.MaxValue,
         bool required = true) where TModel : new()
     {
-        var fieldBuilder = builder.AddField(expression)
-            .WithLabel(label);
+        return builder.AddField(expression, field => 
+        {
+            field.WithLabel(label);
 
-        if (required)
-            fieldBuilder.Required($"{label} is required");
+            if (required)
+                field.Required($"{label} is required");
 
-        if (min != int.MinValue || max != int.MaxValue)
-            fieldBuilder.WithRange(min, max, $"Must be between {min} and {max}");
-
-        return builder;
+            if (min != int.MinValue || max != int.MaxValue)
+                field.WithRange(min, max, $"Must be between {min} and {max}");
+        });
     }
 
     /// <summary>
@@ -144,19 +144,19 @@ public static class FluentFormBuilderExtensions
         bool required = true,
         string? placeholder = null) where TModel : new()
     {
-        var fieldBuilder = builder.AddField(expression)
-            .WithLabel(label);
+        return builder.AddField(expression, field => 
+        {
+            field.WithLabel(label);
 
-        if (required)
-            fieldBuilder.Required($"{label} is required");
+            if (required)
+                field.Required($"{label} is required");
 
-        if (min != decimal.MinValue || max != decimal.MaxValue)
-            fieldBuilder.WithRange(min, max, $"Must be between {min} and {max}");
+            if (min != decimal.MinValue || max != decimal.MaxValue)
+                field.WithRange(min, max, $"Must be between {min} and {max}");
 
-        if (!string.IsNullOrEmpty(placeholder))
-            fieldBuilder.WithPlaceholder(placeholder);
-
-        return builder;
+            if (!string.IsNullOrEmpty(placeholder))
+                field.WithPlaceholder(placeholder);
+        });
     }
 
     /// <summary>
@@ -181,18 +181,18 @@ public static class FluentFormBuilderExtensions
         string currencySymbol = "$",
         bool required = true) where TModel : new()
     {
-        var fieldBuilder = builder.AddField(expression)
-            .WithLabel(label)
-            .WithPlaceholder($"{currencySymbol}0.00")
-            .WithHelpText($"Enter amount in {currencySymbol}");
+        return builder.AddField(expression, field => 
+        {
+            field.WithLabel(label)
+                 .WithPlaceholder($"{currencySymbol}0.00")
+                 .WithHelpText($"Enter amount in {currencySymbol}");
 
-        if (required)
-            fieldBuilder.Required($"{label} is required");
+            if (required)
+                field.Required($"{label} is required");
 
-        // Ensure non-negative values for currency
-        fieldBuilder.WithRange(0, decimal.MaxValue, "Amount must be positive");
-
-        return builder;
+            // Ensure non-negative values for currency
+            field.WithRange(0, decimal.MaxValue, "Amount must be positive");
+        });
     }
 
     /// <summary>
@@ -215,16 +215,16 @@ public static class FluentFormBuilderExtensions
         string label,
         bool required = true) where TModel : new()
     {
-        var fieldBuilder = builder.AddField(expression)
-            .WithLabel(label)
-            .WithPlaceholder("0.00")
-            .WithHelpText("Enter percentage (0-100)")
-            .WithRange(0, 100, "Percentage must be between 0 and 100");
+        return builder.AddField(expression, field => 
+        {
+            field.WithLabel(label)
+                 .WithPlaceholder("0.00")
+                 .WithHelpText("Enter percentage (0-100)")
+                 .WithRange(0, 100, "Percentage must be between 0 and 100");
 
-        if (required)
-            fieldBuilder.Required($"{label} is required");
-
-        return builder;
+            if (required)
+                field.Required($"{label} is required");
+        });
     }
 
     /// <summary>
@@ -250,12 +250,12 @@ public static class FluentFormBuilderExtensions
         string label,
         params (string value, string label)[] options) where TModel : new()
     {
-        builder.AddField(expression)
-            .WithLabel(label)
-            .Required($"Please select {label}")
-            .WithOptions(options);
-
-        return builder;
+        return builder.AddField(expression, field => 
+        {
+            field.WithLabel(label)
+                 .Required($"Please select {label}")
+                 .WithOptions(options);
+        });
     }
 
     /// <summary>
@@ -278,16 +278,16 @@ public static class FluentFormBuilderExtensions
         string label = "Phone Number",
         bool required = false) where TModel : new()
     {
-        var fieldBuilder = builder.AddField(expression)
-            .WithLabel(label)
-            .WithPlaceholder("(555) 123-4567")
-            .WithValidator(phone => string.IsNullOrEmpty(phone) || IsValidPhone(phone),
-                "Please enter a valid phone number");
+        return builder.AddField(expression, field => 
+        {
+            field.WithLabel(label)
+                 .WithPlaceholder("(555) 123-4567")
+                 .WithValidator(phone => string.IsNullOrEmpty(phone) || IsValidPhone(phone),
+                     "Please enter a valid phone number");
 
-        if (required)
-            fieldBuilder.Required($"{label} is required");
-
-        return builder;
+            if (required)
+                field.Required($"{label} is required");
+        });
     }
 
     /// <summary>
@@ -312,19 +312,19 @@ public static class FluentFormBuilderExtensions
         int minLength = 8,
         bool requireSpecialChars = true) where TModel : new()
     {
-        var fieldBuilder = builder.AddField(expression)
-            .WithLabel(label)
-            .Required($"{label} is required")
-            .WithMinLength(minLength, $"Must be at least {minLength} characters");
-
-        if (requireSpecialChars)
+        return builder.AddField(expression, field => 
         {
-            fieldBuilder.WithValidator(password =>
-                string.IsNullOrEmpty(password) || HasSpecialCharacters(password),
-                "Must contain at least one special character");
-        }
+            field.WithLabel(label)
+                 .Required($"{label} is required")
+                 .WithMinLength(minLength, $"Must be at least {minLength} characters");
 
-        return builder;
+            if (requireSpecialChars)
+            {
+                field.WithValidator(password =>
+                    string.IsNullOrEmpty(password) || HasSpecialCharacters(password),
+                    "Must contain at least one special character");
+            }
+        });
     }
 
     /// <summary>
@@ -348,13 +348,13 @@ public static class FluentFormBuilderExtensions
         string label,
         string? helpText = null) where TModel : new()
     {
-        var fieldBuilder = builder.AddField(expression)
-            .WithLabel(label);
+        return builder.AddField(expression, field => 
+        {
+            field.WithLabel(label);
 
-        if (!string.IsNullOrEmpty(helpText))
-            fieldBuilder.WithHelpText(helpText);
-
-        return builder;
+            if (!string.IsNullOrEmpty(helpText))
+                field.WithHelpText(helpText);
+        });
     }
 
 
@@ -403,14 +403,14 @@ public static class FluentFormBuilderExtensions
         long maxFileSize = 10 * 1024 * 1024,
         bool required = false) where TModel : new()
     {
-        var fieldBuilder = builder.AddField(expression)
-            .WithLabel(label)
-            .AsFileUpload(acceptedFileTypes, maxFileSize);
+        return builder.AddField(expression, field => 
+        {
+            field.WithLabel(label)
+                 .AsFileUpload(acceptedFileTypes, maxFileSize);
             
-        if (required)
-            fieldBuilder.Required($"{label} is required");
-            
-        return builder;
+            if (required)
+                field.Required($"{label} is required");
+        });
     }
     
     /// <summary>
@@ -442,14 +442,14 @@ public static class FluentFormBuilderExtensions
         long maxFileSize = 10 * 1024 * 1024,
         bool required = false) where TModel : new()
     {
-        var fieldBuilder = builder.AddField(expression)
-            .WithLabel(label)
-            .AsMultipleFileUpload(maxFiles, acceptedFileTypes, maxFileSize);
+        return builder.AddField(expression, field => 
+        {
+            field.WithLabel(label)
+                 .AsMultipleFileUpload(maxFiles, acceptedFileTypes, maxFileSize);
             
-        if (required)
-            fieldBuilder.Required($"At least one {label.ToLower()} is required");
-            
-        return builder;
+            if (required)
+                field.Required($"At least one {label.ToLower()} is required");
+        });
     }
 
     #endregion

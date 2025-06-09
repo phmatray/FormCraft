@@ -107,4 +107,63 @@ public class FieldGroupBuilderTests
         fieldGroup.ShowCard.ShouldBeTrue();
         fieldGroup.CardElevation.ShouldBe(3);
     }
+
+    [Fact]
+    public void AddField_WithConfiguration_Should_Add_Configured_Field_To_Group()
+    {
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddFieldGroup(group => group
+                .WithGroupName("Personal Info")
+                .WithColumns(2)
+                .AddField(x => x.FirstName, field => field
+                    .WithLabel("First Name")
+                    .Required("First name is required")
+                    .WithPlaceholder("Enter first name"))
+                .AddField(x => x.Email, field => field
+                    .WithLabel("Email Address")
+                    .Required()
+                    .WithEmailValidation()))
+            .Build();
+
+        // Assert
+        var groupedConfig = config as IGroupedFormConfiguration<TestModel>;
+        groupedConfig.ShouldNotBeNull();
+
+        var fieldGroup = groupedConfig.FieldGroups[0];
+        fieldGroup.FieldNames.Count.ShouldBe(2);
+        fieldGroup.FieldNames.ShouldContain("FirstName");
+        fieldGroup.FieldNames.ShouldContain("Email");
+
+        // Verify field configurations
+        var firstNameField = config.Fields.First(f => f.FieldName == "FirstName");
+        firstNameField.Label.ShouldBe("First Name");
+        firstNameField.IsRequired.ShouldBeTrue();
+        firstNameField.Placeholder.ShouldBe("Enter first name");
+
+        var emailField = config.Fields.First(f => f.FieldName == "Email");
+        emailField.Label.ShouldBe("Email Address");
+        emailField.IsRequired.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Mixed_AddField_Approaches_Should_Work_Together()
+    {
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddFieldGroup(group => group
+                .WithGroupName("Mixed Fields")
+                .AddField(x => x.FirstName)  // Old style
+                .AddField(x => x.Email, field => field  // New style
+                    .WithLabel("Email")
+                    .Required()))
+            .Build();
+
+        // Assert
+        config.Fields.Count.ShouldBe(2);
+        
+        var groupedConfig = config as IGroupedFormConfiguration<TestModel>;
+        var fieldGroup = groupedConfig?.FieldGroups[0];
+        fieldGroup?.FieldNames.Count.ShouldBe(2);
+    }
 }

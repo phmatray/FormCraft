@@ -21,8 +21,8 @@ public class CustomFieldRendererTests
         // Arrange & Act
         var formBuilder = FormBuilder<TestModel>
             .Create()
-            .AddField(x => x.TestProperty)
-            .WithCustomRenderer<TestModel, string, TestCustomRenderer>()
+            .AddField(x => x.TestProperty, field => field
+                .WithCustomRenderer<TestModel, string, TestCustomRenderer>())
             .Build();
 
         // Assert

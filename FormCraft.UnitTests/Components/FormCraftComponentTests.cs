@@ -23,8 +23,8 @@ public class FormCraftComponentTests : Bunit.TestContext
         // Arrange
         var model = new TestModel();
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name)
-                .WithLabel("Name")
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
             .Build();
 
         // Act
@@ -45,15 +45,15 @@ public class FormCraftComponentTests : Bunit.TestContext
         // Arrange
         var model = new TestModel();
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name)
+            .AddField(x => x.Name, field => field
                 .WithLabel("Name")
-                .WithOrder(2)
-            .AddField(x => x.Email)
+                .WithOrder(2))
+            .AddField(x => x.Email, field => field
                 .WithLabel("Email")
-                .WithOrder(1)
-            .AddField(x => x.Age)
+                .WithOrder(1))
+            .AddField(x => x.Age, field => field
                 .WithLabel("Age")
-                .WithOrder(3)
+                .WithOrder(3))
             .Build();
 
         // Act
@@ -79,11 +79,11 @@ public class FormCraftComponentTests : Bunit.TestContext
         // Arrange
         var model = new TestModel { ShowOptionalField = false };
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name)
-                .WithLabel("Name")
-            .AddField(x => x.Email)
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
+            .AddField(x => x.Email, field => field
                 .WithLabel("Email")
-                .VisibleWhen(m => m.ShowOptionalField)
+                .VisibleWhen(m => m.ShowOptionalField))
             .Build();
 
         // Act
@@ -106,10 +106,10 @@ public class FormCraftComponentTests : Bunit.TestContext
         // Arrange
         var model = new TestModel();
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name)
-                .WithLabel("Name")
-            .AddField(x => x.Email)
-                .WithLabel("Email")
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email"))
             .Build();
 
         // Manually set Email field as not visible
@@ -135,10 +135,10 @@ public class FormCraftComponentTests : Bunit.TestContext
         // Arrange
         var model = new TestModel();
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name)
-                .WithLabel("Name")
-            .AddField(x => x.Age)
-                .WithLabel("Age")
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
+            .AddField(x => x.Age, field => field
+                .WithLabel("Age"))
             .Build();
 
         // Act
@@ -158,8 +158,8 @@ public class FormCraftComponentTests : Bunit.TestContext
         // Arrange
         var model = new TestModel();
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name)
-                .WithLabel("Name")
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
             .Build();
 
         // Act
@@ -181,8 +181,8 @@ public class FormCraftComponentTests : Bunit.TestContext
         // Arrange
         var model = new TestModel { Name = "Initial" };
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name)
-                .WithLabel("Name")
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
             .Build();
 
         // Act
@@ -210,9 +210,9 @@ public class FormCraftComponentTests : Bunit.TestContext
         // Arrange
         var model = new TestModel();
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name)
+            .AddField(x => x.Name, field => field
                 .WithLabel("Name")
-                .Required()
+                .Required())
             .Build();
 
         // Act
