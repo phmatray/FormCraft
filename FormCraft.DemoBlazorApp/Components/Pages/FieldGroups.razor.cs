@@ -11,15 +11,80 @@ public partial class FieldGroups
     private bool _isSubmitting;
     private IFormConfiguration<EmployeeModel> _formConfiguration = null!;
 
-    private List<FormGuidelines.GuidelineItem> _guidelines = new()
-    {
-        new() { Icon = Icons.Material.Filled.GridView, Color = Color.Primary, Text = "Built-in field groups support" },
-        new() { Icon = Icons.Material.Filled.Code, Color = Color.Secondary, Text = "Single form configuration" },
-        new() { Icon = Icons.Material.Filled.ViewModule, Color = Color.Tertiary, Text = "Flexible column layouts" },
-        new() { Icon = Icons.Material.Filled.Dashboard, Color = Color.Info, Text = "Named group sections" },
-        new() { Icon = Icons.Material.Filled.Speed, Color = Color.Success, Text = "Optimized rendering" },
-        new() { Icon = Icons.Material.Filled.AutoAwesome, Color = Color.Warning, Text = "Fluent API design" }
-    };
+    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
+    [
+        new()
+        {
+            Icon = Icons.Material.Filled.GridView,
+            Color = Color.Primary,
+            Text = "Built-in field groups support"
+        },
+        new()
+        {
+            Icon = Icons.Material.Filled.Code,
+            Color = Color.Secondary,
+            Text = "Single form configuration"
+        },
+        new()
+        {
+            Icon = Icons.Material.Filled.ViewModule,
+            Color = Color.Tertiary,
+            Text = "Flexible column layouts"
+        },
+        new()
+        {
+            Icon = Icons.Material.Filled.Dashboard,
+            Color = Color.Info,
+            Text = "Named group sections"
+        },
+        new()
+        {
+            Icon = Icons.Material.Filled.Speed,
+            Color = Color.Success,
+            Text = "Optimized rendering"
+        },
+        new()
+        {
+            Icon = Icons.Material.Filled.AutoAwesome,
+            Color = Color.Warning,
+            Text = "Fluent API design"
+        }
+    ];
+
+    private readonly List<GuidelineItem> _apiGuidelineTableItems =
+    [
+        new()
+        {
+            Feature = "Field Groups",
+            Usage = "Organize fields into logical sections",
+            Example = ".AddFieldGroup(group => group...)"
+        },
+        new()
+        {
+            Feature = "Group Name",
+            Usage = "Provide a title for each section",
+            Example = ".WithGroupName(\"Personal Information\")"
+        },
+        new()
+        {
+            Feature = "Column Layout",
+            Usage = "Set number of columns per row",
+            Example = ".WithColumns(2)"
+        },
+        new()
+        {
+            Feature = "Card Display",
+            Usage = "Show group in a card container",
+            Example = ".ShowInCard()"
+        },
+        new()
+        {
+            Feature = "Responsive Design",
+            Usage = "Columns automatically stack on mobile",
+            Example = "Built-in responsive behavior",
+            IsCode = false
+        }
+    ];
 
     protected override void OnInitialized()
     {

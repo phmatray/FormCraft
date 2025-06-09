@@ -1,0 +1,28 @@
+@namespace FormCraft.DemoBlazorApp.Components.Shared
+
+<GuidelinesTable
+    Title="@Title" 
+    Columns="@_columns" 
+    Items="@Items" 
+    TItem="GuidelineItem">
+    <RowTemplate Context="item">
+        <td>@item.Feature</td>
+        <td>@item.Usage</td>
+        <td>
+            @if (item.IsCode && !string.IsNullOrEmpty(item.Example))
+            {
+                <code>@((MarkupString)item.Example)</code>
+            }
+            else
+            {
+                @item.Example
+            }
+        </td>
+    </RowTemplate>
+    <AdditionalContent>
+        @if (AdditionalContent != null)
+        {
+            @AdditionalContent
+        }
+    </AdditionalContent>
+</GuidelinesTable>

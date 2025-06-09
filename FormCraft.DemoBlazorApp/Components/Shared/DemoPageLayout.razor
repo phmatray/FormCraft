@@ -1,0 +1,26 @@
+@namespace FormCraft.DemoBlazorApp.Components.Shared
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
+    <DemoPageHeader Title="@Title" Icon="@Icon" Description="@Description" />
+    
+    <MudPaper Elevation="2" Class="pa-0">
+        <MudTabs Elevation="0" Rounded="false" PanelClass="pa-6">
+            <MudTabPanel Text="Form Demo" Icon="@FormDemoIcon">
+                @FormDemoContent
+            </MudTabPanel>
+            
+            <MudTabPanel Text="Code Example" Icon="@Icons.Material.Filled.Code">
+                @CodeExampleContent
+            </MudTabPanel>
+            
+            <MudTabPanel Text="Guidelines" Icon="@Icons.Material.Filled.Lightbulb">
+                @GuidelinesContent
+            </MudTabPanel>
+            
+            @if (AdditionalTabs != null)
+            {
+                @AdditionalTabs
+            }
+        </MudTabs>
+    </MudPaper>
+</MudContainer>

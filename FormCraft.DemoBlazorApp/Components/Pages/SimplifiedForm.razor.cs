@@ -11,8 +11,43 @@ public partial class SimplifiedForm
     private bool _isSubmitting;
     private readonly List<string> _fieldChanges = [];
     private IFormConfiguration<ContactModel> _formConfiguration = null!;
+    
+    private readonly List<GuidelineItem> _apiGuidelineTableItems =
+    [
+        new()
+        {
+            Feature = "Dynamic Component",
+            Usage = "Single component for complete forms",
+            Example = "&lt;FormCraftComponent TModel=\"ContactModel\" /&gt;"
+        },
+        new()
+        {
+            Feature = "Field Events",
+            Usage = "Track field changes in real-time",
+            Example = "OnFieldChanged=\"@(args => HandleFieldChanged(...))\""
+        },
+        new()
+        {
+            Feature = "Submit Handling",
+            Usage = "Async form submission support",
+            Example = "OnValidSubmit=\"@HandleValidSubmit\""
+        },
+        new()
+        {
+            Feature = "Loading States",
+            Usage = "Built-in loading indicators",
+            Example = "IsSubmitting=\"@_isSubmitting\""
+        },
+        new()
+        {
+            Feature = "Automatic Binding",
+            Usage = "Two-way binding out of the box",
+            Example = "No manual binding code needed",
+            IsCode = false
+        }
+    ];
 
-    private readonly List<FormGuidelines.GuidelineItem> _guidelines =
+    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
     [
         new()
         {

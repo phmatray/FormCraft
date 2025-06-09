@@ -9,48 +9,87 @@ public partial class FluentForm
     private ContactModel _model = new();
     private bool _isSubmitted;
     private bool _isSubmitting;
-    private List<string> _fieldChanges = new();
+    private readonly List<string> _fieldChanges = [];
     private IFormConfiguration<ContactModel> _formConfiguration = null!;
 
-    private List<FormGuidelines.GuidelineItem> _guidelines = new()
-    {
+    private readonly List<GuidelineItem> _apiGuidelineTableItems =
+    [
+        new()
+        {
+            Feature = "Text Fields",
+            Usage = "Quick text field creation",
+            Example = ".AddRequiredTextField(x => x.Name, \"Name\", \"Enter name\")"
+        },
+        new()
+        {
+            Feature = "Email Fields",
+            Usage = "Email with built-in validation",
+            Example = ".AddEmailField(x => x.Email)"
+        },
+        new()
+        {
+            Feature = "Numeric Fields",
+            Usage = "Numbers with min/max constraints",
+            Example = ".AddNumericField(x => x.Age, \"Age\", 16, 100)"
+        },
+        new()
+        {
+            Feature = "Field Dependencies",
+            Usage = "Conditional visibility/updates",
+            Example = ".VisibleWhen(m => !string.IsNullOrEmpty(m.Country))"
+        },
+        new()
+        {
+            Feature = "Layout Control",
+            Usage = "Form layout configuration",
+            Example = ".WithLayout(FormLayout.Horizontal)"
+        }
+    ];
+
+    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
+    [
         new()
         {
             Icon = Icons.Material.Filled.FlashOn,
             Color = Color.Primary,
             Text = "Fluent helper methods for common fields"
         },
+
         new()
         {
             Icon = Icons.Material.Filled.Speed,
             Color = Color.Secondary,
             Text = "Streamlined form building process"
         },
+
         new()
         {
             Icon = Icons.Material.Filled.AutoAwesome,
             Color = Color.Tertiary,
             Text = "Automatic validation and layout"
         },
+
         new()
         {
             Icon = Icons.Material.Filled.Tune,
             Color = Color.Info,
             Text = "Configurable form layouts"
         },
+
         new()
         {
             Icon = Icons.Material.Filled.Security,
             Color = Color.Success,
             Text = "Built-in field validation rules"
         },
+
         new()
         {
             Icon = Icons.Material.Filled.Psychology,
             Color = Color.Warning,
             Text = "Intelligent dependency handling"
         }
-    };
+    ];
 
     protected override void OnInitialized()
     {

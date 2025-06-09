@@ -1,94 +1,39 @@
 @page "/file-upload"
 @inject FormCodeGeneratorService CodeGenerator
 
-<PageTitle>File Upload Demo</PageTitle>
-
-<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
-    <MudText Typo="Typo.h3" GutterBottom="true" Class="mb-2">
-        <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Style="vertical-align: middle; font-size: 3rem" />
-        File Upload Demo
-    </MudText>
-    <MudText Typo="Typo.body1" GutterBottom="true" Class="mb-6">
-        This demonstrates how to use file upload fields with various configurations including single and multiple file uploads.
-    </MudText>
+<DemoPageLayout
+    Title="File Upload Demo"
+    Icon="@Icons.Material.Filled.CloudUpload"
+    Description="This demonstrates how to use file upload fields with various configurations including single and multiple file uploads."
+    FormDemoIcon="@Icons.Material.Filled.ViewQuilt">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="JobApplicationModel"
+            Model="@_model"
+            Configuration="@_formConfiguration"
+            FormTitle="Job Application"
+            FormIcon="@Icons.Material.Filled.Person"
+            IsSubmitted="@_isSubmitted"
+            OnValidSubmit="@HandleSubmit"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()"
+            ShowSubmitButton="true">
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="File Upload Features" />
+            </SidebarContent>
+        </FormDemoSection>
+    </FormDemoContent>
     
-    <MudPaper Elevation="2" Class="pa-0">
-        <MudTabs Elevation="0" Rounded="false" PanelClass="pa-6">
-            <MudTabPanel Text="Form Demo" Icon="@Icons.Material.Filled.ViewQuilt">
-                <MudGrid>
-                    <MudItem xs="12" lg="8">
-                        <MudPaper Elevation="1" Class="pa-6">
-                            <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
-                                <MudIcon Icon="@Icons.Material.Filled.Person" Class="me-2" />
-                                Job Application
-                            </MudText>
-                            
-                            @if (_isSubmitted)
-                            {
-                                <FormSuccessDisplay DataDisplayItems="@GetDataDisplayItems()"
-                                                   SuccessMessage="Your application has been successfully submitted!"
-                                                   OnReset="@ResetForm" />
-                            }
-                            else
-                            {
-                                <FormCraftComponent TModel="JobApplicationModel" 
-                                                     Model="@_model" 
-                                                     Configuration="@_formConfiguration"
-                                                     OnValidSubmit="@HandleSubmit" />
-                            }
-                        </MudPaper>
-                    </MudItem>
-                    
-                    <MudItem xs="12" lg="4">
-                        <FormGuidelines Guidelines="@_guidelines" Title="File Upload Features" />
-                    </MudItem>
-                </MudGrid>
-            </MudTabPanel>
-            
-            <MudTabPanel Text="Generated Code" Icon="@Icons.Material.Filled.Code">
-                <CodeExample Title="Form Builder Code" Code="@GetGeneratedCode()" Language="csharp" />
-            </MudTabPanel>
-            
-            <MudTabPanel Text="Guidelines" Icon="@Icons.Material.Filled.Lightbulb">
-                <FormGuidelines Title="File Upload Guidelines">
-                    <MudSimpleTable>
-                        <thead>
-                            <tr>
-                                <th>Feature</th>
-                                <th>Usage</th>
-                                <th>Example</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Single File</td>
-                                <td>For uploading one file</td>
-                                <td><code>.AddFileUploadField(x => x.Resume)</code></td>
-                            </tr>
-                            <tr>
-                                <td>Multiple Files</td>
-                                <td>For uploading multiple files</td>
-                                <td><code>.AddMultipleFileUploadField(x => x.Documents)</code></td>
-                            </tr>
-                            <tr>
-                                <td>File Types</td>
-                                <td>Restrict accepted formats</td>
-                                <td><code>acceptedFileTypes: new[] { ".pdf", ".doc" }</code></td>
-                            </tr>
-                            <tr>
-                                <td>File Size</td>
-                                <td>Set maximum file size</td>
-                                <td><code>maxFileSize: 5 * 1024 * 1024 // 5MB</code></td>
-                            </tr>
-                            <tr>
-                                <td>Max Files</td>
-                                <td>Limit number of files</td>
-                                <td><code>maxFiles: 3</code></td>
-                            </tr>
-                        </tbody>
-                    </MudSimpleTable>
-                </FormGuidelines>
-            </MudTabPanel>
-        </MudTabs>
-    </MudPaper>
-</MudContainer>
+    <CodeExampleContent>
+        <CodeExample
+            Title="Form Builder Code"
+            Code="@GetGeneratedCode()"
+            Language="csharp" />
+    </CodeExampleContent>
+    
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="File Upload Guidelines"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>

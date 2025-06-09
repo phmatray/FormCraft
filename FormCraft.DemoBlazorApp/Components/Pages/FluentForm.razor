@@ -1,99 +1,65 @@
 @page "/fluent"
 @inject FormCodeGeneratorService CodeGenerator
 
-<PageTitle>Fluent API Dynamic Form</PageTitle>
-
-<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
-    <MudText Typo="Typo.h3" GutterBottom="true" Class="mb-2">
-        <MudIcon Icon="@Icons.Material.Filled.FlashOn" Style="vertical-align: middle; font-size: 3rem" />
-        Fluent API Dynamic Form
-    </MudText>
-    <MudText Typo="Typo.body1" GutterBottom="true" Class="mb-6">
-        This demonstrates the fluent API with helper methods for common field types and streamlined form building.
-    </MudText>
-    
-    <MudPaper Elevation="2" Class="pa-0">
-        <MudTabs Elevation="0" Rounded="false" PanelClass="pa-6">
-            <MudTabPanel Text="Form Demo" Icon="@Icons.Material.Filled.ContactPage">
-                <MudGrid>
-                    <MudItem xs="12" lg="8">
-                        <MudPaper Elevation="1" Class="pa-6">
-                            <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
-                                <MudIcon Icon="@Icons.Material.Filled.Assignment" Class="me-2" />
-                                Contact Information Form
+<DemoPageLayout
+    Title="Fluent API Dynamic Form"
+    Icon="@Icons.Material.Filled.FlashOn"
+    Description="This demonstrates the fluent API with helper methods for common field types and streamlined form building."
+    FormDemoIcon="@Icons.Material.Filled.ContactPage">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="ContactModel"
+            Model="@_model"
+            Configuration="@_formConfiguration"
+            FormTitle="Contact Information Form"
+            FormIcon="@Icons.Material.Filled.Assignment"
+            IsSubmitted="@_isSubmitted"
+            IsSubmitting="@_isSubmitting"
+            OnValidSubmit="@HandleValidSubmit"
+            OnFieldChanged="@((args) => HandleFieldChanged(args.fieldName, args.value))"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()"
+            ShowSubmitButton="true"
+            SubmitButtonText="Submit Information"
+            SubmittingText="Submitting..."
+            SubmitButtonClass="px-8">
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="Fluent API Features" />
+            </SidebarContent>
+            <AdditionalContent>
+                @if (_fieldChanges.Any())
+                {
+                    <MudCard Class="mt-4" Elevation="2">
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Timeline" Class="me-2 text-info" />
+                                Field Changes Log
                             </MudText>
-                            
-                            @if (_isSubmitted)
-                            {
-                                <FormSuccessDisplay DataDisplayItems="@GetDataDisplayItems()"
-                                                   OnReset="@ResetForm" />
-                            }
-                            else
-                            {
-                                <FormCraftComponent TModel="ContactModel" 
-                                                    Model="@_model" 
-                                                    Configuration="@_formConfiguration"
-                                                    OnValidSubmit="@HandleValidSubmit"
-                                                    OnFieldChanged="@((args) => HandleFieldChanged(args.fieldName, args.value))"
-                                                    IsSubmitting="@_isSubmitting"
-                                                    ShowSubmitButton="true"
-                                                    SubmitButtonText="Submit Information"
-                                                    SubmittingText="Submitting..."
-                                                    SubmitButtonClass="px-8" />
-                            }
-                        </MudPaper>
-                    </MudItem>
-                    
-                    <MudItem xs="12" lg="4">
-                        <FormGuidelines Guidelines="@_guidelines" Title="Fluent API Features" />
-                    </MudItem>
-                </MudGrid>
-            </MudTabPanel>
-            
-            <MudTabPanel Text="Code Example" Icon="@Icons.Material.Filled.Code">
-                <CodeExample Title="Fluent API Configuration" Language="csharp" Code="@GetGeneratedCode()" />
-            </MudTabPanel>
-            
-            <MudTabPanel Text="Guidelines" Icon="@Icons.Material.Filled.Lightbulb">
-                <FormGuidelines Title="Fluent API Guidelines">
-                    <MudSimpleTable>
-                        <thead>
-                            <tr>
-                                <th>Feature</th>
-                                <th>Usage</th>
-                                <th>Example</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Text Fields</td>
-                                <td>Quick text field creation</td>
-                                <td><code>.AddRequiredTextField(x => x.Name, "Name", "Enter name")</code></td>
-                            </tr>
-                            <tr>
-                                <td>Email Fields</td>
-                                <td>Email with built-in validation</td>
-                                <td><code>.AddEmailField(x => x.Email)</code></td>
-                            </tr>
-                            <tr>
-                                <td>Numeric Fields</td>
-                                <td>Numbers with min/max constraints</td>
-                                <td><code>.AddNumericField(x => x.Age, "Age", 16, 100)</code></td>
-                            </tr>
-                            <tr>
-                                <td>Field Dependencies</td>
-                                <td>Conditional visibility/updates</td>
-                                <td><code>.VisibleWhen(m => !string.IsNullOrEmpty(m.Country))</code></td>
-                            </tr>
-                            <tr>
-                                <td>Layout Control</td>
-                                <td>Form layout configuration</td>
-                                <td><code>.WithLayout(FormLayout.Horizontal)</code></td>
-                            </tr>
-                        </tbody>
-                    </MudSimpleTable>
-                </FormGuidelines>
-            </MudTabPanel>
-        </MudTabs>
-    </MudPaper>
-</MudContainer>
+                            <MudList T="string" Dense="true">
+                                @foreach (var change in _fieldChanges.TakeLast(5))
+                                {
+                                    <MudListItem T="string" Icon="@Icons.Material.Filled.Update" IconColor="Color.Secondary">
+                                        <MudText Typo="Typo.body2">@change</MudText>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        </MudCardContent>
+                    </MudCard>
+                }
+            </AdditionalContent>
+        </FormDemoSection>
+    </FormDemoContent>
+    
+    <CodeExampleContent>
+        <CodeExample
+            Title="Fluent API Configuration"
+            Language="csharp"
+            Code="@GetGeneratedCode()" />
+    </CodeExampleContent>
+    
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Fluent API Guidelines"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>

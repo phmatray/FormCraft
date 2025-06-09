@@ -7,11 +7,45 @@ namespace FormCraft.DemoBlazorApp.Components.Pages;
 public partial class CustomRenderers
 {
     private ProductModel _model = new();
-    private IFormConfiguration<ProductModel> _formConfiguration = default!;
+    private IFormConfiguration<ProductModel> _formConfiguration = null!;
     private bool _isSubmitting;
     private bool _isSubmitted;
 
-    private readonly List<FormGuidelines.GuidelineItem> _guidelines =
+    private readonly List<GuidelineItem> _apiGuidelineTableItems =
+    [
+        new()
+        {
+            Feature = "Color Picker",
+            Usage = "Visual color selection control",
+            Example = ".WithCustomRenderer<TModel, string, ColorPickerRenderer>()"
+        },
+        new()
+        {
+            Feature = "Rating Control",
+            Usage = "Star-based rating input",
+            Example = ".WithCustomRenderer<TModel, int, RatingRenderer>()"
+        },
+        new()
+        {
+            Feature = "Custom Attributes",
+            Usage = "Pass parameters to renderers",
+            Example = ".WithAttribute(\"MaxRating\", 5)"
+        },
+        new()
+        {
+            Feature = "Help Text",
+            Usage = "Provide user guidance",
+            Example = ".WithHelpText(\"Select the primary color\")"
+        },
+        new()
+        {
+            Feature = "Creating Renderers",
+            Usage = "Implement ICustomFieldRenderer",
+            Example = "public class MyRenderer : ICustomFieldRenderer"
+        }
+    ];
+
+    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
     [
         new() { Text = "Color picker provides visual color selection", Icon = Icons.Material.Filled.ColorLens },
         new() { Text = "Rating control offers intuitive star-based input", Icon = Icons.Material.Filled.Star },
@@ -92,8 +126,8 @@ public partial class CustomRenderers
 
     private List<FormSuccessDisplay.DataDisplayItem> GetDataDisplayItems()
     {
-        return new List<FormSuccessDisplay.DataDisplayItem>
-        {
+        return
+        [
             new() { Label = "Product Name", Value = _model.Name },
             new() { Label = "Category", Value = _model.Category },
             new() { Label = "Price", Value = $"${_model.Price:F2}" },
@@ -101,7 +135,7 @@ public partial class CustomRenderers
             new() { Label = "Rating", Value = $"{_model.Rating} / 5 stars" },
             new() { Label = "In Stock", Value = _model.InStock ? "Yes" : "No" },
             new() { Label = "Release Date", Value = _model.ReleaseDate.ToShortDateString() }
-        };
+        ];
     }
 
     private string GetGeneratedCode()

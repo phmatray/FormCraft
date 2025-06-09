@@ -1,0 +1,27 @@
+@namespace FormCraft.DemoBlazorApp.Components.Shared
+@typeparam TItem
+
+<FormGuidelines Title="@Title">
+    <MudSimpleTable>
+        <thead>
+        <tr>
+            @foreach (var column in Columns)
+            {
+                <th>@column</th>
+            }
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in Items)
+        {
+            <tr>
+                @RowTemplate(item)
+            </tr>
+        }
+        </tbody>
+    </MudSimpleTable>
+    @if (AdditionalContent != null)
+    {
+        @AdditionalContent
+    }
+</FormGuidelines>
