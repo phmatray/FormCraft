@@ -7,8 +7,8 @@ public class DynamicFormValidatorTests
     {
         // Arrange
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name)
-                .WithLabel("Name")
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
             .Build();
 
         // Act
@@ -36,13 +36,13 @@ public class DynamicFormValidatorTests
     {
         // Arrange
         var config1 = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name)
-                .WithLabel("Name")
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
             .Build();
 
         var config2 = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Email)
-                .WithLabel("Email")
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email"))
             .Build();
 
         var validator = new DynamicFormValidator<TestModel>();
@@ -62,8 +62,8 @@ public class DynamicFormValidatorTests
     {
         // Arrange
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name)
-                .WithLabel("Name")
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
             .Build();
 
         var validator = new DynamicFormValidator<TestModel>();
@@ -78,8 +78,8 @@ public class DynamicFormValidatorTests
     {
         // Arrange
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name)
-                .WithLabel("Name")
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
             .Build();
 
         var validator = new DynamicFormValidator<TestModel>();
@@ -144,13 +144,13 @@ public class DynamicFormValidatorTests
     {
         // Arrange
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name)
+            .AddField(x => x.Name, field => field
                 .WithLabel("Name")
-                .WithPlaceholder("Enter name")
-            .AddField(x => x.Email)
-                .WithLabel("Email")
-            .AddField(x => x.Age)
-                .WithLabel("Age")
+                .WithPlaceholder("Enter name"))
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email"))
+            .AddField(x => x.Age, field => field
+                .WithLabel("Age"))
             .Build();
 
         // Act

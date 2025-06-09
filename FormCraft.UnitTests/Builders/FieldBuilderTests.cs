@@ -5,16 +5,13 @@ public class FieldBuilderTests
     [Fact]
     public void WithLabel_Should_Set_Label_In_Built_Configuration()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
-
-        // Act
-        var result = fieldBuilder.WithLabel("Full Name");
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithLabel("Full Name"))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.Label.ShouldBe("Full Name");
     }
@@ -22,16 +19,13 @@ public class FieldBuilderTests
     [Fact]
     public void WithPlaceholder_Should_Set_Placeholder_In_Built_Configuration()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
-
-        // Act
-        var result = fieldBuilder.WithPlaceholder("Enter your name");
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithPlaceholder("Enter your name"))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.Placeholder.ShouldBe("Enter your name");
     }
@@ -39,16 +33,13 @@ public class FieldBuilderTests
     [Fact]
     public void WithHelpText_Should_Set_HelpText_In_Built_Configuration()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
-
-        // Act
-        var result = fieldBuilder.WithHelpText("Please enter your full name");
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithHelpText("Please enter your full name"))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.HelpText.ShouldBe("Please enter your full name");
     }
@@ -56,16 +47,13 @@ public class FieldBuilderTests
     [Fact]
     public void WithCssClass_Should_Set_CssClass_In_Built_Configuration()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
-
-        // Act
-        var result = fieldBuilder.WithCssClass("custom-input");
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithCssClass("custom-input"))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.CssClass.ShouldBe("custom-input");
     }
@@ -73,16 +61,13 @@ public class FieldBuilderTests
     [Fact]
     public void Required_Should_Set_IsRequired_And_Add_Validator()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
-
-        // Act
-        var result = fieldBuilder.Required("Name is required");
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .Required("Name is required"))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.IsRequired.ShouldBeTrue();
         field.Validators.Count.ShouldBe(1);
@@ -92,13 +77,11 @@ public class FieldBuilderTests
     [Fact]
     public void Required_Without_Message_Should_Use_Default_Message()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
-
-        // Act
-        fieldBuilder.Required();
-        var config = fieldBuilder.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .Required())
+            .Build();
 
         // Assert
         var field = config.Fields.First(f => f.FieldName == "Name");
@@ -109,16 +92,13 @@ public class FieldBuilderTests
     [Fact]
     public void Disabled_Should_Set_IsDisabled()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
-
-        // Act
-        var result = fieldBuilder.Disabled();
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .Disabled())
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.IsDisabled.ShouldBeTrue();
     }
@@ -126,16 +106,13 @@ public class FieldBuilderTests
     [Fact]
     public void ReadOnly_Should_Set_IsReadOnly()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
-
-        // Act
-        var result = fieldBuilder.ReadOnly();
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .ReadOnly())
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.IsReadOnly.ShouldBeTrue();
     }
@@ -144,16 +121,15 @@ public class FieldBuilderTests
     public void VisibleWhen_Should_Set_VisibilityCondition()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
         Func<TestModel, bool> condition = m => m.IsActive;
 
         // Act
-        var result = fieldBuilder.VisibleWhen(condition);
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .VisibleWhen(condition))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.VisibilityCondition.ShouldBeSameAs(condition);
     }
@@ -162,16 +138,15 @@ public class FieldBuilderTests
     public void DisabledWhen_Should_Set_DisabledCondition()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
         Func<TestModel, bool> condition = m => !m.IsActive;
 
         // Act
-        var result = fieldBuilder.DisabledWhen(condition);
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .DisabledWhen(condition))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.DisabledCondition.ShouldBeSameAs(condition);
     }
@@ -179,16 +154,13 @@ public class FieldBuilderTests
     [Fact]
     public void WithAttribute_Should_Add_Single_Attribute()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
-
-        // Act
-        var result = fieldBuilder.WithAttribute("data-test", "value");
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithAttribute("data-test", "value"))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.AdditionalAttributes.ShouldContainKey("data-test");
         field.AdditionalAttributes["data-test"].ShouldBe("value");
@@ -198,8 +170,6 @@ public class FieldBuilderTests
     public void WithAttributes_Should_Add_Multiple_Attributes()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
         var attributes = new Dictionary<string, object>
         {
             { "data-test", "value" },
@@ -208,11 +178,12 @@ public class FieldBuilderTests
         };
 
         // Act
-        var result = fieldBuilder.WithAttributes(attributes);
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithAttributes(attributes))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.AdditionalAttributes.ShouldContainKey("data-test");
         field.AdditionalAttributes.ShouldContainKey("min");
@@ -227,16 +198,15 @@ public class FieldBuilderTests
     public void WithValidator_Should_Add_Validator()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
         var validator = A.Fake<IFieldValidator<TestModel, string>>();
 
         // Act
-        var result = fieldBuilder.WithValidator(validator);
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithValidator(validator))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.Validators.Count.ShouldBe(1);
         field.Validators.First().ShouldBeOfType<ValidatorWrapper<TestModel, string>>();
@@ -246,16 +216,15 @@ public class FieldBuilderTests
     public void WithValidator_Func_Should_Add_CustomValidator()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
         Func<string, bool> validation = value => !string.IsNullOrEmpty(value);
 
         // Act
-        var result = fieldBuilder.WithValidator(validation, "Value cannot be empty");
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithValidator(validation, "Value cannot be empty"))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.Validators.Count.ShouldBe(1);
         field.Validators.First().ShouldBeOfType<ValidatorWrapper<TestModel, string>>();
@@ -265,8 +234,6 @@ public class FieldBuilderTests
     public void WithAsyncValidator_Should_Add_AsyncValidator()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
         Func<string, Task<bool>> validation = async value =>
         {
             await Task.Delay(1);
@@ -274,11 +241,12 @@ public class FieldBuilderTests
         };
 
         // Act
-        var result = fieldBuilder.WithAsyncValidator(validation, "Value cannot be empty");
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithAsyncValidator(validation, "Value cannot be empty"))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.Validators.Count.ShouldBe(1);
         field.Validators.First().ShouldBeOfType<ValidatorWrapper<TestModel, string>>();
@@ -288,16 +256,15 @@ public class FieldBuilderTests
     public void DependsOn_Should_Add_Field_Dependency()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.City);
         Action<TestModel, string> onChanged = (m, v) => m.City = string.Empty;
 
         // Act
-        var result = fieldBuilder.DependsOn(x => x.Country, onChanged);
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.City, field => field
+                .DependsOn(x => x.Country, onChanged))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "City");
         field.Dependencies.Count.ShouldBe(1);
         field.Dependencies.First().DependentFieldName.ShouldBe("Country");
@@ -311,19 +278,18 @@ public class FieldBuilderTests
     public void WithCustomTemplate_Should_Set_CustomTemplate()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
         RenderFragment<IFieldContext<TestModel, string>> template = context => builder =>
         {
             builder.AddContent(0, "Custom content");
         };
 
         // Act
-        var result = fieldBuilder.WithCustomTemplate(template);
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithCustomTemplate(template))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         var wrapper = field as FieldConfigurationWrapper<TestModel, string>;
         wrapper.ShouldNotBeNull();
@@ -333,35 +299,29 @@ public class FieldBuilderTests
     [Fact]
     public void WithOrder_Should_Set_Order()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
-
-        // Act
-        var result = fieldBuilder.WithOrder(5);
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithOrder(5))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.Order.ShouldBe(5);
     }
 
     [Fact]
-    public void AddField_Should_Return_New_FieldBuilder_And_Add_To_FormBuilder()
+    public void AddField_Should_Add_Multiple_Fields_To_FormBuilder()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
-
-        // Act
-        var newFieldBuilder = fieldBuilder.AddField(x => x.Email);
-        var config = newFieldBuilder.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email"))
+            .Build();
 
         // Assert
-        newFieldBuilder.ShouldNotBeSameAs(fieldBuilder);
-        newFieldBuilder.ShouldBeOfType<FieldBuilder<TestModel, string>>();
-
         config.Fields.Count.ShouldBe(2);
         config.Fields.ShouldContain(f => f.FieldName == "Name");
         config.Fields.ShouldContain(f => f.FieldName == "Email");
@@ -370,15 +330,13 @@ public class FieldBuilderTests
     [Fact]
     public void Build_Should_Return_FormConfiguration()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name)
-            .WithLabel("Name")
-            .Required()
-            .WithOrder(1);
-
-        // Act
-        var result = fieldBuilder.Build();
+        // Arrange & Act
+        var result = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name")
+                .Required()
+                .WithOrder(1))
+            .Build();
 
         // Assert
         result.ShouldNotBeNull();
@@ -391,25 +349,20 @@ public class FieldBuilderTests
     [Fact]
     public void Multiple_Fluent_Calls_Should_Chain_Correctly()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Name);
-
-        // Act
-        var result = fieldBuilder
-            .WithLabel("Full Name")
-            .WithPlaceholder("Enter full name")
-            .Required("Name is required")
-            .WithCssClass("form-control")
-            .WithHelpText("Your legal name")
-            .WithOrder(1)
-            .Disabled(false)
-            .ReadOnly(false);
-
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithLabel("Full Name")
+                .WithPlaceholder("Enter full name")
+                .Required("Name is required")
+                .WithCssClass("form-control")
+                .WithHelpText("Your legal name")
+                .WithOrder(1)
+                .Disabled(false)
+                .ReadOnly(false))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.Label.ShouldBe("Full Name");
         field.Placeholder.ShouldBe("Enter full name");

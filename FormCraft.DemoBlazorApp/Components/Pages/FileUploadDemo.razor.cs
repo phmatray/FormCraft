@@ -97,11 +97,11 @@ public partial class FileUploadDemo
                 ("designer", "UI/UX Designer"),
                 ("manager", "Project Manager"),
                 ("analyst", "Business Analyst"))
-            .AddField(x => x.CoverLetter)
-            .WithLabel("Cover Letter")
-            .AsTextArea(lines: 5, maxLength: 1000)
-            .WithPlaceholder("Tell us why you're a great fit for this position...")
-            .Required("Please provide a cover letter")
+            .AddField(x => x.CoverLetter, field => field
+                .WithLabel("Cover Letter")
+                .AsTextArea(lines: 5, maxLength: 1000)
+                .WithPlaceholder("Tell us why you're a great fit for this position...")
+                .Required("Please provide a cover letter"))
             .AddCheckboxField(x => x.AgreeToTerms, "I agree to the terms and conditions",
                 "You must agree to proceed with your application")
             .Build();

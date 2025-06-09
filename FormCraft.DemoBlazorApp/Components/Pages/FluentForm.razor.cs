@@ -101,38 +101,37 @@ public partial class FluentForm
             .AddRequiredTextField(x => x.LastName, "Last Name", "Enter your last name", 2)
             .AddEmailField(x => x.Email)
             .AddNumericField(x => x.Age, "Age", 16, 100)
-            .AddField(x => x.ExpectedSalary)
-            .WithLabel("Expected Salary")
-            .WithPlaceholder("$0.00")
-            .WithHelpText("Enter amount in $")
-            .AddField(x => x.HourlyRate)
-            .WithLabel("Hourly Rate")
-            .WithPlaceholder("50.00")
-            .WithHelpText("Enter hourly rate")
-            .AddField(x => x.Country)
-            .WithLabel("Country")
-            .Required("Please select a country")
-            .WithOptions(
-                ("US", "United States"),
-                ("CA", "Canada"),
-                ("UK", "United Kingdom"),
-                ("DE", "Germany"),
-                ("FR", "France")
-            )
-            .AddField(x => x.City)
-            .WithLabel("City")
-            .WithPlaceholder("Enter your city")
-            .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
-            .DependsOn(x => x.Country, (model, country) =>
-            {
-                if (string.IsNullOrEmpty(country))
+            .AddField(x => x.ExpectedSalary, field => field
+                .WithLabel("Expected Salary")
+                .WithPlaceholder("$0.00")
+                .WithHelpText("Enter amount in $"))
+            .AddField(x => x.HourlyRate, field => field
+                .WithLabel("Hourly Rate")
+                .WithPlaceholder("50.00")
+                .WithHelpText("Enter hourly rate"))
+            .AddField(x => x.Country, field => field
+                .WithLabel("Country")
+                .Required("Please select a country")
+                .WithOptions(
+                    ("US", "United States"),
+                    ("CA", "Canada"),
+                    ("UK", "United Kingdom"),
+                    ("DE", "Germany"),
+                    ("FR", "France")))
+            .AddField(x => x.City, field => field
+                .WithLabel("City")
+                .WithPlaceholder("Enter your city")
+                .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
+                .DependsOn(x => x.Country, (model, country) =>
                 {
-                    model.City = null;
-                }
-            })
-            .AddField(x => x.SubscribeToNewsletter)
-            .WithLabel("Subscribe to Newsletter")
-            .WithHelpText("Get updates about new features")
+                    if (string.IsNullOrEmpty(country))
+                    {
+                        model.City = null;
+                    }
+                }))
+            .AddField(x => x.SubscribeToNewsletter, field => field
+                .WithLabel("Subscribe to Newsletter")
+                .WithHelpText("Get updates about new features"))
             .Build();
     }
 

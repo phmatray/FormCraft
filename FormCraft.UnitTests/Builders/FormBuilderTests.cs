@@ -14,34 +14,34 @@ public class FormBuilderTests
     }
 
     [Fact]
-    public void AddField_Should_Create_FieldBuilder_And_Add_To_Fields()
+    public void AddField_Should_Add_Field_To_Configuration()
     {
         // Arrange
         var builder = FormBuilder<TestModel>.Create();
 
         // Act
-        var fieldBuilder = builder.AddField(x => x.Name);
-        var config = fieldBuilder.Build();
+        var result = builder.AddField(x => x.Name, field => field
+            .WithLabel("Name"));
+        var config = result.Build();
 
         // Assert
-        fieldBuilder.ShouldNotBeNull();
-        fieldBuilder.ShouldBeOfType<FieldBuilder<TestModel, string>>();
-
+        result.ShouldBeSameAs(builder);
+        config.Fields.Count.ShouldBe(1);
+        
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.FieldName.ShouldBe("Name");
+        field.Label.ShouldBe("Name");
     }
 
     [Fact]
     public void AddField_Should_Assign_Incremental_Order()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-
-        // Act
-        var field1 = builder.AddField(x => x.Name);
-        var field2 = field1.AddField(x => x.Email);
-        var field3 = field2.AddField(x => x.Age);
-        var config = field3.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field.WithLabel("Name"))
+            .AddField(x => x.Email, field => field.WithLabel("Email"))
+            .AddField(x => x.Age, field => field.WithLabel("Age"))
+            .Build();
 
         // Assert
         var nameField = config.Fields.First(f => f.FieldName == "Name");
@@ -117,21 +117,18 @@ public class FormBuilderTests
     [Fact]
     public void Build_Should_Return_FormConfiguration_With_All_Fields()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create()
+        // Arrange & Act
+        var configuration = FormBuilder<TestModel>.Create()
             .WithLayout(FormLayout.Inline)
             .WithCssClass("test-form")
             .ShowValidationSummary()
-            .ShowRequiredIndicator();
-
-        builder.AddField(x => x.Name)
-            .WithLabel("Name")
-            .Required()
-            .AddField(x => x.Email)
-            .WithLabel("Email");
-
-        // Act
-        var configuration = builder.Build();
+            .ShowRequiredIndicator()
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name")
+                .Required())
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email"))
+            .Build();
 
         // Assert
         configuration.ShouldNotBeNull();
@@ -146,16 +143,74 @@ public class FormBuilderTests
     }
 
     [Fact]
-    public void Build_Should_Include_Field_Dependencies()
+    public void AddField_WithConfiguration_Should_Apply_Configuration_And_Return_FormBuilder()
     {
         // Arrange
         var builder = FormBuilder<TestModel>.Create();
 
-        builder.AddField(x => x.City)
-            .DependsOn(x => x.Country, (m, v) => m.City = string.Empty);
-
         // Act
-        var configuration = builder.Build();
+        var result = builder.AddField(x => x.Name, field => field
+            .WithLabel("Full Name")
+            .Required("Name is required")
+            .WithPlaceholder("Enter your name"));
+        
+        var configuration = result.Build();
+
+        // Assert
+        result.ShouldBeOfType<FormBuilder<TestModel>>();
+        result.ShouldBeSameAs(builder);
+        
+        var nameField = configuration.Fields.First(f => f.FieldName == "Name");
+        nameField.Label.ShouldBe("Full Name");
+        nameField.IsRequired.ShouldBeTrue();
+        nameField.Placeholder.ShouldBe("Enter your name");
+        nameField.Validators.ShouldContain(v => v.ErrorMessage == "Name is required");
+    }
+
+    [Fact]
+    public void AddField_WithConfiguration_Should_Support_Multiple_Fields()
+    {
+        // Arrange & Act
+        var configuration = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name")
+                .Required()
+                .WithOrder(1))
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email")
+                .Required()
+                .WithEmailValidation()
+                .WithOrder(2))
+            .AddField(x => x.Age, field => field
+                .WithLabel("Age")
+                .WithRange(18, 100)
+                .WithOrder(3))
+            .Build();
+
+        // Assert
+        configuration.Fields.Count.ShouldBe(3);
+        
+        var nameField = configuration.Fields.First(f => f.FieldName == "Name");
+        nameField.Label.ShouldBe("Name");
+        nameField.Order.ShouldBe(1);
+        
+        var emailField = configuration.Fields.First(f => f.FieldName == "Email");
+        emailField.Label.ShouldBe("Email");
+        emailField.Order.ShouldBe(2);
+        
+        var ageField = configuration.Fields.First(f => f.FieldName == "Age");
+        ageField.Label.ShouldBe("Age");
+        ageField.Order.ShouldBe(3);
+    }
+
+    [Fact]
+    public void Build_Should_Include_Field_Dependencies()
+    {
+        // Arrange & Act
+        var configuration = FormBuilder<TestModel>.Create()
+            .AddField(x => x.City, field => field
+                .DependsOn(x => x.Country, (m, v) => m.City = string.Empty))
+            .Build();
 
         // Assert
         configuration.FieldDependencies.ShouldContainKey("City");
@@ -172,24 +227,24 @@ public class FormBuilderTests
             .WithCssClass("registration-form")
             .ShowValidationSummary()
             .ShowRequiredIndicator()
-            .AddField(x => x.Name)
+            .AddField(x => x.Name, field => field
                 .WithLabel("Full Name")
                 .WithPlaceholder("Enter your full name")
                 .Required("Name is required")
-                .WithOrder(1)
-            .AddField(x => x.Email)
+                .WithOrder(1))
+            .AddField(x => x.Email, field => field
                 .WithLabel("Email Address")
                 .WithPlaceholder("user@example.com")
                 .Required("Email is required")
-                .WithOrder(2)
-            .AddField(x => x.Age)
+                .WithOrder(2))
+            .AddField(x => x.Age, field => field
                 .WithLabel("Age")
-                .WithOrder(3)
-            .AddField(x => x.Country)
+                .WithOrder(3))
+            .AddField(x => x.Country, field => field
                 .WithLabel("Country")
                 .Required()
-                .WithOrder(4)
-            .AddField(x => x.City)
+                .WithOrder(4))
+            .AddField(x => x.City, field => field
                 .WithLabel("City")
                 .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
                 .DependsOn(x => x.Country, (m, country) =>
@@ -197,7 +252,7 @@ public class FormBuilderTests
                     if (string.IsNullOrEmpty(country))
                         m.City = string.Empty;
                 })
-                .WithOrder(5)
+                .WithOrder(5))
             .Build();
 
         // Assert
@@ -221,15 +276,12 @@ public class FormBuilderTests
     [Fact]
     public void Multiple_Fields_Should_Be_Ordered_Correctly()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-
-        // Act
-        var config = builder
-            .AddField(x => x.Name)
-            .AddField(x => x.Email)
-            .AddField(x => x.Age)
-            .AddField(x => x.Country)
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field.WithLabel("Name"))
+            .AddField(x => x.Email, field => field.WithLabel("Email"))
+            .AddField(x => x.Age, field => field.WithLabel("Age"))
+            .AddField(x => x.Country, field => field.WithLabel("Country"))
             .Build();
 
         // Assert

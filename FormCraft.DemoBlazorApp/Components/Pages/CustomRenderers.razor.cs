@@ -95,12 +95,12 @@ public partial class CustomRenderers
                     .WithCustomRenderer<ProductModel, int, RatingRenderer>()
                     .WithAttribute("MaxRating", 5)
                     .WithHelpText("Rate the product quality from 1 to 5 stars")))
-            .AddField(x => x.Description)
-            .WithLabel("Description")
-            .AsTextArea(lines: 4)
-            .WithPlaceholder("Enter product description")
-            .AddField(x => x.InStock)
-            .WithLabel("In Stock")
+            .AddField(x => x.Description, field => field
+                .WithLabel("Description")
+                .AsTextArea(lines: 4)
+                .WithPlaceholder("Enter product description"))
+            .AddField(x => x.InStock, field => field
+                .WithLabel("In Stock"))
             .Build();
     }
 

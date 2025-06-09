@@ -11,11 +11,11 @@ public class ValidationPipelineIntegrationTests
         var serviceProvider = services.BuildServiceProvider();
 
         var formConfig = FormBuilder<ValidationTestModel>.Create()
-            .AddField(x => x.Name)
+            .AddField(x => x.Name, field => field
                 .WithLabel("Name")
                 .Required("Name is required")
                 .WithMinLength(3, "Name must be at least 3 characters")
-                .WithMaxLength(50, "Name must be less than 50 characters")
+                .WithMaxLength(50, "Name must be less than 50 characters"))
             .Build();
 
         var field = formConfig.Fields.First();
@@ -34,11 +34,11 @@ public class ValidationPipelineIntegrationTests
         var serviceProvider = services.BuildServiceProvider();
 
         var formConfig = FormBuilder<ValidationTestModel>.Create()
-            .AddField(x => x.Name)
+            .AddField(x => x.Name, field => field
                 .WithLabel("Name")
                 .Required("Name is required")
                 .WithMinLength(3, "Name must be at least 3 characters")
-                .WithValidator(value => !value.Contains("invalid"), "Name cannot contain 'invalid'")
+                .WithValidator(value => !value.Contains("invalid"), "Name cannot contain 'invalid'"))
             .Build();
 
         var field = formConfig.Fields.First();
@@ -61,12 +61,12 @@ public class ValidationPipelineIntegrationTests
         var serviceProvider = services.BuildServiceProvider();
 
         var formConfig = FormBuilder<ValidationTestModel>.Create()
-            .AddField(x => x.Name)
+            .AddField(x => x.Name, field => field
                 .WithLabel("Name")
-                .WithValidator(value => !string.IsNullOrEmpty(value), "Name is required")
-            .AddField(x => x.Email)
+                .WithValidator(value => !string.IsNullOrEmpty(value), "Name is required"))
+            .AddField(x => x.Email, field => field
                 .WithLabel("Email")
-                .WithEmailValidation()
+                .WithEmailValidation())
             .Build();
 
         // Assert - Both fields should be configured with validation
@@ -97,9 +97,9 @@ public class ValidationPipelineIntegrationTests
         };
 
         var formConfig = FormBuilder<ValidationTestModel>.Create()
-            .AddField(x => x.Name)
+            .AddField(x => x.Name, field => field
                 .WithLabel("Name")
-                .WithAsyncValidator(asyncValidation, "Async validation failed")
+                .WithAsyncValidator(asyncValidation, "Async validation failed"))
             .Build();
 
         var field = formConfig.Fields.First();
@@ -120,9 +120,9 @@ public class ValidationPipelineIntegrationTests
         var serviceProvider = services.BuildServiceProvider();
 
         var formConfig = FormBuilder<ValidationTestModel>.Create()
-            .AddField(x => x.Email)
+            .AddField(x => x.Email, field => field
                 .WithLabel("Email")
-                .WithEmailValidation("Please enter a valid email")
+                .WithEmailValidation("Please enter a valid email"))
             .Build();
 
         var field = formConfig.Fields.First();
@@ -146,9 +146,9 @@ public class ValidationPipelineIntegrationTests
         var serviceProvider = services.BuildServiceProvider();
 
         var formConfig = FormBuilder<ValidationTestModel>.Create()
-            .AddField(x => x.Name)
+            .AddField(x => x.Name, field => field
                 .WithLabel("Name")
-                .WithValidator(value => !string.IsNullOrEmpty(value), "Name is required")
+                .WithValidator(value => !string.IsNullOrEmpty(value), "Name is required"))
             .Build();
 
         var field = formConfig.Fields.First();
@@ -172,20 +172,20 @@ public class ValidationPipelineIntegrationTests
         var serviceProvider = services.BuildServiceProvider();
 
         var formConfig = FormBuilder<ComplexValidationModel>.Create()
-            .AddField(x => x.Username)
+            .AddField(x => x.Username, field => field
                 .WithLabel("Username")
                 .Required()
-                .WithValidator(value => value.Length >= 3, "Username must be at least 3 characters")
-            .AddField(x => x.Email)
+                .WithValidator(value => value.Length >= 3, "Username must be at least 3 characters"))
+            .AddField(x => x.Email, field => field
                 .WithLabel("Email")
                 .Required()
-                .WithEmailValidation()
-            .AddField(x => x.Age)
+                .WithEmailValidation())
+            .AddField(x => x.Age, field => field
                 .WithLabel("Age")
-                .WithRange(18, 120, "Age must be between 18 and 120")
-            .AddField(x => x.AcceptTerms)
+                .WithRange(18, 120, "Age must be between 18 and 120"))
+            .AddField(x => x.AcceptTerms, field => field
                 .WithLabel("Accept Terms")
-                .WithValidator(value => value, "You must accept the terms")
+                .WithValidator(value => value, "You must accept the terms"))
             .Build();
 
         // Act & Assert - Test valid model

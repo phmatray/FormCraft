@@ -13,18 +13,18 @@ public class CompleteFormWorkflowTests
 
         // Act & Assert - Build form configuration
         var formConfig = FormBuilder<CompleteTestModel>.Create()
-            .AddField(x => x.FirstName)
+            .AddField(x => x.FirstName, field => field
                 .WithLabel("First Name")
-                .WithPlaceholder("Enter your first name")
-            .AddField(x => x.LastName)
+                .WithPlaceholder("Enter your first name"))
+            .AddField(x => x.LastName, field => field
                 .WithLabel("Last Name")
-                .WithPlaceholder("Enter your last name")
-            .AddField(x => x.Age)
-                .WithLabel("Age")
-            .AddField(x => x.IsActive)
-                .WithLabel("Is Active")
-            .AddField(x => x.BirthDate)
-                .WithLabel("Birth Date")
+                .WithPlaceholder("Enter your last name"))
+            .AddField(x => x.Age, field => field
+                .WithLabel("Age"))
+            .AddField(x => x.IsActive, field => field
+                .WithLabel("Is Active"))
+            .AddField(x => x.BirthDate, field => field
+                .WithLabel("Birth Date"))
             .Build();
 
         // Verify form configuration
@@ -58,13 +58,13 @@ public class CompleteFormWorkflowTests
         var serviceProvider = services.BuildServiceProvider();
 
         var formConfig = FormBuilder<CompleteTestModel>.Create()
-            .AddField(x => x.FirstName)
+            .AddField(x => x.FirstName, field => field
                 .WithLabel("First Name")
                 .Required("First name is required")
-                .WithMinLength(2, "First name must be at least 2 characters")
-            .AddField(x => x.Age)
+                .WithMinLength(2, "First name must be at least 2 characters"))
+            .AddField(x => x.Age, field => field
                 .WithLabel("Age")
-                .WithRange(0, 120, "Age must be between 0 and 120")
+                .WithRange(0, 120, "Age must be between 0 and 120"))
             .Build();
 
         // Act & Assert - Test valid model
@@ -96,17 +96,17 @@ public class CompleteFormWorkflowTests
 
         // Build form with conditional fields
         var formConfig = FormBuilder<CompleteTestModel>.Create()
-            .AddField(x => x.IsActive)
-                .WithLabel("Is Active")
-            .AddField(x => x.FirstName)
+            .AddField(x => x.IsActive, field => field
+                .WithLabel("Is Active"))
+            .AddField(x => x.FirstName, field => field
                 .WithLabel("First Name")
-                .VisibleWhen(model => model.IsActive) // Only show if active
-            .AddField(x => x.LastName)
+                .VisibleWhen(model => model.IsActive)) // Only show if active
+            .AddField(x => x.LastName, field => field
                 .WithLabel("Last Name")
-                .VisibleWhen(model => model.IsActive) // Only show if active
-            .AddField(x => x.Age)
+                .VisibleWhen(model => model.IsActive)) // Only show if active
+            .AddField(x => x.Age, field => field
                 .WithLabel("Age")
-                .DisabledWhen(model => !model.IsActive) // Disabled if not active
+                .DisabledWhen(model => !model.IsActive)) // Disabled if not active
             .Build();
 
         // Act & Assert - Test with active model
@@ -146,14 +146,14 @@ public class CompleteFormWorkflowTests
 
         // Build form with all supported field types
         var formConfig = FormBuilder<CompleteTestModel>.Create()
-            .AddField(x => x.FirstName)    // string
-                .WithLabel("First Name")
-            .AddField(x => x.Age)          // int
-                .WithLabel("Age")
-            .AddField(x => x.IsActive)     // bool
-                .WithLabel("Is Active")
-            .AddField(x => x.BirthDate)    // DateTime
-                .WithLabel("Birth Date")
+            .AddField(x => x.FirstName, field => field    // string
+                .WithLabel("First Name"))
+            .AddField(x => x.Age, field => field          // int
+                .WithLabel("Age"))
+            .AddField(x => x.IsActive, field => field     // bool
+                .WithLabel("Is Active"))
+            .AddField(x => x.BirthDate, field => field    // DateTime
+                .WithLabel("Birth Date"))
             .Build();
 
         var model = new CompleteTestModel
@@ -206,14 +206,14 @@ public class CompleteFormWorkflowTests
         for (int i = 0; i < 10; i++)
         {
             formBuilder
-                .AddField(x => x.FirstName)
-                    .WithLabel($"String Field {i}")
-                .AddField(x => x.Age)
-                    .WithLabel($"Int Field {i}")
-                .AddField(x => x.IsActive)
-                    .WithLabel($"Bool Field {i}")
-                .AddField(x => x.BirthDate)
-                    .WithLabel($"DateTime Field {i}");
+                .AddField(x => x.FirstName, field => field
+                    .WithLabel($"String Field {i}"))
+                .AddField(x => x.Age, field => field
+                    .WithLabel($"Int Field {i}"))
+                .AddField(x => x.IsActive, field => field
+                    .WithLabel($"Bool Field {i}"))
+                .AddField(x => x.BirthDate, field => field
+                    .WithLabel($"DateTime Field {i}"));
         }
 
         var formConfig = formBuilder.Build();
@@ -244,11 +244,11 @@ public class CompleteFormWorkflowTests
         var serviceProvider = services.BuildServiceProvider();
 
         var formConfig = FormBuilder<CompleteTestModel>.Create()
-            .AddField(x => x.IsActive)
-                .WithLabel("Is Active")
-            .AddField(x => x.FirstName)
+            .AddField(x => x.IsActive, field => field
+                .WithLabel("Is Active"))
+            .AddField(x => x.FirstName, field => field
                 .WithLabel("First Name")
-                .VisibleWhen(model => model.IsActive)
+                .VisibleWhen(model => model.IsActive))
             .Build();
 
         // Act & Assert - Test state transitions

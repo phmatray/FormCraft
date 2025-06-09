@@ -10,11 +10,11 @@ namespace FormCraft;
 /// <typeparam name="TValue">The type of the field value.</typeparam>
 /// <example>
 /// <code>
-/// builder.AddField(x => x.Email)
+/// builder.AddField(x => x.Email, field => field
 ///     .WithLabel("Email Address")
 ///     .WithPlaceholder("Enter your email")
 ///     .Required("Email is required")
-///     .WithValidator(email => email.Contains("@"), "Invalid email format");
+///     .WithValidator(email => email.Contains("@"), "Invalid email format"));
 /// </code>
 /// </example>
 public class FieldBuilder<TModel, TValue> where TModel : new()
@@ -347,35 +347,4 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         return this;
     }
 
-    /// <summary>
-    /// Adds another field to the form and returns a FieldBuilder for configuring it.
-    /// </summary>
-    /// <typeparam name="TNewValue">The type of the new field value.</typeparam>
-    /// <param name="expression">A lambda expression that identifies the property on the model for the new field.</param>
-    /// <returns>A FieldBuilder instance for configuring the new field.</returns>
-    /// <example>
-    /// <code>
-    /// .AddField(x => x.LastName)
-    ///     .WithLabel("Last Name")
-    ///     .Required()
-    /// </code>
-    /// </example>
-    public FieldBuilder<TModel, TNewValue> AddField<TNewValue>(Expression<Func<TModel, TNewValue>> expression)
-    {
-        return _formBuilder.AddField(expression);
-    }
-
-    /// <summary>
-    /// Builds and returns the final form configuration containing all configured fields and settings.
-    /// </summary>
-    /// <returns>An IFormConfiguration instance that can be used with FormCraftComponent.</returns>
-    /// <example>
-    /// <code>
-    /// var config = builder.Build();
-    /// </code>
-    /// </example>
-    public IFormConfiguration<TModel> Build()
-    {
-        return _formBuilder.Build();
-    }
 }
