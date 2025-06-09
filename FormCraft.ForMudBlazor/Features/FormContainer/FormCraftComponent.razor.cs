@@ -44,8 +44,63 @@ public partial class FormCraftComponent<TModel>
             var underlyingType = Nullable.GetUnderlyingType(fieldType) ?? fieldType;
             var value = property.GetValue(Model);
 
+            // Select fields (if field has options in additional attributes)
+            if (field.AdditionalAttributes.TryGetValue("Options", out var optionsObj) && optionsObj != null)
+            {
+                builder.OpenComponent<MudSelect<string>>(0);
+                builder.AddAttribute(1, "Label", field.Label);
+                builder.AddAttribute(2, "Value", value?.ToString() ?? string.Empty);
+                builder.AddAttribute(3, "ValueChanged",
+                    EventCallback.Factory.Create<string>(this,
+                        newValue => UpdateFieldValue(field.FieldName, newValue)));
+                builder.AddAttribute(4, "Placeholder", field.Placeholder);
+                builder.AddAttribute(5, "HelperText", field.HelpText);
+                builder.AddAttribute(6, "Required", field.IsRequired);
+                builder.AddAttribute(7, "ReadOnly", field.IsReadOnly);
+                builder.AddAttribute(8, "Disabled", field.IsDisabled);
+                builder.AddAttribute(9, "Variant", Variant.Outlined);
+                builder.AddAttribute(10, "Margin", Margin.Dense);
+                builder.AddAttribute(11, "ChildContent", (RenderFragment)((childBuilder) =>
+                {
+                    var sequence = 0;
+                    if (optionsObj is IEnumerable<SelectOption<string>> stringOptions)
+                    {
+                        foreach (var option in stringOptions)
+                        {
+                            childBuilder.OpenComponent<MudSelectItem<string>>(sequence++);
+                            childBuilder.AddAttribute(sequence++, "Value", option.Value);
+                            childBuilder.AddAttribute(sequence++, "ChildContent",
+                                (RenderFragment)((itemBuilder) => { itemBuilder.AddContent(0, option.Label); }));
+                            childBuilder.CloseComponent();
+                        }
+                    }
+                    else if (optionsObj is System.Collections.IEnumerable options)
+                    {
+                        // Handle generic options
+                        foreach (var option in options)
+                        {
+                            var optionType = option.GetType();
+                            var valueProperty = optionType.GetProperty("Value");
+                            var labelProperty = optionType.GetProperty("Label");
+
+                            if (valueProperty != null && labelProperty != null)
+                            {
+                                var optionValue = valueProperty.GetValue(option)?.ToString() ?? "";
+                                var optionLabel = labelProperty.GetValue(option)?.ToString() ?? "";
+
+                                childBuilder.OpenComponent<MudSelectItem<string>>(sequence++);
+                                childBuilder.AddAttribute(sequence++, "Value", optionValue);
+                                childBuilder.AddAttribute(sequence++, "ChildContent",
+                                    (RenderFragment)((itemBuilder) => { itemBuilder.AddContent(0, optionLabel); }));
+                                childBuilder.CloseComponent();
+                            }
+                        }
+                    }
+                }));
+                builder.CloseComponent();
+            }
             // String fields
-            if (fieldType == typeof(string))
+            else if (fieldType == typeof(string))
             {
                 builder.OpenComponent<MudTextField<string>>(0);
                 builder.AddAttribute(1, "Label", field.Label);
@@ -171,61 +226,6 @@ public partial class FormCraftComponent<TModel>
                             buttonBuilder.AddContent(0, field.Label ?? "Upload File");
                         }));
                     contentBuilder.CloseComponent();
-                }));
-                builder.CloseComponent();
-            }
-            // Select fields (if field has options in additional attributes)
-            else if (field.AdditionalAttributes.TryGetValue("Options", out var optionsObj) && optionsObj != null)
-            {
-                builder.OpenComponent<MudSelect<string>>(0);
-                builder.AddAttribute(1, "Label", field.Label);
-                builder.AddAttribute(2, "Value", value?.ToString() ?? string.Empty);
-                builder.AddAttribute(3, "ValueChanged",
-                    EventCallback.Factory.Create<string>(this,
-                        newValue => UpdateFieldValue(field.FieldName, newValue)));
-                builder.AddAttribute(4, "Placeholder", field.Placeholder);
-                builder.AddAttribute(5, "HelperText", field.HelpText);
-                builder.AddAttribute(6, "Required", field.IsRequired);
-                builder.AddAttribute(7, "ReadOnly", field.IsReadOnly);
-                builder.AddAttribute(8, "Disabled", field.IsDisabled);
-                builder.AddAttribute(9, "Variant", Variant.Outlined);
-                builder.AddAttribute(10, "Margin", Margin.Dense);
-                builder.AddAttribute(11, "ChildContent", (RenderFragment)((childBuilder) =>
-                {
-                    var sequence = 0;
-                    if (optionsObj is IEnumerable<SelectOption<string>> stringOptions)
-                    {
-                        foreach (var option in stringOptions)
-                        {
-                            childBuilder.OpenComponent<MudSelectItem<string>>(sequence++);
-                            childBuilder.AddAttribute(sequence++, "Value", option.Value);
-                            childBuilder.AddAttribute(sequence++, "ChildContent",
-                                (RenderFragment)((itemBuilder) => { itemBuilder.AddContent(0, option.Label); }));
-                            childBuilder.CloseComponent();
-                        }
-                    }
-                    else if (optionsObj is System.Collections.IEnumerable options)
-                    {
-                        // Handle generic options
-                        foreach (var option in options)
-                        {
-                            var optionType = option.GetType();
-                            var valueProperty = optionType.GetProperty("Value");
-                            var labelProperty = optionType.GetProperty("Label");
-
-                            if (valueProperty != null && labelProperty != null)
-                            {
-                                var optionValue = valueProperty.GetValue(option)?.ToString() ?? "";
-                                var optionLabel = labelProperty.GetValue(option)?.ToString() ?? "";
-
-                                childBuilder.OpenComponent<MudSelectItem<string>>(sequence++);
-                                childBuilder.AddAttribute(sequence++, "Value", optionValue);
-                                childBuilder.AddAttribute(sequence++, "ChildContent",
-                                    (RenderFragment)((itemBuilder) => { itemBuilder.AddContent(0, optionLabel); }));
-                                childBuilder.CloseComponent();
-                            }
-                        }
-                    }
                 }));
                 builder.CloseComponent();
             }
