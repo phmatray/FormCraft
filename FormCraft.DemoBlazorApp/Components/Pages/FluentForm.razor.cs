@@ -199,7 +199,8 @@ public partial class FluentForm
         const string usageExample = @"
 
 // Use in Razor component
-<FormCraftComponent TModel=""ContactModel"" 
+<FormCraftComponent
+    TModel=""ContactModel"" 
     Model=""@_model"" 
     Configuration=""@_formConfiguration""
     OnValidSubmit=""@HandleValidSubmit""

@@ -187,7 +187,8 @@ public partial class ImprovedForm
         const string usageExample = @"
 
 // Use the FormCraftComponent for automatic rendering
-<FormCraftComponent TModel=""ContactModel"" 
+<FormCraftComponent
+    TModel=""ContactModel"" 
     Model=""@_model"" 
     Configuration=""@_formConfiguration""
     OnValidSubmit=""@HandleValidSubmit""
