@@ -6,6 +6,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FormCraft", "FormCraft\Form
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FormCraft.UnitTests", "FormCraft.UnitTests\FormCraft.UnitTests.csproj", "{5645C5E1-BF89-4C66-B8B7-68CC466F50F0}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{00000000-0000-0000-0000-000000000000}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+	EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "lib", "lib", "{7A77639B-9BA4-4910-8A56-88E2F0E80F3A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "demo", "demo", "{46016334-212A-4404-A07F-4B5FC8F9DB64}"
@@ -13,6 +18,43 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{6ED59F2D-69C9-4F71-A95F-6115C1775B36}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_build", "build\_build.csproj", "{67B793F7-A399-49C0-90CE-7A592B5C01B8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{B8C2E5F1-4A8D-4F8E-9B1A-8F5C3D7E2F9A}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+		CHANGELOG.md = CHANGELOG.md
+		CONTRIBUTING.md = CONTRIBUTING.md
+		LICENSE = LICENSE
+		GITHUB_PAGES_DEPLOYMENT.md = GITHUB_PAGES_DEPLOYMENT.md
+		BLAZOR_WASM_CONVERSION.md = BLAZOR_WASM_CONVERSION.md
+		BUILD_RELEASE_SETUP.md = BUILD_RELEASE_SETUP.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build-config", "build-config", "{C9F1E2D3-5A7B-4C8E-9F1A-2B3C4D5E6F7A}"
+	ProjectSection(SolutionItems) = preProject
+		global.json = global.json
+		NuGet.config = NuGet.config
+		GitVersion.yml = GitVersion.yml
+		cliff.toml = cliff.toml
+		renovate.json = renovate.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{00000000-0000-0000-0000-000000000000}"
+	ProjectSection(SolutionItems) = preProject
+		build.sh = build.sh
+		build.ps1 = build.ps1
+		build.cmd = build.cmd
+		pack-local.sh = pack-local.sh
+		pack-local.ps1 = pack-local.ps1
+		setup-hooks.sh = setup-hooks.sh
+		setup-hooks.ps1 = setup-hooks.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{00000000-0000-0000-0000-000000000000}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\continuous.yml = .github\workflows\continuous.yml
+		.github\workflows\deploy-docs.yml = .github\workflows\deploy-docs.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,5 +81,8 @@ Global
 		{F6DD27E9-766F-4426-82C7-03E6CF7AE348} = {7A77639B-9BA4-4910-8A56-88E2F0E80F3A}
 		{0E605901-5186-4D76-AC90-EC845675DB9C} = {46016334-212A-4404-A07F-4B5FC8F9DB64}
 		{5645C5E1-BF89-4C66-B8B7-68CC466F50F0} = {6ED59F2D-69C9-4F71-A95F-6115C1775B36}
+		{46016334-212A-4404-A07F-4B5FC8F9DB64} = {00000000-0000-0000-0000-000000000000}
+		{7A77639B-9BA4-4910-8A56-88E2F0E80F3A} = {00000000-0000-0000-0000-000000000000}
+		{6ED59F2D-69C9-4F71-A95F-6115C1775B36} = {00000000-0000-0000-0000-000000000000}
 	EndGlobalSection
 EndGlobal

@@ -2,6 +2,8 @@
 
 Thank you for your interest in contributing to FormCraft! This document provides guidelines and instructions for contributing.
 
+🌐 **Try the [live demo](https://phmatray.github.io/FormCraft/)** to explore the library's capabilities before contributing.
+
 ## Code of Conduct
 
 By participating in this project, you are expected to uphold our Code of Conduct:
