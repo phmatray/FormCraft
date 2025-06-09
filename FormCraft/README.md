@@ -2,6 +2,8 @@
 
 A powerful, type-safe dynamic form library for Blazor applications with fluent API design.
 
+🌐 **[Live Demo](https://phmatray.github.io/FormCraft/)** | 📚 **[Documentation](https://phmatray.github.io/FormCraft/docs/getting-started)**
+
 ## Features
 
 - **Type-Safe**: Strongly typed form builders with compile-time validation
@@ -43,7 +45,7 @@ var configuration = FormBuilder<MyModel>.Create()
 
 ## Documentation
 
-For detailed documentation and examples, visit the [documentation site](https://github.com/yourusername/FormCraft).
+For detailed documentation and examples, visit our [interactive documentation site](https://phmatray.github.io/FormCraft/docs/getting-started).
 
 ## License
 

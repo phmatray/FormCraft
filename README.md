@@ -10,11 +10,21 @@
 
 **Build type-safe, dynamic forms in Blazor with ease** ✨
 
-[Get Started](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples) • [Contributing](CONTRIBUTING.md)
+[Get Started](#-quick-start) • [Live Demo](https://phmatray.github.io/FormCraft/) • [Documentation](https://phmatray.github.io/FormCraft/docs/getting-started) • [Examples](#-examples) • [Contributing](CONTRIBUTING.md)
 
 </div>
 
 ---
+
+## 🌐 Live Demo
+
+Experience FormCraft in action! Visit our [interactive demo](https://phmatray.github.io/FormCraft/) to see:
+
+- 🎯 Various form layouts and configurations
+- 🔄 Dynamic field dependencies
+- ✨ Custom field renderers
+- 📤 File upload capabilities
+- 🎨 Real-time form generation
 
 ## 🚀 Why FormCraft?
 
@@ -314,12 +324,13 @@ dotnet test
 
 ## 📖 Documentation
 
-- [Getting Started Guide](docs/getting-started.md)
-- [API Reference](docs/api-reference.md)
-- [Examples](docs/examples.md)
-- [Custom Validators](docs/custom-validators.md)
-- [Field Renderers](docs/field-renderers.md)
-- [Best Practices](docs/best-practices.md)
+📚 **[Complete Documentation](https://phmatray.github.io/FormCraft/docs/getting-started)** - Interactive docs with live examples
+
+- [Getting Started Guide](https://phmatray.github.io/FormCraft/docs/getting-started)
+- [API Reference](https://phmatray.github.io/FormCraft/docs/api-reference)
+- [Examples](https://phmatray.github.io/FormCraft/docs/examples)
+- [Customization](https://phmatray.github.io/FormCraft/docs/customization)
+- [Troubleshooting](https://phmatray.github.io/FormCraft/docs/troubleshooting)
 
 ## 🗺️ Roadmap
 

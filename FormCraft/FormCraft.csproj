@@ -9,7 +9,7 @@
     <!-- Package Information -->
     <PackageId>FormCraft</PackageId>
     <Title>FormCraft</Title>
-    <Description>A powerful, type-safe dynamic form library for Blazor applications with fluent API design. Build complex forms with ease using a fluent interface, dynamic validation, field dependencies, and extensible rendering.</Description>
+    <Description>A powerful, type-safe dynamic form library for Blazor applications with fluent API design. Build complex forms with ease using a fluent interface, dynamic validation, field dependencies, and extensible rendering. Try the interactive demo at https://phmatray.github.io/FormCraft/</Description>
     <Authors>phmatray</Authors>
     <Company>phmatray</Company>
     <Copyright>Copyright © 2025 phmatray</Copyright>
