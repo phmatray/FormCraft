@@ -93,25 +93,25 @@ Adds a checkbox field.
 Makes a field required.
 
 ```csharp
-.AddField(x => x.Name)
-    .Required("Name is required")
+.AddField(x => x.Name, field => field
+    .Required("Name is required"))
 ```
 
 #### WithMinLength() / WithMaxLength()
 Sets length constraints.
 
 ```csharp
-.AddField(x => x.Description)
+.AddField(x => x.Description, field => field
     .WithMinLength(10, "Must be at least 10 characters")
-    .WithMaxLength(500, "Cannot exceed 500 characters")
+    .WithMaxLength(500, "Cannot exceed 500 characters"))
 ```
 
 #### WithValidator()
 Adds custom validation logic.
 
 ```csharp
-.AddField(x => x.Username)
-    .WithValidator(value => !value.Contains(" "), "Username cannot contain spaces")
+.AddField(x => x.Username, field => field
+    .WithValidator(value => !value.Contains(" "), "Username cannot contain spaces"))
 ```
 
 ### Appearance
@@ -150,20 +150,20 @@ Adds custom CSS classes.
 Shows field only when condition is met.
 
 ```csharp
-.AddField(x => x.City)
-    .VisibleWhen(model => !string.IsNullOrEmpty(model.Country))
+.AddField(x => x.City, field => field
+    .VisibleWhen(model => !string.IsNullOrEmpty(model.Country)))
 ```
 
 #### DependsOn()
 Creates field dependencies with actions.
 
 ```csharp
-.AddField(x => x.State)
+.AddField(x => x.State, field => field
     .DependsOn(x => x.Country, (model, country) => {
         if (country != "US") {
             model.State = null;
         }
-    })
+    }))
 ```
 
 ## Component Properties
@@ -185,15 +185,16 @@ Creates field dependencies with actions.
 
 #### Example
 ```html
-<FormCraftComponent TModel="ContactModel" 
-                   Model="@model" 
-                   Configuration="@formConfiguration"
-                   OnValidSubmit="@HandleSubmit"
-                   OnFieldChanged="@OnFieldValueChanged"
-                   ShowSubmitButton="true"
-                   SubmitButtonText="Save Contact"
-                   SubmittingText="Saving..."
-                   IsSubmitting="@isSubmitting" />
+<FormCraftComponent
+    TModel="ContactModel" 
+    Model="@model" 
+    Configuration="@formConfiguration"
+    OnValidSubmit="@HandleSubmit"
+    OnFieldChanged="@OnFieldValueChanged"
+    ShowSubmitButton="true"
+    SubmitButtonText="Save Contact"
+    SubmittingText="Saving..."
+    IsSubmitting="@isSubmitting" />
 ```
 
 ## Validation System

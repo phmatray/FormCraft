@@ -25,21 +25,21 @@ var config = FormBuilder<ContactModel>
     .AddRequiredTextField(x => x.FirstName, "First Name", minLength: 2)
     .AddRequiredTextField(x => x.LastName, "Last Name", minLength: 2)
     .AddEmailField(x => x.Email)
-    .AddField(x => x.Phone)
+    .AddField(x => x.Phone, field => field
         .WithLabel("Phone")
-        .WithPlaceholder("(555) 123-4567")
+        .WithPlaceholder("(555) 123-4567"))
     .AddDropdownField(x => x.Country, "Country",
         ("US", "United States"),
         ("CA", "Canada"),
         ("UK", "United Kingdom"))
-    .AddField(x => x.City)
+    .AddField(x => x.City, field => field
         .WithLabel("City")
         .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
         .DependsOn(x => x.Country, (model, country) => {
             if (string.IsNullOrEmpty(country)) {
                 model.City = "";
             }
-        })
+        }))
     .AddCheckboxField(x => x.SubscribeToNewsletter, "Subscribe to newsletter")
     .Build();
 ```
@@ -65,10 +65,10 @@ var config = FormBuilder<RegistrationModel>
         .WithValidator(value => !value.Contains(" "), "Username cannot contain spaces")
     .AddEmailField(x => x.Email)
     .AddPasswordField(x => x.Password, "Password", 8, true)
-    .AddField(x => x.ConfirmPassword)
+    .AddField(x => x.ConfirmPassword, field => field
         .WithLabel("Confirm Password")
         .Required("Please confirm your password")
-        .WithValidator((value, model) => value == model.Password, "Passwords must match")
+        .WithValidator((value, model) => value == model.Password, "Passwords must match"))
     .AddDateField(x => x.DateOfBirth, "Date of Birth")
         .WithValidator(value => value < DateTime.Now.AddYears(-13), "Must be at least 13 years old")
     .AddCheckboxField(x => x.AcceptTerms, "I accept the terms and conditions")
@@ -95,14 +95,14 @@ var config = FormBuilder<SurveyModel>
     .AddRequiredTextField(x => x.Name, "Your Name")
     .AddNumericField(x => x.Satisfaction, "Satisfaction (1-10)", 1, 10)
     .AddCheckboxField(x => x.WouldRecommend, "Would you recommend us to others?")
-    .AddField(x => x.Feedback)
+    .AddField(x => x.Feedback, field => field
         .WithLabel("Additional Feedback")
         .WithPlaceholder("Tell us about your experience...")
-        .AsTextArea(rows: 4)
-    .AddField(x => x.ImprovementSuggestions)
+        .AsTextArea(rows: 4))
+    .AddField(x => x.ImprovementSuggestions, field => field
         .WithLabel("Suggestions for Improvement")
         .AsTextArea(rows: 3)
-        .VisibleWhen(m => m.Satisfaction < 8)
+        .VisibleWhen(m => m.Satisfaction < 8))
     .Build();
 ```
 
@@ -143,9 +143,9 @@ public class UsernameAvailabilityValidator : IFieldValidator<AccountModel, strin
 // Usage
 var config = FormBuilder<AccountModel>
     .Create()
-    .AddField(x => x.Username)
+    .AddField(x => x.Username, field => field
         .WithLabel("Username")
         .Required()
-        .WithAsyncValidator<UsernameAvailabilityValidator>()
+        .WithAsyncValidator<UsernameAvailabilityValidator>())
     .Build();
 ```

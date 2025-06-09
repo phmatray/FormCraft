@@ -65,73 +65,51 @@ public class FormCodeGeneratorService
         return sb.ToString();
     }
 
-    private void AppendFieldConfiguration<TModel>(StringBuilder sb, IFieldConfiguration<TModel, object> field, string indent, bool inGroup)
+    private void AppendFieldConfiguration<TModel>(StringBuilder sb, IFieldConfiguration<TModel, object> field, string indent, bool inGroup = false)
         where TModel : class, new()
     {
-        if (inGroup)
+        sb.AppendLine($"{indent}.AddField(x => x.{field.FieldName}, field => field");
+        var fieldIndent = indent + "    ";
+
+        // Add field configuration methods
+        if (!string.IsNullOrEmpty(field.Label) && field.Label != field.FieldName)
+            sb.AppendLine($"{fieldIndent}.WithLabel(\"{field.Label}\")");
+
+        // Add required validator if field is marked as required
+        if (field.IsRequired)
         {
-            sb.AppendLine($"{indent}.AddField(x => x.{field.FieldName}, field => field");
-            var fieldIndent = indent + "    ";
-
-            // Add field configuration methods
-            if (!string.IsNullOrEmpty(field.Label) && field.Label != field.FieldName)
-                sb.AppendLine($"{fieldIndent}.WithLabel(\"{field.Label}\")");
-
-            if (field.IsRequired)
-                sb.AppendLine($"{fieldIndent}.Required()");
-
-            if (!string.IsNullOrEmpty(field.Placeholder))
-                sb.AppendLine($"{fieldIndent}.WithPlaceholder(\"{field.Placeholder}\")");
-
-            if (!string.IsNullOrEmpty(field.HelpText))
-                sb.AppendLine($"{fieldIndent}.WithHelpText(\"{field.HelpText}\")");
-
-            // Add custom renderer if specified
-            if (field.CustomRendererType != null)
-            {
-                // Get the field type from the expression
-                var property = typeof(TModel).GetProperty(field.FieldName);
-                var fieldType = property?.PropertyType.Name ?? "object";
-                var rendererType = field.CustomRendererType.Name;
-                sb.AppendLine($"{fieldIndent}.WithCustomRenderer<{typeof(TModel).Name}, {fieldType}, {rendererType}>()");
-            }
-
-            // Add text area configuration if Lines attribute is present
-            if (field.AdditionalAttributes.TryGetValue("Lines", out var linesObj) && linesObj is int lines)
-            {
-                sb.AppendLine($"{fieldIndent}.AsTextArea(lines: {lines})");
-            }
-
-            // Add select options if available
-            AppendSelectOptions(sb, field, fieldIndent);
-
-            // Remove the last line break to close the parenthesis properly
-            if (sb.Length > 2 && sb[sb.Length - 2] == '\r' && sb[sb.Length - 1] == '\n')
-                sb.Length -= 2;
-            else if (sb.Length > 1 && sb[sb.Length - 1] == '\n')
-                sb.Length -= 1;
-
-            sb.AppendLine($")");
+            sb.AppendLine($"{fieldIndent}.Required()");
         }
-        else
+
+        if (!string.IsNullOrEmpty(field.Placeholder))
+            sb.AppendLine($"{fieldIndent}.WithPlaceholder(\"{field.Placeholder}\")");
+
+        if (!string.IsNullOrEmpty(field.HelpText))
+            sb.AppendLine($"{fieldIndent}.WithHelpText(\"{field.HelpText}\")");
+
+        // Add custom renderer if specified
+        if (field.CustomRendererType != null)
         {
-            sb.AppendLine($"{indent}.AddField(x => x.{field.FieldName})");
-            var fieldIndent = indent + "    ";
-
-            if (!string.IsNullOrEmpty(field.Label) && field.Label != field.FieldName)
-                sb.AppendLine($"{fieldIndent}.WithLabel(\"{field.Label}\")");
-
-            if (field.IsRequired)
-                sb.AppendLine($"{fieldIndent}.Required()");
-
-            if (!string.IsNullOrEmpty(field.Placeholder))
-                sb.AppendLine($"{fieldIndent}.WithPlaceholder(\"{field.Placeholder}\")");
-
-            if (!string.IsNullOrEmpty(field.HelpText))
-                sb.AppendLine($"{fieldIndent}.WithHelpText(\"{field.HelpText}\")");
-
-            AppendSelectOptions(sb, field, fieldIndent);
+            var rendererType = field.CustomRendererType.Name;
+            sb.AppendLine($"{fieldIndent}.WithCustomRenderer(new {rendererType}())");
         }
+
+        // Add text area configuration if Lines attribute is present
+        if (field.AdditionalAttributes.TryGetValue("Lines", out var linesObj) && linesObj is int lines)
+        {
+            sb.AppendLine($"{fieldIndent}.AsTextArea(lines: {lines})");
+        }
+
+        // Add select options if available
+        AppendSelectOptions(sb, field, fieldIndent);
+
+        // Remove the last line break to close the parenthesis properly
+        if (sb.Length > 2 && sb[sb.Length - 2] == '\r' && sb[sb.Length - 1] == '\n')
+            sb.Length -= 2;
+        else if (sb.Length > 1 && sb[sb.Length - 1] == '\n')
+            sb.Length -= 1;
+
+        sb.AppendLine($")");
     }
 
     private void AppendSelectOptions<TModel>(StringBuilder sb, IFieldConfiguration<TModel, object> field, string indent)
