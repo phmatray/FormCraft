@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 
-namespace FormCraft;
+namespace FormCraft.ForMudBlazor;
 
 public partial class FieldValidationMessage : IDisposable
 {

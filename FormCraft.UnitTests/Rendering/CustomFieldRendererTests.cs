@@ -37,7 +37,7 @@ public class CustomFieldRendererTests
         // Arrange
         var services = new ServiceCollection();
         services.AddScoped<TestCustomRenderer>();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         var rendererService = serviceProvider.GetRequiredService<IFieldRendererService>();

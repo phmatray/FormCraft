@@ -7,3 +7,4 @@ global using Microsoft.AspNetCore.Components.Forms;
 global using Microsoft.Extensions.DependencyInjection;
 global using System.Linq.Expressions;
 global using FormCraft;
+global using FormCraft.ForMudBlazor;

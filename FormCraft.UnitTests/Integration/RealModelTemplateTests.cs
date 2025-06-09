@@ -7,7 +7,7 @@ public class RealModelTemplateTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
         var rendererService = serviceProvider.GetRequiredService<IFieldRendererService>();
 
@@ -68,7 +68,7 @@ public class RealModelTemplateTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
         var rendererService = serviceProvider.GetRequiredService<IFieldRendererService>();
 
@@ -115,7 +115,7 @@ public class RealModelTemplateTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         // Act - Extend contact form template with additional fields
@@ -165,7 +165,7 @@ public class RealModelTemplateTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         // Act - Create contact form with additional validation
@@ -194,7 +194,7 @@ public class RealModelTemplateTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
         var rendererService = serviceProvider.GetRequiredService<IFieldRendererService>();
 
@@ -244,7 +244,7 @@ public class RealModelTemplateTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         // Act - Create many template instances and verify they can be garbage collected

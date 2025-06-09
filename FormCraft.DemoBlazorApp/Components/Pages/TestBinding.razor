@@ -1,0 +1,95 @@
+@page "/test-binding"
+@using FormCraft
+@using FormCraft.ForMudBlazor
+
+<PageTitle>Test Binding</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="my-4">
+    <MudText Typo="Typo.h3" Class="mb-4">FormCraft Binding Test</MudText>
+    
+    <MudCard>
+        <MudCardContent>
+            <DynamicFormComponent TModel="TestModel" 
+                                  Model="@model" 
+                                  Configuration="@formConfig"
+                                  OnFieldChanged="@OnFieldChanged"
+                                  OnValidSubmit="@HandleValidSubmit" />
+        </MudCardContent>
+    </MudCard>
+    
+    <MudCard Class="mt-4">
+        <MudCardContent>
+            <MudText Typo="Typo.h6">Current Model Values:</MudText>
+            <MudSimpleTable Class="mt-2">
+                <tbody>
+                    <tr>
+                        <td>Name:</td>
+                        <td>@model.Name</td>
+                    </tr>
+                    <tr>
+                        <td>Email:</td>
+                        <td>@model.Email</td>
+                    </tr>
+                    <tr>
+                        <td>Age:</td>
+                        <td>@model.Age</td>
+                    </tr>
+                    <tr>
+                        <td>IsActive:</td>
+                        <td>@model.IsActive</td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>
+        </MudCardContent>
+    </MudCard>
+    
+    @if (!string.IsNullOrEmpty(lastChange))
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4">
+            Last change: @lastChange
+        </MudAlert>
+    }
+</MudContainer>
+
+@code {
+    private TestModel model = new();
+    private IFormConfiguration<TestModel> formConfig = null!;
+    private string lastChange = string.Empty;
+    
+    protected override void OnInitialized()
+    {
+        formConfig = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name)
+                .WithLabel("Full Name")
+                .WithPlaceholder("Enter your name")
+            .AddField(x => x.Email)
+                .WithLabel("Email Address")
+                .WithPlaceholder("your.email@example.com")
+            .AddField(x => x.Age)
+                .WithLabel("Age")
+                .WithPlaceholder("Enter your age")
+            .AddField(x => x.IsActive)
+                .WithLabel("Active Status")
+            .Build();
+    }
+    
+    private void OnFieldChanged((string fieldName, object? value) args)
+    {
+        lastChange = $"Field '{args.fieldName}' changed to: {args.value}";
+        StateHasChanged();
+    }
+    
+    private async Task HandleValidSubmit(TestModel submittedModel)
+    {
+        lastChange = $"Form submitted! Name: {submittedModel.Name}, Email: {submittedModel.Email}";
+        await Task.CompletedTask;
+    }
+    
+    public class TestModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public int Age { get; set; }
+        public bool IsActive { get; set; }
+    }
+}

@@ -54,7 +54,7 @@ dotnet add package FormCraft
 
 ```csharp
 // Program.cs
-builder.Services.AddDynamicForms();
+builder.Services.AddFormCraft();
 ```
 
 ### 2. Create Your Model

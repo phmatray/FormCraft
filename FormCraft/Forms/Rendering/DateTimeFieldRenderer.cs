@@ -1,45 +1,60 @@
 using Microsoft.AspNetCore.Components;
-using MudBlazor;
 
 namespace FormCraft;
 
 /// <summary>
-/// Field renderer for DateTime values, rendering date picker controls.
+/// Test stub implementation of a DateTime field renderer.
+/// This is used for unit testing and should not be used in production.
 /// </summary>
-public class DateTimeFieldRenderer : IFieldRenderer
+/// <remarks>
+/// For production use, use the MudBlazor implementation from FormCraft.ForMudBlazor.
+/// </remarks>
+public class DateTimeFieldRenderer : FieldRendererBase<DateTime>
 {
     /// <inheritdoc />
-    public bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
+    public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
     {
         return fieldType == typeof(DateTime) || fieldType == typeof(DateTime?);
     }
-
+    
     /// <inheritdoc />
-    public RenderFragment Render<TModel>(IFieldRenderContext<TModel> context)
+    protected override Type ComponentType => typeof(TestStubComponent<>);
+    
+    /// <summary>
+    /// Simple test component that renders a date input-like representation.
+    /// </summary>
+    private class TestStubComponent<TModel> : ComponentBase
     {
-        return builder =>
+        [Parameter] public IFieldRenderContext<TModel>? Context { get; set; }
+        
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder)
         {
-            builder.OpenComponent<MudDatePicker>(0);
-            builder.AddAttribute(1, "Label", context.Field.Label);
-
-            var currentValue = context.CurrentValue as DateTime?;
-            if (currentValue.HasValue)
+            if (Context == null) return;
+            
+            var sequence = 0;
+            builder.OpenElement(sequence++, "div");
+            builder.AddAttribute(sequence++, "class", "test-datetime-field");
+            
+            builder.OpenElement(sequence++, "label");
+            builder.AddContent(sequence++, Context.Field.Label);
+            builder.CloseElement();
+            
+            builder.OpenElement(sequence++, "input");
+            builder.AddAttribute(sequence++, "type", "datetime-local");
+            builder.AddAttribute(sequence++, "value", Context.CurrentValue);
+            builder.AddAttribute(sequence++, "placeholder", Context.Field.Placeholder);
+            builder.AddAttribute(sequence++, "disabled", Context.Field.IsDisabled);
+            builder.CloseElement();
+            
+            if (!string.IsNullOrEmpty(Context.Field.HelpText))
             {
-                builder.AddAttribute(2, "Date", currentValue.Value);
+                builder.OpenElement(sequence++, "div");
+                builder.AddAttribute(sequence++, "class", "help-text");
+                builder.AddContent(sequence++, Context.Field.HelpText);
+                builder.CloseElement();
             }
-
-            builder.AddAttribute(3, "DateChanged", EventCallback.Factory.Create<DateTime?>(this, value =>
-            {
-                context.OnValueChanged.InvokeAsync(value);
-            }));
-
-            if (!string.IsNullOrEmpty(context.Field.HelpText))
-                builder.AddAttribute(4, "HelperText", context.Field.HelpText);
-
-            builder.AddAttribute(5, "Required", context.Field.IsRequired);
-            builder.AddAttribute(6, "Disabled", context.Field.IsDisabled);
-
-            builder.CloseComponent();
-        };
+            
+            builder.CloseElement();
+        }
     }
 }

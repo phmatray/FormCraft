@@ -7,7 +7,7 @@ public class CompleteFormWorkflowTests
     {
         // Arrange - Set up complete service container
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
         var rendererService = serviceProvider.GetRequiredService<IFieldRendererService>();
 
@@ -54,7 +54,7 @@ public class CompleteFormWorkflowTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         var formConfig = FormBuilder<CompleteTestModel>.Create()
@@ -91,7 +91,7 @@ public class CompleteFormWorkflowTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         // Build form with conditional fields
@@ -140,7 +140,7 @@ public class CompleteFormWorkflowTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
         var rendererService = serviceProvider.GetRequiredService<IFieldRendererService>();
 
@@ -193,7 +193,7 @@ public class CompleteFormWorkflowTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
         var rendererService = serviceProvider.GetRequiredService<IFieldRendererService>();
 
@@ -240,7 +240,7 @@ public class CompleteFormWorkflowTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         var formConfig = FormBuilder<CompleteTestModel>.Create()
@@ -272,7 +272,7 @@ public class CompleteFormWorkflowTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
         var rendererService = serviceProvider.GetRequiredService<IFieldRendererService>();
 

@@ -1,39 +1,61 @@
 using Microsoft.AspNetCore.Components;
-using MudBlazor;
 
 namespace FormCraft;
 
 /// <summary>
-/// Field renderer for integer values, rendering numeric input controls.
+/// Test stub implementation of an integer field renderer.
+/// This is used for unit testing and should not be used in production.
 /// </summary>
-public class IntFieldRenderer : IFieldRenderer
+/// <remarks>
+/// For production use, use the MudBlazor implementation from FormCraft.ForMudBlazor.
+/// </remarks>
+public class IntFieldRenderer : FieldRendererBase<int>
 {
     /// <inheritdoc />
-    public bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
+    public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
     {
+        // Only handle non-nullable int
         return fieldType == typeof(int);
     }
-
+    
     /// <inheritdoc />
-    public RenderFragment Render<TModel>(IFieldRenderContext<TModel> context)
+    protected override Type ComponentType => typeof(TestStubComponent<>);
+    
+    /// <summary>
+    /// Simple test component that renders a numeric input-like representation.
+    /// </summary>
+    private class TestStubComponent<TModel> : ComponentBase
     {
-        return builder =>
+        [Parameter] public IFieldRenderContext<TModel>? Context { get; set; }
+        
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder)
         {
-            builder.OpenComponent<MudNumericField<int>>(0);
-            builder.AddAttribute(1, "Label", context.Field.Label);
-            builder.AddAttribute(2, "Value", (int)(context.CurrentValue ?? 0));
-            builder.AddAttribute(3, "ValueChanged", EventCallback.Factory.Create<int>(this, value =>
+            if (Context == null) return;
+            
+            var sequence = 0;
+            builder.OpenElement(sequence++, "div");
+            builder.AddAttribute(sequence++, "class", "test-int-field");
+            
+            builder.OpenElement(sequence++, "label");
+            builder.AddContent(sequence++, Context.Field.Label);
+            builder.CloseElement();
+            
+            builder.OpenElement(sequence++, "input");
+            builder.AddAttribute(sequence++, "type", "number");
+            builder.AddAttribute(sequence++, "value", Context.CurrentValue);
+            builder.AddAttribute(sequence++, "placeholder", Context.Field.Placeholder);
+            builder.AddAttribute(sequence++, "disabled", Context.Field.IsDisabled);
+            builder.CloseElement();
+            
+            if (!string.IsNullOrEmpty(Context.Field.HelpText))
             {
-                context.OnValueChanged.InvokeAsync(value);
-            }));
-
-            if (!string.IsNullOrEmpty(context.Field.HelpText))
-                builder.AddAttribute(4, "HelperText", context.Field.HelpText);
-
-            builder.AddAttribute(5, "Required", context.Field.IsRequired);
-            builder.AddAttribute(6, "Disabled", context.Field.IsDisabled);
-
-            builder.CloseComponent();
-        };
+                builder.OpenElement(sequence++, "div");
+                builder.AddAttribute(sequence++, "class", "help-text");
+                builder.AddContent(sequence++, Context.Field.HelpText);
+                builder.CloseElement();
+            }
+            
+            builder.CloseElement();
+        }
     }
 }

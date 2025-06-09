@@ -3,13 +3,13 @@ namespace FormCraft.UnitTests.Extensions;
 public class ServiceCollectionExtensionsTests
 {
     [Fact]
-    public void AddDynamicForms_Should_Register_All_Required_Services()
+    public void AddFormCraft_Should_Register_All_Required_Services()
     {
         // Arrange
         var services = new ServiceCollection();
 
         // Act
-        var result = services.AddDynamicForms();
+        var result = services.AddFormCraft();
 
         // Assert
         result.ShouldBeSameAs(services);
@@ -36,11 +36,11 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddDynamicForms_Should_Allow_Service_Resolution()
+    public void AddFormCraft_Should_Allow_Service_Resolution()
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         // Act & Assert - Should be able to resolve IFieldRendererService
@@ -61,11 +61,11 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddDynamicForms_Should_Create_Scoped_Instances()
+    public void AddFormCraft_Should_Create_Scoped_Instances()
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         // Act
@@ -85,14 +85,14 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddDynamicForms_Should_Not_Interfere_With_Existing_Services()
+    public void AddFormCraft_Should_Not_Interfere_With_Existing_Services()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton<ITestService, TestService>();
 
         // Act
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -105,14 +105,14 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddDynamicForms_Should_Be_Idempotent()
+    public void AddFormCraft_Should_Be_Idempotent()
     {
         // Arrange
         var services = new ServiceCollection();
 
         // Act
-        services.AddDynamicForms();
-        services.AddDynamicForms(); // Add again
+        services.AddFormCraft();
+        services.AddFormCraft(); // Add again
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert - Should still work and have multiple registrations for IFieldRenderer

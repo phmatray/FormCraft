@@ -7,7 +7,7 @@ public class ValidationPipelineIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         var formConfig = FormBuilder<ValidationTestModel>.Create()
@@ -30,7 +30,7 @@ public class ValidationPipelineIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         var formConfig = FormBuilder<ValidationTestModel>.Create()
@@ -57,7 +57,7 @@ public class ValidationPipelineIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         var formConfig = FormBuilder<ValidationTestModel>.Create()
@@ -85,7 +85,7 @@ public class ValidationPipelineIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         // Use async validator method
@@ -115,7 +115,7 @@ public class ValidationPipelineIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         services.AddSingleton<IValidationService, TestValidationService>();
         var serviceProvider = services.BuildServiceProvider();
 
@@ -142,7 +142,7 @@ public class ValidationPipelineIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         var formConfig = FormBuilder<ValidationTestModel>.Create()
@@ -167,7 +167,7 @@ public class ValidationPipelineIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         services.AddSingleton<IValidationService, TestValidationService>();
         var serviceProvider = services.BuildServiceProvider();
 
