@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@inject IVersionService VersionService
 
 <MudThemeProvider Theme="_theme" IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
@@ -8,11 +9,13 @@
 <MudLayout>
     <MudAppBar Elevation="1" Dense="false">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
-        <MudIcon Icon="@Icons.Material.Filled.DynamicForm" Class="ml-3 me-2" Size="Size.Large" />
-        <MudText Typo="Typo.h5" Class="font-weight-bold">
-            FormCraft
-        </MudText>
-        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-2 mt-1">v1.2.1</MudChip>
+        <MudLink Href="/home" Class="d-flex align-center" Style="text-decoration: none; color: inherit;">
+            <MudIcon Icon="@Icons.Material.Filled.DynamicForm" Class="ml-3 me-2" Size="Size.Large" Style="color: white;" />
+            <MudText Typo="Typo.h5" Class="font-weight-bold" Style="color: white;">
+                FormCraft
+            </MudText>
+        </MudLink>
+        <MudChip T="string" Text="@($"v{VersionService.FormCraftVersion}")" Size="Size.Small" Color="Color.Primary" Class="ml-2 mt-1" />
         <MudSpacer />
         
         <MudTooltip Text="Toggle light/dark mode">
@@ -99,6 +102,15 @@
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="my-4">
             @Body
         </MudContainer>
+        
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-4">
+            <MudDivider />
+            <div class="d-flex justify-center align-center py-4">
+                <MudText Typo="Typo.body2" Align="Align.Center" Class="text-muted">
+                    Made with <MudIcon Icon="@Icons.Material.Filled.Favorite" Size="Size.Small" Color="Color.Error" Style="vertical-align: middle;" /> for Blazor
+                </MudText>
+            </div>
+        </MudContainer>
     </MudMainContent>
 </MudLayout>
 
@@ -151,7 +163,7 @@
 }
 
 <style>
-    .text-secondary {
-        color: #6c757d !important;
+    .text-muted {
+        opacity: 0.7;
     }
 </style>

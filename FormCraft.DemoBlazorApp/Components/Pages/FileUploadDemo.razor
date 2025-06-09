@@ -112,12 +112,12 @@
         _formConfiguration = FormBuilder<JobApplicationModel>.Create()
             .AddRequiredTextField(x => x.FullName, "Full Name", "Enter your full name")
             .AddEmailField(x => x.Email)
-            .AddPhoneField(x => x.Phone, required: true)
-            .AddFileUploadField(x => x.Resume, "Upload Resume",
+            .AddPhoneField(x => x.Phone!, required: true)
+            .AddFileUploadField(x => x.Resume!, "Upload Resume",
                 acceptedFileTypes: new[] { ".pdf", ".doc", ".docx" },
                 maxFileSize: 5 * 1024 * 1024, // 5MB
                 required: true)
-            .AddMultipleFileUploadField(x => x.Certificates, "Upload Certificates",
+            .AddMultipleFileUploadField(x => x.Certificates!, "Upload Certificates",
                 maxFiles: 3,
                 acceptedFileTypes: new[] { ".pdf", ".jpg", ".png" },
                 maxFileSize: 2 * 1024 * 1024) // 2MB per file

@@ -36,17 +36,87 @@
     <link href="app.css" rel="stylesheet" />
     <link href="FormCraft.DemoBlazorApp.styles.css" rel="stylesheet" />
     <link href="lib/prism/prism.min.css" rel="stylesheet" />
+    <style>
+        #app-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+            z-index: 9999;
+        }
+        
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+        
+        .loading-logo {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .loading-logo svg {
+            width: 80px;
+            height: 80px;
+            fill: white;
+        }
+        
+        .loading-text {
+            font-family: 'Roboto', sans-serif;
+            font-size: 28px;
+            font-weight: 300;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-subtext {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 
 <body>
     <div id="app">
-        <div style="position:absolute; top:50%; left:50%; transform: translate(-50%, -50%);">
-            <div class="mud-progress-circular mud-default-text mud-progress-indeterminate mud-progress-large" role="progressbar" aria-valuenow="0" style="width: 60px; height: 60px;">
-                <svg class="mud-progress-circular-svg">
-                    <circle class="mud-progress-circular-circle mud-progress-indeterminate" cx="30" cy="30" r="22" stroke-width="6" fill="none"></circle>
-                </svg>
+        <div id="app-loading">
+            <div class="loading-content">
+                <div class="loading-logo">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3h5v2h-5V6zm0 4h5v2h-5v-2zM8 6h2v2H8V6zm0 4h2v2H8v-2zm0 4h11v5H8v-5z"/>
+                    </svg>
+                </div>
+                <div class="loading-text">FormCraft</div>
+                <div class="loading-spinner"></div>
+                <div class="loading-subtext">Dynamic Form Builder for Blazor</div>
             </div>
-            <div style="text-align: center; margin-top: 20px;">Loading FormCraft...</div>
         </div>
     </div>
 
@@ -62,6 +132,7 @@
     <script src="lib/prism/prism-csharp.min.js"></script>
     <script src="lib/prism/prism-razor.min.js"></script>
     <script src="js/docs.js"></script>
+    <script src="js/app.js"></script>
 </body>
 
 </html>
