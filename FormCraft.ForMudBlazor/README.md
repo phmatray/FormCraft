@@ -47,8 +47,8 @@ FormCraft.ForMudBlazor/
 │   ├── CustomFields/
 │   │   └── RatingRenderer.cs
 │   ├── FormContainer/
-│   │   ├── DynamicFormComponent.razor
-│   │   └── DynamicFormComponent.razor.cs
+│   │   ├── FormCraftComponent.razor
+│   │   └── FormCraftComponent.razor.cs
 │   └── Validation/
 │       ├── DynamicFormValidator.cs
 │       ├── FieldValidationMessage.razor

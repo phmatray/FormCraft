@@ -168,7 +168,7 @@ Creates field dependencies with actions.
 
 ## Component Properties
 
-### DynamicFormComponent<TModel>
+### FormCraftComponent<TModel>
 
 #### Required Parameters
 - `Model` - The data model instance
@@ -183,13 +183,15 @@ Creates field dependencies with actions.
 
 #### Example
 ```html
-<DynamicFormComponent TModel="ContactModel" 
-                     Model="@model" 
-                     Configuration="@formConfiguration"
-                     OnValidSubmit="@HandleSubmit"
-                     OnFieldChanged="@OnFieldValueChanged"
-                     SubmitButtonText="Save Contact"
-                     IsSubmitting="@isSubmitting" />
+<FormCraftComponent TModel="ContactModel" 
+                   Model="@model" 
+                   Configuration="@formConfiguration"
+                   OnValidSubmit="@HandleSubmit"
+                   OnFieldChanged="@OnFieldValueChanged"
+                   ShowSubmitButton="true"
+                   SubmitButtonText="Save Contact"
+                   SubmittingText="Saving..."
+                   IsSubmitting="@isSubmitting" />
 ```
 
 ## Validation System

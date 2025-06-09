@@ -37,10 +37,11 @@ var configuration = FormBuilder<MyModel>.Create()
 
 4. Render the form:
 ```razor
-<DynamicFormComponent TModel="MyModel" 
-                     Model="@myModel" 
-                     Configuration="@configuration"
-                     OnValidSubmit="@HandleSubmit" />
+<FormCraftComponent TModel="MyModel" 
+                   Model="@myModel" 
+                   Configuration="@configuration"
+                   OnValidSubmit="@HandleSubmit"
+                   ShowSubmitButton="true" />
 ```
 
 ## Documentation

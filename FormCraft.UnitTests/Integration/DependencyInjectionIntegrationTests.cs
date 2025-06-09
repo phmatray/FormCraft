@@ -253,28 +253,28 @@ public class DependencyInjectionIntegrationTests
         var serviceProvider = services.BuildServiceProvider();
 
         IFieldRendererService? rendererService = null;
-        IEnumerable<IFieldRenderer>? renderers = null;
+        List<IFieldRenderer>? renderers = null;
 
         // Act - Create and dispose scope
         using (var scope = serviceProvider.CreateScope())
         {
             rendererService = scope.ServiceProvider.GetRequiredService<IFieldRendererService>();
-            renderers = scope.ServiceProvider.GetServices<IFieldRenderer>();
+            renderers = scope.ServiceProvider.GetServices<IFieldRenderer>().ToList();
 
             rendererService.ShouldNotBeNull();
             renderers.ShouldNotBeNull();
-            renderers.Count().ShouldBe(7); // String, Int, Decimal, Double, Bool, DateTime, FileUpload
+            renderers.Count.ShouldBe(7); // String, Int, Decimal, Double, Bool, DateTime, FileUpload
         }
 
         // Assert - After scope disposal, we should be able to create new instances
         using (var newScope = serviceProvider.CreateScope())
         {
             var newRendererService = newScope.ServiceProvider.GetRequiredService<IFieldRendererService>();
-            var newRenderers = newScope.ServiceProvider.GetServices<IFieldRenderer>();
+            var newRenderers = newScope.ServiceProvider.GetServices<IFieldRenderer>().ToList();
 
             newRendererService.ShouldNotBeNull();
             newRenderers.ShouldNotBeNull();
-            newRenderers.Count().ShouldBe(7); // String, Int, Decimal, Double, Bool, DateTime, FileUpload
+            newRenderers.Count.ShouldBe(7); // String, Int, Decimal, Double, Bool, DateTime, FileUpload
 
             // Should be different instances
             newRendererService.ShouldNotBeSameAs(rendererService);
