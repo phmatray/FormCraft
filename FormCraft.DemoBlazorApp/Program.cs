@@ -17,7 +17,8 @@ builder.Services.AddDynamicForms();
 builder.Services.AddScoped<IMarkdownService>(sp => 
     new MarkdownService(sp.GetRequiredService<HttpClient>()));
 builder.Services.AddScoped<FormCodeGeneratorService>();
-builder.Services.AddScoped<IVersionService, VersionService>();
+builder.Services.AddScoped<IVersionService>(sp => 
+    new VersionService(sp.GetRequiredService<HttpClient>()));
 
 // Register custom field renderers
 builder.Services.AddScoped<ColorPickerRenderer>();

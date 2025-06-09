@@ -15,7 +15,7 @@
                 FormCraft
             </MudText>
         </MudLink>
-        <MudChip T="string" Text="@($"v{VersionService.FormCraftVersion}")" Size="Size.Small" Color="Color.Primary" Class="ml-2 mt-1" />
+        <MudChip T="string" Text="@($"v{_version}")" Size="Size.Small" Color="Color.Primary" Class="ml-2 mt-1" />
         <MudSpacer />
         
         <MudTooltip Text="Toggle light/dark mode">
@@ -123,6 +123,19 @@
 @code {
     private bool _drawerOpen = true;
     private bool _isDarkMode;
+    private string _version = "loading...";
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _version = await VersionService.GetFormCraftVersionAsync();
+        }
+        catch
+        {
+            _version = "latest";
+        }
+    }
     
     private readonly MudTheme _theme = new()
     {
