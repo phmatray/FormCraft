@@ -4,41 +4,21 @@
 @inherits FieldComponentBase<TModel, TValue>
 @implements ISelectFieldComponent<TModel, TValue>
 
-<MudSelect T="TValue"
-           Label="@Label"
-           @bind-Value="@CurrentValue"
-           Placeholder="@Placeholder"
-           HelperText="@HelpText"
-           ReadOnly="@IsReadOnly"
-           Disabled="@IsDisabled"
-           Required="@IsRequired"
-           Variant="Variant.Outlined"
-           Margin="Margin.Dense">
-    @if (Options != null)
+<MudSelect
+    T="TValue"
+    Label="@Label"
+    @bind-Value="@CurrentValue"
+    Placeholder="@Placeholder"
+    HelperText="@HelpText"
+    ReadOnly="@IsReadOnly"
+    Disabled="@IsDisabled"
+    Required="@IsRequired"
+    Variant="Variant.Outlined"
+    Margin="Margin.Dense">
+    @foreach (SelectOption<TValue> option in Options)
     {
-        @foreach (var option in Options)
-        {
-            <MudSelectItem T="TValue" Value="@option.Value">@option.Label</MudSelectItem>
-        }
+        <MudSelectItem T="TValue" Value="@option.Value">
+            @option.Label
+        </MudSelectItem>
     }
 </MudSelect>
-
-@code {
-    public IEnumerable<SelectOption<TValue>> Options { get; set; } = new List<SelectOption<TValue>>();
-    public bool AllowMultiple { get; set; }
-    public bool IsSearchable { get; set; }
-    public new string? Placeholder { get; set; }
-    public bool ShowClearButton { get; set; }
-    public int? MaxSelections { get; set; }
-    public bool GroupOptions { get; set; }
-    
-    protected override void OnInitialized()
-    {
-        base.OnInitialized();
-        var options = GetAttribute<IEnumerable<SelectOption<TValue>>>("Options");
-        if (options != null)
-        {
-            Options = options;
-        }
-    }
-}

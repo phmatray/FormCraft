@@ -7,24 +7,15 @@
     <MudText Typo="Typo.body2" Class="mb-1">@Label</MudText>
 }
 
-<MudRating @bind-SelectedValue="@CurrentValue"
-           MaxValue="@MaxValue"
-           Disabled="@IsDisabled"
-           ReadOnly="@IsReadOnly"
-           Color="Color.Primary"
-           Size="Size.Medium" />
+<MudRating
+    @bind-SelectedValue="@CurrentValue"
+    MaxValue="@MaxValue"
+    Disabled="@IsDisabled"
+    ReadOnly="@IsReadOnly"
+    Color="Color.Primary"
+    Size="Size.Medium" />
 
 @if (!string.IsNullOrEmpty(HelpText))
 {
     <MudText Typo="Typo.caption" Class="mt-1">@HelpText</MudText>
-}
-
-@code {
-    private int MaxValue { get; set; } = 5;
-    
-    protected override void OnInitialized()
-    {
-        base.OnInitialized();
-        MaxValue = GetAttribute<int>("MaxRating", 5);
-    }
 }
