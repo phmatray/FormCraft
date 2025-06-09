@@ -35,15 +35,15 @@ jobs:
       - name: Publish Blazor WebAssembly
         run: dotnet publish FormCraft.DemoBlazorApp/FormCraft.DemoBlazorApp.csproj -c Release -o release --nologo
         
-      - name: Change base href
-        run: |
-          sed -i 's/<base href="\/" \/>/<base href="\/FormCraft\/" \/>/g' release/wwwroot/index.html
+      - name: Change base href in index.html
+        run: sed -i 's/<base href="\/" \/>/<base href="\/FormCraft\/" \/>/g' release/wwwroot/index.html
           
-      - name: Copy index.html to 404.html
-        run: cp release/wwwroot/index.html release/wwwroot/404.html
-        
       - name: Add .nojekyll file
         run: touch release/wwwroot/.nojekyll
+        
+      - name: Create CNAME if using custom domain (optional)
+        run: |
+          echo "Optional: Add your custom domain here" > release/wwwroot/CNAME || true
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

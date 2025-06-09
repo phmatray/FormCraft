@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://phmatray.github.io/FormCraft/sitemap.txt
