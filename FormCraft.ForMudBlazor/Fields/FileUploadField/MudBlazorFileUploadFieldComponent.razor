@@ -7,7 +7,7 @@
     T="IBrowserFile"
     Accept="@Accept"
     MaximumFileCount="1"
-    OnFilesChanged="@(async (e) => await OnFileChanged(e.File))"
+    OnFilesChanged="@(async e => await OnFileChanged(e.File))"
     Hidden="false"
     InputClass="absolute mud-width-full mud-height-full overflow-hidden z-20"
     InputStyle="opacity:0"
