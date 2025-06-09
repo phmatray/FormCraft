@@ -3,16 +3,10 @@
 @inherits FieldComponentBase<TModel, bool>
 @implements IBooleanFieldComponent<TModel>
 
-<MudSwitch T="bool"
-           Label="@Label"
-           @bind-Value="@CurrentValue"
-           ReadOnly="@IsReadOnly"
-           Disabled="@IsDisabled"
-           Color="Color.Primary" />
-
-@code {
-    public BooleanDisplayStyle DisplayStyle { get; set; } = BooleanDisplayStyle.Switch;
-    public string? TrueText { get; set; }
-    public string? FalseText { get; set; }
-    public bool AllowIndeterminate { get; set; }
-}
+<MudSwitch
+    T="bool"
+    Label="@Label"
+    @bind-Value="@CurrentValue"
+    ReadOnly="@IsReadOnly"
+    Disabled="@IsDisabled"
+    Color="Color.Primary" />
