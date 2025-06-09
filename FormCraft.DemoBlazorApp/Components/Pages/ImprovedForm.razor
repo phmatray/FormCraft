@@ -1,101 +1,44 @@
 @page "/improved"
 @inject FormCodeGeneratorService CodeGenerator
 
-<PageTitle>Improved Dynamic Form API</PageTitle>
-
-<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
-    <MudText Typo="Typo.h3" GutterBottom="true" Class="mb-2">
-        <MudIcon Icon="@Icons.Material.Filled.Engineering" Style="vertical-align: middle; font-size: 3rem" />
-        Improved Dynamic Form API
-    </MudText>
-    <MudText Typo="Typo.body1" GutterBottom="true" Class="mb-6">
-        This demonstrates the new type-safe, feature-rich dynamic form API with validation, dependencies, and advanced field configuration.
-    </MudText>
+<DemoPageLayout
+    Title="Improved Dynamic Form API"
+    Icon="@Icons.Material.Filled.Engineering"
+    Description="This demonstrates the new type-safe, feature-rich dynamic form API with validation, dependencies, and advanced field configuration."
+    FormDemoIcon="@Icons.Material.Filled.Build">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="ContactModel"
+            Model="@_model"
+            Configuration="@_formConfiguration"
+            FormTitle="Type-Safe Form Builder"
+            FormIcon="@Icons.Material.Filled.FactCheck"
+            IsSubmitted="@_isSubmitted"
+            IsSubmitting="@_isSubmitting"
+            OnValidSubmit="@HandleValidSubmit"
+            OnFieldChanged="@((args) => HandleFieldChanged(args.fieldName, args.value))"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()"
+            ShowSubmitButton="true"
+            SubmitButtonText="Submit Application"
+            SubmittingText="Submitting..."
+            SubmitButtonClass="px-8">
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="API Features" />
+            </SidebarContent>
+        </FormDemoSection>
+    </FormDemoContent>
     
-    <MudPaper Elevation="2" Class="pa-0">
-        <MudTabs Elevation="0" Rounded="false" PanelClass="pa-6">
-            <MudTabPanel Text="Form Demo" Icon="@Icons.Material.Filled.Build">
-                <MudGrid>
-                    <MudItem xs="12" lg="8">
-                        <MudPaper Elevation="1" Class="pa-6">
-                            <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
-                                <MudIcon Icon="@Icons.Material.Filled.FactCheck" Class="me-2" />
-                                Type-Safe Form Builder
-                            </MudText>
-                            
-                            @if (_isSubmitted)
-                            {
-                                <FormSuccessDisplay
-                                    DataDisplayItems="@GetDataDisplayItems()"
-                                    OnReset="@ResetForm" />
-                            }
-                            else
-                            {
-                                <FormCraftComponent
-                                    TModel="ContactModel" 
-                                    Model="@_model" 
-                                    Configuration="@_formConfiguration"
-                                    OnValidSubmit="@HandleValidSubmit"
-                                    OnFieldChanged="@((args) => HandleFieldChanged(args.fieldName, args.value))"
-                                    IsSubmitting="@_isSubmitting"
-                                    ShowSubmitButton="true"
-                                    SubmitButtonText="Submit Application"
-                                    SubmittingText="Submitting..."
-                                    SubmitButtonClass="px-8" />
-                            }
-                        </MudPaper>
-                    </MudItem>
-                    
-                    <MudItem xs="12" lg="4">
-                        <FormGuidelines Guidelines="@_guidelines" Title="API Features" />
-                    </MudItem>
-                </MudGrid>
-            </MudTabPanel>
-            
-            <MudTabPanel Text="Code Example" Icon="@Icons.Material.Filled.Code">
-                <CodeExample Title="Type-Safe Form Configuration" Language="csharp" Code="@GetGeneratedCode()" />
-            </MudTabPanel>
-            
-            <MudTabPanel Text="Guidelines" Icon="@Icons.Material.Filled.Lightbulb">
-                <FormGuidelines Title="Improved API Guidelines">
-                    <MudSimpleTable>
-                        <thead>
-                        <tr>
-                            <th>Feature</th>
-                            <th>Usage</th>
-                            <th>Example</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr>
-                            <td>Type-Safe Builder</td>
-                            <td>Strongly typed field configuration</td>
-                            <td><code>.AddField(x => x.FirstName)</code></td>
-                        </tr>
-                        <tr>
-                            <td>Built-in Validation</td>
-                            <td>Common validation rules</td>
-                            <td><code>.WithMinLength(2, "Must be at least 2 characters")</code></td>
-                        </tr>
-                        <tr>
-                            <td>Email Validation</td>
-                            <td>Pre-built email validator</td>
-                            <td><code>.WithEmailValidation()</code></td>
-                        </tr>
-                        <tr>
-                            <td>Range Validation</td>
-                            <td>Min/max value constraints</td>
-                            <td><code>.WithRange(16, 100, "Age must be between 16 and 100")</code></td>
-                        </tr>
-                        <tr>
-                            <td>Automatic Rendering</td>
-                            <td>Single component handles all rendering</td>
-                            <td><code>&lt;FormCraftComponent TModel="ContactModel" /&gt;</code></td>
-                        </tr>
-                        </tbody>
-                    </MudSimpleTable>
-                </FormGuidelines>
-            </MudTabPanel>
-        </MudTabs>
-    </MudPaper>
-</MudContainer>
+    <CodeExampleContent>
+        <CodeExample
+            Title="Type-Safe Form Configuration"
+            Language="csharp"
+            Code="@GetGeneratedCode()" />
+    </CodeExampleContent>
+    
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Improved API Guidelines"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>

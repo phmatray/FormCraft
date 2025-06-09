@@ -1,122 +1,65 @@
 @page "/custom-renderers"
 @inject FormCodeGeneratorService CodeGenerator
 
-<PageTitle>Custom Field Renderers</PageTitle>
-
-<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
-    <MudText Typo="Typo.h3" GutterBottom="true" Class="mb-2">
-        <MudIcon Icon="@Icons.Material.Filled.Palette" Style="vertical-align: middle; font-size: 3rem" />
-        Custom Field Renderers
-    </MudText>
-    <MudText Typo="Typo.body1" GutterBottom="true" Class="mb-6">
-        This demonstrates how to use custom field renderers for specialized input types like color pickers and ratings.
-    </MudText>
+<DemoPageLayout
+    Title="Custom Field Renderers"
+    Icon="@Icons.Material.Filled.Palette"
+    Description="This demonstrates how to use custom field renderers for specialized input types like color pickers and ratings."
+    FormDemoIcon="@Icons.Material.Filled.ViewQuilt">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="ProductModel"
+            Model="@_model"
+            Configuration="@_formConfiguration"
+            FormTitle="Product Information"
+            FormIcon="@Icons.Material.Filled.ShoppingCart"
+            IsSubmitted="@_isSubmitted"
+            IsSubmitting="@_isSubmitting"
+            OnValidSubmit="@HandleValidSubmit"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()"
+            ShowSubmitButton="true"
+            SubmitButtonText="Save Product"
+            SubmittingText="Saving...">
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="Custom Renderer Features" />
+                
+                <MudCard Elevation="2" Class="mt-4">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Code" Class="me-2" />
+                            Usage
+                        </MudText>
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            Custom renderers allow you to create specialized input controls for specific data types:
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.ColorLens">
+                                Color Picker for color selection
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Star">
+                                Rating control for numeric ratings
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Extension">
+                                Extensible for any custom input type
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </SidebarContent>
+        </FormDemoSection>
+    </FormDemoContent>
     
-    <MudPaper Elevation="2" Class="pa-0">
-        <MudTabs Elevation="0" Rounded="false" PanelClass="pa-6">
-            <MudTabPanel Text="Form Demo" Icon="@Icons.Material.Filled.ViewQuilt">
-                <MudGrid>
-                    <MudItem xs="12" lg="8">
-                        <MudPaper Elevation="1" Class="pa-6">
-                            <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
-                                <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Class="me-2" />
-                                Product Information
-                            </MudText>
-                            
-                            @if (_isSubmitted)
-                            {
-                                <FormSuccessDisplay
-                                    DataDisplayItems="@GetDataDisplayItems()"
-                                    OnReset="@ResetForm" />
-                            }
-                            else
-                            {
-                                <FormCraftComponent
-                                    TModel="ProductModel" 
-                                    Model="@_model" 
-                                    Configuration="@_formConfiguration"
-                                    OnValidSubmit="@HandleValidSubmit"
-                                    IsSubmitting="@_isSubmitting"
-                                    ShowSubmitButton="true"
-                                    SubmitButtonText="Save Product"
-                                    SubmittingText="Saving..." />
-                            }
-                        </MudPaper>
-                    </MudItem>
-                    
-                    <MudItem xs="12" lg="4">
-                        <FormGuidelines Guidelines="@_guidelines" Title="Custom Renderer Features" />
-                        
-                        <MudCard Elevation="2" Class="mt-4">
-                            <MudCardContent>
-                                <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
-                                    <MudIcon Icon="@Icons.Material.Filled.Code" Class="me-2" />
-                                    Usage
-                                </MudText>
-                                <MudText Typo="Typo.body2" Class="mb-2">
-                                    Custom renderers allow you to create specialized input controls for specific data types:
-                                </MudText>
-                                <MudList T="string" Dense="true">
-                                    <MudListItem T="string" Icon="@Icons.Material.Filled.ColorLens">
-                                        Color Picker for color selection
-                                    </MudListItem>
-                                    <MudListItem T="string" Icon="@Icons.Material.Filled.Star">
-                                        Rating control for numeric ratings
-                                    </MudListItem>
-                                    <MudListItem T="string" Icon="@Icons.Material.Filled.Extension">
-                                        Extensible for any custom input type
-                                    </MudListItem>
-                                </MudList>
-                            </MudCardContent>
-                        </MudCard>
-                    </MudItem>
-                </MudGrid>
-            </MudTabPanel>
-            
-            <MudTabPanel Text="Code Example" Icon="@Icons.Material.Filled.Code">
-                <CodeExample Title="Custom Renderer Configuration" Language="csharp" Code="@GetGeneratedCode()" />
-            </MudTabPanel>
-            
-            <MudTabPanel Text="Guidelines" Icon="@Icons.Material.Filled.Lightbulb">
-                <FormGuidelines Title="Custom Renderer Guidelines">
-                    <MudSimpleTable>
-                        <thead>
-                        <tr>
-                            <th>Feature</th>
-                            <th>Usage</th>
-                            <th>Example</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr>
-                            <td>Color Picker</td>
-                            <td>Visual color selection control</td>
-                            <td><code>.WithCustomRenderer&lt;TModel, string, ColorPickerRenderer&gt;()</code></td>
-                        </tr>
-                        <tr>
-                            <td>Rating Control</td>
-                            <td>Star-based rating input</td>
-                            <td><code>.WithCustomRenderer&lt;TModel, int, RatingRenderer&gt;()</code></td>
-                        </tr>
-                        <tr>
-                            <td>Custom Attributes</td>
-                            <td>Pass parameters to renderers</td>
-                            <td><code>.WithAttribute("MaxRating", 5)</code></td>
-                        </tr>
-                        <tr>
-                            <td>Help Text</td>
-                            <td>Provide user guidance</td>
-                            <td><code>.WithHelpText("Select the primary color")</code></td>
-                        </tr>
-                        <tr>
-                            <td>Creating Renderers</td>
-                            <td>Implement ICustomFieldRenderer</td>
-                            <td><code>public class MyRenderer : ICustomFieldRenderer</code></td>
-                        </tr>
-                        </tbody>
-                    </MudSimpleTable>
-                </FormGuidelines>
-            </MudTabPanel>
-        </MudTabs>
-    </MudPaper>
-</MudContainer>
+    <CodeExampleContent>
+        <CodeExample
+            Title="Custom Renderer Configuration"
+            Language="csharp"
+            Code="@GetGeneratedCode()" />
+    </CodeExampleContent>
+    
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Custom Renderer Guidelines"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>

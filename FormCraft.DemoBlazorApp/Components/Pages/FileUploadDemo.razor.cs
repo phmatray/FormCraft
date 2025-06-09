@@ -10,7 +10,41 @@ public partial class FileUploadDemo
     private IFormConfiguration<JobApplicationModel> _formConfiguration = null!;
     private bool _isSubmitted;
 
-    private readonly List<FormGuidelines.GuidelineItem> _guidelines =
+    private readonly List<GuidelineItem> _apiGuidelineTableItems =
+    [
+        new()
+        {
+            Feature = "Single File",
+            Usage = "For uploading one file",
+            Example = ".AddFileUploadField(x => x.Resume)"
+        },
+        new()
+        {
+            Feature = "Multiple Files",
+            Usage = "For uploading multiple files",
+            Example = ".AddMultipleFileUploadField(x => x.Documents)"
+        },
+        new()
+        {
+            Feature = "File Types",
+            Usage = "Restrict accepted formats",
+            Example = "acceptedFileTypes: new[] { \".pdf\", \".doc\" }"
+        },
+        new()
+        {
+            Feature = "File Size",
+            Usage = "Set maximum file size",
+            Example = "maxFileSize: 5 * 1024 * 1024 // 5MB"
+        },
+        new()
+        {
+            Feature = "Max Files",
+            Usage = "Limit number of files",
+            Example = "maxFiles: 3"
+        }
+    ];
+
+    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
     [
         new()
         {

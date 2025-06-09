@@ -11,7 +11,41 @@ public partial class ImprovedForm
     private bool _isSubmitting;
     private IFormConfiguration<ContactModel> _formConfiguration = null!;
 
-    private readonly List<FormGuidelines.GuidelineItem> _guidelines =
+    private readonly List<GuidelineItem> _apiGuidelineTableItems =
+    [
+        new()
+        {
+            Feature = "Type-Safe Builder",
+            Usage = "Strongly typed field configuration",
+            Example = ".AddField(x => x.FirstName)"
+        },
+        new()
+        {
+            Feature = "Built-in Validation",
+            Usage = "Common validation rules",
+            Example = ".WithMinLength(2, \"Must be at least 2 characters\")"
+        },
+        new()
+        {
+            Feature = "Email Validation",
+            Usage = "Pre-built email validator",
+            Example = ".WithEmailValidation()"
+        },
+        new()
+        {
+            Feature = "Range Validation",
+            Usage = "Min/max value constraints",
+            Example = ".WithRange(16, 100, \"Age must be between 16 and 100\")"
+        },
+        new()
+        {
+            Feature = "Automatic Rendering",
+            Usage = "Single component handles all rendering",
+            Example = "&lt;FormCraftComponent TModel=\"ContactModel\" /&gt;"
+        }
+    ];
+
+    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
     [
         new()
         {

@@ -20,34 +20,38 @@
         <MudSpacer />
         
         <MudTooltip Text="Toggle light/dark mode">
-            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
-                           Color="Color.Inherit" 
-                           OnClick="@ToggleTheme" />
+            <MudIconButton
+                Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
+                Color="Color.Inherit" 
+                OnClick="@ToggleTheme" />
         </MudTooltip>
         
         <MudDivider Vertical="true" FlexItem="true" Class="mx-2 my-2" />
         
-        <MudButton Variant="Variant.Text" 
-                   Color="Color.Inherit" 
-                   StartIcon="@Icons.Material.Filled.MenuBook"
-                   Href="docs/getting-started">
+        <MudButton
+            Variant="Variant.Text" 
+            Color="Color.Inherit" 
+            StartIcon="@Icons.Material.Filled.MenuBook"
+            Href="docs/getting-started">
             Docs
         </MudButton>
         
-        <MudButton Variant="Variant.Text" 
-                   Color="Color.Inherit" 
-                   StartIcon="@Icons.Custom.Brands.GitHub" 
-                   Href="https://github.com/phmatray/FormCraft" 
-                   Target="_blank">
+        <MudButton
+            Variant="Variant.Text" 
+            Color="Color.Inherit" 
+            StartIcon="@Icons.Custom.Brands.GitHub" 
+            Href="https://github.com/phmatray/FormCraft" 
+            Target="_blank">
             GitHub
         </MudButton>
         
-        <MudButton Variant="Variant.Filled" 
-                   Color="Color.Primary" 
-                   StartIcon="@Icons.Material.Filled.GetApp"
-                   Href="https://www.nuget.org/packages/FormCraft"
-                   Target="_blank"
-                   Class="ml-2">
+        <MudButton
+            Variant="Variant.Filled" 
+            Color="Color.Primary" 
+            StartIcon="@Icons.Material.Filled.GetApp"
+            Href="https://www.nuget.org/packages/FormCraft"
+            Target="_blank"
+            Class="ml-2">
             Get Started
         </MudButton>
     </MudAppBar>
@@ -116,9 +120,9 @@
 </MudLayout>
 
 <div id="blazor-error-ui" data-nosnippet>
-  An unhandled error has occurred.
-  <a href="." class="reload">Reload</a>
-  <span class="dismiss">🗙</span>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
 </div>
 
 <style>

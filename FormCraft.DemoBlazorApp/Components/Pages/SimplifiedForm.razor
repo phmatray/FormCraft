@@ -1,117 +1,60 @@
 @page "/simplified"
 @inject FormCodeGeneratorService CodeGenerator
 
-<PageTitle>Simplified Dynamic Form API</PageTitle>
-
-<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
-    <MudText Typo="Typo.h3" GutterBottom="true" Class="mb-2">
-        <MudIcon Icon="@Icons.Material.Filled.AutoFixHigh" Style="vertical-align: middle; font-size: 3rem" />
-        Simplified Dynamic Form API
-    </MudText>
-    <MudText Typo="Typo.body1" GutterBottom="true" Class="mb-6">
-        This demonstrates the simplified API that hides complexity from users while providing powerful features.
-    </MudText>
-    
-    <MudPaper Elevation="2" Class="pa-0">
-        <MudTabs Elevation="0" Rounded="false" PanelClass="pa-6">
-            <MudTabPanel Text="Form Demo" Icon="@Icons.Material.Filled.Assignment">
-                <MudGrid>
-                    <MudItem xs="12" lg="8">
-                        <MudPaper Elevation="1" Class="pa-6">
-                            <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
-                                <MudIcon Icon="@Icons.Material.Filled.ContactPage" Class="me-2" />
-                                Contact Form Example
+<DemoPageLayout
+    Title="Simplified Dynamic Form API"
+    Icon="@Icons.Material.Filled.AutoFixHigh"
+    Description="This demonstrates the simplified API that hides complexity from users while providing powerful features.">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="ContactModel"
+            Model="@_model"
+            Configuration="@_formConfiguration"
+            FormTitle="Contact Form Example"
+            FormIcon="@Icons.Material.Filled.ContactPage"
+            IsSubmitted="@_isSubmitted"
+            IsSubmitting="@_isSubmitting"
+            OnValidSubmit="@HandleValidSubmit"
+            OnFieldChanged="@(args => HandleFieldChanged(args.fieldName, args.value))"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()">
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="Simplified API Benefits" />
+            </SidebarContent>
+            <AdditionalContent>
+                @if (_fieldChanges.Any())
+                {
+                    <MudCard Class="mt-4" Elevation="2">
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Timeline" Class="me-2 text-info" />
+                                Field Changes Log
                             </MudText>
-                            
-                            @if (_isSubmitted)
-                            {
-                                <FormSuccessDisplay
-                                    DataDisplayItems="@GetDataDisplayItems()"
-                                    OnReset="@ResetForm" />
-                            }
-                            else
-                            {
-                                <FormCraftComponent
-                                    TModel="ContactModel" 
-                                    Model="@_model" 
-                                    Configuration="@_formConfiguration"
-                                    OnValidSubmit="@HandleValidSubmit"
-                                    OnFieldChanged="@((args) => HandleFieldChanged(args.fieldName, args.value))"
-                                    IsSubmitting="@_isSubmitting" />
-                                
-                                @if (_fieldChanges.Any())
+                            <MudList T="string" Dense="true">
+                                @foreach (string change in _fieldChanges.TakeLast(5))
                                 {
-                                    <MudCard Class="mt-4" Elevation="2">
-                                        <MudCardContent>
-                                            <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
-                                                <MudIcon Icon="@Icons.Material.Filled.Timeline" Class="me-2 text-info" />
-                                                Field Changes Log
-                                            </MudText>
-                                            <MudList T="string" Dense="true">
-                                                @foreach (var change in _fieldChanges.TakeLast(5))
-                                                {
-                                                    <MudListItem T="string" Icon="@Icons.Material.Filled.Update" IconColor="Color.Secondary">
-                                                        <MudText Typo="Typo.body2">@change</MudText>
-                                                    </MudListItem>
-                                                }
-                                            </MudList>
-                                        </MudCardContent>
-                                    </MudCard>
+                                    <MudListItem T="string" Icon="@Icons.Material.Filled.Update" IconColor="Color.Secondary">
+                                        <MudText Typo="Typo.body2">@change</MudText>
+                                    </MudListItem>
                                 }
-                            }
-                        </MudPaper>
-                    </MudItem>
-                    
-                    <MudItem xs="12" lg="4">
-                        <FormGuidelines Guidelines="@_guidelines" Title="Simplified API Benefits" />
-                    </MudItem>
-                </MudGrid>
-            </MudTabPanel>
-            
-            <MudTabPanel Text="Code Example" Icon="@Icons.Material.Filled.Code">
-                <CodeExample Title="Complete Form Configuration" Language="csharp" Code="@GetGeneratedCode()" />
-            </MudTabPanel>
-            
-            <MudTabPanel Text="Guidelines" Icon="@Icons.Material.Filled.Lightbulb">
-                <FormGuidelines Title="Simplified API Guidelines">
-                    <MudSimpleTable>
-                        <thead>
-                        <tr>
-                            <th>Feature</th>
-                            <th>Usage</th>
-                            <th>Example</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr>
-                            <td>Dynamic Component</td>
-                            <td>Single component for complete forms</td>
-                            <td><code>&lt;FormCraftComponent TModel="ContactModel" /&gt;</code></td>
-                        </tr>
-                        <tr>
-                            <td>Field Events</td>
-                            <td>Track field changes in real-time</td>
-                            <td><code>OnFieldChanged="@@(args => HandleFieldChanged(...))"</code></td>
-                        </tr>
-                        <tr>
-                            <td>Submit Handling</td>
-                            <td>Async form submission support</td>
-                            <td><code>OnValidSubmit="@@HandleValidSubmit"</code></td>
-                        </tr>
-                        <tr>
-                            <td>Loading States</td>
-                            <td>Built-in loading indicators</td>
-                            <td><code>IsSubmitting="@@_isSubmitting"</code></td>
-                        </tr>
-                        <tr>
-                            <td>Automatic Binding</td>
-                            <td>Two-way binding out of the box</td>
-                            <td>No manual binding code needed</td>
-                        </tr>
-                        </tbody>
-                    </MudSimpleTable>
-                </FormGuidelines>
-            </MudTabPanel>
-        </MudTabs>
-    </MudPaper>
-</MudContainer>
+                            </MudList>
+                        </MudCardContent>
+                    </MudCard>
+                }
+            </AdditionalContent>
+        </FormDemoSection>
+    </FormDemoContent>
+    
+    <CodeExampleContent>
+        <CodeExample
+            Title="Complete Form Configuration"
+            Language="csharp"
+            Code="@GetGeneratedCode()" />
+    </CodeExampleContent>
+    
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Simplified API Guidelines"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>
