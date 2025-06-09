@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject IVersionService VersionService
+@inject NavigationManager Navigation
 
 <MudThemeProvider Theme="_theme" IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
@@ -9,7 +10,7 @@
 <MudLayout>
     <MudAppBar Elevation="1" Dense="false">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
-        <MudLink Href="/home" Class="d-flex align-center" Style="text-decoration: none; color: inherit;">
+        <MudLink Class="d-flex align-center" Style="text-decoration: none; color: inherit; cursor: pointer;" @onclick="NavigateToHome">
             <MudIcon Icon="@Icons.Material.Filled.DynamicForm" Class="ml-3 me-2" Size="Size.Large" Style="color: white;" />
             <MudText Typo="Typo.h5" Class="font-weight-bold" Style="color: white;">
                 FormCraft
@@ -29,7 +30,7 @@
         <MudButton Variant="Variant.Text" 
                    Color="Color.Inherit" 
                    StartIcon="@Icons.Material.Filled.MenuBook"
-                   Href="/docs/getting-started">
+                   Href="docs/getting-started">
             Docs
         </MudButton>
         
@@ -53,45 +54,45 @@
     
     <MudDrawer @bind-Open="@_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <MudNavMenu>
-            <MudNavLink Href="/home" Icon="@Icons.Material.Filled.Home">
+            <MudNavLink Href="home" Icon="@Icons.Material.Filled.Home">
                 Home
             </MudNavLink>
             
             <MudNavGroup Title="Form Examples" Icon="@Icons.Material.Filled.Dashboard" Expanded="true">
-                <MudNavLink Href="/simplified" Icon="@Icons.Material.Filled.AutoFixHigh">
+                <MudNavLink Href="simplified" Icon="@Icons.Material.Filled.AutoFixHigh">
                     Simplified API
                 </MudNavLink>
-                <MudNavLink Href="/improved" Icon="@Icons.Material.Filled.Engineering">
+                <MudNavLink Href="improved" Icon="@Icons.Material.Filled.Engineering">
                     Type-Safe Builder
                 </MudNavLink>
-                <MudNavLink Href="/fluent" Icon="@Icons.Material.Filled.FlashOn">
+                <MudNavLink Href="fluent" Icon="@Icons.Material.Filled.FlashOn">
                     Fluent API
                 </MudNavLink>
-                <MudNavLink Href="/field-groups" Icon="@Icons.Material.Filled.GridView">
+                <MudNavLink Href="field-groups" Icon="@Icons.Material.Filled.GridView">
                     Field Groups
                 </MudNavLink>
-                <MudNavLink Href="/custom-renderers" Icon="@Icons.Material.Filled.Palette">
+                <MudNavLink Href="custom-renderers" Icon="@Icons.Material.Filled.Palette">
                     Custom Renderers
                 </MudNavLink>
-                <MudNavLink Href="/file-upload" Icon="@Icons.Material.Filled.CloudUpload">
+                <MudNavLink Href="file-upload" Icon="@Icons.Material.Filled.CloudUpload">
                     File Upload
                 </MudNavLink>
             </MudNavGroup>
             
             <MudNavGroup Title="Documentation" Icon="@Icons.Material.Filled.MenuBook" Expanded="true">
-                <MudNavLink Href="/docs/getting-started" Icon="@Icons.Material.Filled.PlayArrow">
+                <MudNavLink Href="docs/getting-started" Icon="@Icons.Material.Filled.PlayArrow">
                     Getting Started
                 </MudNavLink>
-                <MudNavLink Href="/docs/api-reference" Icon="@Icons.Material.Filled.Code">
+                <MudNavLink Href="docs/api-reference" Icon="@Icons.Material.Filled.Code">
                     API Reference
                 </MudNavLink>
-                <MudNavLink Href="/docs/examples" Icon="@Icons.Material.Filled.AutoAwesome">
+                <MudNavLink Href="docs/examples" Icon="@Icons.Material.Filled.AutoAwesome">
                     Examples
                 </MudNavLink>
-                <MudNavLink Href="/docs/customization" Icon="@Icons.Material.Filled.Palette">
+                <MudNavLink Href="docs/customization" Icon="@Icons.Material.Filled.Palette">
                     Customization
                 </MudNavLink>
-                <MudNavLink Href="/docs/troubleshooting" Icon="@Icons.Material.Filled.BugReport">
+                <MudNavLink Href="docs/troubleshooting" Icon="@Icons.Material.Filled.BugReport">
                     Troubleshooting
                 </MudNavLink>
             </MudNavGroup>
@@ -172,6 +173,11 @@
     private void ToggleTheme()
     {
         _isDarkMode = !_isDarkMode;
+    }
+    
+    private void NavigateToHome()
+    {
+        Navigation.NavigateTo("home");
     }
 }
 
