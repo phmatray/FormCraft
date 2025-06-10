@@ -20,9 +20,14 @@
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
     
     <!-- Package Tags -->
     <PackageTags>blazor;forms;dynamic;mudblazor;material-design;ui;form-builder</PackageTags>
+    
+    <!-- Additional Package Metadata -->
+    <PackageReleaseNotes>https://github.com/phmatray/FormCraft/releases</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     
     <!-- Build Settings -->
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -47,8 +52,9 @@
   </ItemGroup>
   
   <ItemGroup>
-    <!-- Include README in package -->
+    <!-- Include README and icon in package -->
     <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="icon.png" Pack="true" PackagePath="\" Condition="Exists('icon.png')" />
   </ItemGroup>
   
   <ItemGroup>
