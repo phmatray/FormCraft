@@ -16,34 +16,33 @@ public partial class SimplifiedForm
     [
         new()
         {
-            Feature = "Dynamic Component",
-            Usage = "Single component for complete forms",
-            Example = "&lt;FormCraftComponent TModel=\"ContactModel\" /&gt;"
+            Feature = "Text Fields",
+            Usage = "One-line required text field with validation",
+            Example = ".AddRequiredTextField(x => x.Name, \"Name\", minLength: 2)"
         },
         new()
         {
-            Feature = "Field Events",
-            Usage = "Track field changes in real-time",
-            Example = "OnFieldChanged=\"@(args => HandleFieldChanged(...))\""
+            Feature = "Email Fields",
+            Usage = "Email field with built-in format validation",
+            Example = ".AddEmailField(x => x.Email)"
         },
         new()
         {
-            Feature = "Submit Handling",
-            Usage = "Async form submission support",
-            Example = "OnValidSubmit=\"@HandleValidSubmit\""
+            Feature = "Numeric Fields",
+            Usage = "Number input with range validation",
+            Example = ".AddNumericField(x => x.Age, \"Age\", min: 18, max: 100)"
         },
         new()
         {
-            Feature = "Loading States",
-            Usage = "Built-in loading indicators",
-            Example = "IsSubmitting=\"@_isSubmitting\""
+            Feature = "Dropdown Fields",
+            Usage = "Select field with inline options",
+            Example = ".AddDropdownField(x => x.Country, \"Country\", (\"US\", \"United States\"))"
         },
         new()
         {
-            Feature = "Automatic Binding",
-            Usage = "Two-way binding out of the box",
-            Example = "No manual binding code needed",
-            IsCode = false
+            Feature = "Checkbox Fields",
+            Usage = "Boolean field with help text",
+            Example = ".AddCheckboxField(x => x.Subscribe, \"Subscribe\", helpText: \"Optional\")"
         }
     ];
 
@@ -51,75 +50,57 @@ public partial class SimplifiedForm
     [
         new()
         {
-            Icon = Icons.Material.Filled.Widgets,
-            Color = Color.Primary,
-            Text = "Single component handles all rendering"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.AutoAwesome,
-            Color = Color.Secondary,
-            Text = "Automatic field value binding"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.AccountTree,
-            Color = Color.Tertiary,
-            Text = "Built-in dependency handling"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.CodeOff,
-            Color = Color.Info,
-            Text = "No manual RenderTreeBuilder code"
-        },
-        new()
-        {
             Icon = Icons.Material.Filled.Extension,
-            Color = Color.Success,
-            Text = "Extension methods for validation"
+            Color = Color.Primary,
+            Text = "Fluent extension methods for common fields"
         },
         new()
         {
-            Icon = Icons.Material.Filled.Speed,
+            Icon = Icons.Material.Filled.FastForward,
+            Color = Color.Secondary,
+            Text = "One-line field configuration"
+        },
+        new()
+        {
+            Icon = Icons.Material.Filled.Email,
+            Color = Color.Tertiary,
+            Text = "Built-in email validation method"
+        },
+        new()
+        {
+            Icon = Icons.Material.Filled.Numbers,
+            Color = Color.Info,
+            Text = "Numeric fields with range validation"
+        },
+        new()
+        {
+            Icon = Icons.Material.Filled.ArrowDropDown,
+            Color = Color.Success,
+            Text = "Dropdown fields with inline options"
+        },
+        new()
+        {
+            Icon = Icons.Material.Filled.CheckBox,
             Color = Color.Warning,
-            Text = "Real-time field change tracking"
+            Text = "Checkbox fields with help text"
         }
     ];
 
     protected override void OnInitialized()
     {
-        // Much simpler configuration setup
+        // Much simpler configuration using FluentFormBuilderExtensions methods
         _formConfiguration = FormBuilder<ContactModel>
             .Create()
-            .AddField(x => x.FirstName, field => field
-                .WithLabel("First Name")
-                .Required("First name is required")
-                .WithMinLength(2, "Must be at least 2 characters")
-                .WithPlaceholder("Enter your first name"))
-            .AddField(x => x.LastName, field => field
-                .WithLabel("Last Name")
-                .Required("Last name is required")
-                .WithMinLength(2, "Must be at least 2 characters")
-                .WithPlaceholder("Enter your last name"))
-            .AddField(x => x.Email, field => field
-                .WithLabel("Email Address")
-                .Required("Email is required")
-                .WithEmailValidation()
-                .WithPlaceholder("your.email@example.com"))
-            .AddField(x => x.Age, field => field
-                .WithLabel("Age")
-                .Required("Age is required")
-                .WithRange(16, 100, "Age must be between 16 and 100"))
-            .AddField(x => x.Country, field => field
-                .WithLabel("Country")
-                .Required("Please select your country")
-                .WithOptions(
-                    ("US", "United States"),
-                    ("CA", "Canada"),
-                    ("UK", "United Kingdom"),
-                    ("DE", "Germany"),
-                    ("FR", "France")))
+            .AddRequiredTextField(x => x.FirstName, "First Name", "Enter your first name", minLength: 2)
+            .AddRequiredTextField(x => x.LastName, "Last Name", "Enter your last name", minLength: 2)
+            .AddEmailField(x => x.Email)
+            .AddNumericField(x => x.Age, "Age", min: 16, max: 100)
+            .AddDropdownField(x => x.Country, "Country",
+                ("US", "United States"),
+                ("CA", "Canada"),
+                ("UK", "United Kingdom"),
+                ("DE", "Germany"),
+                ("FR", "France"))
             .AddField(x => x.City, field => field
                 .WithLabel("City")
                 .WithPlaceholder("Enter your city")
@@ -131,9 +112,8 @@ public partial class SimplifiedForm
                         model.City = null;
                     }
                 }))
-            .AddField(x => x.SubscribeToNewsletter, field => field
-                .WithLabel("Subscribe to Newsletter")
-                .WithHelpText("Get updates about new features"))
+            .AddCheckboxField(x => x.SubscribeToNewsletter, "Subscribe to Newsletter", 
+                helpText: "Get updates about new features")
             .Build();
     }
 
@@ -188,10 +168,34 @@ public partial class SimplifiedForm
 
     private string GetGeneratedCode()
     {
-        var formCode = CodeGenerator.GenerateFormBuilderCode(_formConfiguration);
-
-        // Add usage example
-        const string usageExample = @"
+        // Show the actual code using FluentFormBuilderExtensions
+        const string actualCode = @"// Much simpler configuration using FluentFormBuilderExtensions methods
+_formConfiguration = FormBuilder<ContactModel>
+    .Create()
+    .AddRequiredTextField(x => x.FirstName, ""First Name"", ""Enter your first name"", minLength: 2)
+    .AddRequiredTextField(x => x.LastName, ""Last Name"", ""Enter your last name"", minLength: 2)
+    .AddEmailField(x => x.Email)
+    .AddNumericField(x => x.Age, ""Age"", min: 16, max: 100)
+    .AddDropdownField(x => x.Country, ""Country"",
+        (""US"", ""United States""),
+        (""CA"", ""Canada""),
+        (""UK"", ""United Kingdom""),
+        (""DE"", ""Germany""),
+        (""FR"", ""France""))
+    .AddField(x => x.City, field => field
+        .WithLabel(""City"")
+        .WithPlaceholder(""Enter your city"")
+        .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
+        .DependsOn(x => x.Country, (model, country) =>
+        {
+            if (string.IsNullOrEmpty(country))
+            {
+                model.City = null;
+            }
+        }))
+    .AddCheckboxField(x => x.SubscribeToNewsletter, ""Subscribe to Newsletter"", 
+        helpText: ""Get updates about new features"")
+    .Build();
 
 // Use in Razor component
 <FormCraftComponent
@@ -201,6 +205,6 @@ public partial class SimplifiedForm
     OnValidSubmit=""@HandleValidSubmit""
     OnFieldChanged=""@(args => HandleFieldChanged(args.fieldName, args.value))"" />";
 
-        return formCode + usageExample;
+        return actualCode;
     }
 }
