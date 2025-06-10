@@ -33,6 +33,8 @@ public partial class FormCraftComponent<TModel>
     
     [Parameter]
     public string? SubmitButtonClass { get; set; }
+    
+    private IGroupedFormConfiguration<TModel>? GroupedConfiguration => Configuration as IGroupedFormConfiguration<TModel>;
 
     private RenderFragment RenderField(IFieldConfiguration<TModel, object> field)
     {
