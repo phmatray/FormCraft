@@ -40,7 +40,7 @@ public partial class FormSlots : IDisposable
         {
             Feature = "Interactive Elements",
             Usage = "Include interactive components in slots",
-            Example = "<MudTimeline>, <MudAlert>, etc."
+            Example = "<MudStepper>, <MudAlert>, etc."
         },
         new()
         {
@@ -184,17 +184,11 @@ public partial class FormSlots : IDisposable
                         <MudText>Please fill out the registration form below.</MudText>
                     </MudAlert>
                     
-                    <MudTimeline TimelineOrientation="TimelineOrientation.Horizontal">
-                        <MudTimelineItem Color="@(_activeStep >= 0 ? Color.Primary : Color.Default)">
-                            <ItemContent>Personal Info</ItemContent>
-                        </MudTimelineItem>
-                        <MudTimelineItem Color="@(_activeStep >= 1 ? Color.Primary : Color.Default)">
-                            <ItemContent>Preferences</ItemContent>
-                        </MudTimelineItem>
-                        <MudTimelineItem Color="@(_activeStep >= 2 ? Color.Primary : Color.Default)">
-                            <ItemContent>Review</ItemContent>
-                        </MudTimelineItem>
-                    </MudTimeline>
+                    <MudStepper @bind-ActiveIndex="@_activeStep" NonLinear="true">
+                        <MudStep Title="Personal Info" />
+                        <MudStep Title="Preferences" />
+                        <MudStep Title="Review" />
+                    </MudStepper>
                 </BeforeForm>
                 
                 <AfterForm>

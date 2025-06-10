@@ -36,32 +36,11 @@
                         <MudIcon Icon="@Icons.Material.Filled.Schedule" Class="me-2" />
                         Registration Steps
                     </MudText>
-                    <MudTimeline TimelineOrientation="TimelineOrientation.Horizontal" TimelinePosition="TimelinePosition.Top">
-                        <MudTimelineItem Color="@(_activeStep >= 0 ? Color.Primary : Color.Default)" Size="Size.Small">
-                            <ItemOpposite>
-                                <MudText Typo="Typo.caption">Step 1</MudText>
-                            </ItemOpposite>
-                            <ItemContent>
-                                <MudText Typo="Typo.body2" Align="Align.Center">Personal Info</MudText>
-                            </ItemContent>
-                        </MudTimelineItem>
-                        <MudTimelineItem Color="@(_activeStep >= 1 ? Color.Primary : Color.Default)" Size="Size.Small">
-                            <ItemOpposite>
-                                <MudText Typo="Typo.caption">Step 2</MudText>
-                            </ItemOpposite>
-                            <ItemContent>
-                                <MudText Typo="Typo.body2" Align="Align.Center">Preferences</MudText>
-                            </ItemContent>
-                        </MudTimelineItem>
-                        <MudTimelineItem Color="@(_activeStep >= 2 ? Color.Primary : Color.Default)" Size="Size.Small">
-                            <ItemOpposite>
-                                <MudText Typo="Typo.caption">Step 3</MudText>
-                            </ItemOpposite>
-                            <ItemContent>
-                                <MudText Typo="Typo.body2" Align="Align.Center">Review</MudText>
-                            </ItemContent>
-                        </MudTimelineItem>
-                    </MudTimeline>
+                    <MudStepper @bind-ActiveIndex="@_activeStep" NonLinear="true">
+                        <MudStep Title="Personal Info" />
+                        <MudStep Title="Preferences" />
+                        <MudStep Title="Review" />
+                    </MudStepper>
                 </MudPaper>
             </BeforeFormContent>
             
