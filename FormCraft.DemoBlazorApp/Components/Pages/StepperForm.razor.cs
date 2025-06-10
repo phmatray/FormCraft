@@ -18,15 +18,10 @@ public partial class StepperForm
     private IFormConfiguration<EmployeeModel> _contactConfig = null!;
     private IFormConfiguration<EmployeeModel> _professionalConfig = null!;
     
-    // Component references for validation
+    // Component references for validation (simplified API)
     private FormCraftComponent<EmployeeModel>? _personalFormComponent;
     private FormCraftComponent<EmployeeModel>? _contactFormComponent;
     private FormCraftComponent<EmployeeModel>? _professionalFormComponent;
-    
-    // EditContext references for validation
-    private EditContext? _personalEditContext;
-    private EditContext? _contactEditContext;
-    private EditContext? _professionalEditContext;
 
     private readonly List<GuidelineItem> _apiGuidelineTableItems =
     [
@@ -163,17 +158,17 @@ public partial class StepperForm
 
     private bool ValidatePersonalInfo()
     {
-        return _personalEditContext?.Validate() ?? false;
+        return _personalFormComponent?.Validate() ?? false;
     }
 
     private bool ValidateContactInfo()
     {
-        return _contactEditContext?.Validate() ?? false;
+        return _contactFormComponent?.Validate() ?? false;
     }
 
     private bool ValidateProfessionalInfo()
     {
-        return _professionalEditContext?.Validate() ?? false;
+        return _professionalFormComponent?.Validate() ?? false;
     }
 
     private Task SubmitForm()
@@ -193,10 +188,7 @@ public partial class StepperForm
         _isSubmitted = false;
         _hasValidationErrors = false;
         
-        // Reset EditContexts (they will be recreated by FormCraftComponent)
-        _personalEditContext = null;
-        _contactEditContext = null;
-        _professionalEditContext = null;
+        // Component references will be re-initialized when the form re-renders
         
         if (_stepper != null)
         {
@@ -240,7 +232,7 @@ public partial class StepperForm
                 <ChildContent>
                     <MudStep Title="Personal Info">
                         <ChildContent>
-                            <FormCraftComponent
+                            <FormCraftComponent @ref="_personalFormComponent"
                                 TModel="EmployeeModel"
                                 Model="@_model"
                                 Configuration="@_personalInfoConfig"
@@ -250,7 +242,7 @@ public partial class StepperForm
                     
                     <MudStep Title="Contact Details">
                         <ChildContent>
-                            <FormCraftComponent
+                            <FormCraftComponent @ref="_contactFormComponent"
                                 TModel="EmployeeModel"
                                 Model="@_model"
                                 Configuration="@_contactConfig"
@@ -274,27 +266,27 @@ public partial class StepperForm
     private string GetValidationCode()
     {
         return """
-            // Component references and EditContext
+            // Component references only - simplified API!
             private FormCraftComponent<EmployeeModel>? _personalFormComponent;
-            private EditContext? _personalEditContext;
+            private FormCraftComponent<EmployeeModel>? _contactFormComponent;
+            private FormCraftComponent<EmployeeModel>? _professionalFormComponent;
             
-            // In Razor markup:
+            // In Razor markup - just use @ref:
             <FormCraftComponent @ref="_personalFormComponent"
                 TModel="EmployeeModel"
                 Model="@_model"
                 Configuration="@_personalInfoConfig"
-                ShowSubmitButton="false"
-                OnEditContextCreated="@(ctx => _personalEditContext = ctx)" />
+                ShowSubmitButton="false" />
             
-            // Validation method using EditContext
+            // Validation method - directly call Validate() on components
             private async Task NextStep()
             {
                 // Validate based on current step
                 var isValid = _currentStep switch
                 {
-                    0 => ValidatePersonalInfo(),
-                    1 => ValidateContactInfo(),
-                    2 => ValidateProfessionalInfo(),
+                    0 => _personalFormComponent?.Validate() ?? false,
+                    1 => _contactFormComponent?.Validate() ?? false,
+                    2 => _professionalFormComponent?.Validate() ?? false,
                     _ => true
                 };
                 
@@ -305,12 +297,6 @@ public partial class StepperForm
                     await _stepper.NextStepAsync();
                     _hasValidationErrors = false;
                 }
-            }
-            
-            private bool ValidatePersonalInfo()
-            {
-                // Use EditContext validation for field-level validation messages
-                return _personalEditContext?.Validate() ?? false;
             }
             """;
     }
