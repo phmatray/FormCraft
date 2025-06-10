@@ -63,6 +63,11 @@ public partial class FormCraftComponent<TModel>
     {
         return _editContext?.Validate() ?? false;
     }
+    
+    public EditContext? GetEditContext()
+    {
+        return _editContext;
+    }
 
     private RenderFragment RenderField(IFieldConfiguration<TModel, object> field)
     {
