@@ -1,0 +1,278 @@
+@page "/tabbed-form"
+
+<DemoPageLayout
+    Title="Tabbed Form"
+    Icon="@Icons.Material.Filled.Tab"
+    Description="This demonstrates how to create tabbed forms using MudTabs, where each tab contains different form fields and allows free navigation between sections."
+    FormDemoIcon="@Icons.Material.Filled.Assignment">
+    <FormDemoContent>
+        <MudPaper Elevation="1" Class="pa-6">
+            <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
+                <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Class="me-2" />
+                Employee Profile Form
+            </MudText>
+            
+            @if (_isSubmitted)
+            {
+                <FormSuccessDisplay
+                    DataDisplayItems="@GetDataDisplayItems()"
+                    OnReset="@ResetForm" />
+            }
+            else
+            {
+                <MudTabs 
+                    @bind-ActivePanelIndex="_activeTabIndex" 
+                    Elevation="2" 
+                    Rounded="true" 
+                    ApplyEffectsToContainer="true" 
+                    PanelClass="pa-4">
+                    <MudTabPanel
+                        Text="Personal Info" 
+                        Icon="@Icons.Material.Filled.Person"
+                        BadgeData="@GetPersonalInfoBadge()"
+                        BadgeColor="@GetTabBadgeColor(IsPersonalInfoComplete(), HasPersonalInfoData())"
+                        ToolTip="@GetTabTooltip(0)">
+                        <MudText Typo="Typo.body1" Class="mb-4">
+                            Please provide your personal information.
+                        </MudText>
+                        <FormCraftComponent
+                            @ref="_personalFormComponent"
+                            TModel="EmployeeModel"
+                            Model="@_model"
+                            Configuration="@_personalInfoConfig"
+                            OnFieldChanged="@OnFieldChangedCallback"
+                            ShowSubmitButton="false" />
+                    </MudTabPanel>
+                    
+                    <MudTabPanel
+                        Text="Contact Details" 
+                        Icon="@Icons.Material.Filled.ContactMail"
+                        BadgeData="@GetContactInfoBadge()"
+                        BadgeColor="@GetTabBadgeColor(IsContactInfoComplete(), HasContactInfoData())"
+                        ToolTip="@GetTabTooltip(1)">
+                            @if (!string.IsNullOrEmpty(_model.FirstName))
+                            {
+                                <MudAlert Severity="Severity.Info" Class="mb-4">
+                                    Welcome, @_model.FirstName! Now let's gather your contact information.
+                                </MudAlert>
+                            }
+                            <FormCraftComponent
+                                @ref="_contactFormComponent"
+                                TModel="EmployeeModel"
+                                Model="@_model"
+                                Configuration="@_contactConfig"
+                                OnFieldChanged="@OnFieldChangedCallback"
+                                ShowSubmitButton="false" />
+                    </MudTabPanel>
+                    
+                    <MudTabPanel
+                        Text="Professional Info" 
+                        Icon="@Icons.Material.Filled.Work"
+                        BadgeData="@GetProfessionalInfoBadge()"
+                        BadgeColor="@GetTabBadgeColor(IsProfessionalInfoComplete(), HasProfessionalInfoData())"
+                        ToolTip="@GetTabTooltip(2)">
+                            <MudText Typo="Typo.body1" Class="mb-4">
+                                Tell us about your professional background and preferences.
+                            </MudText>
+                            <FormCraftComponent
+                                @ref="_professionalFormComponent"
+                                TModel="EmployeeModel"
+                                Model="@_model"
+                                Configuration="@_professionalConfig"
+                                OnFieldChanged="@OnFieldChangedCallback"
+                                ShowSubmitButton="false" />
+                    </MudTabPanel>
+                    
+                    <MudTabPanel 
+                        Text="Review & Submit" 
+                        Icon="@Icons.Material.Filled.CheckCircle" 
+                        BadgeData="@GetValidationBadge()" 
+                        BadgeColor="@GetBadgeColor()"
+                        ToolTip="@GetTabTooltip(3)">
+                            <MudText Typo="Typo.h6" Class="mb-4">Review Your Information</MudText>
+                        
+                            @* Summary Card *@
+                            <MudCard Class="mb-4" Elevation="3">
+                                <MudCardContent>
+                                    <div class="d-flex justify-space-between align-center mb-3">
+                                        <MudText Typo="Typo.h6">Completion Summary</MudText>
+                                        <MudChip T="string" Color="@(IsFormComplete() ? Color.Success : Color.Warning)" 
+                                                 Icon="@(IsFormComplete() ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Warning)">
+                                            @GetProgressText()
+                                        </MudChip>
+                                    </div>
+                                    <MudGrid>
+                                        <MudItem xs="12" md="4">
+                                            <div class="d-flex align-center gap-2">
+                                                <MudIcon Icon="@Icons.Material.Filled.Person" Color="@(IsPersonalInfoComplete() ? Color.Success : Color.Default)" />
+                                                <MudText>Personal Info: @(IsPersonalInfoComplete() ? "Complete" : "Incomplete")</MudText>
+                                            </div>
+                                        </MudItem>
+                                        <MudItem xs="12" md="4">
+                                            <div class="d-flex align-center gap-2">
+                                                <MudIcon Icon="@Icons.Material.Filled.ContactMail" Color="@(IsContactInfoComplete() ? Color.Success : Color.Default)" />
+                                                <MudText>Contact Details: @(IsContactInfoComplete() ? "Complete" : "Incomplete")</MudText>
+                                            </div>
+                                        </MudItem>
+                                        <MudItem xs="12" md="4">
+                                            <div class="d-flex align-center gap-2">
+                                                <MudIcon Icon="@Icons.Material.Filled.Work" Color="@(IsProfessionalInfoComplete() ? Color.Success : Color.Default)" />
+                                                <MudText>Professional Info: @(IsProfessionalInfoComplete() ? "Complete" : "Incomplete")</MudText>
+                                            </div>
+                                        </MudItem>
+                                    </MudGrid>
+                                </MudCardContent>
+                            </MudCard>
+                        
+                            <MudGrid>
+                                <MudItem xs="12" md="6">
+                                    <MudCard Class="mb-4">
+                                        <MudCardContent>
+                                            <MudText Typo="Typo.subtitle2" Class="mb-2">Personal Information</MudText>
+                                            <MudText><strong>Name:</strong> @_model.FirstName @_model.LastName</MudText>
+                                            <MudText><strong>Date of Birth:</strong> @_model.DateOfBirth?.ToShortDateString()</MudText>
+                                        </MudCardContent>
+                                    </MudCard>
+                                </MudItem>
+                            
+                                <MudItem xs="12" md="6">
+                                    <MudCard Class="mb-4">
+                                        <MudCardContent>
+                                            <MudText Typo="Typo.subtitle2" Class="mb-2">Contact Details</MudText>
+                                            <MudText><strong>Email:</strong> @_model.Email</MudText>
+                                            <MudText><strong>Phone:</strong> @_model.Phone</MudText>
+                                            <MudText><strong>Address:</strong> @_model.Address</MudText>
+                                        </MudCardContent>
+                                    </MudCard>
+                                </MudItem>
+                            
+                                <MudItem xs="12">
+                                    <MudCard Class="mb-4">
+                                        <MudCardContent>
+                                            <MudText Typo="Typo.subtitle2" Class="mb-2">Professional Information</MudText>
+                                            <MudText><strong>Department:</strong> @_model.Department</MudText>
+                                            <MudText><strong>Position:</strong> @_model.Position</MudText>
+                                            <MudText><strong>Start Date:</strong> @_model.StartDate?.ToShortDateString()</MudText>
+                                            <MudText><strong>Remote Work:</strong> @(_model.IsRemote ? "Yes" : "No")</MudText>
+                                        </MudCardContent>
+                                    </MudCard>
+                                </MudItem>
+                            </MudGrid>
+                        
+                            @if (IsFormComplete())
+                            {
+                                <MudAlert Severity="Severity.Success" Class="mt-4">
+                                    <MudText>
+                                        All information is complete! Click "Submit" to save your profile.
+                                    </MudText>
+                                </MudAlert>
+                            }
+                            else
+                            {
+                                <MudAlert Severity="Severity.Warning" Class="mt-4">
+                                    <MudText>
+                                        Some required fields are missing. Please complete all tabs before submitting.
+                                    </MudText>
+                                </MudAlert>
+                            }
+                    </MudTabPanel>
+                </MudTabs>
+                
+                <MudDivider Class="my-4" />
+                
+                <div class="d-flex justify-space-between align-center">
+                    <div class="d-flex align-center gap-2">
+                        <MudText Typo="Typo.body2" Color="Color.Tertiary">
+                            @GetProgressText()
+                        </MudText>
+                        <MudProgressLinear Color="Color.Primary" Rounded="true" Size="Size.Small" Value="@GetProgressPercentage()" Class="flex-grow-1" Style="width: 200px;" />
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        @if (_activeTabIndex > 0)
+                        {
+                            <MudButton
+                                Variant="Variant.Text"
+                                OnClick="PreviousTab"
+                                StartIcon="@Icons.Material.Filled.NavigateBefore">
+                                Previous
+                            </MudButton>
+                        }
+                        
+                        @if (_activeTabIndex < 3)
+                        {
+                            <MudButton
+                                Variant="Variant.Text"
+                                Color="Color.Primary"
+                                OnClick="NextTab"
+                                EndIcon="@Icons.Material.Filled.NavigateNext">
+                                Next
+                            </MudButton>
+                        }
+                        
+                        @if (_activeTabIndex == 3)
+                        {
+                            <MudButton 
+                                Variant="Variant.Filled"
+                                Color="Color.Primary"
+                                OnClick="@SubmitForm"
+                                StartIcon="@Icons.Material.Filled.Check" Disabled="@(!IsFormComplete())">
+                                Submit
+                            </MudButton>
+                        }
+                    </div>
+                </div>
+            }
+        </MudPaper>
+        
+        <MudPaper Elevation="1" Class="pa-6 mt-4">
+            <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2" />
+                Features Demonstrated
+            </MudText>
+            <MudList T="string" Dense="true">
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Tab">
+                    Tabbed form navigation with MudTabs
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.SwapHoriz">
+                    Free navigation between tabs without validation blocking
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Storage">
+                    Data persistence across tabs with shared model
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.NotificationImportant">
+                    Visual indicators for incomplete sections
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                    Final validation before submission
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Lightbulb">
+                    Helpful tooltips for each section
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Analytics">
+                    Progress tracking with visual indicators
+                </MudListItem>
+            </MudList>
+        </MudPaper>
+        
+    </FormDemoContent>
+    
+    <CodeExampleContent>
+        <CodeExample
+            Title="Tabbed Form Implementation"
+            Language="csharp"
+            Code="@GetExampleCode()" />
+        
+        <CodeExample
+            Title="Tab Validation and Progress"
+            Language="csharp"
+            Code="@GetValidationCode()"
+            Class="mt-4" />
+    </CodeExampleContent>
+    
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Tabbed Form Guidelines"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>
