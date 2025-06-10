@@ -23,7 +23,11 @@
     <PackageIcon>icon.png</PackageIcon>
     
     <!-- Package Tags -->
-    <PackageTags>blazor;forms;dynamic;fluent;validation;ui;mudblazor;form-builder;dynamic-forms;blazor-components</PackageTags>
+    <PackageTags>blazor;forms;dynamic;fluent;validation;ui;form-builder;dynamic-forms;blazor-components</PackageTags>
+    
+    <!-- Additional Package Metadata -->
+    <PackageReleaseNotes>https://github.com/phmatray/FormCraft/releases</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     
     <!-- Build Settings -->
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -42,17 +46,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.5"/>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.5"/>
-    <PackageReference Include="MudBlazor" Version="8.7.0" />
-    <PackageReference Include="FluentValidation" Version="12.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.AspNetCore.Http" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     
     <!-- Versioning and Source Link -->
-    <PackageReference Include="MinVer" Version="6.0.0">
+    <PackageReference Include="MinVer">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+    <PackageReference Include="Microsoft.SourceLink.GitHub">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

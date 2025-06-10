@@ -1,0 +1,172 @@
+@using Microsoft.JSInterop
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel where TModel : new()
+@inject IFieldRendererService FieldRendererService
+@inject IJSRuntime JSRuntime
+
+@if (BeforeForm != null)
+{
+    @BeforeForm
+}
+
+<EditForm EditContext="@_editContext" OnValidSubmit="@OnSubmit">
+    <DataAnnotationsValidator />
+    <DynamicFormValidator TModel="TModel" Configuration="@Configuration" />
+    
+    @if (GroupedConfiguration != null && GroupedConfiguration.UseFieldGroups && GroupedConfiguration.FieldGroups.Any())
+    {
+        @* Render fields grouped *@
+        @foreach (var group in GroupedConfiguration.FieldGroups.OrderBy(g => g.Order))
+        {
+            @if (group.ShowCard)
+            {
+                <MudCard Class="mb-4" Elevation="@group.CardElevation">
+                    @if (!string.IsNullOrEmpty(group.Name))
+                    {
+                        <MudCardContent>
+                            <div class="d-flex justify-space-between align-center mb-4">
+                                <MudText Typo="Typo.h6">@group.Name</MudText>
+                                @if (group.HeaderRightContent != null)
+                                {
+                                    <div>
+                                        @group.HeaderRightContent
+                                    </div>
+                                }
+                            </div>
+                            @RenderFieldGroup(group)
+                        </MudCardContent>
+                    }
+                    else
+                    {
+                        <MudCardContent>
+                            @RenderFieldGroup(group)
+                        </MudCardContent>
+                    }
+                </MudCard>
+            }
+            else
+            {
+                <div class="mb-4 @group.CssClass">
+                    @if (!string.IsNullOrEmpty(group.Name))
+                    {
+                        <div class="d-flex justify-space-between align-center mb-3">
+                            <MudText Typo="Typo.h6">@group.Name</MudText>
+                            @if (group.HeaderRightContent != null)
+                            {
+                                <div>
+                                    @group.HeaderRightContent
+                                </div>
+                            }
+                        </div>
+                    }
+                    @RenderFieldGroup(group)
+                </div>
+            }
+        }
+        
+        @* Render any ungrouped fields *@
+        @RenderUngroupedFields()
+    }
+    else
+    {
+        @* Render fields without groups (original behavior) *@
+        @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
+        {
+            if (ShouldShowField(field))
+            {
+                <div class="mb-4">
+                    @RenderField(field)
+                    <FieldValidationMessage FieldName="@field.FieldName" />
+                </div>
+            }
+        }
+    }
+    
+    @if (ShowSubmitButton)
+    {
+        <MudButton ButtonType="ButtonType.Submit"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Class="@SubmitButtonClass"
+                   Disabled="@IsSubmitting">
+            @(IsSubmitting ? SubmittingText : SubmitButtonText)
+        </MudButton>
+    }
+</EditForm>
+
+@if (AfterForm != null)
+{
+    @AfterForm
+}
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Disable browser validation using JavaScript
+            await JSRuntime.InvokeVoidAsync("eval", "document.querySelector('form')?.setAttribute('novalidate', 'novalidate')");
+        }
+    }
+    
+    private RenderFragment RenderFieldGroup(FieldGroup<TModel> group)
+    {
+        return builder =>
+        {
+            builder.OpenComponent<MudGrid>(0);
+            builder.AddAttribute(1, "ChildContent", (RenderFragment)(gridBuilder =>
+            {
+                var fieldsInGroup = Configuration.Fields
+                    .Where(f => group.FieldNames.Contains(f.FieldName))
+                    .OrderBy(f => f.Order);
+                
+                var columnSize = 12 / group.Columns;
+                
+                foreach (var field in fieldsInGroup)
+                {
+                    if (ShouldShowField(field))
+                    {
+                        gridBuilder.OpenComponent<MudItem>(0);
+                        gridBuilder.AddAttribute(1, "xs", 12);
+                        gridBuilder.AddAttribute(2, "md", columnSize);
+                        gridBuilder.AddAttribute(3, "ChildContent", (RenderFragment)(itemBuilder =>
+                        {
+                            itemBuilder.AddContent(0, RenderField(field));
+                            itemBuilder.OpenComponent<FieldValidationMessage>(1);
+                            itemBuilder.AddAttribute(2, "FieldName", field.FieldName);
+                            itemBuilder.CloseComponent();
+                        }));
+                        gridBuilder.CloseComponent();
+                    }
+                }
+            }));
+            builder.CloseComponent();
+        };
+    }
+    
+    private RenderFragment RenderUngroupedFields()
+    {
+        return builder =>
+        {
+            if (GroupedConfiguration != null)
+            {
+                var groupedFieldNames = GroupedConfiguration.FieldGroups.SelectMany(g => g.FieldNames).ToHashSet();
+                var ungroupedFields = Configuration.Fields.Where(f => !groupedFieldNames.Contains(f.FieldName)).OrderBy(f => f.Order);
+                
+                foreach (var field in ungroupedFields)
+                {
+                    if (ShouldShowField(field))
+                    {
+                        builder.OpenElement(0, "div");
+                        builder.AddAttribute(1, "class", "mb-4");
+                        builder.AddContent(2, RenderField(field));
+                        builder.OpenComponent<FieldValidationMessage>(3);
+                        builder.AddAttribute(4, "FieldName", field.FieldName);
+                        builder.CloseComponent();
+                        builder.CloseElement();
+                    }
+                }
+            }
+        };
+    }
+}

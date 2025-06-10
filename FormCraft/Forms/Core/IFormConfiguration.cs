@@ -4,7 +4,7 @@ namespace FormCraft;
 /// Represents the complete configuration for a dynamic form, including all fields, layout settings, and validation options.
 /// </summary>
 /// <typeparam name="TModel">The model type that the form will bind to.</typeparam>
-public interface IFormConfiguration<TModel>
+public interface IFormConfiguration<TModel> where TModel : new()
 {
     /// <summary>
     /// Gets the collection of field configurations that define the form's structure.
@@ -40,6 +40,11 @@ public interface IFormConfiguration<TModel>
     /// Gets or sets the text/symbol to display for required field indicators.
     /// </summary>
     string RequiredIndicator { get; set; }
+    
+    /// <summary>
+    /// Gets the security configuration for the form.
+    /// </summary>
+    IFormSecurity? Security { get; }
 }
 
 /// <summary>
@@ -72,7 +77,7 @@ public enum FormLayout
 /// Interface for form configurations that support field groups.
 /// </summary>
 /// <typeparam name="TModel">The model type that the form will bind to.</typeparam>
-public interface IGroupedFormConfiguration<TModel> : IFormConfiguration<TModel>
+public interface IGroupedFormConfiguration<TModel> : IFormConfiguration<TModel> where TModel : new()
 {
     /// <summary>
     /// Gets the collection of field groups that define the form's layout structure.
@@ -89,7 +94,7 @@ public interface IGroupedFormConfiguration<TModel> : IFormConfiguration<TModel>
 /// Default implementation of IFormConfiguration that stores form settings and field collections.
 /// </summary>
 /// <typeparam name="TModel">The model type that the form will bind to.</typeparam>
-public class FormConfiguration<TModel> : IGroupedFormConfiguration<TModel>
+public class FormConfiguration<TModel> : IGroupedFormConfiguration<TModel> where TModel : new()
 {
     /// <inheritdoc />
     public List<IFieldConfiguration<TModel, object>> Fields { get; } = new();
@@ -117,4 +122,7 @@ public class FormConfiguration<TModel> : IGroupedFormConfiguration<TModel>
 
     /// <inheritdoc />
     public bool UseFieldGroups { get; set; } = false;
+    
+    /// <inheritdoc />
+    public IFormSecurity? Security { get; set; }
 }

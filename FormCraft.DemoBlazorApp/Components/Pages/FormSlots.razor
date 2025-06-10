@@ -1,0 +1,151 @@
+@page "/form-slots"
+
+<DemoPageLayout
+    Title="Form Slots (Before/After Content)"
+    Icon="@Icons.Material.Filled.ViewCarousel"
+    Description="This demonstrates how to add custom content before and after the form using BeforeForm and AfterForm render fragments."
+    FormDemoIcon="@Icons.Material.Filled.DashboardCustomize">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="ContactModel"
+            Model="@_model"
+            Configuration="@_formConfiguration"
+            FormTitle="Event Registration"
+            FormIcon="@Icons.Material.Filled.EventAvailable"
+            IsSubmitted="@_isSubmitted"
+            IsSubmitting="@_isSubmitting"
+            OnValidSubmit="@HandleValidSubmit"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()">
+            <BeforeFormContent>
+                <MudAlert Severity="Severity.Info" Class="mb-4">
+                    <MudText Typo="Typo.h6" Class="mb-2">Welcome to TechCon 2024!</MudText>
+                    <MudText Typo="Typo.body2">
+                        Join us for three days of cutting-edge technology presentations, workshops, and networking opportunities.
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        <strong>Event Details:</strong><br />
+                        Date: July 15-17, 2024<br />
+                        Location: San Francisco Convention Center<br />
+                        Early Bird Price: $299 (Regular: $499)
+                    </MudText>
+                </MudAlert>
+                
+                <MudPaper Class="pa-4 mb-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Class="me-2" />
+                        Registration Steps
+                    </MudText>
+                    <MudStepper @bind-ActiveIndex="@_activeStep" NonLinear="true">
+                        <MudStep Title="Personal Info" />
+                        <MudStep Title="Preferences" />
+                        <MudStep Title="Review" />
+                    </MudStepper>
+                </MudPaper>
+            </BeforeFormContent>
+            
+            <AfterFormContent>
+                <MudDivider Class="my-4" />
+                
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h6" Class="mb-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2" />
+                                    Additional Information
+                                </MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                        Free parking for all attendees
+                                    </MudListItem>
+                                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                        Lunch and refreshments included
+                                    </MudListItem>
+                                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                        Certificate of attendance
+                                    </MudListItem>
+                                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                        Access to recorded sessions
+                                    </MudListItem>
+                                </MudList>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                    
+                    <MudItem xs="12" md="6">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h6" Class="mb-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.ContactSupport" Class="me-2" />
+                                    Need Help?
+                                </MudText>
+                                <MudText Typo="Typo.body2" Class="mb-2">
+                                    If you have any questions about the registration process or the event, please contact us:
+                                </MudText>
+                                <MudText Typo="Typo.body2">
+                                    <strong>Email:</strong> support@techcon2024.com<br />
+                                    <strong>Phone:</strong> (555) 123-4567<br />
+                                    <strong>Hours:</strong> Mon-Fri, 9AM-5PM PST
+                                </MudText>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+                
+                @if (_showCountdown)
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mt-4">
+                        <MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.Timer" Class="me-2" />
+                            <strong>Early Bird Registration Ends In:</strong> @_countdownText
+                        </MudText>
+                    </MudAlert>
+                }
+            </AfterFormContent>
+            
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="Form Slots Features" />
+                
+                <MudCard Elevation="2" Class="mt-4">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Code" Class="me-2" />
+                            Implementation
+                        </MudText>
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            Form slots allow you to extend the form with custom content:
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.ArrowUpward">
+                                BeforeForm: Instructions, alerts, progress indicators
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.ArrowDownward">
+                                AfterForm: Help text, additional info, related content
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </SidebarContent>
+        </FormDemoSection>
+    </FormDemoContent>
+    
+    <CodeExampleContent>
+        <CodeExample
+            Title="Using Form Slots"
+            Language="razor"
+            Code="@GetExampleCode()" />
+        
+        <CodeExample
+            Title="Component Implementation"
+            Language="csharp"
+            Code="@GetImplementationCode()"
+            Class="mt-4" />
+    </CodeExampleContent>
+    
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Form Slots Guidelines"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>

@@ -171,9 +171,9 @@ public class FluentFormBuilderExtensionsTests
         field.Validators.Count.ShouldBe(1); // Required validator
         field.AdditionalAttributes.ShouldContainKey("Options");
 
-        var options = field.AdditionalAttributes["Options"] as IEnumerable<SelectOption<string>>;
+        var options = (field.AdditionalAttributes["Options"] as IEnumerable<SelectOption<string>>)?.ToList();
         options.ShouldNotBeNull();
-        options.Count().ShouldBe(3);
+        options.Count.ShouldBe(3);
         options.ShouldContain(o => o.Value == "US" && o.Label == "United States");
     }
 

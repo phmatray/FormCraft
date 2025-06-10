@@ -190,9 +190,9 @@ var form = FormTemplates
                             </MudText>
                             <pre class="language-csharp"><code class="language-csharp">var form = FormBuilder&lt;T&gt;
     .Create()
-    .AddField(x => x.Name)
+    .AddField(x => x.Name, field => field
         .WithLabel("Name")
-        .Required()
+        .Required())
     .Build();</code></pre>
                         </MudCardContent>
                         <MudCardActions Class="mt-auto">
@@ -305,18 +305,19 @@ var formConfig = FormBuilder&lt;ContactModel&gt;
     .Create()
     .AddRequiredTextField(x => x.Name, "Your Name")
     .AddEmailField(x => x.Email)
-    .AddField(x => x.Message)
+    .AddField(x => x.Message, field => field
         .WithLabel("Message")
-        .WithMultiline(5)
-        .Required()
+        .AsTextArea(lines: 5)
+        .Required())
     .Build();
 
 // 3. Use in your component
-&lt;DynamicFormComponent
+&lt;FormCraftComponent
     TModel="ContactModel"
     Model="@@model"
     Configuration="@@formConfig"
-    OnValidSubmit="@@HandleSubmit" /&gt;</code></pre>
+    OnValidSubmit="@@HandleSubmit"
+    ShowSubmitButton="true" /&gt;</code></pre>
                     </MudCardContent>
                 </MudCard>
             </MudItem>
@@ -386,46 +387,3 @@ var formConfig = FormBuilder&lt;ContactModel&gt;
         font-weight: 700 !important;
     }
 </style>
-
-@code {
-    private bool _copiedPM = false;
-    private bool _copiedCLI = false;
-    
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            // Apply Prism.js syntax highlighting
-            await JS.InvokeVoidAsync("Prism.highlightAll");
-        }
-    }
-    
-    private async Task CopyToClipboard(string text, bool isPM)
-    {
-        try
-        {
-            await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
-            
-            if (isPM)
-            {
-                _copiedPM = true;
-                StateHasChanged();
-                await Task.Delay(2000);
-                _copiedPM = false;
-                StateHasChanged();
-            }
-            else
-            {
-                _copiedCLI = true;
-                StateHasChanged();
-                await Task.Delay(2000);
-                _copiedCLI = false;
-                StateHasChanged();
-            }
-        }
-        catch (Exception)
-        {
-            // Fallback if clipboard API is not available
-        }
-    }
-}

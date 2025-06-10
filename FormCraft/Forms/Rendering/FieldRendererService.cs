@@ -49,7 +49,14 @@ public class FieldRendererService : IFieldRendererService
         }
 
         // Fall back to standard renderers
-        var renderer = _renderers.FirstOrDefault(r => r.CanRender(fieldType, null!));
+        // Create a minimal field configuration for the renderer check
+        var minimalFieldConfig = new MinimalFieldConfiguration
+        {
+            FieldName = field.FieldName,
+            AdditionalAttributes = field.AdditionalAttributes
+        };
+        
+        var renderer = _renderers.FirstOrDefault(r => r.CanRender(fieldType, minimalFieldConfig));
         if (renderer != null)
         {
             return renderer.Render(context);

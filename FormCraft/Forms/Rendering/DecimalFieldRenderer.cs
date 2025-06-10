@@ -1,57 +1,61 @@
 using Microsoft.AspNetCore.Components;
-using MudBlazor;
 
 namespace FormCraft;
 
 /// <summary>
-/// Field renderer for decimal values, rendering numeric input controls with decimal support.
+/// Test stub implementation of a decimal field renderer.
+/// This is used for unit testing and should not be used in production.
 /// </summary>
-public class DecimalFieldRenderer : IFieldRenderer
+/// <remarks>
+/// For production use, use the MudBlazor implementation from FormCraft.ForMudBlazor.
+/// </remarks>
+public class DecimalFieldRenderer : FieldRendererBase<decimal>
 {
     /// <inheritdoc />
-    public bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
+    public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
     {
         return fieldType == typeof(decimal) || fieldType == typeof(decimal?);
     }
-
+    
     /// <inheritdoc />
-    public RenderFragment Render<TModel>(IFieldRenderContext<TModel> context)
+    protected override Type ComponentType => typeof(TestStubComponent<>);
+    
+    /// <summary>
+    /// Simple test component that renders a numeric input-like representation.
+    /// </summary>
+    private class TestStubComponent<TModel> : ComponentBase
     {
-        return builder =>
+        [Parameter] public IFieldRenderContext<TModel>? Context { get; set; }
+        
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder)
         {
-            var isNullable = context.ActualFieldType == typeof(decimal?);
-
-            if (isNullable)
+            if (Context == null) return;
+            
+            var sequence = 0;
+            builder.OpenElement(sequence++, "div");
+            builder.AddAttribute(sequence++, "class", "test-decimal-field");
+            
+            builder.OpenElement(sequence++, "label");
+            builder.AddContent(sequence++, Context.Field.Label);
+            builder.CloseElement();
+            
+            builder.OpenElement(sequence++, "input");
+            builder.AddAttribute(sequence++, "type", "number");
+            builder.AddAttribute(sequence++, "step", "0.01");
+            builder.AddAttribute(sequence++, "value", Context.CurrentValue);
+            builder.AddAttribute(sequence++, "placeholder", Context.Field.Placeholder);
+            builder.AddAttribute(sequence++, "disabled", Context.Field.IsDisabled);
+            builder.CloseElement();
+            
+            if (!string.IsNullOrEmpty(Context.Field.HelpText))
             {
-                builder.OpenComponent<MudNumericField<decimal?>>(0);
-                builder.AddAttribute(1, "Label", context.Field.Label);
-                builder.AddAttribute(2, "Value", (decimal?)context.CurrentValue);
-                builder.AddAttribute(3, "ValueChanged", EventCallback.Factory.Create<decimal?>(this, value =>
-                {
-                    context.OnValueChanged.InvokeAsync(value);
-                }));
+                builder.OpenElement(sequence++, "div");
+                builder.AddAttribute(sequence++, "class", "help-text");
+                builder.AddContent(sequence, Context.Field.HelpText);
+                builder.CloseElement();
             }
-            else
-            {
-                builder.OpenComponent<MudNumericField<decimal>>(0);
-                builder.AddAttribute(1, "Label", context.Field.Label);
-                builder.AddAttribute(2, "Value", (decimal)(context.CurrentValue ?? 0m));
-                builder.AddAttribute(3, "ValueChanged", EventCallback.Factory.Create<decimal>(this, value =>
-                {
-                    context.OnValueChanged.InvokeAsync(value);
-                }));
-            }
-
-            if (!string.IsNullOrEmpty(context.Field.Placeholder))
-                builder.AddAttribute(4, "Placeholder", context.Field.Placeholder);
-
-            if (!string.IsNullOrEmpty(context.Field.HelpText))
-                builder.AddAttribute(5, "HelperText", context.Field.HelpText);
-
-            builder.AddAttribute(6, "Required", context.Field.IsRequired);
-            builder.AddAttribute(7, "Disabled", context.Field.IsDisabled);
-
-            builder.CloseComponent();
-        };
+            
+            builder.CloseElement();
+        }
     }
 }

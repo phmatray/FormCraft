@@ -10,11 +10,11 @@ namespace FormCraft;
 /// <code>
 /// var formConfig = FormBuilder&lt;ContactModel&gt;
 ///     .Create()
-///     .AddField(x => x.FirstName)
+///     .AddField(x => x.FirstName, field => field
 ///         .WithLabel("First Name")
-///         .Required("First name is required")
-///     .AddField(x => x.Email)
-///         .WithEmailValidation()
+///         .Required("First name is required"))
+///     .AddField(x => x.Email, field => field
+///         .WithEmailValidation())
 ///     .Build();
 /// </code>
 /// </example>
@@ -30,20 +30,77 @@ public class FormBuilder<TModel> where TModel : new()
     public static FormBuilder<TModel> Create() => new();
 
     /// <summary>
-    /// Adds a field to the form configuration using a strongly-typed expression.
+    /// Adds a field to the form configuration with inline configuration.
     /// </summary>
     /// <typeparam name="TValue">The type of the field value.</typeparam>
     /// <param name="expression">A lambda expression that identifies the property on the model (e.g., x => x.FirstName).</param>
-    /// <returns>A FieldBuilder instance for configuring the field's properties and validation.</returns>
+    /// <param name="fieldConfig">A lambda expression to configure the field's properties and validation.</param>
+    /// <returns>The FormBuilder instance for method chaining.</returns>
     /// <example>
     /// <code>
-    /// builder.AddField(x => x.Email)
+    /// builder.AddField(x => x.Email, field => field
     ///     .WithLabel("Email Address")
     ///     .Required("Email is required")
-    ///     .WithEmailValidation();
+    ///     .WithEmailValidation());
     /// </code>
     /// </example>
-    public FieldBuilder<TModel, TValue> AddField<TValue>(Expression<Func<TModel, TValue>> expression)
+    public FormBuilder<TModel> AddField<TValue>(
+        Expression<Func<TModel, TValue>> expression,
+        Action<FieldBuilder<TModel, TValue>>? fieldConfig = null)
+    {
+        var fieldConfiguration = new FieldConfiguration<TModel, TValue>(expression)
+        {
+            Order = _fieldOrder++
+        };
+
+        // Cast to object version for storage
+        var objectConfig = new FieldConfigurationWrapper<TModel, TValue>(fieldConfiguration);
+        _configuration.Fields.Add(objectConfig);
+
+        var fieldBuilder = new FieldBuilder<TModel, TValue>(this, fieldConfiguration);
+        fieldConfig?.Invoke(fieldBuilder);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a field group to the form using a lambda expression for configuration.
+    /// </summary>
+    /// <param name="groupBuilder">A lambda expression that configures the group and its fields.</param>
+    /// <returns>The FormBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// builder.AddFieldGroup(group => group
+    ///     .WithGroupName("Personal Information")
+    ///     .WithColumns(2)
+    ///     .AddField(x => x.FirstName)
+    ///         .WithLabel("First Name")
+    ///         .Required()
+    ///     .AddField(x => x.LastName)
+    ///         .WithLabel("Last Name")
+    ///         .Required());
+    /// </code>
+    /// </example>
+    public FormBuilder<TModel> AddFieldGroup(Action<FieldGroupBuilder<TModel>> groupBuilder)
+    {
+        var group = new FieldGroup<TModel>
+        {
+            Order = _configuration.FieldGroups.Count,
+            Columns = 1 // Explicit default
+        };
+
+        _configuration.FieldGroups.Add(group);
+        _configuration.UseFieldGroups = true;
+
+        var fieldGroupBuilder = new FieldGroupBuilder<TModel>(this, group);
+        groupBuilder(fieldGroupBuilder);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Creates a field builder for internal use by extension methods and other builders.
+    /// </summary>
+    internal FieldBuilder<TModel, TValue> CreateFieldBuilder<TValue>(Expression<Func<TModel, TValue>> expression)
     {
         var fieldConfig = new FieldConfiguration<TModel, TValue>(expression)
         {
@@ -124,42 +181,35 @@ public class FormBuilder<TModel> where TModel : new()
     }
 
     /// <summary>
-    /// Adds a field group to the form using a lambda expression for configuration.
+    /// Configures security features for the form.
     /// </summary>
-    /// <param name="groupBuilder">A lambda expression that configures the group and its fields.</param>
+    /// <param name="securityConfig">A lambda expression to configure security settings.</param>
     /// <returns>The FormBuilder instance for method chaining.</returns>
     /// <example>
     /// <code>
-    /// builder.AddFieldGroup(group => group
-    ///     .WithGroupName("Personal Information")
-    ///     .WithColumns(2)
-    ///     .AddField(x => x.FirstName)
-    ///         .WithLabel("First Name")
-    ///         .Required()
-    ///     .AddField(x => x.LastName)
-    ///         .WithLabel("Last Name")
-    ///         .Required());
+    /// builder.WithSecurity(security => security
+    ///     .EncryptField(x => x.SSN)
+    ///     .EnableCsrfProtection()
+    ///     .WithRateLimit(5, TimeSpan.FromMinutes(1)));
     /// </code>
     /// </example>
-    public FormBuilder<TModel> AddFieldGroup(Action<FieldGroupBuilder<TModel>> groupBuilder)
+    public FormBuilder<TModel> WithSecurity(Action<SecurityBuilder<TModel>> securityConfig)
     {
-        var group = new FieldGroup<TModel>
-        {
-            Order = _configuration.FieldGroups.Count,
-            Columns = 1 // Explicit default
-        };
-
-        _configuration.FieldGroups.Add(group);
-        _configuration.UseFieldGroups = true;
-
-        var fieldGroupBuilder = new FieldGroupBuilder<TModel>(this, group);
-        groupBuilder(fieldGroupBuilder);
-
-        return this;
+        var securityBuilder = new SecurityBuilder<TModel>(this);
+        securityConfig(securityBuilder);
+        return securityBuilder.And();
     }
 
     /// <summary>
-    /// Builds and returns the final form configuration that can be used with DynamicFormComponent.
+    /// Sets the security configuration (used internally by SecurityBuilder).
+    /// </summary>
+    internal void SetSecurity(IFormSecurity security)
+    {
+        _configuration.Security = security;
+    }
+
+    /// <summary>
+    /// Builds and returns the final form configuration that can be used with FormCraftComponent.
     /// </summary>
     /// <returns>An IFormConfiguration instance containing all configured fields and settings.</returns>
     /// <example>

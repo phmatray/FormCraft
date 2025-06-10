@@ -5,16 +5,13 @@ public class FieldBuilderExtensionsTests
     [Fact]
     public void AsTextArea_Should_Set_Lines_Attribute()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Description);
-
-        // Act
-        var result = fieldBuilder.AsTextArea(5);
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Description, field => field
+                .AsTextArea(5))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Description");
         field.AdditionalAttributes.ShouldContainKey("Lines");
         field.AdditionalAttributes["Lines"].ShouldBe(5);
@@ -23,13 +20,11 @@ public class FieldBuilderExtensionsTests
     [Fact]
     public void AsTextArea_Should_Set_MaxLength_When_Provided()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Description);
-
-        // Act
-        var result = fieldBuilder.AsTextArea(lines: 3, maxLength: 500);
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Description, field => field
+                .AsTextArea(lines: 3, maxLength: 500))
+            .Build();
 
         // Assert
         var field = config.Fields.First(f => f.FieldName == "Description");
@@ -40,13 +35,11 @@ public class FieldBuilderExtensionsTests
     [Fact]
     public void AsTextArea_Should_Not_Set_MaxLength_When_Null()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Description);
-
-        // Act
-        var result = fieldBuilder.AsTextArea();
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Description, field => field
+                .AsTextArea())
+            .Build();
 
         // Assert
         var field = config.Fields.First(f => f.FieldName == "Description");
@@ -56,25 +49,22 @@ public class FieldBuilderExtensionsTests
     [Fact]
     public void WithOptions_Should_Set_Options_Attribute()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Status);
-
-        // Act
-        var result = fieldBuilder.WithOptions(
-            ("active", "Active"),
-            ("inactive", "Inactive"),
-            ("pending", "Pending"));
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Status, field => field
+                .WithOptions(
+                    ("active", "Active"),
+                    ("inactive", "Inactive"),
+                    ("pending", "Pending")))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Status");
         field.AdditionalAttributes.ShouldContainKey("Options");
 
-        var options = field.AdditionalAttributes["Options"] as IEnumerable<SelectOption<string>>;
+        var options = (field.AdditionalAttributes["Options"] as IEnumerable<SelectOption<string>>)?.ToList();
         options.ShouldNotBeNull();
-        options.Count().ShouldBe(3);
+        options.Count.ShouldBe(3);
         options.ShouldContain(o => o.Value == "active" && o.Label == "Active");
         options.ShouldContain(o => o.Value == "inactive" && o.Label == "Inactive");
         options.ShouldContain(o => o.Value == "pending" && o.Label == "Pending");
@@ -83,40 +73,34 @@ public class FieldBuilderExtensionsTests
     [Fact]
     public void AsMultiSelect_Should_Set_MultiSelectOptions_Attribute()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Categories);
-
-        // Act
-        var result = fieldBuilder.AsMultiSelect(
-            ("tech", "Technology"),
-            ("health", "Healthcare"));
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Categories, field => field
+                .AsMultiSelect(
+                    ("tech", "Technology"),
+                    ("health", "Healthcare")))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Categories");
         field.AdditionalAttributes.ShouldContainKey("MultiSelectOptions");
 
-        var options = field.AdditionalAttributes["MultiSelectOptions"] as IEnumerable<SelectOption<string>>;
+        var options = (field.AdditionalAttributes["MultiSelectOptions"] as IEnumerable<SelectOption<string>>)?.ToList();
         options.ShouldNotBeNull();
-        options.Count().ShouldBe(2);
+        options.Count.ShouldBe(2);
     }
 
 
     [Fact]
     public void AsSlider_Should_Set_Slider_Attributes()
     {
-        // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Rating);
-
-        // Act
-        var result = fieldBuilder.AsSlider(0, 10, 1, showValue: false);
-        var config = result.Build();
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Rating, field => field
+                .AsSlider(0, 10, 1, showValue: false))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Rating");
         field.AdditionalAttributes.ShouldContainKey("UseSlider");
         field.AdditionalAttributes.ShouldContainKey("Min");
@@ -134,16 +118,15 @@ public class FieldBuilderExtensionsTests
     public async Task WithEmailValidation_Should_Add_Email_Validator()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Email);
         var services = A.Fake<IServiceProvider>();
 
         // Act
-        var result = fieldBuilder.WithEmailValidation("Invalid email");
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Email, field => field
+                .WithEmailValidation("Invalid email"))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Email");
         field.Validators.Count.ShouldBe(1);
 
@@ -163,13 +146,13 @@ public class FieldBuilderExtensionsTests
     public async Task WithEmailValidation_Should_Use_Default_Message()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Email);
         var services = A.Fake<IServiceProvider>();
 
         // Act
-        var result = fieldBuilder.WithEmailValidation();
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Email, field => field
+                .WithEmailValidation())
+            .Build();
 
         // Assert
         var field = config.Fields.First(f => f.FieldName == "Email");
@@ -184,16 +167,15 @@ public class FieldBuilderExtensionsTests
     public async Task WithMinLength_Should_Add_MinLength_Validator()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Username);
         var services = A.Fake<IServiceProvider>();
 
         // Act
-        var result = fieldBuilder.WithMinLength(3, "Too short");
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Username, field => field
+                .WithMinLength(3, "Too short"))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Username");
         field.Validators.Count.ShouldBe(1);
 
@@ -212,13 +194,13 @@ public class FieldBuilderExtensionsTests
     public async Task WithMinLength_Should_Allow_Null_Or_Empty()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Username);
         var services = A.Fake<IServiceProvider>();
 
         // Act
-        var result = fieldBuilder.WithMinLength(3);
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Username, field => field
+                .WithMinLength(3))
+            .Build();
 
         // Assert
         var field = config.Fields.First(f => f.FieldName == "Username");
@@ -236,16 +218,15 @@ public class FieldBuilderExtensionsTests
     public async Task WithMaxLength_Should_Add_MaxLength_Validator()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Bio);
         var services = A.Fake<IServiceProvider>();
 
         // Act
-        var result = fieldBuilder.WithMaxLength(10, "Too long");
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Bio, field => field
+                .WithMaxLength(10, "Too long"))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Bio");
         field.Validators.Count.ShouldBe(1);
 
@@ -264,16 +245,15 @@ public class FieldBuilderExtensionsTests
     public async Task WithRange_Should_Add_Range_Validator()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Age);
         var services = A.Fake<IServiceProvider>();
 
         // Act
-        var result = fieldBuilder.WithRange(18, 65, "Age out of range");
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Age, field => field
+                .WithRange(18, 65, "Age out of range"))
+            .Build();
 
         // Assert
-        result.ShouldBeSameAs(fieldBuilder);
         var field = config.Fields.First(f => f.FieldName == "Age");
         field.Validators.Count.ShouldBe(1);
 
@@ -295,13 +275,13 @@ public class FieldBuilderExtensionsTests
     public async Task WithRange_Should_Use_Default_Message()
     {
         // Arrange
-        var builder = FormBuilder<TestModel>.Create();
-        var fieldBuilder = builder.AddField(x => x.Age);
         var services = A.Fake<IServiceProvider>();
 
         // Act
-        var result = fieldBuilder.WithRange(1, 10);
-        var config = result.Build();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Age, field => field
+                .WithRange(1, 10))
+            .Build();
 
         // Assert
         var field = config.Fields.First(f => f.FieldName == "Age");

@@ -1,0 +1,94 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel
+@inherits FieldComponentBase<TModel, IReadOnlyList<IBrowserFile>?>
+
+@if (!string.IsNullOrEmpty(Label))
+{
+    <MudText Typo="Typo.body2" Class="mb-1">@Label</MudText>
+}
+
+<MudFileUpload @ref="@_fileUpload"
+               T="IReadOnlyList<IBrowserFile>"
+               @bind-Files="CurrentValue"
+               Accept="@Accept"
+               MaximumFileCount="@MaxFiles"
+               Hidden="@false"
+               InputClass="absolute mud-width-full mud-height-full overflow-hidden z-10"
+               InputStyle="opacity:0"
+               ErrorText="@string.Empty"
+               tabindex="-1"
+               @ondrop="@ClearDragClass"
+               @ondragenter="@SetDragClass"
+               @ondragleave="@ClearDragClass"
+               @ondragend="@ClearDragClass">
+    <ActivatorContent>
+        <MudPaper Height="@GetHeight()"
+                  Outlined="true"
+                  Class="@_dragClass">
+            <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mud-height-full">
+                <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Typo="Typo.h6" Align="Align.Center">
+                    @if (CurrentValue?.Any() == true)
+                    {
+                        @($"{CurrentValue.Count} file(s) selected")
+                    }
+                    else
+                    {
+                        @("Drag and drop files here or click")
+                    }
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @($"Max {MaxFiles} files • {FormatFileSize(MaxFileSize ?? 0)} per file")
+                </MudText>
+                @if (CurrentValue?.Any() == true)
+                {
+                    <MudStack Row Wrap="Wrap.Wrap" Justify="Justify.Center" Class="mt-2">
+                        @foreach (var file in CurrentValue.Take(3))
+                        {
+                            <MudChip T="string" 
+                                   Color="Color.Primary" 
+                                   Text="@($"{file.Name} ({FormatFileSize(file.Size)})")"
+                                   OnClose="@(() => RemoveFile(file))"
+                                   CloseIcon="@Icons.Material.Filled.Close" />
+                        }
+                        @if (CurrentValue.Count > 3)
+                        {
+                            <MudChip T="string" 
+                                   Color="Color.Secondary" 
+                                   Text="@($"+{CurrentValue.Count - 3} more")" />
+                        }
+                    </MudStack>
+                }
+            </MudStack>
+        </MudPaper>
+    </ActivatorContent>
+</MudFileUpload>
+
+<MudToolBar Gutters="@false" Class="relative d-flex justify-end gap-4 mt-2">
+    <MudButton Color="Color.Primary"
+               OnClick="@OpenFilePickerAsync"
+               Variant="Variant.Filled"
+               StartIcon="@Icons.Material.Filled.FolderOpen"
+               Size="Size.Small">
+        Browse
+    </MudButton>
+    @if (CurrentValue?.Any() == true)
+    {
+        <MudButton Color="Color.Error"
+                   OnClick="@ClearAsync"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Filled.Clear"
+                   Size="Size.Small">
+            Clear All
+        </MudButton>
+    }
+</MudToolBar>
+
+@if (!string.IsNullOrEmpty(HelpText))
+{
+    <div style="margin-top: -2px; overflow: hidden">
+        <div class="d-flex mud-input-helper-text">
+            <div class="me-auto">@HelpText</div>
+        </div>
+    </div>
+}

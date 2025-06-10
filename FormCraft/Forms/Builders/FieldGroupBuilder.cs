@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Microsoft.AspNetCore.Components;
 
 namespace FormCraft;
 
@@ -10,7 +11,7 @@ public class FieldGroupBuilder<TModel> where TModel : new()
 {
     private readonly FormBuilder<TModel> _formBuilder;
     private readonly FieldGroup<TModel> _fieldGroup;
-
+    
     /// <summary>
     /// Initializes a new instance of the FieldGroupBuilder class.
     /// </summary>
@@ -20,6 +21,29 @@ public class FieldGroupBuilder<TModel> where TModel : new()
     {
         _formBuilder = formBuilder;
         _fieldGroup = fieldGroup;
+    }
+    
+    /// <summary>
+    /// Adds a field to this group with configuration and returns the FieldGroupBuilder for method chaining.
+    /// </summary>
+    /// <typeparam name="TValue">The type of the field value.</typeparam>
+    /// <param name="expression">A lambda expression that identifies the property.</param>
+    /// <param name="fieldConfig">A lambda expression to configure the field.</param>
+    /// <returns>The FieldGroupBuilder instance for method chaining.</returns>
+    public FieldGroupBuilder<TModel> AddField<TValue>(
+        Expression<Func<TModel, TValue>> expression,
+        Action<FieldBuilder<TModel, TValue>>? fieldConfig = null)
+    {
+        // Add field through the form builder with configuration
+        _formBuilder.AddField(expression, fieldConfig);
+
+        // Get the field name from the expression
+        if (expression.Body is MemberExpression memberExpression)
+        {
+            _fieldGroup.FieldNames.Add(memberExpression.Member.Name);
+        }
+
+        return this;
     }
 
     /// <summary>
@@ -79,50 +103,57 @@ public class FieldGroupBuilder<TModel> where TModel : new()
     }
 
     /// <summary>
-    /// Adds a field to this group and returns the FieldGroupBuilder for method chaining.
+    /// Sets custom content to display to the right of the group name.
+    /// This can be used for tooltips, info icons, or other UI elements.
     /// </summary>
-    /// <typeparam name="TValue">The type of the field value.</typeparam>
-    /// <param name="expression">A lambda expression that identifies the property.</param>
+    /// <param name="headerRightContent">The render fragment containing the custom content.</param>
     /// <returns>The FieldGroupBuilder instance for method chaining.</returns>
-    public FieldGroupBuilder<TModel> AddField<TValue>(Expression<Func<TModel, TValue>> expression)
+    public FieldGroupBuilder<TModel> WithHeaderRightContent(RenderFragment headerRightContent)
     {
-        // Add field through the form builder
-        _formBuilder.AddField(expression);
-
-        // Get the field name from the expression
-        var memberExpression = expression.Body as MemberExpression;
-        if (memberExpression != null)
-        {
-            _fieldGroup.FieldNames.Add(memberExpression.Member.Name);
-        }
-
+        _fieldGroup.HeaderRightContent = headerRightContent;
         return this;
     }
 
     /// <summary>
-    /// Adds a field to this group with configuration and returns the FieldGroupBuilder for method chaining.
+    /// Sets custom content to display to the right of the group name using a component type.
+    /// This can be used for tooltips, info icons, or other UI elements.
     /// </summary>
-    /// <typeparam name="TValue">The type of the field value.</typeparam>
-    /// <param name="expression">A lambda expression that identifies the property.</param>
-    /// <param name="fieldConfig">A lambda expression to configure the field.</param>
+    /// <typeparam name="TComponent">The component type to render.</typeparam>
     /// <returns>The FieldGroupBuilder instance for method chaining.</returns>
-    public FieldGroupBuilder<TModel> AddField<TValue>(
-        Expression<Func<TModel, TValue>> expression,
-        Action<FieldBuilder<TModel, TValue>> fieldConfig)
+    public FieldGroupBuilder<TModel> WithHeaderRightContent<TComponent>() where TComponent : IComponent
     {
-        // Add field through the form builder
-        var fieldBuilder = _formBuilder.AddField(expression);
-
-        // Configure the field
-        fieldConfig(fieldBuilder);
-
-        // Get the field name from the expression
-        var memberExpression = expression.Body as MemberExpression;
-        if (memberExpression != null)
+        _fieldGroup.HeaderRightContent = builder =>
         {
-            _fieldGroup.FieldNames.Add(memberExpression.Member.Name);
-        }
+            builder.OpenComponent<TComponent>(0);
+            builder.CloseComponent();
+        };
+        return this;
+    }
 
+    /// <summary>
+    /// Sets custom content to display to the right of the group name using a component type with parameters.
+    /// This can be used for tooltips, info icons, or other UI elements.
+    /// </summary>
+    /// <typeparam name="TComponent">The component type to render.</typeparam>
+    /// <param name="parameters">Action to configure component parameters.</param>
+    /// <returns>The FieldGroupBuilder instance for method chaining.</returns>
+    public FieldGroupBuilder<TModel> WithHeaderRightContent<TComponent>(Action<Dictionary<string, object>> parameters) where TComponent : IComponent
+    {
+        _fieldGroup.HeaderRightContent = builder =>
+        {
+            builder.OpenComponent<TComponent>(0);
+            
+            var paramDict = new Dictionary<string, object>();
+            parameters(paramDict);
+            
+            var sequence = 1;
+            foreach (var param in paramDict)
+            {
+                builder.AddAttribute(sequence++, param.Key, param.Value);
+            }
+            
+            builder.CloseComponent();
+        };
         return this;
     }
 }

@@ -1,0 +1,203 @@
+@page "/security-demo"
+@inject IEncryptionService EncryptionService
+
+<PageTitle>Security Features Demo</PageTitle>
+
+<DemoPageLayout
+    Title="Security Features Demo"
+    Icon="@Icons.Material.Filled.Security"
+    Description="Explore FormCraft's comprehensive security features including field-level encryption, CSRF protection, rate limiting, and audit logging."
+    FormDemoIcon="@Icons.Material.Filled.Lock">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="SecureUserModel"
+            Model="@_model"
+            Configuration="@_formConfig"
+            FormTitle="Secure User Registration"
+            FormIcon="@Icons.Material.Filled.VerifiedUser"
+            IsSubmitted="@(_lastSubmission != null)"
+            IsSubmitting="@_isSubmitting"
+            OnValidSubmit="@HandleSecureSubmit"
+            OnFieldChanged="@HandleFieldChange"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()"
+            ShowSubmitButton="true"
+            SubmitButtonText="Register Securely"
+            SubmittingText="Processing securely...">
+            <SidebarContent>
+                <MudCard Elevation="1">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Filled.Shield" Class="me-1" />
+                            Active Security Features
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Lock">
+                                Field Encryption (SSN, Credit Card)
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Security">
+                                CSRF Protection
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Speed">
+                                Rate Limiting (@_maxSubmissions per minute)
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.History">
+                                Audit Logging
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+                
+                @if (_submissionCount > 0)
+                {
+                    <MudAlert Severity="Severity.Info" Class="mt-3">
+                        Submissions: @_submissionCount / @_maxSubmissions
+                        <br />
+                        <MudText Typo="Typo.caption">Rate limit resets in @_resetTime</MudText>
+                    </MudAlert>
+                }
+                
+                @if (_isRateLimited)
+                {
+                    <MudAlert Severity="Severity.Error" Class="mt-3">
+                        Too many attempts. Please try again later.
+                    </MudAlert>
+                }
+            </SidebarContent>
+            <AdditionalContent>
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudCard Class="mt-4" Elevation="2">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h6" Class="mb-3">
+                                    <MudIcon Icon="@Icons.Material.Filled.VpnKey" Class="me-2 text-info" />
+                                    Live Encryption Demo
+                                </MudText>
+                                <MudTextField 
+                                    @bind-Value="_encryptionDemo" 
+                                    Label="Enter text to encrypt" 
+                                    Variant="Variant.Outlined"
+                                    Adornment="Adornment.End"
+                                    AdornmentIcon="@Icons.Material.Filled.Lock"
+                                    OnAdornmentClick="EncryptDemo" />
+                                
+                                @if (!string.IsNullOrEmpty(_encryptedResult))
+                                {
+                                    <div class="mt-3">
+                                        <MudText Typo="Typo.caption">Encrypted:</MudText>
+                                        <MudPaper Class="pa-2 text-break" Elevation="0" Style="background-color: rgba(0,0,0,0.05);">
+                                            <MudText Typo="Typo.body2" Style="font-family: monospace;">@_encryptedResult</MudText>
+                                        </MudPaper>
+                                        
+                                        <MudText Typo="Typo.caption" Class="mt-2">Decrypted:</MudText>
+                                        <MudPaper Class="pa-2" Elevation="0" Style="background-color: rgba(0,0,0,0.05);">
+                                            <MudText Typo="Typo.body2">@_decryptedResult</MudText>
+                                        </MudPaper>
+                                    </div>
+                                }
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                    
+                    <MudItem xs="12" sm="6">
+                        <MudCard Class="mt-4" Elevation="2">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h6" Class="mb-3">
+                                    <MudIcon Icon="@Icons.Material.Filled.EventNote" Class="me-2 text-info" />
+                                    Recent Audit Logs
+                                </MudText>
+                                @if (_auditLogs.Any())
+                                {
+                                    <MudList T="string" Dense="true">
+                                        @foreach (var log in _auditLogs.TakeLast(5).Reverse())
+                                        {
+                                            <MudListItem T="string">
+                                                <div class="d-flex justify-space-between align-center">
+                                                    <MudText Typo="Typo.caption">
+                                                        @log.EventType
+                                                        @if (!string.IsNullOrEmpty(log.FieldName))
+                                                        {
+                                                            <text> - @log.FieldName</text>
+                                                        }
+                                                    </MudText>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        @log.Timestamp.ToString("HH:mm:ss")
+                                                    </MudText>
+                                                </div>
+                                            </MudListItem>
+                                        }
+                                    </MudList>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">No logs yet</MudText>
+                                }
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+                
+                @if (_lastSubmission != null)
+                {
+                    <MudCard Class="mt-4" Elevation="2">
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6" Class="mb-3">
+                                <MudIcon Icon="@Icons.Material.Filled.Storage" Class="me-2 text-success" />
+                                Last Submission (Encrypted Data)
+                            </MudText>
+                            <MudSimpleTable Dense="true" Hover="true" Bordered="true">
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Name:</strong></td>
+                                        <td>@_lastSubmission.Name</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Email:</strong></td>
+                                        <td>@_lastSubmission.Email</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>SSN (Encrypted):</strong></td>
+                                        <td class="text-break" style="font-family: monospace; font-size: 0.8rem;">@_lastSubmission.SSN</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Credit Card (Encrypted):</strong></td>
+                                        <td class="text-break" style="font-family: monospace; font-size: 0.8rem;">@_lastSubmission.CreditCard</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Birth Date:</strong></td>
+                                        <td>@_lastSubmission.BirthDate.ToShortDateString()</td>
+                                    </tr>
+                                </tbody>
+                            </MudSimpleTable>
+                            
+                            <MudAlert Severity="Severity.Info" Class="mt-3" Dense="true">
+                                <MudText Typo="Typo.caption">
+                                    SSN and Credit Card are stored encrypted. Decrypted values would only be shown to authorized users.
+                                </MudText>
+                            </MudAlert>
+                        </MudCardContent>
+                    </MudCard>
+                }
+            </AdditionalContent>
+        </FormDemoSection>
+    </FormDemoContent>
+    
+    <CodeExampleContent>
+        <CodeExample
+            Title="Security Configuration"
+            Language="csharp"
+            Code="@_securityCodeExample" />
+    </CodeExampleContent>
+    
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Security API Guidelines"
+            Items="@_securityGuidelines" />
+    </GuidelinesContent>
+</DemoPageLayout>
+
+<style>
+    .text-break {
+        word-break: break-all;
+    }
+</style>

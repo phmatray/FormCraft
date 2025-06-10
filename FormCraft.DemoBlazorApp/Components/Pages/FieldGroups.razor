@@ -1,232 +1,61 @@
 @page "/field-groups"
-@inject FormCodeGeneratorService CodeGenerator
 
-<PageTitle>Field Groups Layout</PageTitle>
-
-<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
-    <MudText Typo="Typo.h3" GutterBottom="true" Class="mb-2">
-        <MudIcon Icon="@Icons.Material.Filled.GridView" Style="vertical-align: middle; font-size: 3rem" />
-        Field Groups Layout
-    </MudText>
-    <MudText Typo="Typo.body1" GutterBottom="true" Class="mb-6">
-        This demonstrates organizing form fields into rows with different column layouts.
-    </MudText>
-    
-    <MudPaper Elevation="2" Class="pa-0">
-        <MudTabs Elevation="0" Rounded="false" PanelClass="pa-6">
-            <MudTabPanel Text="Form Demo" Icon="@Icons.Material.Filled.ViewQuilt">
-                <MudGrid>
-                    <MudItem xs="12" lg="8">
-                        <MudPaper Elevation="1" Class="pa-6">
-                            <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
-                                <MudIcon Icon="@Icons.Material.Filled.Badge" Class="me-2" />
-                                Employee Information Form
-                            </MudText>
-                            
-                            @if (_isSubmitted)
-                            {
-                                <FormSuccessDisplay DataDisplayItems="@GetDataDisplayItems()"
-                                                   OnReset="@ResetForm" />
-                            }
-                            else
-                            {
-                                <DynamicFormComponent TModel="EmployeeModel" 
-                                                    Model="@_model" 
-                                                    Configuration="@_formConfiguration"
-                                                    OnValidSubmit="@HandleValidSubmit"
-                                                    IsSubmitting="@_isSubmitting"
-                                                    SubmitButtonText="Save Employee"
-                                                    SubmittingText="Saving..." />
-                            }
-                        </MudPaper>
-                    </MudItem>
-                    
-                    <MudItem xs="12" lg="4">
-                        <FormGuidelines Guidelines="@_guidelines" Title="Layout Features" />
+<DemoPageLayout
+    Title="Field Groups Layout"
+    Icon="@Icons.Material.Filled.GridView"
+    Description="This demonstrates organizing form fields into rows with different column layouts."
+    FormDemoIcon="@Icons.Material.Filled.ViewQuilt">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="EmployeeModel"
+            Model="@_model"
+            Configuration="@_formConfiguration"
+            FormTitle="Employee Information Form"
+            FormIcon="@Icons.Material.Filled.Badge"
+            IsSubmitted="@_isSubmitted"
+            OnValidSubmit="@HandleValidSubmit"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()"
+            ShowSubmitButton="true"
+            SubmitButtonText="Save Employee"
+            IsSubmitting="@_isSubmitting"
+            SubmittingText="Saving...">
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="Layout Features" />
                         
-                        <MudCard Elevation="2" Class="mt-4">
-                            <MudCardContent>
-                                <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
-                                    <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2 text-info" />
-                                    Layout Information
-                                </MudText>
-                                <MudList T="string" Dense="true">
-                                    <MudListItem T="string" Icon="@Icons.Material.Filled.TableRows" IconColor="Color.Primary">
-                                        <MudText Typo="Typo.body2">Row 1: 2 fields (50% each)</MudText>
-                                    </MudListItem>
-                                    <MudListItem T="string" Icon="@Icons.Material.Filled.ViewColumn" IconColor="Color.Secondary">
-                                        <MudText Typo="Typo.body2">Row 2: 3 fields (33.3% each)</MudText>
-                                    </MudListItem>
-                                    <MudListItem T="string" Icon="@Icons.Material.Filled.ViewStream" IconColor="Color.Tertiary">
-                                        <MudText Typo="Typo.body2">Row 3: 1 field (100% width)</MudText>
-                                    </MudListItem>
-                                </MudList>
-                            </MudCardContent>
-                        </MudCard>
-                    </MudItem>
-                </MudGrid>
-            </MudTabPanel>
-            
-            <MudTabPanel Text="Code Example" Icon="@Icons.Material.Filled.Code">
-                <CodeExample Title="Field Groups Configuration" Language="csharp" Code="@GetGeneratedCode()" />
-            </MudTabPanel>
-            
-            <MudTabPanel Text="Guidelines" Icon="@Icons.Material.Filled.Lightbulb">
-                <FormGuidelines Title="Field Groups Guidelines">
-                    <MudSimpleTable>
-                        <thead>
-                            <tr>
-                                <th>Feature</th>
-                                <th>Usage</th>
-                                <th>Example</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Field Groups</td>
-                                <td>Organize fields into logical sections</td>
-                                <td><code>.AddFieldGroup(group => group...)</code></td>
-                            </tr>
-                            <tr>
-                                <td>Group Name</td>
-                                <td>Provide a title for each section</td>
-                                <td><code>.WithGroupName("Personal Information")</code></td>
-                            </tr>
-                            <tr>
-                                <td>Column Layout</td>
-                                <td>Set number of columns per row</td>
-                                <td><code>.WithColumns(2)</code></td>
-                            </tr>
-                            <tr>
-                                <td>Card Display</td>
-                                <td>Show group in a card container</td>
-                                <td><code>.ShowInCard()</code></td>
-                            </tr>
-                            <tr>
-                                <td>Responsive Design</td>
-                                <td>Columns automatically stack on mobile</td>
-                                <td>Built-in responsive behavior</td>
-                            </tr>
-                        </tbody>
-                    </MudSimpleTable>
-                </FormGuidelines>
-            </MudTabPanel>
-        </MudTabs>
-    </MudPaper>
-</MudContainer>
-
-@code {
-    private EmployeeModel _model = new();
-    private bool _isSubmitted;
-    private bool _isSubmitting;
-    private IFormConfiguration<EmployeeModel> _formConfiguration = null!;
+                <MudCard Elevation="2" Class="mt-4">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2 text-info" />
+                            Layout Information
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.TableRows" IconColor="Color.Primary">
+                                <MudText Typo="Typo.body2">Row 1: 2 fields (50% each)</MudText>
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.ViewColumn" IconColor="Color.Secondary">
+                                <MudText Typo="Typo.body2">Row 2: 3 fields (33.3% each)</MudText>
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.ViewStream" IconColor="Color.Tertiary">
+                                <MudText Typo="Typo.body2">Row 3: 1 field (100% width)</MudText>
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </SidebarContent>
+        </FormDemoSection>
+    </FormDemoContent>
     
-    private List<FormGuidelines.GuidelineItem> _guidelines = new()
-    {
-        new() { Icon = Icons.Material.Filled.GridView, Color = Color.Primary, Text = "Built-in field groups support" },
-        new() { Icon = Icons.Material.Filled.Code, Color = Color.Secondary, Text = "Single form configuration" },
-        new() { Icon = Icons.Material.Filled.ViewModule, Color = Color.Tertiary, Text = "Flexible column layouts" },
-        new() { Icon = Icons.Material.Filled.Dashboard, Color = Color.Info, Text = "Named group sections" },
-        new() { Icon = Icons.Material.Filled.Speed, Color = Color.Success, Text = "Optimized rendering" },
-        new() { Icon = Icons.Material.Filled.AutoAwesome, Color = Color.Warning, Text = "Fluent API design" }
-    };
+    <CodeExampleContent>
+        <CodeExample
+            Title="Field Groups Configuration"
+            Code="@GetGeneratedCode()"
+            Language="csharp" />
+    </CodeExampleContent>
     
-    protected override void OnInitialized()
-    {
-        // Build form with field groups using the new fluent API
-        _formConfiguration = FormBuilder<EmployeeModel>
-            .Create()
-            // Row 1: 2 fields (First Name, Last Name)
-            .AddFieldGroup(group => group
-                .WithGroupName("Personal Information")
-                .WithColumns(2)
-                .ShowInCard()
-                .AddField(x => x.FirstName, field => field
-                    .WithLabel("First Name")
-                    .Required("First name is required")
-                    .WithPlaceholder("Enter first name"))
-                .AddField(x => x.LastName, field => field
-                    .WithLabel("Last Name")
-                    .Required("Last name is required")
-                    .WithPlaceholder("Enter last name")))
-            // Row 2: 3 fields (Email, Phone, Department)
-            .AddFieldGroup(group => group
-                .WithGroupName("Contact Details")
-                .WithColumns(3)
-                .ShowInCard()
-                .AddField(x => x.Email, field => field
-                    .WithLabel("Email")
-                    .Required("Email is required")
-                    .WithPlaceholder("email@example.com"))
-                .AddField(x => x.Phone, field => field
-                    .WithLabel("Phone")
-                    .WithPlaceholder("(555) 123-4567"))
-                .AddField(x => x.Department, field => field
-                    .WithLabel("Department")
-                    .Required("Department is required")
-                    .WithOptions(
-                        ("IT", "Information Technology"),
-                        ("HR", "Human Resources"),
-                        ("SALES", "Sales"),
-                        ("MARKETING", "Marketing"),
-                        ("FINANCE", "Finance")
-                    )))
-            // Row 3: 1 field (Biography)
-            .AddFieldGroup(group => group
-                .WithGroupName("Additional Information")
-                .WithColumns(1)
-                .ShowInCard()
-                .AddField(x => x.Biography, field => field
-                    .WithLabel("Biography")
-                    .WithPlaceholder("Tell us about yourself...")
-                    .WithHelpText("Brief description of experience and background")))
-            .Build();
-    }
-    
-    private async Task HandleValidSubmit()
-    {
-        _isSubmitting = true;
-        StateHasChanged();
-        
-        // Simulate API call
-        await Task.Delay(2000);
-        
-        _isSubmitted = true;
-        _isSubmitting = false;
-        StateHasChanged();
-    }
-    
-    private void ResetForm()
-    {
-        _model = new EmployeeModel();
-        _isSubmitted = false;
-        StateHasChanged();
-    }
-    
-    private List<FormSuccessDisplay.DataDisplayItem> GetDataDisplayItems()
-    {
-        var items = new List<FormSuccessDisplay.DataDisplayItem>
-        {
-            new() { Label = "Full Name", Value = $"{_model.FirstName} {_model.LastName}" },
-            new() { Label = "Email", Value = _model.Email ?? "" },
-            new() { Label = "Phone", Value = _model.Phone ?? "" },
-            new() { Label = "Department", Value = _model.Department ?? "" }
-        };
-        
-        if (!string.IsNullOrEmpty(_model.Biography))
-        {
-            var bio = _model.Biography.Length > 50 
-                ? _model.Biography.Substring(0, 50) + "..." 
-                : _model.Biography;
-            items.Add(new() { Label = "Biography", Value = bio });
-        }
-        
-        return items;
-    }
-    
-    private string GetGeneratedCode()
-    {
-        // Generate code from the actual form configuration
-        return CodeGenerator.GenerateFormBuilderCode(_formConfiguration);
-    }
-}
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Field Groups Guidelines"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>

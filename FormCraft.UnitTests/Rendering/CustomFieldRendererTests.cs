@@ -21,8 +21,8 @@ public class CustomFieldRendererTests
         // Arrange & Act
         var formBuilder = FormBuilder<TestModel>
             .Create()
-            .AddField(x => x.TestProperty)
-            .WithCustomRenderer<TestModel, string, TestCustomRenderer>()
+            .AddField(x => x.TestProperty, field => field
+                .WithCustomRenderer<TestModel, string, TestCustomRenderer>())
             .Build();
 
         // Assert
@@ -37,7 +37,7 @@ public class CustomFieldRendererTests
         // Arrange
         var services = new ServiceCollection();
         services.AddScoped<TestCustomRenderer>();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         var rendererService = serviceProvider.GetRequiredService<IFieldRendererService>();

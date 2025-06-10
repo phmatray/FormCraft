@@ -1,6 +1,6 @@
 # Customization
 
-Learn how to customize Dynamic Form Blazor to fit your specific needs.
+Learn how to customize FormCraft to fit your specific needs.
 
 ## Custom Field Renderers
 
@@ -73,15 +73,15 @@ public class BusinessRuleValidator<TModel> : IFieldValidator<TModel, string>
 ### Using Custom Validators
 
 ```csharp
-.AddField(x => x.BusinessCode)
-    .WithValidator<BusinessRuleValidator<MyModel>>()
+.AddField(x => x.BusinessCode, field => field
+    .WithValidator<BusinessRuleValidator<MyModel>>())
 ```
 
 ## Custom Themes
 
 ### MudBlazor Theme Integration
 
-Dynamic Form Blazor inherits MudBlazor's theming system:
+FormCraft inherits MudBlazor's theming system:
 
 ```csharp
 // In Program.cs
@@ -107,8 +107,8 @@ var theme = new MudTheme()
 Apply custom styling to forms and fields:
 
 ```csharp
-.AddField(x => x.SpecialField)
-    .WithCssClass("my-special-field")
+.AddField(x => x.SpecialField, field => field
+    .WithCssClass("my-special-field"))
 ```
 
 ```css
@@ -151,10 +151,10 @@ public static string GetCustomLayoutClass(MyCustomLayout layout)
 Organize fields into logical groups:
 
 ```csharp
-.AddField(x => x.PersonalInfo)
-    .WithGroup("Personal Information")
-.AddField(x => x.ContactInfo)
-    .WithGroup("Contact Details")
+.AddField(x => x.PersonalInfo, field => field
+    .WithGroup("Personal Information"))
+.AddField(x => x.ContactInfo, field => field
+    .WithGroup("Contact Details"))
 ```
 
 ## Advanced Customization
@@ -172,10 +172,10 @@ public static class MyFormBuilderExtensions
         string label,
         string currency = "USD") where TModel : new()
     {
-        return builder.AddField(expression)
+        return builder.AddField(expression, field => field
             .WithLabel(label)
             .WithAttribute("currency", currency)
-            .WithValidator(value => value >= 0, "Amount must be positive");
+            .WithValidator(value => value >= 0, "Amount must be positive"));
     }
 }
 ```
@@ -185,14 +185,14 @@ public static class MyFormBuilderExtensions
 Override default rendering with custom Blazor components:
 
 ```csharp
-.AddField(x => x.ComplexData)
+.AddField(x => x.ComplexData, field => field
     .WithCustomTemplate(context => builder =>
     {
         builder.OpenComponent<MyComplexComponent>(0);
         builder.AddAttribute(1, "Data", context.Value);
         builder.AddAttribute(2, "OnChanged", context.ValueChanged);
         builder.CloseComponent();
-    })
+    }))
 ```
 
 ## Configuration Options
@@ -202,7 +202,7 @@ Override default rendering with custom Blazor components:
 Configure default behaviors:
 
 ```csharp
-builder.Services.Configure<DynamicFormOptions>(options =>
+builder.Services.Configure<FormCraftOptions>(options =>
 {
     options.DefaultLayout = FormLayout.Horizontal;
     options.ShowRequiredIndicator = true;
@@ -217,7 +217,7 @@ Support multiple languages:
 
 ```csharp
 // Resource files: Resources/FormLabels.en.resx, Resources/FormLabels.fr.resx
-.AddField(x => x.Name)
+.AddField(x => x.Name, field => field
     .WithLabel(Localizer["NameLabel"])
-    .Required(Localizer["NameRequired"])
+    .Required(Localizer["NameRequired"]))
 ```

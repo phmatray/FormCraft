@@ -1,88 +1,57 @@
 using Microsoft.AspNetCore.Components;
-using MudBlazor;
 
 namespace FormCraft;
 
 /// <summary>
-/// Field renderer for string values, supporting text inputs and dropdown selections.
+/// Test stub implementation of a string field renderer.
+/// This is used for unit testing and should not be used in production.
 /// </summary>
-public class StringFieldRenderer : IFieldRenderer
+/// <remarks>
+/// For production use, use the MudBlazor implementation from FormCraft.ForMudBlazor.
+/// </remarks>
+public class StringFieldRenderer : FieldRendererBase<string>
 {
     /// <inheritdoc />
-    public bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
-    {
-        return fieldType == typeof(string);
-    }
-
+    protected override Type ComponentType => typeof(TestStubComponent<>);
+    
     /// <inheritdoc />
-    public RenderFragment Render<TModel>(IFieldRenderContext<TModel> context)
+    protected override bool CanRenderDerivedType(Type fieldType) => false;
+    
+    /// <summary>
+    /// Simple test component that renders a text input-like representation.
+    /// </summary>
+    private class TestStubComponent<TModel> : ComponentBase
     {
-        if (context.Field.AdditionalAttributes.ContainsKey("Options"))
+        [Parameter] public IFieldRenderContext<TModel>? Context { get; set; }
+        
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder)
         {
-            return RenderSelectField(context);
-        }
-
-        return RenderTextField(context);
-    }
-
-    private RenderFragment RenderTextField<TModel>(IFieldRenderContext<TModel> context)
-    {
-        return builder =>
-        {
-            builder.OpenComponent<MudTextField<string>>(0);
-            builder.AddAttribute(1, "Label", context.Field.Label);
-            builder.AddAttribute(2, "Value", context.CurrentValue as string ?? "");
-            builder.AddAttribute(3, "ValueChanged", EventCallback.Factory.Create<string>(this, value =>
+            if (Context == null) return;
+            
+            var sequence = 0;
+            builder.OpenElement(sequence++, "div");
+            builder.AddAttribute(sequence++, "class", "test-string-field");
+            
+            builder.OpenElement(sequence++, "label");
+            builder.AddContent(sequence++, Context.Field.Label);
+            builder.CloseElement();
+            
+            builder.OpenElement(sequence++, "input");
+            builder.AddAttribute(sequence++, "type", "text");
+            builder.AddAttribute(sequence++, "value", Context.CurrentValue);
+            builder.AddAttribute(sequence++, "placeholder", Context.Field.Placeholder);
+            builder.AddAttribute(sequence++, "disabled", Context.Field.IsDisabled);
+            builder.CloseElement();
+            
+            if (!string.IsNullOrEmpty(Context.Field.HelpText))
             {
-                context.OnValueChanged.InvokeAsync(value);
-            }));
-
-            if (!string.IsNullOrEmpty(context.Field.Placeholder))
-                builder.AddAttribute(4, "Placeholder", context.Field.Placeholder);
-
-            if (!string.IsNullOrEmpty(context.Field.HelpText))
-                builder.AddAttribute(5, "HelperText", context.Field.HelpText);
-
-            builder.AddAttribute(6, "Required", context.Field.IsRequired);
-            builder.AddAttribute(7, "Disabled", context.Field.IsDisabled);
-
-            builder.CloseComponent();
-        };
-    }
-
-    private RenderFragment RenderSelectField<TModel>(IFieldRenderContext<TModel> context)
-    {
-        return builder =>
-        {
-            builder.OpenComponent<MudSelect<string>>(0);
-            builder.AddAttribute(1, "Label", context.Field.Label);
-            builder.AddAttribute(2, "Value", context.CurrentValue as string ?? "");
-            builder.AddAttribute(3, "ValueChanged", EventCallback.Factory.Create<string>(this, value =>
-            {
-                context.OnValueChanged.InvokeAsync(value);
-                context.OnDependencyChanged.InvokeAsync();
-            }));
-
-
-            if (context.Field.AdditionalAttributes.TryGetValue("Options", out var optionsObj) &&
-                optionsObj is IEnumerable<SelectOption<string>> options)
-            {
-                builder.AddAttribute(5, "ChildContent", (RenderFragment)(childBuilder =>
-                {
-                    var index = 0;
-                    foreach (var option in options)
-                    {
-                        childBuilder.OpenComponent<MudSelectItem<string>>(index);
-                        childBuilder.AddAttribute(1, "Value", option.Value);
-                        childBuilder.AddAttribute(2, "ChildContent", (RenderFragment)(b => b.AddContent(0, option.Label)));
-                        childBuilder.CloseComponent();
-                        index++;
-                    }
-                }));
+                builder.OpenElement(sequence++, "div");
+                builder.AddAttribute(sequence++, "class", "help-text");
+                builder.AddContent(sequence, Context.Field.HelpText);
+                builder.CloseElement();
             }
-
-            builder.CloseComponent();
-        };
+            
+            builder.CloseElement();
+        }
     }
-
 }

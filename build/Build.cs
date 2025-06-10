@@ -51,6 +51,7 @@ class Build : NukeBuild
     string CurrentVersion => GetCurrentVersion();
 
     AbsolutePath SourceDirectory => RootDirectory / "FormCraft";
+    AbsolutePath MudBlazorDirectory => RootDirectory / "FormCraft.ForMudBlazor";
     AbsolutePath TestsDirectory => RootDirectory / "FormCraft.UnitTests";
     AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
     AbsolutePath TestResultsDirectory => RootDirectory / "test-results";
@@ -113,8 +114,20 @@ class Build : NukeBuild
         .Produces(ArtifactsDirectory / "*.snupkg")
         .Executes(() =>
         {
+            // Pack FormCraft main package
             DotNetPack(s => s
                 .SetProject(SourceDirectory)
+                .SetConfiguration(Configuration)
+                .EnableNoRestore()
+                .EnableNoBuild()
+                .SetOutputDirectory(ArtifactsDirectory)
+                .SetVersion(CurrentVersion)
+                .EnableIncludeSymbols()
+                .SetSymbolPackageFormat(DotNetSymbolPackageFormat.snupkg));
+                
+            // Pack FormCraft.ForMudBlazor package
+            DotNetPack(s => s
+                .SetProject(MudBlazorDirectory)
                 .SetConfiguration(Configuration)
                 .EnableNoRestore()
                 .EnableNoBuild()
@@ -148,7 +161,9 @@ class Build : NukeBuild
         {
             Serilog.Log.Information("🎉 Version {Version} has been successfully published!", CurrentVersion);
             Serilog.Log.Information("📦 Package: FormCraft {Version}", CurrentVersion);
+            Serilog.Log.Information("📦 Package: FormCraft.ForMudBlazor {Version}", CurrentVersion);
             Serilog.Log.Information("🔗 NuGet: https://www.nuget.org/packages/FormCraft/{Version}", CurrentVersion);
+            Serilog.Log.Information("🔗 NuGet: https://www.nuget.org/packages/FormCraft.ForMudBlazor/{Version}", CurrentVersion);
         });
 
     Target CreateGitHubRelease => _ => _

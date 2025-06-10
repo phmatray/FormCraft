@@ -1,0 +1,37 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Microsoft packages -->
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="9.0.6" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.6" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.6" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.6" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Http" Version="2.3.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.6" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+    <!-- UI Framework packages -->
+    <PackageVersion Include="MudBlazor" Version="8.7.0" />
+    <!-- Testing packages -->
+    <PackageVersion Include="bunit" Version="1.39.5" />
+    <PackageVersion Include="FakeItEasy" Version="8.3.0" />
+    <PackageVersion Include="Shouldly" Version="4.3.0" />
+    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.v3" Version="2.0.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.1" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+    <!-- Development tools -->
+    <PackageVersion Include="Nuke.Common" Version="9.0.4" />
+    <PackageVersion Include="Octokit" Version="14.0.0" />
+    <!-- Code quality -->
+    <PackageVersion Include="FluentValidation" Version="12.0.0" />
+    <PackageVersion Include="Markdig" Version="0.41.2" />
+    <!-- Versioning -->
+    <PackageVersion Include="GitVersion.MsBuild" Version="6.0.5" />
+    <PackageVersion Include="MinVer" Version="6.0.0" />
+  </ItemGroup>
+</Project>

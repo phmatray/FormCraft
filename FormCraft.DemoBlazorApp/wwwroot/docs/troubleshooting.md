@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Common issues and solutions when working with Dynamic Form Blazor.
+Common issues and solutions when working with FormCraft.
 
 ## Common Issues
 
@@ -22,9 +22,9 @@ protected override void OnInitialized()
 2. **Check validator registration**:
 ```csharp
 // Make sure validators are added to field configuration
-.AddField(x => x.Email)
+.AddField(x => x.Email, field => field
     .Required("Email is required")
-    .WithEmailValidation()
+    .WithEmailValidation())
 ```
 
 3. **Verify EditForm setup**:
@@ -44,14 +44,14 @@ protected override void OnInitialized()
 
 1. **Check visibility conditions**:
 ```csharp
-.AddField(x => x.ConditionalField)
-    .VisibleWhen(model => model.ShowField) // Ensure this evaluates to true
+.AddField(x => x.ConditionalField, field => field
+    .VisibleWhen(model => model.ShowField)) // Ensure this evaluates to true
 ```
 
 2. **Verify field renderer registration**:
 ```csharp
 // In Program.cs
-builder.Services.AddDynamicForms(); // This registers default renderers
+builder.Services.AddFormCraft(); // This registers default renderers
 ```
 
 3. **Check field type support**:
@@ -69,16 +69,16 @@ builder.Services.AddDynamicForms(); // This registers default renderers
 1. **Use proper type expressions**:
 ```csharp
 // Correct
-.AddField(x => x.Age) // where Age is int
+.AddField(x => x.Age, field => field) // where Age is int
 
 // Incorrect - mixing types
-.AddField(x => x.Age.ToString()) // This creates expression issues
+.AddField(x => x.Age.ToString(), field => field) // This creates expression issues
 ```
 
 2. **Handle nullable types properly**:
 ```csharp
-.AddField(x => x.OptionalDate) // where OptionalDate is DateTime?
-    .WithValidator(value => value == null || value > DateTime.MinValue, "Invalid date")
+.AddField(x => x.OptionalDate, field => field // where OptionalDate is DateTime?
+    .WithValidator(value => value == null || value > DateTime.MinValue, "Invalid date"))
 ```
 
 ### Build Errors
@@ -135,9 +135,9 @@ public class ExpensiveValidator : IFieldValidator<MyModel, string>
 3. **Consider virtualization for large forms**:
 ```csharp
 // Group fields and render only visible sections
-.AddField(x => x.Section1Field)
+.AddField(x => x.Section1Field, field => field
     .WithGroup("Section 1")
-    .VisibleWhen(model => model.CurrentSection == 1)
+    .VisibleWhen(model => model.CurrentSection == 1))
 ```
 
 ## Debugging Tips
@@ -176,7 +176,7 @@ protected override void OnParametersSet()
 
 | Error Message | Cause | Solution |
 |---------------|-------|----------|
-| `Cannot resolve symbol 'WithX'` | Missing using directive | Add `@using DynamicFormBlazor.Forms.Extensions` |
+| `Cannot resolve symbol 'WithX'` | Missing using directive | Add `@using FormCraft.Forms.Extensions` |
 | `Object reference not set` | Null model or configuration | Initialize model: `Model = new MyModel()` |
 | `InvalidOperationException: Sequence contains no elements` | Empty field collection | Ensure `Build()` is called after adding fields |
 | `ArgumentException: Expression must be a member access` | Invalid field expression | Use `x => x.PropertyName` format |
@@ -218,9 +218,9 @@ var config = FormBuilder<MyModel>
     .AddEmailField(x => x.Email)
         .WithHelpText("We'll never share your email")
     // Use meaningful validation messages
-    .AddField(x => x.Password)
+    .AddField(x => x.Password, field => field
         .Required("Password is required for security")
-        .WithMinLength(8, "Password must be at least 8 characters")
+        .WithMinLength(8, "Password must be at least 8 characters"))
     .Build();
 ```
 

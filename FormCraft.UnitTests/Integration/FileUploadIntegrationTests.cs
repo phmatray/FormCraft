@@ -1,6 +1,3 @@
-using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.Extensions.DependencyInjection;
-
 namespace FormCraft.UnitTests.Integration;
 
 public class FileUploadIntegrationTests
@@ -12,7 +9,7 @@ public class FileUploadIntegrationTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         _serviceProvider = services.BuildServiceProvider();
         _rendererService = _serviceProvider.GetRequiredService<IFieldRendererService>();
     }
@@ -32,16 +29,16 @@ public class FileUploadIntegrationTests
         var formConfig = FormBuilder<FileUploadTestModel>.Create()
             .AddRequiredTextField(x => x.Name, "Full Name")
             .AddFileUploadField(x => x.Resume!, "Upload Resume",
-                acceptedFileTypes: new[] { ".pdf", ".doc", ".docx" },
+                acceptedFileTypes: [".pdf", ".doc", ".docx"],
                 maxFileSize: 5 * 1024 * 1024,
                 required: true)
             .AddMultipleFileUploadField(x => x.Certificates!, "Upload Certificates",
                 maxFiles: 3,
-                acceptedFileTypes: new[] { ".pdf", ".jpg", ".png" },
+                acceptedFileTypes: [".pdf", ".jpg", ".png"],
                 maxFileSize: 2 * 1024 * 1024)
-            .AddField(x => x.AgreeToTerms)
+            .AddField(x => x.AgreeToTerms, field => field
                 .WithLabel("I agree to terms")
-                .Required("You must agree")
+                .Required("You must agree"))
             .Build();
 
         // Assert
@@ -62,7 +59,7 @@ public class FileUploadIntegrationTests
         
         var resumeConfig = resumeField.AdditionalAttributes["FileUploadConfiguration"] as FileUploadConfiguration;
         resumeConfig.ShouldNotBeNull();
-        resumeConfig.AcceptedFileTypes.ShouldBe(new[] { ".pdf", ".doc", ".docx" });
+        resumeConfig.AcceptedFileTypes.ShouldBe([".pdf", ".doc", ".docx"]);
         resumeConfig.MaxFileSize.ShouldBe(5 * 1024 * 1024);
         resumeConfig.MaxFiles.ShouldBe(1);
         
@@ -137,7 +134,7 @@ public class FileUploadIntegrationTests
         validators.Count.ShouldBe(1);
         validationResults.ShouldContain(r => !r.IsValid);
         validationResults.First().ErrorMessage.ShouldNotBeNull();
-        validationResults.First().ErrorMessage.ShouldContain("Resume is required");
+        validationResults.First().ErrorMessage!.ShouldContain("Resume is required");
     }
 
     [Fact]
@@ -197,7 +194,7 @@ public class FileUploadIntegrationTests
         validators.Count.ShouldBe(1);
         validationResults.ShouldContain(r => !r.IsValid);
         validationResults.First().ErrorMessage.ShouldNotBeNull();
-        validationResults.First().ErrorMessage.ShouldContain("At least one certificates is required");
+        validationResults.First().ErrorMessage!.ShouldContain("At least one certificates is required");
     }
 
     [Fact]
@@ -205,28 +202,28 @@ public class FileUploadIntegrationTests
     {
         // Arrange & Act
         var formConfig = FormBuilder<FileUploadTestModel>.Create()
-            .AddField(x => x.Name)
+            .AddField(x => x.Name, field => field
                 .WithLabel("Applicant Name")
                 .Required("Name is required")
                 .WithMinLength(2)
-                .WithMaxLength(100)
-            .AddField(x => x.Resume!)
+                .WithMaxLength(100))
+            .AddField(x => x.Resume!, field => field
                 .WithLabel("Resume (PDF only)")
                 .AsFileUpload(
                     acceptedFileTypes: new[] { ".pdf" },
                     maxFileSize: 10 * 1024 * 1024)
                 .Required("Please upload your resume")
-                .WithHelpText("Maximum file size: 10MB")
-            .AddField(x => x.Certificates!)
+                .WithHelpText("Maximum file size: 10MB"))
+            .AddField(x => x.Certificates!, field => field
                 .WithLabel("Certifications")
                 .AsMultipleFileUpload(
                     maxFiles: 5,
                     acceptedFileTypes: new[] { ".pdf", ".jpg", ".png" },
                     maxFileSize: 5 * 1024 * 1024)
-                .WithHelpText("Upload up to 5 certificates (PDF or images)")
-            .AddField(x => x.AgreeToTerms)
+                .WithHelpText("Upload up to 5 certificates (PDF or images)"))
+            .AddField(x => x.AgreeToTerms, field => field
                 .WithLabel("I agree to the terms and conditions")
-                .Required("You must agree to proceed")
+                .Required("You must agree to proceed"))
             .Build();
 
         // Assert
@@ -234,7 +231,7 @@ public class FileUploadIntegrationTests
         
         // Verify all fields are properly configured
         formConfig.Fields.ShouldAllBe(f => !string.IsNullOrEmpty(f.Label));
-        formConfig.Fields.Where(f => f.IsRequired).Count().ShouldBe(3); // All except Certificates
+        formConfig.Fields.Count(f => f.IsRequired).ShouldBe(3); // All except Certificates
         
         // Verify file upload fields have custom renderer
         var fileFields = formConfig.Fields

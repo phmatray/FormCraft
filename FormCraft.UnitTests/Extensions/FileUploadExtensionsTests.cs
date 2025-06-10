@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Components.Forms;
-
 namespace FormCraft.UnitTests.Extensions;
 
 public class FileUploadExtensionsTests
@@ -13,14 +11,14 @@ public class FileUploadExtensionsTests
     [Fact]
     public void AsFileUpload_ConfiguresFieldForSingleFileUpload()
     {
-        // Arrange
+        // Arrange & Act
         var formConfig = FormBuilder<TestModel>.Create()
-            .AddField(x => x.SingleFile!)
+            .AddField(x => x.SingleFile!, field => field
                 .AsFileUpload(
                     acceptedFileTypes: new[] { ".pdf", ".doc" },
                     maxFileSize: 5 * 1024 * 1024,
                     showPreview: false,
-                    enableDragDrop: false)
+                    enableDragDrop: false))
             .Build();
 
         // Assert
@@ -42,8 +40,8 @@ public class FileUploadExtensionsTests
     {
         // Arrange & Act
         var formConfig = FormBuilder<TestModel>.Create()
-            .AddField(x => x.SingleFile!)
-                .AsFileUpload()
+            .AddField(x => x.SingleFile!, field => field
+                .AsFileUpload())
             .Build();
 
         // Assert
@@ -63,13 +61,13 @@ public class FileUploadExtensionsTests
     {
         // Arrange & Act
         var formConfig = FormBuilder<TestModel>.Create()
-            .AddField(x => x.MultipleFiles!)
+            .AddField(x => x.MultipleFiles!, field => field
                 .AsMultipleFileUpload(
                     maxFiles: 5,
                     acceptedFileTypes: new[] { ".jpg", ".png" },
                     maxFileSize: 2 * 1024 * 1024,
                     showPreview: true,
-                    enableDragDrop: true)
+                    enableDragDrop: true))
             .Build();
 
         // Assert
@@ -90,8 +88,8 @@ public class FileUploadExtensionsTests
     {
         // Arrange & Act
         var formConfig = FormBuilder<TestModel>.Create()
-            .AddField(x => x.MultipleFiles!)
-                .AsMultipleFileUpload()
+            .AddField(x => x.MultipleFiles!, field => field
+                .AsMultipleFileUpload())
             .Build();
 
         // Assert
@@ -204,8 +202,8 @@ public class FileUploadExtensionsTests
     {
         // Arrange & Act
         var formConfig = FormBuilder<TestModel>.Create()
-            .AddField(x => x.SingleFile!)
-                .AsFileUpload()
+            .AddField(x => x.SingleFile!, field => field
+                .AsFileUpload())
             .Build();
 
         // Assert
