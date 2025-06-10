@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Components.Rendering;
 using MudBlazor;
 
 namespace FormCraft.ForMudBlazor;
@@ -44,211 +45,203 @@ public partial class FormCraftComponent<TModel>
             var underlyingType = Nullable.GetUnderlyingType(fieldType) ?? fieldType;
             var value = property.GetValue(Model);
 
-            // Select fields (if field has options in additional attributes)
+            // Check for fields with options (select/dropdown)
             if (field.AdditionalAttributes.TryGetValue("Options", out var optionsObj) && optionsObj != null)
             {
-                builder.OpenComponent<MudSelect<string>>(0);
-                builder.AddAttribute(1, "Label", field.Label);
-                builder.AddAttribute(2, "Value", value?.ToString() ?? string.Empty);
-                builder.AddAttribute(3, "ValueChanged",
-                    EventCallback.Factory.Create<string>(this,
-                        newValue => UpdateFieldValue(field.FieldName, newValue)));
-                builder.AddAttribute(4, "Placeholder", field.Placeholder);
-                builder.AddAttribute(5, "HelperText", field.HelpText);
-                builder.AddAttribute(6, "Required", field.IsRequired);
-                builder.AddAttribute(7, "ReadOnly", field.IsReadOnly);
-                builder.AddAttribute(8, "Disabled", field.IsDisabled);
-                builder.AddAttribute(9, "Variant", Variant.Outlined);
-                builder.AddAttribute(10, "Margin", Margin.Dense);
-                builder.AddAttribute(11, "ChildContent", (RenderFragment)((childBuilder) =>
-                {
-                    var sequence = 0;
-                    if (optionsObj is IEnumerable<SelectOption<string>> stringOptions)
-                    {
-                        foreach (var option in stringOptions)
-                        {
-                            childBuilder.OpenComponent<MudSelectItem<string>>(sequence++);
-                            childBuilder.AddAttribute(sequence++, "Value", option.Value);
-                            childBuilder.AddAttribute(sequence++, "ChildContent",
-                                (RenderFragment)((itemBuilder) => { itemBuilder.AddContent(0, option.Label); }));
-                            childBuilder.CloseComponent();
-                        }
-                    }
-                    else if (optionsObj is System.Collections.IEnumerable options)
-                    {
-                        // Handle generic options
-                        foreach (var option in options)
-                        {
-                            var optionType = option.GetType();
-                            var valueProperty = optionType.GetProperty("Value");
-                            var labelProperty = optionType.GetProperty("Label");
-
-                            if (valueProperty != null && labelProperty != null)
-                            {
-                                var optionValue = valueProperty.GetValue(option)?.ToString() ?? "";
-                                var optionLabel = labelProperty.GetValue(option)?.ToString() ?? "";
-
-                                childBuilder.OpenComponent<MudSelectItem<string>>(sequence++);
-                                childBuilder.AddAttribute(sequence++, "Value", optionValue);
-                                childBuilder.AddAttribute(sequence++, "ChildContent",
-                                    (RenderFragment)((itemBuilder) => { itemBuilder.AddContent(0, optionLabel); }));
-                                childBuilder.CloseComponent();
-                            }
-                        }
-                    }
-                }));
-                builder.CloseComponent();
+                RenderSelectField(builder, field, value, optionsObj);
             }
-            // String fields
-            else if (fieldType == typeof(string))
-            {
-                builder.OpenComponent<MudTextField<string>>(0);
-                builder.AddAttribute(1, "Label", field.Label);
-                builder.AddAttribute(2, "Value", value);
-                builder.AddAttribute(3, "ValueChanged",
-                    EventCallback.Factory.Create<string>(this,
-                        newValue => UpdateFieldValue(field.FieldName, newValue)));
-                builder.AddAttribute(4, "Placeholder", field.Placeholder);
-                builder.AddAttribute(5, "HelperText", field.HelpText);
-                builder.AddAttribute(6, "Required", field.IsRequired);
-                builder.AddAttribute(7, "ReadOnly", field.IsReadOnly);
-                builder.AddAttribute(8, "Disabled", field.IsDisabled);
-                builder.AddAttribute(9, "Variant", Variant.Outlined);
-                builder.AddAttribute(10, "Margin", Margin.Dense);
-                builder.AddAttribute(11, "Immediate", true);
-                builder.CloseComponent();
-            }
-            // Integer fields
-            else if (underlyingType == typeof(int))
-            {
-                builder.OpenComponent<MudNumericField<int>>(0);
-                builder.AddAttribute(1, "Label", field.Label);
-                builder.AddAttribute(2, "Value", value ?? 0);
-                builder.AddAttribute(3, "ValueChanged",
-                    EventCallback.Factory.Create<int>(this, newValue => UpdateFieldValue(field.FieldName, newValue)));
-                builder.AddAttribute(4, "Placeholder", field.Placeholder);
-                builder.AddAttribute(5, "HelperText", field.HelpText);
-                builder.AddAttribute(6, "Required", field.IsRequired);
-                builder.AddAttribute(7, "ReadOnly", field.IsReadOnly);
-                builder.AddAttribute(8, "Disabled", field.IsDisabled);
-                builder.AddAttribute(9, "Variant", Variant.Outlined);
-                builder.AddAttribute(10, "Margin", Margin.Dense);
-                builder.CloseComponent();
-            }
-            // Decimal fields
-            else if (underlyingType == typeof(decimal))
-            {
-                builder.OpenComponent<MudNumericField<decimal>>(0);
-                builder.AddAttribute(1, "Label", field.Label);
-                builder.AddAttribute(2, "Value", value ?? 0m);
-                builder.AddAttribute(3, "ValueChanged",
-                    EventCallback.Factory.Create<decimal>(this,
-                        newValue => UpdateFieldValue(field.FieldName, newValue)));
-                builder.AddAttribute(4, "Placeholder", field.Placeholder);
-                builder.AddAttribute(5, "HelperText", field.HelpText);
-                builder.AddAttribute(6, "Required", field.IsRequired);
-                builder.AddAttribute(7, "ReadOnly", field.IsReadOnly);
-                builder.AddAttribute(8, "Disabled", field.IsDisabled);
-                builder.AddAttribute(9, "Variant", Variant.Outlined);
-                builder.AddAttribute(10, "Margin", Margin.Dense);
-                builder.CloseComponent();
-            }
-            // Double fields
-            else if (underlyingType == typeof(double))
-            {
-                builder.OpenComponent<MudNumericField<double>>(0);
-                builder.AddAttribute(1, "Label", field.Label);
-                builder.AddAttribute(2, "Value", value ?? 0.0);
-                builder.AddAttribute(3, "ValueChanged",
-                    EventCallback.Factory.Create<double>(this,
-                        newValue => UpdateFieldValue(field.FieldName, newValue)));
-                builder.AddAttribute(4, "Placeholder", field.Placeholder);
-                builder.AddAttribute(5, "HelperText", field.HelpText);
-                builder.AddAttribute(6, "Required", field.IsRequired);
-                builder.AddAttribute(7, "ReadOnly", field.IsReadOnly);
-                builder.AddAttribute(8, "Disabled", field.IsDisabled);
-                builder.AddAttribute(9, "Variant", Variant.Outlined);
-                builder.AddAttribute(10, "Margin", Margin.Dense);
-                builder.CloseComponent();
-            }
-            // Boolean fields
-            else if (underlyingType == typeof(bool))
-            {
-                builder.OpenComponent<MudCheckBox<bool>>(0);
-                builder.AddAttribute(1, "Label", field.Label);
-                builder.AddAttribute(2, "Value", value ?? false);
-                builder.AddAttribute(3, "ValueChanged",
-                    EventCallback.Factory.Create<bool>(this, newValue => UpdateFieldValue(field.FieldName, newValue)));
-                builder.AddAttribute(4, "ReadOnly", field.IsReadOnly);
-                builder.AddAttribute(5, "Disabled", field.IsDisabled);
-                builder.CloseComponent();
-            }
-            // DateTime fields
-            else if (underlyingType == typeof(DateTime))
-            {
-                builder.OpenComponent<MudDatePicker>(0);
-                builder.AddAttribute(1, "Label", field.Label);
-                builder.AddAttribute(2, "Date", value as DateTime?);
-                builder.AddAttribute(3, "DateChanged",
-                    EventCallback.Factory.Create<DateTime?>(this,
-                        newValue => UpdateFieldValue(field.FieldName, newValue)));
-                builder.AddAttribute(4, "Placeholder", field.Placeholder);
-                builder.AddAttribute(5, "HelperText", field.HelpText);
-                builder.AddAttribute(6, "Required", field.IsRequired);
-                builder.AddAttribute(7, "ReadOnly", field.IsReadOnly);
-                builder.AddAttribute(8, "Disabled", field.IsDisabled);
-                builder.AddAttribute(9, "Variant", Variant.Outlined);
-                builder.AddAttribute(10, "Margin", Margin.Dense);
-                builder.CloseComponent();
-            }
-            // File upload fields
-            else if (fieldType == typeof(IBrowserFile) || fieldType == typeof(IReadOnlyList<IBrowserFile>))
-            {
-                builder.OpenComponent<MudFileUpload<IBrowserFile>>(0);
-                builder.AddAttribute(1, "T", typeof(IBrowserFile));
-                builder.AddAttribute(2, "OnFilesChanged",
-                    EventCallback.Factory.Create<InputFileChangeEventArgs>(this,
-                        args => HandleFileUpload(field.FieldName, args)));
-                builder.AddAttribute(3, "Accept",
-                    field.AdditionalAttributes.TryGetValue("Accept", out var accept) ? accept : "*/*");
-                builder.AddAttribute(4, "Disabled", field.IsDisabled);
-                builder.AddAttribute(5, "ChildContent", (RenderFragment)(contentBuilder =>
-                {
-                    contentBuilder.OpenComponent<MudButton>(0);
-                    contentBuilder.AddAttribute(1, "HtmlTag", "label");
-                    contentBuilder.AddAttribute(2, "Variant", Variant.Filled);
-                    contentBuilder.AddAttribute(3, "Color", Color.Primary);
-                    contentBuilder.AddAttribute(4, "StartIcon", Icons.Material.Filled.CloudUpload);
-                    contentBuilder.AddAttribute(5, "for", field.FieldName);
-                    contentBuilder.AddAttribute(6, "ChildContent",
-                        (RenderFragment)(buttonBuilder =>
-                        {
-                            buttonBuilder.AddContent(0, field.Label ?? "Upload File");
-                        }));
-                    contentBuilder.CloseComponent();
-                }));
-                builder.CloseComponent();
-            }
-            // Add custom renderer support
+            // Check for custom renderer
             else if (field.CustomRendererType != null)
             {
-                // Use the existing field renderer service for custom renderers
-                var context = new FieldRenderContext<TModel>
-                {
-                    Model = Model,
-                    Field = field,
-                    ActualFieldType = fieldType,
-                    CurrentValue = value,
-                    OnValueChanged =
-                        EventCallback.Factory.Create<object?>(this, val => UpdateFieldValue(field.FieldName, val)),
-                    OnDependencyChanged =
-                        EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName))
-                };
-                builder.AddContent(0,
-                    FieldRendererService.RenderField(Model, field, context.OnValueChanged,
-                        context.OnDependencyChanged));
+                RenderCustomField(builder, field, fieldType, value);
+            }
+            // Render based on field type
+            else if (fieldType == typeof(string))
+            {
+                RenderTextField(builder, field, value as string);
+            }
+            else if (underlyingType == typeof(int))
+            {
+                RenderNumericField<int>(builder, field, (int)(value ?? 0));
+            }
+            else if (underlyingType == typeof(decimal))
+            {
+                RenderNumericField<decimal>(builder, field, (decimal)(value ?? 0m));
+            }
+            else if (underlyingType == typeof(double))
+            {
+                RenderNumericField<double>(builder, field, (double)(value ?? 0.0));
+            }
+            else if (underlyingType == typeof(bool))
+            {
+                RenderBooleanField(builder, field, value ?? false);
+            }
+            else if (underlyingType == typeof(DateTime))
+            {
+                RenderDateTimeField(builder, field, value as DateTime?);
+            }
+            else if (fieldType == typeof(IBrowserFile) || fieldType == typeof(IReadOnlyList<IBrowserFile>))
+            {
+                RenderFileUploadField(builder, field);
             }
         };
+    }
+
+    private void RenderSelectField(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, object? value, object optionsObj)
+    {
+        builder.OpenComponent<MudSelect<string>>(0);
+        AddCommonFieldAttributes(builder, field, 1);
+        builder.AddAttribute(2, "Value", value?.ToString() ?? string.Empty);
+        builder.AddAttribute(3, "ValueChanged",
+            EventCallback.Factory.Create<string>(this,
+                newValue => UpdateFieldValue(field.FieldName, newValue)));
+        builder.AddAttribute(11, "ChildContent", RenderSelectOptions(optionsObj));
+        builder.CloseComponent();
+    }
+
+    private RenderFragment RenderSelectOptions(object optionsObj)
+    {
+        return builder =>
+        {
+            var sequence = 0;
+            if (optionsObj is IEnumerable<SelectOption<string>> stringOptions)
+            {
+                foreach (var option in stringOptions)
+                {
+                    builder.OpenComponent<MudSelectItem<string>>(sequence++);
+                    builder.AddAttribute(sequence++, "Value", option.Value);
+                    builder.AddAttribute(sequence++, "ChildContent",
+                        (RenderFragment)(itemBuilder => itemBuilder.AddContent(0, option.Label)));
+                    builder.CloseComponent();
+                }
+            }
+            else if (optionsObj is System.Collections.IEnumerable options)
+            {
+                foreach (var option in options)
+                {
+                    var optionType = option.GetType();
+                    var valueProperty = optionType.GetProperty("Value");
+                    var labelProperty = optionType.GetProperty("Label");
+
+                    if (valueProperty != null && labelProperty != null)
+                    {
+                        var optionValue = valueProperty.GetValue(option)?.ToString() ?? "";
+                        var optionLabel = labelProperty.GetValue(option)?.ToString() ?? "";
+
+                        builder.OpenComponent<MudSelectItem<string>>(sequence++);
+                        builder.AddAttribute(sequence++, "Value", optionValue);
+                        builder.AddAttribute(sequence++, "ChildContent",
+                            (RenderFragment)(itemBuilder => itemBuilder.AddContent(0, optionLabel)));
+                        builder.CloseComponent();
+                    }
+                }
+            }
+        };
+    }
+
+    private void RenderTextField(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, string? value)
+    {
+        builder.OpenComponent<MudTextField<string>>(0);
+        AddCommonFieldAttributes(builder, field, 1);
+        builder.AddAttribute(2, "Value", value);
+        builder.AddAttribute(3, "ValueChanged",
+            EventCallback.Factory.Create<string>(this,
+                newValue => UpdateFieldValue(field.FieldName, newValue)));
+        builder.AddAttribute(11, "Immediate", true);
+        builder.CloseComponent();
+    }
+
+    private void RenderNumericField<T>(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, T value) 
+        where T : struct
+    {
+        builder.OpenComponent(0, typeof(MudNumericField<>).MakeGenericType(typeof(T)));
+        AddCommonFieldAttributes(builder, field, 1);
+        builder.AddAttribute(2, "Value", value);
+        builder.AddAttribute(3, "ValueChanged",
+            EventCallback.Factory.Create<T>(this, 
+                newValue => UpdateFieldValue(field.FieldName, newValue)));
+        builder.CloseComponent();
+    }
+
+    private void RenderBooleanField(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, object value)
+    {
+        builder.OpenComponent<MudCheckBox<bool>>(0);
+        builder.AddAttribute(1, "Label", field.Label);
+        builder.AddAttribute(2, "Value", value);
+        builder.AddAttribute(3, "ValueChanged",
+            EventCallback.Factory.Create<bool>(this, 
+                newValue => UpdateFieldValue(field.FieldName, newValue)));
+        builder.AddAttribute(4, "ReadOnly", field.IsReadOnly);
+        builder.AddAttribute(5, "Disabled", field.IsDisabled);
+        builder.CloseComponent();
+    }
+
+    private void RenderDateTimeField(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, DateTime? value)
+    {
+        builder.OpenComponent<MudDatePicker>(0);
+        AddCommonFieldAttributes(builder, field, 1);
+        builder.AddAttribute(2, "Date", value);
+        builder.AddAttribute(3, "DateChanged",
+            EventCallback.Factory.Create<DateTime?>(this,
+                newValue => UpdateFieldValue(field.FieldName, newValue)));
+        builder.CloseComponent();
+    }
+
+    private void RenderFileUploadField(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field)
+    {
+        builder.OpenComponent<MudFileUpload<IBrowserFile>>(0);
+        builder.AddAttribute(1, "T", typeof(IBrowserFile));
+        builder.AddAttribute(2, "OnFilesChanged",
+            EventCallback.Factory.Create<InputFileChangeEventArgs>(this,
+                args => HandleFileUpload(field.FieldName, args)));
+        builder.AddAttribute(3, "Accept",
+            field.AdditionalAttributes.TryGetValue("Accept", out var accept) ? accept : "*/*");
+        builder.AddAttribute(4, "Disabled", field.IsDisabled);
+        builder.AddAttribute(5, "ChildContent", RenderFileUploadButton(field));
+        builder.CloseComponent();
+    }
+
+    private RenderFragment RenderFileUploadButton(IFieldConfiguration<TModel, object> field)
+    {
+        return builder =>
+        {
+            builder.OpenComponent<MudButton>(0);
+            builder.AddAttribute(1, "HtmlTag", "label");
+            builder.AddAttribute(2, "Variant", Variant.Filled);
+            builder.AddAttribute(3, "Color", Color.Primary);
+            builder.AddAttribute(4, "StartIcon", Icons.Material.Filled.CloudUpload);
+            builder.AddAttribute(5, "for", field.FieldName);
+            builder.AddAttribute(6, "ChildContent",
+                (RenderFragment)(buttonBuilder => buttonBuilder.AddContent(0, field.Label ?? "Upload File")));
+            builder.CloseComponent();
+        };
+    }
+
+    private void RenderCustomField(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, Type fieldType, object? value)
+    {
+        var context = new FieldRenderContext<TModel>
+        {
+            Model = Model,
+            Field = field,
+            ActualFieldType = fieldType,
+            CurrentValue = value,
+            OnValueChanged = EventCallback.Factory.Create<object?>(this, val => UpdateFieldValue(field.FieldName, val)),
+            OnDependencyChanged = EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName))
+        };
+        builder.AddContent(0,
+            FieldRendererService.RenderField(Model, field, context.OnValueChanged, context.OnDependencyChanged));
+    }
+
+    private void AddCommonFieldAttributes(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, int startIndex)
+    {
+        builder.AddAttribute(startIndex++, "Label", field.Label);
+        builder.AddAttribute(startIndex++, "Placeholder", field.Placeholder);
+        builder.AddAttribute(startIndex++, "HelperText", field.HelpText);
+        builder.AddAttribute(startIndex++, "Required", field.IsRequired);
+        builder.AddAttribute(startIndex++, "ReadOnly", field.IsReadOnly);
+        builder.AddAttribute(startIndex++, "Disabled", field.IsDisabled);
+        builder.AddAttribute(startIndex++, "Variant", Variant.Outlined);
+        builder.AddAttribute(startIndex, "Margin", Margin.Dense);
     }
 
     private async Task UpdateFieldValue(string fieldName, object? value)
