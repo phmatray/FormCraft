@@ -3,36 +3,79 @@
 @inherits FieldComponentBase<TModel, IBrowserFile?>
 @implements IFileUploadFieldComponent<TModel>
 
+@if (!string.IsNullOrEmpty(Label))
+{
+    <MudText Typo="Typo.body2" Class="mb-1">@Label</MudText>
+}
+
 <MudFileUpload
-    T="IBrowserFile"
+    @ref="@_fileUpload"
+    T="IReadOnlyList<IBrowserFile>"
+    @bind-Files="SingleFileList"
     Accept="@Accept"
     MaximumFileCount="1"
-    OnFilesChanged="@(async e => await OnFileChanged(e.File))"
-    Hidden="false"
-    InputClass="absolute mud-width-full mud-height-full overflow-hidden z-20"
+    Hidden="@false"
+    InputClass="absolute mud-width-full mud-height-full overflow-hidden z-10"
     InputStyle="opacity:0"
+    ErrorText="@string.Empty"
+    tabindex="-1"
+    @ondrop="@ClearDragClass"
     @ondragenter="@SetDragClass"
     @ondragleave="@ClearDragClass"
     @ondragend="@ClearDragClass">
     <ActivatorContent>
-        <MudPaper Height="100px"
-                  Outlined="true"
-                  Class="@_dragClass">
-            <MudText Typo="Typo.subtitle2">
+        <MudPaper
+            Height="@GetHeight()"
+            Outlined="true"
+            Class="@_dragClass">
+            <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mud-height-full">
+                <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Typo="Typo.h6" Align="Align.Center">
+                    @if (CurrentValue != null)
+                    {
+                        @CurrentValue.Name
+                    }
+                    else
+                    {
+                        @("Drag and drop file here or click")
+                    }
+                </MudText>
                 @if (CurrentValue != null)
                 {
-                    @CurrentValue.Name
+                    <MudChip T="string" Color="Color.Primary" Text="@($"{CurrentValue.Name} ({FormatFileSize(CurrentValue.Size)})")" />
                 }
-                else
-                {
-                    @("Drag and drop file here or click to browse")
-                }
-            </MudText>
+            </MudStack>
         </MudPaper>
     </ActivatorContent>
 </MudFileUpload>
 
+<MudToolBar Gutters="@false" Class="relative d-flex justify-end gap-4 mt-2">
+    <MudButton
+        Color="Color.Primary"
+        OnClick="@OpenFilePickerAsync"
+        Variant="Variant.Filled"
+        StartIcon="@Icons.Material.Filled.FolderOpen"
+        Size="Size.Small">
+        Browse
+    </MudButton>
+    @if (CurrentValue != null)
+    {
+        <MudButton
+            Color="Color.Error"
+            OnClick="@ClearAsync"
+            Variant="Variant.Filled"
+            StartIcon="@Icons.Material.Filled.Clear"
+            Size="Size.Small">
+            Clear
+        </MudButton>
+    }
+</MudToolBar>
+
 @if (!string.IsNullOrEmpty(HelpText))
 {
-    <MudText Typo="Typo.caption" Class="mt-1">@HelpText</MudText>
+    <div style="margin-top: -2px; overflow: hidden">
+        <div class="d-flex mud-input-helper-text">
+            <div class="me-auto">@HelpText</div>
+        </div>
+    </div>
 }
