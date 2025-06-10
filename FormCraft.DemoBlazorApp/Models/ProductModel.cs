@@ -10,6 +10,7 @@ public class ProductModel
     public decimal Price { get; set; }
     public string Color { get; set; } = "#0066CC";
     public int Rating { get; set; } = 3;
+    public double Volume { get; set; } = 50.0;
     public bool InStock { get; set; } = true;
     public string Category { get; set; } = "";
     public DateTime ReleaseDate { get; set; } = DateTime.Today;

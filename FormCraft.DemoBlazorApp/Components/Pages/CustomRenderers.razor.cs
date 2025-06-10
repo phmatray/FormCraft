@@ -27,6 +27,12 @@ public partial class CustomRenderers
         },
         new()
         {
+            Feature = "Slider Control",
+            Usage = "Range selection for numeric fields",
+            Example = ".AsSlider(min: 0, max: 100, step: 5)"
+        },
+        new()
+        {
             Feature = "Field Groups",
             Usage = "Organize fields into responsive columns",
             Example = ".AddFieldGroup(g => g.WithColumns(2))"
@@ -49,6 +55,7 @@ public partial class CustomRenderers
     [
         new() { Text = "Color picker provides visual color selection", Icon = Icons.Material.Filled.ColorLens },
         new() { Text = "Rating control offers intuitive star-based input", Icon = Icons.Material.Filled.Star },
+        new() { Text = "Slider control enables precise range selection", Icon = Icons.Material.Filled.Tune },
         new() { Text = "Custom renderers integrate seamlessly with validation", Icon = Icons.Material.Filled.CheckCircle },
         new() { Text = "Easily create your own renderers for specific needs", Icon = Icons.Material.Filled.Extension }
     ];
@@ -84,7 +91,7 @@ public partial class CustomRenderers
                     .WithLabel("Release Date")))
             .AddFieldGroup(group => group
                 .WithGroupName("Appearance & Rating")
-                .WithColumns(2)
+                .WithColumns(3)
                 .ShowInCard()
                 .AddField(x => x.Color, field => field
                     .AsColorPicker()
@@ -93,7 +100,11 @@ public partial class CustomRenderers
                 .AddField(x => x.Rating, field => field
                     .AsRating(maxRating: 5)
                     .WithLabel("Quality Rating")
-                    .WithHelpText("Rate the product quality from 1 to 5 stars")))
+                    .WithHelpText("Rate the product quality from 1 to 5 stars"))
+                .AddField(x => x.Volume, field => field
+                    .AsSlider(min: 0, max: 100, step: 5, showTickMarks: true)
+                    .WithLabel("Volume Level")
+                    .WithHelpText("Adjust the volume level from 0 to 100")))
             .AddField(x => x.Description, field => field
                 .AsTextArea(lines: 4)
                 .WithLabel("Description")
@@ -132,6 +143,7 @@ public partial class CustomRenderers
             new() { Label = "Price", Value = $"${_model.Price:F2}" },
             new() { Label = "Color", Value = _model.Color },
             new() { Label = "Rating", Value = $"{_model.Rating} / 5 stars" },
+            new() { Label = "Volume", Value = $"{_model.Volume}%" },
             new() { Label = "In Stock", Value = _model.InStock ? "Yes" : "No" },
             new() { Label = "Release Date", Value = _model.ReleaseDate.ToShortDateString() }
         ];
@@ -169,7 +181,7 @@ public partial class CustomRenderers
                         .WithLabel("Release Date")))
                 .AddFieldGroup(group => group
                     .WithGroupName("Appearance & Rating")
-                    .WithColumns(2)
+                    .WithColumns(3)
                     .ShowInCard()
                     .AddField(x => x.Color, field => field
                         .AsColorPicker()
@@ -178,7 +190,11 @@ public partial class CustomRenderers
                     .AddField(x => x.Rating, field => field
                         .AsRating(maxRating: 5)
                         .WithLabel("Quality Rating")
-                        .WithHelpText("Rate the product quality from 1 to 5 stars")))
+                        .WithHelpText("Rate the product quality from 1 to 5 stars"))
+                    .AddField(x => x.Volume, field => field
+                        .AsSlider(min: 0, max: 100, step: 5, showTickMarks: true)
+                        .WithLabel("Volume Level")
+                        .WithHelpText("Adjust the volume level from 0 to 100")))
                 .AddField(x => x.Description, field => field
                     .AsTextArea(lines: 4)
                     .WithLabel("Description")
