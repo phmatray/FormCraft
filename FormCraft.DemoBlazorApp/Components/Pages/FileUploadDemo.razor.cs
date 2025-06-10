@@ -81,29 +81,41 @@ public partial class FileUploadDemo
     protected override void OnInitialized()
     {
         _formConfiguration = FormBuilder<JobApplicationModel>.Create()
-            .AddRequiredTextField(x => x.FullName, "Full Name", "Enter your full name")
-            .AddEmailField(x => x.Email)
-            .AddPhoneField(x => x.Phone!, required: true)
-            .AddFileUploadField(x => x.Resume!, "Upload Resume",
-                acceptedFileTypes: [".pdf", ".doc", ".docx"],
-                maxFileSize: 5 * 1024 * 1024, // 5MB
-                required: true)
-            .AddMultipleFileUploadField(x => x.Certificates!, "Upload Certificates",
-                maxFiles: 3,
-                acceptedFileTypes: [".pdf", ".jpg", ".png"],
-                maxFileSize: 2 * 1024 * 1024) // 2MB per file
-            .AddDropdownField(x => x.Position, "Position",
-                ("developer", "Software Developer"),
-                ("designer", "UI/UX Designer"),
-                ("manager", "Project Manager"),
-                ("analyst", "Business Analyst"))
+            .AddField(x => x.FullName, field => field
+                .WithLabel("Full Name")
+                .WithPlaceholder("Enter your full name")
+                .Required("Full name is required"))
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email")
+                .Required("Email is required")
+                .WithEmailValidation())
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .Required("Phone number is required"))
+            .AddField(x => x.Resume, field => field
+                .WithLabel("Upload Resume")
+                .Required("Resume is required"))
+            .AddField(x => x.Certificates, field => field
+                .AsMultipleFileUpload(
+                    maxFiles: 3,
+                    acceptedFileTypes: [".pdf", ".jpg", ".png"],
+                    maxFileSize: 2 * 1024 * 1024) // 2MB per file
+                .WithLabel("Upload Certificates"))
+            .AddField(x => x.Position, field => field
+                .WithLabel("Position")
+                .WithOptions(
+                    ("developer", "Software Developer"),
+                    ("designer", "UI/UX Designer"),
+                    ("manager", "Project Manager"),
+                    ("analyst", "Business Analyst")))
             .AddField(x => x.CoverLetter, field => field
                 .AsTextArea(lines: 5, maxLength: 1000)
                 .WithLabel("Cover Letter")
                 .WithPlaceholder("Tell us why you're a great fit for this position...")
                 .Required("Please provide a cover letter"))
-            .AddCheckboxField(x => x.AgreeToTerms, "I agree to the terms and conditions",
-                "You must agree to proceed with your application")
+            .AddField(x => x.AgreeToTerms, field => field
+                .WithLabel("I agree to the terms and conditions")
+                .Required("You must agree to proceed with your application"))
             .Build();
     }
 
