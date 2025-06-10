@@ -25,7 +25,8 @@
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.1" />
     <PackageVersion Include="coverlet.collector" Version="6.0.2" />
     <!-- Development tools -->
-    <PackageVersion Include="Nuke.Common" Version="8.1.5" />
+    <PackageVersion Include="Nuke.Common" Version="9.0.4" />
+    <PackageVersion Include="Octokit" Version="14.0.0" />
     <!-- Code quality -->
     <PackageVersion Include="FluentValidation" Version="12.0.0" />
     <PackageVersion Include="Markdig" Version="0.41.2" />
