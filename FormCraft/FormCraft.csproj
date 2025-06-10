@@ -45,6 +45,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.AspNetCore.Http" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     
     <!-- Versioning and Source Link -->
     <PackageReference Include="MinVer">

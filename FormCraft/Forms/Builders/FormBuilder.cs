@@ -181,6 +181,34 @@ public class FormBuilder<TModel> where TModel : new()
     }
 
     /// <summary>
+    /// Configures security features for the form.
+    /// </summary>
+    /// <param name="securityConfig">A lambda expression to configure security settings.</param>
+    /// <returns>The FormBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// builder.WithSecurity(security => security
+    ///     .EncryptField(x => x.SSN)
+    ///     .EnableCsrfProtection()
+    ///     .WithRateLimit(5, TimeSpan.FromMinutes(1)));
+    /// </code>
+    /// </example>
+    public FormBuilder<TModel> WithSecurity(Action<SecurityBuilder<TModel>> securityConfig)
+    {
+        var securityBuilder = new SecurityBuilder<TModel>(this);
+        securityConfig(securityBuilder);
+        return securityBuilder.And();
+    }
+
+    /// <summary>
+    /// Sets the security configuration (used internally by SecurityBuilder).
+    /// </summary>
+    internal void SetSecurity(IFormSecurity security)
+    {
+        _configuration.Security = security;
+    }
+
+    /// <summary>
     /// Builds and returns the final form configuration that can be used with FormCraftComponent.
     /// </summary>
     /// <returns>An IFormConfiguration instance containing all configured fields and settings.</returns>

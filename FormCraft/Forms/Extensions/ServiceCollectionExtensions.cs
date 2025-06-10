@@ -44,6 +44,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFieldRenderer, DateTimeFieldRenderer>();
         services.AddScoped<IFieldRenderer, FileUploadFieldRenderer>();
 
+        // Register security services
+        services.AddScoped<IEncryptionService, BlazorEncryptionService>();
+        services.AddScoped<ICsrfTokenService, BlazorCsrfTokenService>();
+        services.AddSingleton<IRateLimitService, InMemoryRateLimitService>();
+        services.AddScoped<IAuditLogService, ConsoleAuditLogService>();
+
         return services;
     }
 }

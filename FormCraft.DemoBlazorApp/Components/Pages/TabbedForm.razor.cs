@@ -2,7 +2,6 @@ using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
 using FormCraft.ForMudBlazor;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;

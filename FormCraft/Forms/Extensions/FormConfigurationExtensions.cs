@@ -20,7 +20,7 @@ public static class FormConfigurationExtensions
     /// }
     /// </code>
     /// </example>
-    public static IEnumerable<string> GetRequiredFields<TModel>(this IFormConfiguration<TModel> configuration)
+    public static IEnumerable<string> GetRequiredFields<TModel>(this IFormConfiguration<TModel> configuration) where TModel : new()
     {
         return configuration.Fields
             .Where(f => f.IsRequired)
@@ -44,7 +44,7 @@ public static class FormConfigurationExtensions
     /// }
     /// </code>
     /// </example>
-    public static IEnumerable<string> GetVisibleFields<TModel>(this IFormConfiguration<TModel> configuration, TModel model)
+    public static IEnumerable<string> GetVisibleFields<TModel>(this IFormConfiguration<TModel> configuration, TModel model) where TModel : new()
     {
         return configuration.Fields
             .Where(f => f.VisibilityCondition?.Invoke(model) ?? f.IsVisible)

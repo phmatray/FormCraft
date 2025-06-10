@@ -9,7 +9,7 @@ namespace FormCraft.ForMudBlazor;
 /// Add this component inside an EditForm to enable dynamic validation.
 /// </summary>
 /// <typeparam name="TModel"></typeparam>
-public class DynamicFormValidator<TModel> : ComponentBase, IDisposable
+public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TModel : new()
 {
     [Inject]
     private IServiceProvider ServiceProvider { get; set; } = null!;
