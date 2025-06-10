@@ -36,7 +36,7 @@ public static class FieldBuilderExtensions
     }
 
     /// <summary>
-    /// Configures the field to use a custom renderer.
+    /// Configures the field to use a custom renderer with explicit type parameters.
     /// </summary>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
     /// <typeparam name="TValue">The type of the field value.</typeparam>
@@ -46,7 +46,7 @@ public static class FieldBuilderExtensions
     /// <example>
     /// <code>
     /// .AddField(x => x.Color)
-    ///     .WithCustomRenderer&lt;ColorPickerRenderer&gt;()
+    ///     .WithCustomRenderer&lt;ProductModel, string, ColorPickerRenderer&gt;()
     /// </code>
     /// </example>
     public static FieldBuilder<TModel, TValue> WithCustomRenderer<TModel, TValue, TRenderer>(
@@ -55,6 +55,27 @@ public static class FieldBuilderExtensions
         where TRenderer : ICustomFieldRenderer<TValue>
     {
         builder.Configuration.CustomRendererType = typeof(TRenderer);
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the field to use a custom renderer by type.
+    /// </summary>
+    /// <param name="builder">The FieldBuilder instance.</param>
+    /// <param name="rendererType">The type of the custom renderer.</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Color)
+    ///     .WithCustomRenderer(typeof(MudBlazorColorPickerRenderer))
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, TValue> WithCustomRenderer<TModel, TValue>(
+        this FieldBuilder<TModel, TValue> builder,
+        Type rendererType)
+        where TModel : new()
+    {
+        builder.Configuration.CustomRendererType = rendererType;
         return builder;
     }
 

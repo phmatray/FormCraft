@@ -181,10 +181,52 @@ public partial class ImprovedForm
 
     private string GetGeneratedCode()
     {
-        var formCode = CodeGenerator.GenerateFormBuilderCode(_formConfiguration);
-
-        // Add usage example for manual rendering
-        const string usageExample = @"
+        const string code = @"// This is our improved API in action!
+_formConfiguration = FormBuilder<ContactModel>
+    .Create()
+    .AddField(x => x.FirstName, field => field
+        .WithLabel(""First Name"")
+        .Required(""First name is required"")
+        .WithMinLength(2, ""Must be at least 2 characters"")
+        .WithPlaceholder(""Enter your first name""))
+    .AddField(x => x.LastName, field => field
+        .WithLabel(""Last Name"")
+        .Required(""Last name is required"")
+        .WithMinLength(2, ""Must be at least 2 characters"")
+        .WithPlaceholder(""Enter your last name""))
+    .AddField(x => x.Email, field => field
+        .WithLabel(""Email Address"")
+        .Required(""Email is required"")
+        .WithEmailValidation()
+        .WithPlaceholder(""your.email@example.com""))
+    .AddField(x => x.Age, field => field
+        .WithLabel(""Age"")
+        .Required(""Age is required"")
+        .WithRange(16, 100, ""Age must be between 16 and 100""))
+    .AddField(x => x.Country, field => field
+        .WithLabel(""Country"")
+        .Required(""Please select your country"")
+        .WithOptions(
+            (""US"", ""United States""),
+            (""CA"", ""Canada""),
+            (""UK"", ""United Kingdom""),
+            (""DE"", ""Germany""),
+            (""FR"", ""France"")))
+    .AddField(x => x.City, field => field
+        .WithLabel(""City"")
+        .WithPlaceholder(""Enter your city"")
+        .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
+        .DependsOn(x => x.Country, (model, country) =>
+        {
+            if (string.IsNullOrEmpty(country))
+            {
+                model.City = null;
+            }
+        }))
+    .AddField(x => x.SubscribeToNewsletter, field => field
+        .WithLabel(""Subscribe to Newsletter"")
+        .WithHelpText(""Get updates about new features""))
+    .Build();
 
 // Use the FormCraftComponent for automatic rendering
 <FormCraftComponent
@@ -197,6 +239,6 @@ public partial class ImprovedForm
     ShowSubmitButton=""true""
     SubmitButtonText=""Submit Application"" />";
 
-        return formCode + usageExample;
+        return code;
     }
 }

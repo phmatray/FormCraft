@@ -193,10 +193,46 @@ public partial class FluentForm
 
     private string GetGeneratedCode()
     {
-        var formCode = CodeGenerator.GenerateFormBuilderCode(_formConfiguration);
-
-        // Add usage example
-        const string usageExample = @"
+        const string code = @"// Much simpler form creation using fluent methods
+_formConfiguration = FormBuilder<ContactModel>
+    .Create()
+    .WithLayout(FormLayout.Horizontal)
+    .AddRequiredTextField(x => x.FirstName, ""First Name"", ""Enter your first name"", 2)
+    .AddRequiredTextField(x => x.LastName, ""Last Name"", ""Enter your last name"", 2)
+    .AddEmailField(x => x.Email)
+    .AddNumericField(x => x.Age, ""Age"", 16, 100)
+    .AddField(x => x.ExpectedSalary, field => field
+        .WithLabel(""Expected Salary"")
+        .WithPlaceholder(""$0.00"")
+        .WithHelpText(""Enter amount in $""))
+    .AddField(x => x.HourlyRate, field => field
+        .WithLabel(""Hourly Rate"")
+        .WithPlaceholder(""50.00"")
+        .WithHelpText(""Enter hourly rate""))
+    .AddField(x => x.Country, field => field
+        .WithLabel(""Country"")
+        .Required(""Please select a country"")
+        .WithOptions(
+            (""US"", ""United States""),
+            (""CA"", ""Canada""),
+            (""UK"", ""United Kingdom""),
+            (""DE"", ""Germany""),
+            (""FR"", ""France"")))
+    .AddField(x => x.City, field => field
+        .WithLabel(""City"")
+        .WithPlaceholder(""Enter your city"")
+        .VisibleWhen(m => !string.IsNullOrEmpty(m.Country))
+        .DependsOn(x => x.Country, (model, country) =>
+        {
+            if (string.IsNullOrEmpty(country))
+            {
+                model.City = null;
+            }
+        }))
+    .AddField(x => x.SubscribeToNewsletter, field => field
+        .WithLabel(""Subscribe to Newsletter"")
+        .WithHelpText(""Get updates about new features""))
+    .Build();
 
 // Use in Razor component
 <FormCraftComponent
@@ -208,6 +244,6 @@ public partial class FluentForm
     ShowSubmitButton=""true""
     SubmitButtonText=""Submit Information"" />";
 
-        return formCode + usageExample;
+        return code;
     }
 }

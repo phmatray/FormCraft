@@ -1,5 +1,4 @@
 @page "/custom-renderers"
-@inject FormCodeGeneratorService CodeGenerator
 
 <DemoPageLayout
     Title="Custom Field Renderers"
@@ -52,9 +51,15 @@
     
     <CodeExampleContent>
         <CodeExample
-            Title="Custom Renderer Configuration"
+            Title="Form Configuration with Custom Renderers"
             Language="csharp"
-            Code="@GetGeneratedCode()" />
+            Code="@GetExampleCode()" />
+        
+        <CodeExample
+            Title="Creating a Custom Renderer"
+            Language="csharp"
+            Code="@GetCustomRendererExample()"
+            Class="mt-4" />
     </CodeExampleContent>
     
     <GuidelinesContent>

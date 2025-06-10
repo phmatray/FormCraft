@@ -18,7 +18,6 @@ builder.Services.AddFormCraft();
 builder.Services.AddFormCraftMudBlazor(); // Add MudBlazor-specific renderers
 builder.Services.AddScoped<IMarkdownService>(sp => 
     new MarkdownService(sp.GetRequiredService<HttpClient>()));
-builder.Services.AddScoped<FormCodeGeneratorService>();
 builder.Services.AddScoped<IVersionService>(sp => 
     new VersionService(sp.GetRequiredService<HttpClient>()));
 
