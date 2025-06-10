@@ -27,7 +27,14 @@
                     ShowSubmitButton="@ShowSubmitButton"
                     SubmitButtonText="@SubmitButtonText"
                     SubmittingText="@SubmittingText"
-                    SubmitButtonClass="@SubmitButtonClass" />
+                    SubmitButtonClass="@SubmitButtonClass">
+                    <BeforeForm>
+                        @BeforeFormContent
+                    </BeforeForm>
+                    <AfterForm>
+                        @AfterFormContent
+                    </AfterForm>
+                </FormCraftComponent>
                 
                 @if (AdditionalContent != null)
                 {

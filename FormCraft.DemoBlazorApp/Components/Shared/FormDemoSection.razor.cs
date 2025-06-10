@@ -55,4 +55,10 @@ public partial class FormDemoSection<TModel>
     
     [Parameter]
     public RenderFragment? AdditionalContent { get; set; }
+    
+    [Parameter]
+    public RenderFragment? BeforeFormContent { get; set; }
+    
+    [Parameter]
+    public RenderFragment? AfterFormContent { get; set; }
 }

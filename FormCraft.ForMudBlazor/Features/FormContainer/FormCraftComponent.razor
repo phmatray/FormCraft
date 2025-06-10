@@ -4,6 +4,11 @@
 @inject IFieldRendererService FieldRendererService
 @inject IJSRuntime JSRuntime
 
+@if (BeforeForm != null)
+{
+    @BeforeForm
+}
+
 <EditForm Model="@Model" OnValidSubmit="@OnSubmit">
     <DataAnnotationsValidator />
     <DynamicFormValidator TModel="TModel" Configuration="@Configuration" />
@@ -72,6 +77,11 @@
         </MudButton>
     }
 </EditForm>
+
+@if (AfterForm != null)
+{
+    @AfterForm
+}
 
 @code {
     protected override async Task OnAfterRenderAsync(bool firstRender)
