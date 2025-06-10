@@ -4,11 +4,21 @@
 
 <MudColorPicker
     Label="@Label"
-    @bind-Text="@CurrentValue"
+    Text="@(CurrentValue ?? "#FFFFFF")"
+    TextChanged="@HandleColorChanged"
     Placeholder="@Placeholder"
     HelperText="@HelpText"
     ReadOnly="@IsReadOnly"
     Disabled="@IsDisabled"
     Variant="Variant.Outlined"
     Margin="Margin.Dense"
-    ColorPickerMode="ColorPickerMode.RGB"/>
+    ColorPickerMode="ColorPickerMode.RGB"
+    PickerVariant="PickerVariant.Dialog"
+    AnchorOrigin="Origin.BottomCenter"/>
+
+@code {
+    private void HandleColorChanged(string? color)
+    {
+        CurrentValue = color ?? "#FFFFFF";
+    }
+}
