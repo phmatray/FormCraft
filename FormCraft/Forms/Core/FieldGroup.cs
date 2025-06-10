@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Components;
+
 namespace FormCraft;
 
 /// <summary>
@@ -45,4 +47,10 @@ public class FieldGroup<TModel>
     /// Gets or sets the elevation for the card if ShowCard is true.
     /// </summary>
     public int CardElevation { get; set; } = 1;
+
+    /// <summary>
+    /// Gets or sets custom content to display to the right of the group name.
+    /// This can be used for tooltips, info icons, or other UI elements.
+    /// </summary>
+    public RenderFragment? HeaderRightContent { get; set; }
 }

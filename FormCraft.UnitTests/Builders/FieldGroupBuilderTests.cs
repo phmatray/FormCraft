@@ -166,4 +166,132 @@ public class FieldGroupBuilderTests
         var fieldGroup = groupedConfig?.FieldGroups[0];
         fieldGroup?.FieldNames.Count.ShouldBe(2);
     }
+
+    [Fact]
+    public void WithHeaderRightContent_Should_Set_HeaderRightContent()
+    {
+        // Arrange
+        var formBuilder = FormBuilder<TestModel>.Create();
+
+        // Act
+        formBuilder.AddFieldGroup(group => group
+            .WithGroupName("Test Group")
+            .WithHeaderRightContent(builder =>
+            {
+                builder.AddContent(0, "Test Content");
+            })
+            .AddField(x => x.FirstName, field => field.WithLabel("First Name")));
+
+        var configuration = formBuilder.Build();
+        var groupedConfig = configuration as IGroupedFormConfiguration<TestModel>;
+        var fieldGroup = groupedConfig?.FieldGroups.FirstOrDefault();
+
+        // Assert
+        fieldGroup.ShouldNotBeNull();
+        fieldGroup.HeaderRightContent.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void WithHeaderRightContent_Should_Be_Null_When_Not_Set()
+    {
+        // Arrange
+        var formBuilder = FormBuilder<TestModel>.Create();
+
+        // Act
+        formBuilder.AddFieldGroup(group => group
+            .WithGroupName("Test Group")
+            .AddField(x => x.FirstName, field => field.WithLabel("First Name")));
+
+        var configuration = formBuilder.Build();
+        var groupedConfig = configuration as IGroupedFormConfiguration<TestModel>;
+        var fieldGroup = groupedConfig?.FieldGroups.FirstOrDefault();
+
+        // Assert
+        fieldGroup.ShouldNotBeNull();
+        fieldGroup.HeaderRightContent.ShouldBeNull();
+    }
+
+    [Fact]
+    public void WithHeaderRightContent_Should_Support_Method_Chaining()
+    {
+        // Arrange
+        var formBuilder = FormBuilder<TestModel>.Create();
+
+        // Act
+        var result = formBuilder.AddFieldGroup(group => group
+            .WithGroupName("Test Group")
+            .WithHeaderRightContent(builder => builder.AddContent(0, "Content"))
+            .WithColumns(2)
+            .ShowInCard()
+            .AddField(x => x.FirstName, field => field.WithLabel("First Name"))
+            .AddField(x => x.LastName, field => field.WithLabel("Last Name")));
+
+        var configuration = formBuilder.Build();
+        var groupedConfig = configuration as IGroupedFormConfiguration<TestModel>;
+        var fieldGroup = groupedConfig?.FieldGroups.FirstOrDefault();
+
+        // Assert
+        result.ShouldNotBeNull();
+        fieldGroup.ShouldNotBeNull();
+        fieldGroup.Name.ShouldBe("Test Group");
+        fieldGroup.HeaderRightContent.ShouldNotBeNull();
+        fieldGroup.Columns.ShouldBe(2);
+        fieldGroup.ShowCard.ShouldBeTrue();
+        fieldGroup.FieldNames.Count.ShouldBe(2);
+    }
+
+    private class TestComponent : IComponent
+    {
+        public void Attach(RenderHandle renderHandle) { }
+        public Task SetParametersAsync(ParameterView parameters) => Task.CompletedTask;
+    }
+
+    private class TestComponentWithParam : IComponent
+    {
+        [Parameter] public string? Text { get; set; }
+        public void Attach(RenderHandle renderHandle) { }
+        public Task SetParametersAsync(ParameterView parameters) => Task.CompletedTask;
+    }
+
+    [Fact]
+    public void WithHeaderRightContent_Generic_Without_Parameters_Should_Work()
+    {
+        // Arrange
+        var formBuilder = FormBuilder<TestModel>.Create();
+
+        // Act
+        formBuilder.AddFieldGroup(group => group
+            .WithGroupName("Test Group")
+            .WithHeaderRightContent<TestComponent>()
+            .AddField(x => x.FirstName));
+
+        var configuration = formBuilder.Build();
+        var groupedConfig = configuration as IGroupedFormConfiguration<TestModel>;
+        var fieldGroup = groupedConfig?.FieldGroups.FirstOrDefault();
+
+        // Assert
+        fieldGroup.ShouldNotBeNull();
+        fieldGroup.HeaderRightContent.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void WithHeaderRightContent_Generic_With_Parameters_Should_Work()
+    {
+        // Arrange
+        var formBuilder = FormBuilder<TestModel>.Create();
+
+        // Act
+        formBuilder.AddFieldGroup(group => group
+            .WithGroupName("Test Group")
+            .WithHeaderRightContent<TestComponentWithParam>(p => p["Text"] = "Test Value")
+            .AddField(x => x.FirstName));
+
+        var configuration = formBuilder.Build();
+        var groupedConfig = configuration as IGroupedFormConfiguration<TestModel>;
+        var fieldGroup = groupedConfig?.FieldGroups.FirstOrDefault();
+
+        // Assert
+        fieldGroup.ShouldNotBeNull();
+        fieldGroup.HeaderRightContent.ShouldNotBeNull();
+    }
 }
