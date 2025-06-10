@@ -38,8 +38,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFieldRenderer, MudBlazorDateTimeFieldRenderer>();
         services.AddScoped<IFieldRenderer, MudBlazorSelectFieldRenderer>();
         services.AddScoped<IFieldRenderer, MudBlazorFileUploadFieldRenderer>();
-        services.AddScoped<IFieldRenderer, MudBlazorColorPickerRenderer>();
-        services.AddScoped<IFieldRenderer, MudBlazorRatingRenderer>();
+        // Note: MudBlazorColorPickerRenderer and MudBlazorRatingRenderer are custom renderers,
+        // not IFieldRenderer implementations. They should be used via WithCustomRenderer().
         
         return services;
     }

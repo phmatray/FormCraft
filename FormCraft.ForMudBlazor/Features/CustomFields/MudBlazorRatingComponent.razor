@@ -8,8 +8,9 @@
 }
 
 <MudRating
-    @bind-SelectedValue="@CurrentValue"
-    MaxValue="@MaxValue"
+    SelectedValue="@CurrentValue"
+    SelectedValueChanged="@HandleRatingChanged"
+    MaxValue="@GetMaxRating()"
     Disabled="@IsDisabled"
     ReadOnly="@IsReadOnly"
     Color="Color.Primary"
@@ -18,4 +19,16 @@
 @if (!string.IsNullOrEmpty(HelpText))
 {
     <MudText Typo="Typo.caption" Class="mt-1">@HelpText</MudText>
+}
+
+@code {
+    private void HandleRatingChanged(int rating)
+    {
+        CurrentValue = rating;
+    }
+    
+    private int GetMaxRating()
+    {
+        return GetAttribute<int>("MaxRating", 5);
+    }
 }

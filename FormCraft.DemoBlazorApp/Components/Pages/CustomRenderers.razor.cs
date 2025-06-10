@@ -1,5 +1,6 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.ForMudBlazor;
 using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
@@ -17,13 +18,13 @@ public partial class CustomRenderers
         {
             Feature = "Color Picker",
             Usage = "Visual color selection control",
-            Example = ".WithCustomRenderer<TModel, string, ColorPickerRenderer>()"
+            Example = ".WithCustomRenderer<TModel, string, MudBlazorColorPickerRenderer>()"
         },
         new()
         {
             Feature = "Rating Control",
             Usage = "Star-based rating input",
-            Example = ".WithCustomRenderer<TModel, int, RatingRenderer>()"
+            Example = ".WithCustomRenderer<TModel, int, MudBlazorRatingRenderer>()"
         },
         new()
         {
@@ -88,11 +89,11 @@ public partial class CustomRenderers
                 .ShowInCard()
                 .AddField(x => x.Color, field => field
                     .WithLabel("Product Color")
-                    .WithCustomRenderer<ProductModel, string, ColorPickerRenderer>()
+                    .WithCustomRenderer<ProductModel, string, MudBlazorColorPickerRenderer>()
                     .WithHelpText("Select the primary color of the product"))
                 .AddField(x => x.Rating, field => field
                     .WithLabel("Quality Rating")
-                    .WithCustomRenderer<ProductModel, int, RatingRenderer>()
+                    .WithCustomRenderer<ProductModel, int, MudBlazorRatingRenderer>()
                     .WithAttribute("MaxRating", 5)
                     .WithHelpText("Rate the product quality from 1 to 5 stars")))
             .AddField(x => x.Description, field => field
