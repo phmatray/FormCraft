@@ -1,6 +1,6 @@
 # Examples
 
-Common patterns and examples for Dynamic Form Blazor.
+Common patterns and examples for FormCraft.
 
 ## Contact Form
 

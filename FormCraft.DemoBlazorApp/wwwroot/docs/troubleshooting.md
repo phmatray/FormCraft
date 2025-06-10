@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Common issues and solutions when working with Dynamic Form Blazor.
+Common issues and solutions when working with FormCraft.
 
 ## Common Issues
 
@@ -176,7 +176,7 @@ protected override void OnParametersSet()
 
 | Error Message | Cause | Solution |
 |---------------|-------|----------|
-| `Cannot resolve symbol 'WithX'` | Missing using directive | Add `@using DynamicFormBlazor.Forms.Extensions` |
+| `Cannot resolve symbol 'WithX'` | Missing using directive | Add `@using FormCraft.Forms.Extensions` |
 | `Object reference not set` | Null model or configuration | Initialize model: `Model = new MyModel()` |
 | `InvalidOperationException: Sequence contains no elements` | Empty field collection | Ensure `Build()` is called after adding fields |
 | `ArgumentException: Expression must be a member access` | Invalid field expression | Use `x => x.PropertyName` format |

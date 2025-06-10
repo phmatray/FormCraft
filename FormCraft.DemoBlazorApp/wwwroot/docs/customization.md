@@ -1,6 +1,6 @@
 # Customization
 
-Learn how to customize Dynamic Form Blazor to fit your specific needs.
+Learn how to customize FormCraft to fit your specific needs.
 
 ## Custom Field Renderers
 
@@ -81,7 +81,7 @@ public class BusinessRuleValidator<TModel> : IFieldValidator<TModel, string>
 
 ### MudBlazor Theme Integration
 
-Dynamic Form Blazor inherits MudBlazor's theming system:
+FormCraft inherits MudBlazor's theming system:
 
 ```csharp
 // In Program.cs
@@ -202,7 +202,7 @@ Override default rendering with custom Blazor components:
 Configure default behaviors:
 
 ```csharp
-builder.Services.Configure<DynamicFormOptions>(options =>
+builder.Services.Configure<FormCraftOptions>(options =>
 {
     options.DefaultLayout = FormLayout.Horizontal;
     options.ShowRequiredIndicator = true;
