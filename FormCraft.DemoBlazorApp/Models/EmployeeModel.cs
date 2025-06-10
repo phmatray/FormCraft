@@ -2,15 +2,22 @@ namespace FormCraft.DemoBlazorApp.Models;
 
 public class EmployeeModel
 {
-    // Row 1 - 2 fields
+    // Personal Information
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
+    public DateTime? DateOfBirth { get; set; }
 
-    // Row 2 - 3 fields
+    // Contact Information
     public string? Email { get; set; }
     public string? Phone { get; set; }
-    public string? Department { get; set; }
+    public string? Address { get; set; }
 
-    // Row 3 - 1 field
+    // Professional Information
+    public string? Department { get; set; }
+    public string? Position { get; set; }
+    public DateTime? StartDate { get; set; }
+    public bool IsRemote { get; set; }
+    
+    // Additional
     public string? Biography { get; set; }
 }
