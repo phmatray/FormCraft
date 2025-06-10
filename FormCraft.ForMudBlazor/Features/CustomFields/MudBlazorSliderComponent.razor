@@ -1,0 +1,62 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel
+@inherits FieldComponentBase<TModel, double>
+
+@if (!string.IsNullOrEmpty(Label))
+{
+    <MudText Typo="Typo.body2" Class="mb-1">@Label</MudText>
+}
+
+<MudSlider 
+    T="double"
+    Value="@CurrentValue"
+    ValueChanged="@HandleSliderChanged"
+    Min="@GetMinValue()"
+    Max="@GetMaxValue()"
+    Step="@GetStepValue()"
+    Disabled="@IsDisabled"
+    Color="Color.Primary"
+    TickMarks="@GetShowTickMarks()"
+    ValueLabel="@GetShowValueLabel()"
+    Variant="Variant.Filled" />
+
+@if (!string.IsNullOrEmpty(HelpText))
+{
+    <div style="margin-top: -2px; overflow: hidden">
+        <div class="d-flex mud-input-helper-text">
+            <div class="me-auto">@HelpText</div>
+        </div>
+    </div>
+}
+
+@code {
+    private void HandleSliderChanged(double value)
+    {
+        CurrentValue = value;
+    }
+    
+    private double GetMinValue()
+    {
+        return GetAttribute("Min", 0.0);
+    }
+    
+    private double GetMaxValue()
+    {
+        return GetAttribute("Max", 100.0);
+    }
+    
+    private double GetStepValue()
+    {
+        return GetAttribute("Step", 1.0);
+    }
+    
+    private bool GetShowTickMarks()
+    {
+        return GetAttribute("ShowTickMarks", false);
+    }
+    
+    private bool GetShowValueLabel()
+    {
+        return GetAttribute("ShowValueLabel", true);
+    }
+}
