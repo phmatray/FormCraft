@@ -18,7 +18,11 @@
 
 @if (!string.IsNullOrEmpty(HelpText))
 {
-    <MudText Typo="Typo.caption" Class="mt-1">@HelpText</MudText>
+    <div style="margin-top: -2px; overflow: hidden">
+        <div class="d-flex mud-input-helper-text">
+            <div class="me-auto">@HelpText</div>
+        </div>
+    </div>
 }
 
 @code {
