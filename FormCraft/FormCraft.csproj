@@ -25,6 +25,10 @@
     <!-- Package Tags -->
     <PackageTags>blazor;forms;dynamic;fluent;validation;ui;form-builder;dynamic-forms;blazor-components</PackageTags>
     
+    <!-- Additional Package Metadata -->
+    <PackageReleaseNotes>https://github.com/phmatray/FormCraft/releases</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    
     <!-- Build Settings -->
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>

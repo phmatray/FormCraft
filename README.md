@@ -4,6 +4,7 @@
 
 [![NuGet Version](https://img.shields.io/nuget/v/FormCraft.svg?style=flat-square)](https://www.nuget.org/packages/FormCraft/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/FormCraft.svg?style=flat-square)](https://www.nuget.org/packages/FormCraft/)
+[![MudBlazor Version](https://img.shields.io/nuget/v/FormCraft.ForMudBlazor.svg?style=flat-square&label=FormCraft.ForMudBlazor)](https://www.nuget.org/packages/FormCraft.ForMudBlazor/)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/phmatray/FormCraft/continuous.yml?branch=main&style=flat-square)](https://github.com/phmatray/FormCraft/actions)
 [![License](https://img.shields.io/github/license/phmatray/FormCraft?style=flat-square)](https://github.com/phmatray/FormCraft/blob/main/LICENSE)
 [![Stars](https://img.shields.io/github/stars/phmatray/FormCraft?style=flat-square)](https://github.com/phmatray/FormCraft/stargazers)
@@ -26,6 +27,27 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 - 📤 File upload capabilities
 - 🎨 Real-time form generation
 
+## 🎉 What's New in v2.0.0
+
+FormCraft v2.0.0 brings exciting new features and improvements:
+
+### 🔒 Security Features
+- **Field-level encryption** for sensitive data protection
+- **CSRF protection** with built-in anti-forgery tokens
+- **Rate limiting** to prevent form spam
+- **Audit logging** to track all form interactions
+
+### 📦 Modular Architecture
+- **Separate UI framework packages** - Use only what you need
+- **FormCraft.ForMudBlazor** - MudBlazor implementation package
+- **Improved extensibility** - Easier to add custom UI frameworks
+
+### 🚀 Other Improvements
+- **Enhanced performance** with optimized rendering
+- **Better type safety** with improved generic constraints
+- **Comprehensive documentation** with live examples
+- **400+ unit tests** ensuring reliability
+
 ## 🚀 Why FormCraft?
 
 FormCraft revolutionizes form building in Blazor applications by providing a **fluent, type-safe API** that makes complex forms simple. Say goodbye to repetitive form markup and hello to elegant, maintainable code.
@@ -44,9 +66,17 @@ FormCraft revolutionizes form building in Blazor applications by providing a **f
 
 ## 📦 Installation
 
+### FormCraft Core
 ```bash
 dotnet add package FormCraft
 ```
+
+### FormCraft for MudBlazor
+```bash
+dotnet add package FormCraft.ForMudBlazor
+```
+
+> **Note**: FormCraft.ForMudBlazor includes FormCraft as a dependency, so you only need to install the MudBlazor package if you're using MudBlazor components.
 
 ## 🎯 Quick Start
 
@@ -246,6 +276,27 @@ var formConfig = FormBuilder<UserModel>
     .Build();
 ```
 
+### Security Features (v2.0.0+)
+
+Protect your forms with built-in security features:
+
+```csharp
+var formConfig = FormBuilder<SecureForm>.Create()
+    .WithSecurity(security => security
+        .EncryptField(x => x.SSN)           // Encrypt sensitive fields
+        .EncryptField(x => x.CreditCard)
+        .EnableCsrfProtection()             // Enable anti-forgery tokens
+        .WithRateLimit(5, TimeSpan.FromMinutes(1))  // Max 5 submissions per minute
+        .EnableAuditLogging())              // Log all form interactions
+    .AddField(x => x.SSN, field => field
+        .WithLabel("Social Security Number")
+        .WithMask("000-00-0000"))
+    .AddField(x => x.CreditCard, field => field
+        .WithLabel("Credit Card")
+        .WithMask("0000 0000 0000 0000"))
+    .Build();
+```
+
 ### Custom Field Renderers
 
 Create specialized input controls for specific field types:
@@ -336,15 +387,23 @@ dotnet test
 
 ## 🗺️ Roadmap
 
-- [x] File upload field type ✅
+### ✅ Completed
+- [x] File upload field type
+- [x] Security features (encryption, CSRF, rate limiting, audit logging)
+- [x] Modular UI framework architecture
+
+### 🚧 In Progress
+- [ ] Import/Export forms as JSON
 - [ ] Rich text editor field
+
+### 📋 Planned
+- [x] Wizard/stepper forms
 - [ ] Drag-and-drop form builder UI
 - [ ] Form templates library
 - [ ] Localization support
 - [ ] More layout options
 - [ ] Integration with popular CSS frameworks
 - [ ] Form state persistence
-- [ ] Wizard/stepper forms
 
 ## 💬 Community
 
