@@ -98,8 +98,8 @@ public partial class FileUploadDemo
                 ("manager", "Project Manager"),
                 ("analyst", "Business Analyst"))
             .AddField(x => x.CoverLetter, field => field
-                .WithLabel("Cover Letter")
                 .AsTextArea(lines: 5, maxLength: 1000)
+                .WithLabel("Cover Letter")
                 .WithPlaceholder("Tell us why you're a great fit for this position...")
                 .Required("Please provide a cover letter"))
             .AddCheckboxField(x => x.AgreeToTerms, "I agree to the terms and conditions",
@@ -162,7 +162,39 @@ public partial class FileUploadDemo
 
     private string GetGeneratedCode()
     {
-        // Generate code from the actual form configuration
-        return CodeGenerator.GenerateFormBuilderCode(_formConfiguration);
+        const string code = @"_formConfiguration = FormBuilder<JobApplicationModel>.Create()
+    .AddRequiredTextField(x => x.FullName, ""Full Name"", ""Enter your full name"")
+    .AddEmailField(x => x.Email)
+    .AddPhoneField(x => x.Phone!, required: true)
+    .AddFileUploadField(x => x.Resume!, ""Upload Resume"",
+        acceptedFileTypes: ["".pdf"", "".doc"", "".docx""],
+        maxFileSize: 5 * 1024 * 1024, // 5MB
+        required: true)
+    .AddMultipleFileUploadField(x => x.Certificates!, ""Upload Certificates"",
+        maxFiles: 3,
+        acceptedFileTypes: ["".pdf"", "".jpg"", "".png""],
+        maxFileSize: 2 * 1024 * 1024) // 2MB per file
+    .AddDropdownField(x => x.Position, ""Position"",
+        (""developer"", ""Software Developer""),
+        (""designer"", ""UI/UX Designer""),
+        (""manager"", ""Project Manager""),
+        (""analyst"", ""Business Analyst""))
+    .AddField(x => x.CoverLetter, field => field
+        .AsTextArea(lines: 5, maxLength: 1000)
+        .WithLabel(""Cover Letter"")
+        .WithPlaceholder(""Tell us why you're a great fit for this position..."")
+        .Required(""Please provide a cover letter""))
+    .AddCheckboxField(x => x.AgreeToTerms, ""I agree to the terms and conditions"",
+        ""You must agree to proceed with your application"")
+    .Build();
+
+// Use in Razor component
+<FormCraftComponent
+    TModel=""JobApplicationModel"" 
+    Model=""@_model"" 
+    Configuration=""@_formConfiguration""
+    OnValidSubmit=""@HandleSubmit"" />";
+
+        return code;
     }
 }

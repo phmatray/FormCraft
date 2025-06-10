@@ -181,7 +181,62 @@ public partial class FieldGroups
 
     private string GetGeneratedCode()
     {
-        // Generate code from the actual form configuration
-        return CodeGenerator.GenerateFormBuilderCode(_formConfiguration);
+        const string code = @"// Build form with field groups using the new fluent API
+_formConfiguration = FormBuilder<EmployeeModel>
+    .Create()
+    // Row 1: 2 fields (First Name, Last Name)
+    .AddFieldGroup(group => group
+        .WithGroupName(""Personal Information"")
+        .WithColumns(2)
+        .ShowInCard()
+        .AddField(x => x.FirstName, field => field
+            .WithLabel(""First Name"")
+            .Required(""First name is required"")
+            .WithPlaceholder(""Enter first name""))
+        .AddField(x => x.LastName, field => field
+            .WithLabel(""Last Name"")
+            .Required(""Last name is required"")
+            .WithPlaceholder(""Enter last name"")))
+    // Row 2: 3 fields (Email, Phone, Department)
+    .AddFieldGroup(group => group
+        .WithGroupName(""Contact Details"")
+        .WithColumns(3)
+        .ShowInCard()
+        .AddField(x => x.Email, field => field
+            .WithLabel(""Email"")
+            .Required(""Email is required"")
+            .WithPlaceholder(""email@example.com""))
+        .AddField(x => x.Phone, field => field
+            .WithLabel(""Phone"")
+            .WithPlaceholder(""(555) 123-4567""))
+        .AddField(x => x.Department, field => field
+            .WithLabel(""Department"")
+            .Required(""Department is required"")
+            .WithOptions(
+                (""IT"", ""Information Technology""),
+                (""HR"", ""Human Resources""),
+                (""SALES"", ""Sales""),
+                (""MARKETING"", ""Marketing""),
+                (""FINANCE"", ""Finance"")
+            )))
+    // Row 3: 1 field (Biography)
+    .AddFieldGroup(group => group
+        .WithGroupName(""Additional Information"")
+        .WithColumns(1)
+        .ShowInCard()
+        .AddField(x => x.Biography, field => field
+            .WithLabel(""Biography"")
+            .WithPlaceholder(""Tell us about yourself..."")
+            .WithHelpText(""Brief description of experience and background"")))
+    .Build();
+
+// Use in Razor component
+<FormCraftComponent
+    TModel=""EmployeeModel"" 
+    Model=""@_model"" 
+    Configuration=""@_formConfiguration""
+    OnValidSubmit=""@HandleValidSubmit"" />";
+
+        return code;
     }
 }

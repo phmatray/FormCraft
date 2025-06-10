@@ -1,6 +1,5 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
-using FormCraft.ForMudBlazor;
 using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
@@ -17,32 +16,32 @@ public partial class CustomRenderers
         new()
         {
             Feature = "Color Picker",
-            Usage = "Visual color selection control",
-            Example = ".WithCustomRenderer<TModel, string, MudBlazorColorPickerRenderer>()"
+            Usage = "Visual color selection for string fields",
+            Example = ".AsColorPicker()"
         },
         new()
         {
             Feature = "Rating Control",
-            Usage = "Star-based rating input",
-            Example = ".WithCustomRenderer<TModel, int, MudBlazorRatingRenderer>()"
+            Usage = "Star-based rating for integer fields",
+            Example = ".AsRating(maxRating: 5)"
         },
         new()
         {
-            Feature = "Custom Attributes",
-            Usage = "Pass parameters to renderers",
-            Example = ".WithAttribute(\"MaxRating\", 5)"
+            Feature = "Field Groups",
+            Usage = "Organize fields into responsive columns",
+            Example = ".AddFieldGroup(g => g.WithColumns(2))"
         },
         new()
         {
-            Feature = "Help Text",
-            Usage = "Provide user guidance",
-            Example = ".WithHelpText(\"Select the primary color\")"
+            Feature = "Show In Card",
+            Usage = "Display field groups in Material cards",
+            Example = ".ShowInCard(elevation: 2)"
         },
         new()
         {
-            Feature = "Creating Renderers",
-            Usage = "Implement ICustomFieldRenderer",
-            Example = "public class MyRenderer : ICustomFieldRenderer"
+            Feature = "Creating Custom Renderers",
+            Usage = "Extend with your own field types",
+            Example = "class MyRenderer : CustomFieldRendererBase<T>"
         }
     ];
 
@@ -88,17 +87,16 @@ public partial class CustomRenderers
                 .WithColumns(2)
                 .ShowInCard()
                 .AddField(x => x.Color, field => field
+                    .AsColorPicker()
                     .WithLabel("Product Color")
-                    .WithCustomRenderer<ProductModel, string, MudBlazorColorPickerRenderer>()
                     .WithHelpText("Select the primary color of the product"))
                 .AddField(x => x.Rating, field => field
+                    .AsRating(maxRating: 5)
                     .WithLabel("Quality Rating")
-                    .WithCustomRenderer<ProductModel, int, MudBlazorRatingRenderer>()
-                    .WithAttribute("MaxRating", 5)
                     .WithHelpText("Rate the product quality from 1 to 5 stars")))
             .AddField(x => x.Description, field => field
-                .WithLabel("Description")
                 .AsTextArea(lines: 4)
+                .WithLabel("Description")
                 .WithPlaceholder("Enter product description"))
             .AddField(x => x.InStock, field => field
                 .WithLabel("In Stock"))
@@ -139,9 +137,106 @@ public partial class CustomRenderers
         ];
     }
 
-    private string GetGeneratedCode()
+    private string GetExampleCode()
     {
-        // Generate code from the actual form configuration
-        return CodeGenerator.GenerateFormBuilderCode(_formConfiguration);
+        return """
+            _formConfiguration = FormBuilder<ProductModel>
+                .Create()
+                .AddFieldGroup(group => group
+                    .WithGroupName("Basic Information")
+                    .WithColumns(2)
+                    .AddField(x => x.Name, field => field
+                        .WithLabel("Product Name")
+                        .Required()
+                        .WithPlaceholder("Enter product name"))
+                    .AddField(x => x.Category, field => field
+                        .WithLabel("Category")
+                        .Required()
+                        .WithOptions(
+                            ("electronics", "Electronics"),
+                            ("clothing", "Clothing"),
+                            ("books", "Books"),
+                            ("home", "Home & Garden")
+                        )))
+                .AddFieldGroup(group => group
+                    .WithGroupName("Details")
+                    .WithColumns(2)
+                    .AddField(x => x.Price, field => field
+                        .WithLabel("Price")
+                        .Required()
+                        .WithPlaceholder("0.00"))
+                    .AddField(x => x.ReleaseDate, field => field
+                        .WithLabel("Release Date")))
+                .AddFieldGroup(group => group
+                    .WithGroupName("Appearance & Rating")
+                    .WithColumns(2)
+                    .ShowInCard()
+                    .AddField(x => x.Color, field => field
+                        .AsColorPicker()
+                        .WithLabel("Product Color")
+                        .WithHelpText("Select the primary color of the product"))
+                    .AddField(x => x.Rating, field => field
+                        .AsRating(maxRating: 5)
+                        .WithLabel("Quality Rating")
+                        .WithHelpText("Rate the product quality from 1 to 5 stars")))
+                .AddField(x => x.Description, field => field
+                    .AsTextArea(lines: 4)
+                    .WithLabel("Description")
+                    .WithPlaceholder("Enter product description"))
+                .AddField(x => x.InStock, field => field
+                    .WithLabel("In Stock"))
+                .Build();
+            """;
+    }
+
+    private string GetCustomRendererExample()
+    {
+        return """
+            // Step 1: Create the custom renderer class
+            public class MudBlazorColorPickerRenderer : CustomFieldRendererBase<string>
+            {
+                public override RenderFragment Render(IFieldRenderContext context)
+                {
+                    return builder =>
+                    {
+                        builder.OpenComponent(0, typeof(MudBlazorColorPickerComponent<>)
+                            .MakeGenericType(context.Model.GetType()));
+                        builder.AddAttribute(1, "Context", context);
+                        builder.CloseComponent();
+                    };
+                }
+            }
+
+            // Step 2: Create the Blazor component
+            @namespace FormCraft.ForMudBlazor
+            @typeparam TModel
+            @inherits FieldComponentBase<TModel, string>
+
+            <MudColorPicker
+                Label="@Label"
+                Text="@(CurrentValue ?? "#FFFFFF")"
+                TextChanged="@HandleColorChanged"
+                Placeholder="@Placeholder"
+                HelperText="@HelpText"
+                ReadOnly="@IsReadOnly"
+                Disabled="@IsDisabled"
+                Variant="Variant.Outlined"
+                PickerVariant="PickerVariant.Dialog" />
+
+            @code {
+                private void HandleColorChanged(string? color)
+                {
+                    CurrentValue = color ?? "#FFFFFF";
+                }
+            }
+
+            // Step 3: Create extension method for easy usage
+            public static FieldBuilder<TModel, string> AsColorPicker<TModel>(
+                this FieldBuilder<TModel, string> builder)
+                where TModel : new()
+            {
+                return builder.WithCustomRenderer<TModel, string, MudBlazorColorPickerRenderer>();
+            }
+            """;
     }
 }
