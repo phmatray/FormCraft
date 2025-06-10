@@ -13,7 +13,7 @@ public partial class MudBlazorFileUploadFieldComponent<TModel>
         get => _singleFileList;
         set
         {
-            if (_singleFileList != value)
+            if (!Equals(_singleFileList, value))
             {
                 _singleFileList = value;
                 CurrentValue = value?.FirstOrDefault();
