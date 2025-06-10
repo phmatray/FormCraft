@@ -42,7 +42,7 @@ public class MudBlazorUIFrameworkAdapter : IUIFrameworkAdapter
                 builder.AddAttribute(sequence++, "Class", cssClass);
             }
             
-            builder.AddAttribute(sequence++, "ChildContent", content);
+            builder.AddAttribute(sequence, "ChildContent", content);
             builder.CloseComponent();
         };
     }
@@ -58,7 +58,7 @@ public class MudBlazorUIFrameworkAdapter : IUIFrameworkAdapter
             builder.AddAttribute(sequence++, "Elevation", 0);
             builder.AddAttribute(sequence++, "Outlined", true);
             
-            builder.AddAttribute(sequence++, "ChildContent", (RenderFragment)(groupBuilder =>
+            builder.AddAttribute(sequence, "ChildContent", (RenderFragment)(groupBuilder =>
             {
                 var innerSeq = 0;
                 
@@ -71,7 +71,7 @@ public class MudBlazorUIFrameworkAdapter : IUIFrameworkAdapter
                     groupBuilder.CloseComponent();
                 }
                 
-                groupBuilder.AddContent(innerSeq++, content);
+                groupBuilder.AddContent(innerSeq, content);
             }));
             
             builder.CloseComponent();
@@ -96,7 +96,7 @@ public class MudBlazorUIFrameworkAdapter : IUIFrameworkAdapter
                 builder.AddAttribute(sequence++, "Class", cssClass);
             }
             
-            builder.AddAttribute(sequence++, "ChildContent", (RenderFragment)(buttonBuilder =>
+            builder.AddAttribute(sequence, "ChildContent", (RenderFragment)(buttonBuilder =>
             {
                 if (isSubmitting)
                 {

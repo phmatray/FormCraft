@@ -81,7 +81,7 @@ public partial class FormCraftComponent<TModel>
             var value = property.GetValue(Model);
 
             // Check for fields with options (select/dropdown)
-            if (field.AdditionalAttributes.TryGetValue("Options", out var optionsObj) && optionsObj != null)
+            if (field.AdditionalAttributes.TryGetValue("Options", out var optionsObj))
             {
                 RenderSelectField(builder, field, value, optionsObj);
             }
@@ -97,15 +97,15 @@ public partial class FormCraftComponent<TModel>
             }
             else if (underlyingType == typeof(int))
             {
-                RenderNumericField<int>(builder, field, (int)(value ?? 0));
+                RenderNumericField(builder, field, (int)(value ?? 0));
             }
             else if (underlyingType == typeof(decimal))
             {
-                RenderNumericField<decimal>(builder, field, (decimal)(value ?? 0m));
+                RenderNumericField(builder, field, (decimal)(value ?? 0m));
             }
             else if (underlyingType == typeof(double))
             {
-                RenderNumericField<double>(builder, field, (double)(value ?? 0.0));
+                RenderNumericField(builder, field, (double)(value ?? 0.0));
             }
             else if (underlyingType == typeof(bool))
             {
@@ -230,7 +230,7 @@ public partial class FormCraftComponent<TModel>
             EventCallback.Factory.Create<InputFileChangeEventArgs>(this,
                 args => HandleFileUpload(field.FieldName, args)));
         builder.AddAttribute(3, "Accept",
-            field.AdditionalAttributes.TryGetValue("Accept", out var accept) ? accept : "*/*");
+            field.AdditionalAttributes.GetValueOrDefault("Accept", "*/*"));
         builder.AddAttribute(4, "Disabled", field.IsDisabled);
         builder.AddAttribute(5, "ChildContent", RenderFileUploadButton(field));
         builder.CloseComponent();

@@ -190,9 +190,9 @@ var form = FormTemplates
                             </MudText>
                             <pre class="language-csharp"><code class="language-csharp">var form = FormBuilder&lt;T&gt;
     .Create()
-    .AddField(x => x.Name)
+    .AddField(x => x.Name, field => field
         .WithLabel("Name")
-        .Required()
+        .Required())
     .Build();</code></pre>
                         </MudCardContent>
                         <MudCardActions Class="mt-auto">
@@ -305,10 +305,10 @@ var formConfig = FormBuilder&lt;ContactModel&gt;
     .Create()
     .AddRequiredTextField(x => x.Name, "Your Name")
     .AddEmailField(x => x.Email)
-    .AddField(x => x.Message)
+    .AddField(x => x.Message, field => field
         .WithLabel("Message")
-        .WithMultiline(5)
-        .Required()
+        .AsTextArea(lines: 5)
+        .Required())
     .Build();
 
 // 3. Use in your component
