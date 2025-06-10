@@ -256,8 +256,8 @@ public partial class StepperForm
                     </MudStep>
                 </ChildContent>
                 <ActionContent>
-                    <MudButton @onclick="@PreviousStep">Previous</MudButton>
-                    <MudButton @onclick="@NextStep">Next</MudButton>
+                    <MudButton OnClick="@PreviousStep">Previous</MudButton>
+                    <MudButton OnClick="@NextStep">Next</MudButton>
                 </ActionContent>
             </MudStepper>
             """;

@@ -58,26 +58,5 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="Fields\" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <AdditionalFiles Include="Fields\BooleanField\MudBlazorBooleanFieldComponent.razor" />
-    <AdditionalFiles Include="Fields\DateTimeField\MudBlazorDateTimeFieldComponent.razor" />
-    <AdditionalFiles Include="Fields\FileUploadField\MudBlazorFileUploadFieldComponent.razor" />
-    <AdditionalFiles Include="Fields\NumericField\MudBlazorNumericFieldComponent.razor" />
-    <AdditionalFiles Include="Fields\SelectField\MudBlazorSelectFieldComponent.razor" />
-    <AdditionalFiles Include="Fields\TextField\MudBlazorTextFieldComponent.razor" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <UpToDateCheckInput Remove="Features\DateTimeField\MudBlazorDateTimeFieldComponent.razor" />
-    <UpToDateCheckInput Remove="Features\FileUploadField\MudBlazorFileUploadFieldComponent.razor" />
-    <UpToDateCheckInput Remove="Features\NumericField\MudBlazorNumericFieldComponent.razor" />
-    <UpToDateCheckInput Remove="Features\SelectField\MudBlazorSelectFieldComponent.razor" />
-    <UpToDateCheckInput Remove="Features\TextField\MudBlazorTextFieldComponent.razor" />
-  </ItemGroup>
 
 </Project>

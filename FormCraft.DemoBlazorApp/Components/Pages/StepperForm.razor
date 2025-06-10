@@ -109,19 +109,30 @@
                         </MudStep>
                     </ChildContent>
                     <ActionContent>
-                        <MudButton Variant="Variant.Text" @onclick="@(async () => await PreviousStep())" Disabled="@(_currentStep == 0)">
+                        <MudButton
+                            Variant="Variant.Text"
+                            OnClick="@(async () => await PreviousStep())"
+                            Disabled="@(_currentStep == 0)">
                             Previous
                         </MudButton>
                         <MudSpacer />
                         @if (_currentStep == 3 && !_hasValidationErrors)
                         {
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="@SubmitForm" StartIcon="@Icons.Material.Filled.Check">
+                            <MudButton
+                                Variant="Variant.Filled"
+                                Color="Color.Primary"
+                                OnClick="@SubmitForm"
+                                StartIcon="@Icons.Material.Filled.Check">
                                 Submit
                             </MudButton>
                         }
                         else
                         {
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="@(async () => await NextStep())" StartIcon="@Icons.Material.Filled.NavigateNext">
+                            <MudButton
+                                Variant="Variant.Filled"
+                                Color="Color.Primary"
+                                OnClick="@(async () => await NextStep())"
+                                StartIcon="@Icons.Material.Filled.NavigateNext">
                                 Next
                             </MudButton>
                         }
