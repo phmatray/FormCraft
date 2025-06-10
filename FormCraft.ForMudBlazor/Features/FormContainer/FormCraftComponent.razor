@@ -24,7 +24,15 @@
                     @if (!string.IsNullOrEmpty(group.Name))
                     {
                         <MudCardContent>
-                            <MudText Typo="Typo.h6" Class="mb-4">@group.Name</MudText>
+                            <div class="d-flex justify-space-between align-center mb-4">
+                                <MudText Typo="Typo.h6">@group.Name</MudText>
+                                @if (group.HeaderRightContent != null)
+                                {
+                                    <div>
+                                        @group.HeaderRightContent
+                                    </div>
+                                }
+                            </div>
                             @RenderFieldGroup(group)
                         </MudCardContent>
                     }
@@ -41,7 +49,15 @@
                 <div class="mb-4 @group.CssClass">
                     @if (!string.IsNullOrEmpty(group.Name))
                     {
-                        <MudText Typo="Typo.h6" Class="mb-3">@group.Name</MudText>
+                        <div class="d-flex justify-space-between align-center mb-3">
+                            <MudText Typo="Typo.h6">@group.Name</MudText>
+                            @if (group.HeaderRightContent != null)
+                            {
+                                <div>
+                                    @group.HeaderRightContent
+                                </div>
+                            }
+                        </div>
                     }
                     @RenderFieldGroup(group)
                 </div>

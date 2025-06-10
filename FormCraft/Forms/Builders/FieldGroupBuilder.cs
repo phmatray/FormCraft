@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Microsoft.AspNetCore.Components;
 
 namespace FormCraft;
 
@@ -98,6 +99,61 @@ public class FieldGroupBuilder<TModel> where TModel : new()
     public FieldGroupBuilder<TModel> WithOrder(int order)
     {
         _fieldGroup.Order = order;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets custom content to display to the right of the group name.
+    /// This can be used for tooltips, info icons, or other UI elements.
+    /// </summary>
+    /// <param name="headerRightContent">The render fragment containing the custom content.</param>
+    /// <returns>The FieldGroupBuilder instance for method chaining.</returns>
+    public FieldGroupBuilder<TModel> WithHeaderRightContent(RenderFragment headerRightContent)
+    {
+        _fieldGroup.HeaderRightContent = headerRightContent;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets custom content to display to the right of the group name using a component type.
+    /// This can be used for tooltips, info icons, or other UI elements.
+    /// </summary>
+    /// <typeparam name="TComponent">The component type to render.</typeparam>
+    /// <returns>The FieldGroupBuilder instance for method chaining.</returns>
+    public FieldGroupBuilder<TModel> WithHeaderRightContent<TComponent>() where TComponent : IComponent
+    {
+        _fieldGroup.HeaderRightContent = builder =>
+        {
+            builder.OpenComponent<TComponent>(0);
+            builder.CloseComponent();
+        };
+        return this;
+    }
+
+    /// <summary>
+    /// Sets custom content to display to the right of the group name using a component type with parameters.
+    /// This can be used for tooltips, info icons, or other UI elements.
+    /// </summary>
+    /// <typeparam name="TComponent">The component type to render.</typeparam>
+    /// <param name="parameters">Action to configure component parameters.</param>
+    /// <returns>The FieldGroupBuilder instance for method chaining.</returns>
+    public FieldGroupBuilder<TModel> WithHeaderRightContent<TComponent>(Action<Dictionary<string, object>> parameters) where TComponent : IComponent
+    {
+        _fieldGroup.HeaderRightContent = builder =>
+        {
+            builder.OpenComponent<TComponent>(0);
+            
+            var paramDict = new Dictionary<string, object>();
+            parameters(paramDict);
+            
+            var sequence = 1;
+            foreach (var param in paramDict)
+            {
+                builder.AddAttribute(sequence++, param.Key, param.Value);
+            }
+            
+            builder.CloseComponent();
+        };
         return this;
     }
 }

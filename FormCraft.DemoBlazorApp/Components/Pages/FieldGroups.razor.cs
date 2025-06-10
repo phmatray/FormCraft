@@ -1,5 +1,6 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
@@ -79,6 +80,12 @@ public partial class FieldGroups
         },
         new()
         {
+            Feature = "Header Content",
+            Usage = "Add custom content to group headers",
+            Example = ".WithHeaderRightContent<InfoTooltip>(p => p[\"Text\"] = \"Info\")"
+        },
+        new()
+        {
             Feature = "Responsive Design",
             Usage = "Columns automatically stack on mobile",
             Example = "Built-in responsive behavior",
@@ -96,6 +103,7 @@ public partial class FieldGroups
                 .WithGroupName("Personal Information")
                 .WithColumns(2)
                 .ShowInCard()
+                .WithHeaderRightContent<InfoTooltip>(p => p["Text"] = "This information is required for all new contacts")
                 .AddField(x => x.FirstName, field => field
                     .WithLabel("First Name")
                     .Required("First name is required")
@@ -109,6 +117,7 @@ public partial class FieldGroups
                 .WithGroupName("Contact Details")
                 .WithColumns(3)
                 .ShowInCard()
+                .WithHeaderRightContent<OptionalBadge>()
                 .AddField(x => x.Email, field => field
                     .WithLabel("Email")
                     .Required("Email is required")
@@ -179,6 +188,8 @@ public partial class FieldGroups
         return items;
     }
 
+    // Helper methods removed - now using generic component syntax
+
     private string GetGeneratedCode()
     {
         const string code = @"// Build form with field groups using the new fluent API
@@ -189,6 +200,8 @@ _formConfiguration = FormBuilder<EmployeeModel>
         .WithGroupName(""Personal Information"")
         .WithColumns(2)
         .ShowInCard()
+        // Method 1: Use generic component with parameters
+        .WithHeaderRightContent<InfoTooltip>(p => p[""Text""] = ""This information is required for all new contacts"")
         .AddField(x => x.FirstName, field => field
             .WithLabel(""First Name"")
             .Required(""First name is required"")
@@ -202,6 +215,8 @@ _formConfiguration = FormBuilder<EmployeeModel>
         .WithGroupName(""Contact Details"")
         .WithColumns(3)
         .ShowInCard()
+        // Method 2: Use generic component without parameters
+        .WithHeaderRightContent<OptionalBadge>()
         .AddField(x => x.Email, field => field
             .WithLabel(""Email"")
             .Required(""Email is required"")
