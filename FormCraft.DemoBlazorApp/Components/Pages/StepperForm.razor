@@ -27,11 +27,12 @@
                                 <MudText Typo="Typo.body1" Class="mb-4">
                                     Please provide your personal information to get started with the onboarding process.
                                 </MudText>
-                                <FormCraftComponent
+                                <FormCraftComponent @ref="_personalFormComponent"
                                     TModel="EmployeeModel"
                                     Model="@_model"
                                     Configuration="@_personalInfoConfig"
-                                    ShowSubmitButton="false" />
+                                    ShowSubmitButton="false"
+                                    OnEditContextCreated="@(ctx => _personalEditContext = ctx)" />
                             </ChildContent>
                         </MudStep>
                         
@@ -40,11 +41,12 @@
                                 <MudAlert Severity="Severity.Info" Class="mb-4">
                                     Welcome, @_model.FirstName! Now let's gather your contact information.
                                 </MudAlert>
-                                <FormCraftComponent
+                                <FormCraftComponent @ref="_contactFormComponent"
                                     TModel="EmployeeModel"
                                     Model="@_model"
                                     Configuration="@_contactConfig"
-                                    ShowSubmitButton="false" />
+                                    ShowSubmitButton="false"
+                                    OnEditContextCreated="@(ctx => _contactEditContext = ctx)" />
                             </ChildContent>
                         </MudStep>
                         
@@ -53,11 +55,12 @@
                                 <MudText Typo="Typo.body1" Class="mb-4">
                                     Tell us about your professional background and preferences.
                                 </MudText>
-                                <FormCraftComponent
+                                <FormCraftComponent @ref="_professionalFormComponent"
                                     TModel="EmployeeModel"
                                     Model="@_model"
                                     Configuration="@_professionalConfig"
-                                    ShowSubmitButton="false" />
+                                    ShowSubmitButton="false"
+                                    OnEditContextCreated="@(ctx => _professionalEditContext = ctx)" />
                             </ChildContent>
                         </MudStep>
                         

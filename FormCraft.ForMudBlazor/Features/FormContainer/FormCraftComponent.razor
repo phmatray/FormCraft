@@ -9,7 +9,7 @@
     @BeforeForm
 }
 
-<EditForm Model="@Model" OnValidSubmit="@OnSubmit">
+<EditForm EditContext="@_editContext" OnValidSubmit="@OnSubmit">
     <DataAnnotationsValidator />
     <DynamicFormValidator TModel="TModel" Configuration="@Configuration" />
     

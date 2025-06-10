@@ -40,7 +40,29 @@ public partial class FormCraftComponent<TModel>
     [Parameter]
     public RenderFragment? AfterForm { get; set; }
     
+    [Parameter]
+    public EventCallback<EditContext> OnEditContextCreated { get; set; }
+    
+    private EditContext? _editContext;
     private IGroupedFormConfiguration<TModel>? GroupedConfiguration => Configuration as IGroupedFormConfiguration<TModel>;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        if (Model != null)
+        {
+            _editContext = new EditContext(Model);
+            if (OnEditContextCreated.HasDelegate)
+            {
+                await OnEditContextCreated.InvokeAsync(_editContext);
+            }
+        }
+        await base.OnInitializedAsync();
+    }
+    
+    public bool Validate()
+    {
+        return _editContext?.Validate() ?? false;
+    }
 
     private RenderFragment RenderField(IFieldConfiguration<TModel, object> field)
     {

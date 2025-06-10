@@ -1,5 +1,7 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.ForMudBlazor;
+using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
@@ -15,6 +17,16 @@ public partial class StepperForm
     private IFormConfiguration<EmployeeModel> _personalInfoConfig = null!;
     private IFormConfiguration<EmployeeModel> _contactConfig = null!;
     private IFormConfiguration<EmployeeModel> _professionalConfig = null!;
+    
+    // Component references for validation
+    private FormCraftComponent<EmployeeModel>? _personalFormComponent;
+    private FormCraftComponent<EmployeeModel>? _contactFormComponent;
+    private FormCraftComponent<EmployeeModel>? _professionalFormComponent;
+    
+    // EditContext references for validation
+    private EditContext? _personalEditContext;
+    private EditContext? _contactEditContext;
+    private EditContext? _professionalEditContext;
 
     private readonly List<GuidelineItem> _apiGuidelineTableItems =
     [
@@ -151,22 +163,17 @@ public partial class StepperForm
 
     private bool ValidatePersonalInfo()
     {
-        return !string.IsNullOrWhiteSpace(_model.FirstName) &&
-               !string.IsNullOrWhiteSpace(_model.LastName) &&
-               _model.DateOfBirth.HasValue;
+        return _personalEditContext?.Validate() ?? false;
     }
 
     private bool ValidateContactInfo()
     {
-        return !string.IsNullOrWhiteSpace(_model.Email) &&
-               !string.IsNullOrWhiteSpace(_model.Phone);
+        return _contactEditContext?.Validate() ?? false;
     }
 
     private bool ValidateProfessionalInfo()
     {
-        return !string.IsNullOrWhiteSpace(_model.Department) &&
-               !string.IsNullOrWhiteSpace(_model.Position) &&
-               _model.StartDate.HasValue;
+        return _professionalEditContext?.Validate() ?? false;
     }
 
     private Task SubmitForm()
@@ -185,6 +192,12 @@ public partial class StepperForm
         _model = new EmployeeModel();
         _isSubmitted = false;
         _hasValidationErrors = false;
+        
+        // Reset EditContexts (they will be recreated by FormCraftComponent)
+        _personalEditContext = null;
+        _contactEditContext = null;
+        _professionalEditContext = null;
+        
         if (_stepper != null)
         {
             await _stepper.ResetAsync();
@@ -261,6 +274,19 @@ public partial class StepperForm
     private string GetValidationCode()
     {
         return """
+            // Component references and EditContext
+            private FormCraftComponent<EmployeeModel>? _personalFormComponent;
+            private EditContext? _personalEditContext;
+            
+            // In Razor markup:
+            <FormCraftComponent @ref="_personalFormComponent"
+                TModel="EmployeeModel"
+                Model="@_model"
+                Configuration="@_personalInfoConfig"
+                ShowSubmitButton="false"
+                OnEditContextCreated="@(ctx => _personalEditContext = ctx)" />
+            
+            // Validation method using EditContext
             private async Task NextStep()
             {
                 // Validate based on current step
@@ -283,9 +309,8 @@ public partial class StepperForm
             
             private bool ValidatePersonalInfo()
             {
-                return !string.IsNullOrWhiteSpace(_model.FirstName) &&
-                       !string.IsNullOrWhiteSpace(_model.LastName) &&
-                       _model.DateOfBirth.HasValue;
+                // Use EditContext validation for field-level validation messages
+                return _personalEditContext?.Validate() ?? false;
             }
             """;
     }
