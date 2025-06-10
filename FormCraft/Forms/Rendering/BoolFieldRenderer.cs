@@ -1,38 +1,52 @@
 using Microsoft.AspNetCore.Components;
-using MudBlazor;
 
 namespace FormCraft;
 
 /// <summary>
-/// Field renderer for boolean values, rendering checkbox controls.
+/// Test stub implementation of a boolean field renderer.
+/// This is used for unit testing and should not be used in production.
 /// </summary>
-public class BoolFieldRenderer : IFieldRenderer
+/// <remarks>
+/// For production use, use the MudBlazor implementation from FormCraft.ForMudBlazor.
+/// </remarks>
+public class BoolFieldRenderer : FieldRendererBase<bool>
 {
     /// <inheritdoc />
-    public bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
+    public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
     {
+        // Only handle non-nullable bool
         return fieldType == typeof(bool);
     }
-
+    
     /// <inheritdoc />
-    public RenderFragment Render<TModel>(IFieldRenderContext<TModel> context)
+    protected override Type ComponentType => typeof(TestStubComponent<>);
+    
+    /// <summary>
+    /// Simple test component that renders a checkbox-like representation.
+    /// </summary>
+    private class TestStubComponent<TModel> : ComponentBase
     {
-        return builder =>
+        [Parameter] public IFieldRenderContext<TModel>? Context { get; set; }
+        
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder)
         {
-            builder.OpenComponent<MudCheckBox<bool>>(0);
-            builder.AddAttribute(1, "Label", context.Field.Label);
-            builder.AddAttribute(2, "Checked", (bool)(context.CurrentValue ?? false));
-            builder.AddAttribute(3, "CheckedChanged", EventCallback.Factory.Create<bool>(this, value =>
-            {
-                context.OnValueChanged.InvokeAsync(value);
-            }));
-
-            if (!string.IsNullOrEmpty(context.Field.HelpText))
-                builder.AddAttribute(4, "HelperText", context.Field.HelpText);
-
-            builder.AddAttribute(5, "Disabled", context.Field.IsDisabled);
-
-            builder.CloseComponent();
-        };
+            if (Context == null) return;
+            
+            var sequence = 0;
+            builder.OpenElement(sequence++, "div");
+            builder.AddAttribute(sequence++, "class", "test-bool-field");
+            
+            builder.OpenElement(sequence++, "input");
+            builder.AddAttribute(sequence++, "type", "checkbox");
+            builder.AddAttribute(sequence++, "checked", Context.CurrentValue);
+            builder.AddAttribute(sequence++, "disabled", Context.Field.IsDisabled);
+            builder.CloseElement();
+            
+            builder.OpenElement(sequence++, "label");
+            builder.AddContent(sequence, Context.Field.Label);
+            builder.CloseElement();
+            
+            builder.CloseElement();
+        }
     }
 }

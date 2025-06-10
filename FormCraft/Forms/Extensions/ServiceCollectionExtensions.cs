@@ -16,25 +16,26 @@ public static class ServiceCollectionExtensions
     /// <example>
     /// <code>
     /// // In Program.cs or Startup.cs
-    /// builder.Services.AddDynamicForms();
+    /// builder.Services.AddFormCraft();
     /// </code>
     /// </example>
     /// <remarks>
     /// This method registers the following services:
     /// <list type="bullet">
     /// <item>IFieldRendererService - Coordinates field rendering</item>
-    /// <item>StringFieldRenderer - Handles text input fields</item>
-    /// <item>IntFieldRenderer - Handles numeric input fields</item>
-    /// <item>DecimalFieldRenderer - Handles decimal input fields</item>
-    /// <item>DoubleFieldRenderer - Handles double/float input fields</item>
-    /// <item>BoolFieldRenderer - Handles checkbox and switch fields</item>
-    /// <item>DateTimeFieldRenderer - Handles date and time picker fields</item>
-    /// <item>FileUploadFieldRenderer - Handles file upload fields</item>
+    /// <item>Built-in field renderers for common types</item>
     /// </list>
     /// </remarks>
-    public static IServiceCollection AddDynamicForms(this IServiceCollection services)
+    public static IServiceCollection AddFormCraft(this IServiceCollection services)
     {
+        // Register field renderer service
         services.AddScoped<IFieldRendererService, FieldRendererService>();
+
+        // Register UI framework configuration
+        services.AddSingleton<UIFrameworkConfiguration>();
+
+        // Only register built-in field renderers if no UI framework adapter is registered
+        // This allows UI framework-specific renderers to take precedence
         services.AddScoped<IFieldRenderer, StringFieldRenderer>();
         services.AddScoped<IFieldRenderer, IntFieldRenderer>();
         services.AddScoped<IFieldRenderer, DecimalFieldRenderer>();
@@ -42,6 +43,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFieldRenderer, BoolFieldRenderer>();
         services.AddScoped<IFieldRenderer, DateTimeFieldRenderer>();
         services.AddScoped<IFieldRenderer, FileUploadFieldRenderer>();
+
+        // Register security services
+        services.AddScoped<IEncryptionService, BlazorEncryptionService>();
+        services.AddScoped<ICsrfTokenService, BlazorCsrfTokenService>();
+        services.AddSingleton<IRateLimitService, InMemoryRateLimitService>();
+        services.AddScoped<IAuditLogService, ConsoleAuditLogService>();
 
         return services;
     }

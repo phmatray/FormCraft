@@ -1,0 +1,13 @@
+@namespace FormCraft.ForMudBlazor
+
+@if (HasValidationErrors)
+{
+    <div class="mt-1">
+        @foreach (var error in ValidationErrors)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Error" Class="d-block">
+                @error
+            </MudText>
+        }
+    </div>
+}

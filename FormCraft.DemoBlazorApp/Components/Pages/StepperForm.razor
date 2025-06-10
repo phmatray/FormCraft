@@ -1,0 +1,194 @@
+@page "/stepper-form"
+
+<DemoPageLayout
+    Title="Multi-Step Form with Stepper"
+    Icon="@Icons.Material.Filled.LinearScale"
+    Description="This demonstrates how to create multi-step forms using MudStepper, where each step contains different form fields and data persists across steps."
+    FormDemoIcon="@Icons.Material.Filled.Assignment">
+    <FormDemoContent>
+        <MudPaper Elevation="1" Class="pa-6">
+            <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
+                <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Class="me-2" />
+                Employee Onboarding Form
+            </MudText>
+            
+            @if (_isSubmitted)
+            {
+                <FormSuccessDisplay
+                    DataDisplayItems="@GetDataDisplayItems()"
+                    OnReset="@(async () => await ResetForm())" />
+            }
+            else
+            {
+                <MudStepper @ref="_stepper" @bind-ActiveIndex="_currentStep">
+                    <ChildContent>
+                        <MudStep Title="Personal Info">
+                            <ChildContent>
+                                <MudText Typo="Typo.body1" Class="mb-4">
+                                    Please provide your personal information to get started with the onboarding process.
+                                </MudText>
+                                <FormCraftComponent @ref="_personalFormComponent"
+                                    TModel="EmployeeModel"
+                                    Model="@_model"
+                                    Configuration="@_personalInfoConfig"
+                                    ShowSubmitButton="false" />
+                            </ChildContent>
+                        </MudStep>
+                        
+                        <MudStep Title="Contact Details">
+                            <ChildContent>
+                                <MudAlert Severity="Severity.Info" Class="mb-4">
+                                    Welcome, @_model.FirstName! Now let's gather your contact information.
+                                </MudAlert>
+                                <FormCraftComponent @ref="_contactFormComponent"
+                                    TModel="EmployeeModel"
+                                    Model="@_model"
+                                    Configuration="@_contactConfig"
+                                    ShowSubmitButton="false" />
+                            </ChildContent>
+                        </MudStep>
+                        
+                        <MudStep Title="Professional Info">
+                            <ChildContent>
+                                <MudText Typo="Typo.body1" Class="mb-4">
+                                    Tell us about your professional background and preferences.
+                                </MudText>
+                                <FormCraftComponent @ref="_professionalFormComponent"
+                                    TModel="EmployeeModel"
+                                    Model="@_model"
+                                    Configuration="@_professionalConfig"
+                                    ShowSubmitButton="false" />
+                            </ChildContent>
+                        </MudStep>
+                        
+                        <MudStep Title="Review & Submit">
+                            <ChildContent>
+                                <MudText Typo="Typo.h6" Class="mb-4">Review Your Information</MudText>
+                                
+                                <MudGrid>
+                                    <MudItem xs="12" md="6">
+                                        <MudCard Class="mb-4">
+                                            <MudCardContent>
+                                                <MudText Typo="Typo.subtitle2" Class="mb-2">Personal Information</MudText>
+                                                <MudText><strong>Name:</strong> @_model.FirstName @_model.LastName</MudText>
+                                                <MudText><strong>Date of Birth:</strong> @_model.DateOfBirth?.ToShortDateString()</MudText>
+                                            </MudCardContent>
+                                        </MudCard>
+                                    </MudItem>
+                                    
+                                    <MudItem xs="12" md="6">
+                                        <MudCard Class="mb-4">
+                                            <MudCardContent>
+                                                <MudText Typo="Typo.subtitle2" Class="mb-2">Contact Details</MudText>
+                                                <MudText><strong>Email:</strong> @_model.Email</MudText>
+                                                <MudText><strong>Phone:</strong> @_model.Phone</MudText>
+                                                <MudText><strong>Address:</strong> @_model.Address</MudText>
+                                            </MudCardContent>
+                                        </MudCard>
+                                    </MudItem>
+                                    
+                                    <MudItem xs="12">
+                                        <MudCard Class="mb-4">
+                                            <MudCardContent>
+                                                <MudText Typo="Typo.subtitle2" Class="mb-2">Professional Information</MudText>
+                                                <MudText><strong>Department:</strong> @_model.Department</MudText>
+                                                <MudText><strong>Position:</strong> @_model.Position</MudText>
+                                                <MudText><strong>Start Date:</strong> @_model.StartDate?.ToShortDateString()</MudText>
+                                                <MudText><strong>Remote Work:</strong> @(_model.IsRemote ? "Yes" : "No")</MudText>
+                                            </MudCardContent>
+                                        </MudCard>
+                                    </MudItem>
+                                </MudGrid>
+                                
+                                <MudAlert Severity="Severity.Success" Class="mt-4">
+                                    <MudText>
+                                        Please review all the information above. Click "Submit" to complete your onboarding registration.
+                                    </MudText>
+                                </MudAlert>
+                            </ChildContent>
+                        </MudStep>
+                    </ChildContent>
+                    <ActionContent>
+                        <MudButton
+                            Variant="Variant.Text"
+                            OnClick="@(async () => await PreviousStep())"
+                            Disabled="@(_currentStep == 0)">
+                            Previous
+                        </MudButton>
+                        <MudSpacer />
+                        @if (_currentStep == 3 && !_hasValidationErrors)
+                        {
+                            <MudButton
+                                Variant="Variant.Filled"
+                                Color="Color.Primary"
+                                OnClick="@SubmitForm"
+                                StartIcon="@Icons.Material.Filled.Check">
+                                Submit
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudButton
+                                Variant="Variant.Filled"
+                                Color="Color.Primary"
+                                OnClick="@(async () => await NextStep())"
+                                StartIcon="@Icons.Material.Filled.NavigateNext">
+                                Next
+                            </MudButton>
+                        }
+                    </ActionContent>
+                </MudStepper>
+                
+                @if (_hasValidationErrors)
+                {
+                    <MudAlert Severity="Severity.Error" Class="mt-3">
+                        Please fill in all required fields before proceeding to the next step.
+                    </MudAlert>
+                }
+            }
+        </MudPaper>
+        
+        <MudPaper Elevation="1" Class="pa-6 mt-4">
+            <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2" />
+                Features Demonstrated
+            </MudText>
+            <MudList T="string" Dense="true">
+                <MudListItem T="string" Icon="@Icons.Material.Filled.LinearScale">
+                    Multi-step form navigation with MudStepper
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Storage">
+                    Data persistence across form steps
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Security">
+                    Step validation before progression
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Preview">
+                    Review step with summary of all data
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.PersonPin">
+                    Dynamic content based on previous steps
+                </MudListItem>
+            </MudList>
+        </MudPaper>
+    </FormDemoContent>
+    
+    <CodeExampleContent>
+        <CodeExample
+            Title="Multi-Step Form Implementation"
+            Language="csharp"
+            Code="@GetExampleCode()" />
+        
+        <CodeExample
+            Title="Step Validation"
+            Language="csharp"
+            Code="@GetValidationCode()"
+            Class="mt-4" />
+    </CodeExampleContent>
+    
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Stepper Form Guidelines"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>

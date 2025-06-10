@@ -1,0 +1,38 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel
+@inherits FieldComponentBase<TModel, int>
+
+@if (!string.IsNullOrEmpty(Label))
+{
+    <MudText Typo="Typo.body2" Class="mb-1">@Label</MudText>
+}
+
+<MudRating
+    SelectedValue="@CurrentValue"
+    SelectedValueChanged="@HandleRatingChanged"
+    MaxValue="@GetMaxRating()"
+    Disabled="@IsDisabled"
+    ReadOnly="@IsReadOnly"
+    Color="Color.Primary"
+    Size="Size.Medium" />
+
+@if (!string.IsNullOrEmpty(HelpText))
+{
+    <div style="margin-top: -2px; overflow: hidden">
+        <div class="d-flex mud-input-helper-text">
+            <div class="me-auto">@HelpText</div>
+        </div>
+    </div>
+}
+
+@code {
+    private void HandleRatingChanged(int rating)
+    {
+        CurrentValue = rating;
+    }
+    
+    private int GetMaxRating()
+    {
+        return GetAttribute<int>("MaxRating", 5);
+    }
+}

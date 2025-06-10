@@ -1,0 +1,53 @@
+@namespace FormCraft.DemoBlazorApp.Components.Shared
+@typeparam TModel where TModel : new()
+
+<MudGrid>
+    <MudItem xs="12" lg="@(ShowSidebar ? 8 : 12)">
+        <MudPaper Elevation="1" Class="pa-6">
+            <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
+                <MudIcon Icon="@FormIcon" Class="me-2" />
+                @FormTitle
+            </MudText>
+            
+            @if (IsSubmitted)
+            {
+                <FormSuccessDisplay
+                    DataDisplayItems="@DataDisplayItems"
+                    OnReset="@OnReset" />
+            }
+            else
+            {
+                <FormCraftComponent
+                    TModel="TModel" 
+                    Model="@Model" 
+                    Configuration="@Configuration"
+                    OnValidSubmit="@OnValidSubmit"
+                    OnFieldChanged="@OnFieldChanged"
+                    IsSubmitting="@IsSubmitting"
+                    ShowSubmitButton="@ShowSubmitButton"
+                    SubmitButtonText="@SubmitButtonText"
+                    SubmittingText="@SubmittingText"
+                    SubmitButtonClass="@SubmitButtonClass">
+                    <BeforeForm>
+                        @BeforeFormContent
+                    </BeforeForm>
+                    <AfterForm>
+                        @AfterFormContent
+                    </AfterForm>
+                </FormCraftComponent>
+                
+                @if (AdditionalContent != null)
+                {
+                    @AdditionalContent
+                }
+            }
+        </MudPaper>
+    </MudItem>
+    
+    @if (ShowSidebar)
+    {
+        <MudItem xs="12" lg="4">
+            @SidebarContent
+        </MudItem>
+    }
+</MudGrid>

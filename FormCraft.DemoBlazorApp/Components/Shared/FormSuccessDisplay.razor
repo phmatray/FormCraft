@@ -2,9 +2,10 @@
     <MudCard Elevation="6" Class="pa-4">
         <MudCardContent>
             <MudStack Spacing="3" AlignItems="AlignItems.Center">
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
-                        Color="Color.Success" 
-                        Size="Size.Large" />
+                <MudIcon
+                    Icon="@Icons.Material.Filled.CheckCircle" 
+                    Color="Color.Success" 
+                    Size="Size.Large" />
                 <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Success">
                     Thank You!
                 </MudText>
@@ -32,11 +33,12 @@
                 
                 @if (ShowResetButton)
                 {
-                    <MudButton Variant="Variant.Outlined" 
-                              Color="Color.Primary" 
-                              StartIcon="@Icons.Material.Filled.Refresh"
-                              OnClick="@OnReset"
-                              Class="mt-4">
+                    <MudButton
+                        Variant="Variant.Outlined" 
+                        Color="Color.Primary" 
+                        StartIcon="@Icons.Material.Filled.Refresh"
+                        OnClick="@OnReset"
+                        Class="mt-4">
                         @ResetButtonText
                     </MudButton>
                 }
@@ -44,17 +46,3 @@
         </MudCardContent>
     </MudCard>
 </MudContainer>
-
-@code {
-    [Parameter] public string SuccessMessage { get; set; } = "Your information has been successfully submitted. We'll be in touch soon!";
-    [Parameter] public List<DataDisplayItem> DataDisplayItems { get; set; } = new();
-    [Parameter] public bool ShowResetButton { get; set; } = true;
-    [Parameter] public string ResetButtonText { get; set; } = "Submit Another Form";
-    [Parameter] public EventCallback OnReset { get; set; }
-    
-    public class DataDisplayItem
-    {
-        public string Label { get; set; } = "";
-        public string Value { get; set; } = "";
-    }
-}

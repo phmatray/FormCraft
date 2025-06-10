@@ -1,0 +1,23 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel
+@typeparam TValue
+@inherits FieldComponentBase<TModel, TValue>
+@implements ISelectFieldComponent<TModel, TValue>
+
+<MudSelect
+    T="TValue"
+    Label="@Label"
+    @bind-Value="@CurrentValue"
+    Placeholder="@Placeholder"
+    HelperText="@HelpText"
+    ReadOnly="@IsReadOnly"
+    Disabled="@IsDisabled"
+    Variant="Variant.Outlined"
+    Margin="Margin.Dense">
+    @foreach (SelectOption<TValue> option in Options)
+    {
+        <MudSelectItem T="TValue" Value="@option.Value">
+            @option.Label
+        </MudSelectItem>
+    }
+</MudSelect>

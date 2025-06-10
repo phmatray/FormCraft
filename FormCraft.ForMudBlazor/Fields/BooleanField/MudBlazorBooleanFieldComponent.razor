@@ -1,0 +1,12 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel
+@inherits FieldComponentBase<TModel, bool>
+@implements IBooleanFieldComponent<TModel>
+
+<MudSwitch
+    T="bool"
+    Label="@Label"
+    @bind-Value="@CurrentValue"
+    ReadOnly="@IsReadOnly"
+    Disabled="@IsDisabled"
+    Color="Color.Primary" />

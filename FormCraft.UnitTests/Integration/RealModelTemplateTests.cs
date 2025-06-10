@@ -7,7 +7,7 @@ public class RealModelTemplateTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
         var rendererService = serviceProvider.GetRequiredService<IFieldRendererService>();
 
@@ -68,7 +68,7 @@ public class RealModelTemplateTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
         var rendererService = serviceProvider.GetRequiredService<IFieldRendererService>();
 
@@ -115,19 +115,19 @@ public class RealModelTemplateTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         // Act - Extend contact form template with additional fields
         var extendedContactForm = FormBuilder<ExtendedContactModel>.Create()
             .AsContactForm()
-            .AddField(x => x.Company)
+            .AddField(x => x.Company, field => field
                 .WithLabel("Company")
-                .WithPlaceholder("Enter your company name")
-            .AddField(x => x.DateOfBirth)
-                .WithLabel("Date of Birth")
-            .AddField(x => x.IsSubscribed)
-                .WithLabel("Subscribe to newsletter")
+                .WithPlaceholder("Enter your company name"))
+            .AddField(x => x.DateOfBirth, field => field
+                .WithLabel("Date of Birth"))
+            .AddField(x => x.IsSubscribed, field => field
+                .WithLabel("Subscribe to newsletter"))
             .Build();
 
         // Assert
@@ -165,16 +165,16 @@ public class RealModelTemplateTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         // Act - Create contact form with additional validation
         var validatedContactForm = FormBuilder<RealContactModel>.Create()
             .AsContactForm()
-            .AddField(x => x.Email)
-                .WithEmailValidation("Email must be valid")
-            .AddField(x => x.Phone)
-                .WithMinLength(10, "Phone must be at least 10 digits")
+            .AddField(x => x.Email, field => field
+                .WithEmailValidation("Email must be valid"))
+            .AddField(x => x.Phone, field => field
+                .WithMinLength(10, "Phone must be at least 10 digits"))
             .Build();
 
         // Assert - Form should have more fields due to template + additional fields
@@ -194,7 +194,7 @@ public class RealModelTemplateTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
         var rendererService = serviceProvider.GetRequiredService<IFieldRendererService>();
 
@@ -244,7 +244,7 @@ public class RealModelTemplateTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         // Act - Create many template instances and verify they can be garbage collected

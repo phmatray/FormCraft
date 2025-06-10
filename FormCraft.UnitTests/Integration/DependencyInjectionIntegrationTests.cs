@@ -7,7 +7,7 @@ public class DependencyInjectionIntegrationTests
     {
         // Arrange - Create service collection and register FormCraft services
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
 
         // Add some additional services to test non-interference
         services.AddSingleton<ITestDependency, TestDependency>();
@@ -59,7 +59,7 @@ public class DependencyInjectionIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         // Act & Assert - Test scoped lifetime behavior
@@ -112,7 +112,7 @@ public class DependencyInjectionIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
 
         // Add a custom renderer
         services.AddScoped<IFieldRenderer, CustomTestRenderer>();
@@ -144,7 +144,7 @@ public class DependencyInjectionIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         services.AddSingleton<IValidationService, ValidationService>();
 
         var serviceProvider = services.BuildServiceProvider();
@@ -165,7 +165,7 @@ public class DependencyInjectionIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         services.AddScoped<ITestScopedService, TestScopedService>();
 
         var serviceProvider = services.BuildServiceProvider();
@@ -208,18 +208,18 @@ public class DependencyInjectionIntegrationTests
         // Arrange - Register services in different orders
         var services1 = new ServiceCollection();
         services1.AddSingleton<ITestDependency, TestDependency>();
-        services1.AddDynamicForms();
+        services1.AddFormCraft();
         services1.AddScoped<ITestScopedService, TestScopedService>();
 
         var services2 = new ServiceCollection();
-        services2.AddDynamicForms();
+        services2.AddFormCraft();
         services2.AddSingleton<ITestDependency, TestDependency>();
         services2.AddScoped<ITestScopedService, TestScopedService>();
 
         var services3 = new ServiceCollection();
         services3.AddScoped<ITestScopedService, TestScopedService>();
         services3.AddSingleton<ITestDependency, TestDependency>();
-        services3.AddDynamicForms();
+        services3.AddFormCraft();
 
         // Act & Assert
         var serviceProvider1 = services1.BuildServiceProvider();
@@ -249,32 +249,32 @@ public class DependencyInjectionIntegrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddDynamicForms();
+        services.AddFormCraft();
         var serviceProvider = services.BuildServiceProvider();
 
         IFieldRendererService? rendererService = null;
-        IEnumerable<IFieldRenderer>? renderers = null;
+        List<IFieldRenderer>? renderers = null;
 
         // Act - Create and dispose scope
         using (var scope = serviceProvider.CreateScope())
         {
             rendererService = scope.ServiceProvider.GetRequiredService<IFieldRendererService>();
-            renderers = scope.ServiceProvider.GetServices<IFieldRenderer>();
+            renderers = scope.ServiceProvider.GetServices<IFieldRenderer>().ToList();
 
             rendererService.ShouldNotBeNull();
             renderers.ShouldNotBeNull();
-            renderers.Count().ShouldBe(7); // String, Int, Decimal, Double, Bool, DateTime, FileUpload
+            renderers.Count.ShouldBe(7); // String, Int, Decimal, Double, Bool, DateTime, FileUpload
         }
 
         // Assert - After scope disposal, we should be able to create new instances
         using (var newScope = serviceProvider.CreateScope())
         {
             var newRendererService = newScope.ServiceProvider.GetRequiredService<IFieldRendererService>();
-            var newRenderers = newScope.ServiceProvider.GetServices<IFieldRenderer>();
+            var newRenderers = newScope.ServiceProvider.GetServices<IFieldRenderer>().ToList();
 
             newRendererService.ShouldNotBeNull();
             newRenderers.ShouldNotBeNull();
-            newRenderers.Count().ShouldBe(7); // String, Int, Decimal, Double, Bool, DateTime, FileUpload
+            newRenderers.Count.ShouldBe(7); // String, Int, Decimal, Double, Bool, DateTime, FileUpload
 
             // Should be different instances
             newRendererService.ShouldNotBeSameAs(rendererService);

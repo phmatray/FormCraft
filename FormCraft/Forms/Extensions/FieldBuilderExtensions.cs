@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Microsoft.AspNetCore.Components.Forms;
 
 namespace FormCraft;
@@ -8,38 +7,6 @@ namespace FormCraft;
 /// </summary>
 public static class FieldBuilderExtensions
 {
-    /// <summary>
-    /// Adds a checkbox field for boolean properties with optional help text.
-    /// </summary>
-    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
-    /// <typeparam name="TValue">The type of the current field value.</typeparam>
-    /// <param name="builder">The FieldBuilder instance to extend.</param>
-    /// <param name="expression">A lambda expression identifying the boolean property.</param>
-    /// <param name="label">The display label/text for the checkbox.</param>
-    /// <param name="helpText">Optional help text to display below the checkbox.</param>
-    /// <returns>A FieldBuilder for the new checkbox field.</returns>
-    /// <example>
-    /// <code>
-    /// .AddField(x => x.Email)
-    ///     .Required()
-    /// .AddCheckboxField(x => x.AcceptTerms, "I accept the terms and conditions",
-    ///     "You must accept to continue")
-    /// </code>
-    /// </example>
-    public static FieldBuilder<TModel, bool> AddCheckboxField<TModel, TValue>(
-        this FieldBuilder<TModel, TValue> builder,
-        Expression<Func<TModel, bool>> expression,
-        string label,
-        string? helpText = null) where TModel : new()
-    {
-        var fieldBuilder = builder.AddField(expression)
-            .WithLabel(label);
-
-        if (!string.IsNullOrEmpty(helpText))
-            fieldBuilder.WithHelpText(helpText);
-
-        return fieldBuilder;
-    }
     /// <summary>
     /// Configures a string field to be rendered as a multi-line text area.
     /// </summary>
@@ -68,7 +35,7 @@ public static class FieldBuilderExtensions
     }
 
     /// <summary>
-    /// Configures the field to use a custom renderer.
+    /// Configures the field to use a custom renderer with explicit type parameters.
     /// </summary>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
     /// <typeparam name="TValue">The type of the field value.</typeparam>
@@ -78,7 +45,7 @@ public static class FieldBuilderExtensions
     /// <example>
     /// <code>
     /// .AddField(x => x.Color)
-    ///     .WithCustomRenderer&lt;ColorPickerRenderer&gt;()
+    ///     .WithCustomRenderer&lt;ProductModel, string, ColorPickerRenderer&gt;()
     /// </code>
     /// </example>
     public static FieldBuilder<TModel, TValue> WithCustomRenderer<TModel, TValue, TRenderer>(
@@ -87,6 +54,27 @@ public static class FieldBuilderExtensions
         where TRenderer : ICustomFieldRenderer<TValue>
     {
         builder.Configuration.CustomRendererType = typeof(TRenderer);
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the field to use a custom renderer by type.
+    /// </summary>
+    /// <param name="builder">The FieldBuilder instance.</param>
+    /// <param name="rendererType">The type of the custom renderer.</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Color)
+    ///     .WithCustomRenderer(typeof(MudBlazorColorPickerRenderer))
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, TValue> WithCustomRenderer<TModel, TValue>(
+        this FieldBuilder<TModel, TValue> builder,
+        Type rendererType)
+        where TModel : new()
+    {
+        builder.Configuration.CustomRendererType = rendererType;
         return builder;
     }
 

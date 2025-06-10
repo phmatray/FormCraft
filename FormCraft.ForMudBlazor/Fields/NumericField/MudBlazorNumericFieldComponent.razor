@@ -1,0 +1,21 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel
+@typeparam TValue where TValue : struct
+@inherits FieldComponentBase<TModel, TValue>
+@implements INumericFieldComponent<TModel, TValue>
+
+<MudNumericField
+    T="TValue"
+    Label="@Label"
+    Value="@CurrentValue"
+    ValueChanged="@((TValue value) => CurrentValue = value)"
+    Placeholder="@Placeholder"
+    HelperText="@HelpText"
+    ReadOnly="@IsReadOnly"
+    Disabled="@IsDisabled"
+    Min="@(Min ?? default(TValue))"
+    Max="@(Max ?? default(TValue))"
+    Step="@(Step ?? GetDefaultStep())"
+    Variant="Variant.Outlined"
+    Margin="Margin.Dense"
+    Immediate="true" />

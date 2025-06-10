@@ -1,0 +1,21 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel
+@inherits FieldComponentBase<TModel, string>
+@implements ITextFieldComponent<TModel>
+
+<MudTextField
+    T="string"
+    Label="@Label"
+    Value="@CurrentValue"
+    ValueChanged="@((string value) => CurrentValue = value)"
+    Placeholder="@Placeholder"
+    HelperText="@HelpText"
+    ReadOnly="@IsReadOnly"
+    Disabled="@IsDisabled"
+    Lines="@Lines"
+    MaxLength="@(MaxLength ?? 0)"
+    InputType="@GetInputType()"
+    Mask="@GetMask()"
+    Variant="Variant.Outlined"
+    Margin="Margin.Dense"
+    Immediate="true" />

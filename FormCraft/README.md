@@ -23,7 +23,7 @@ dotnet add package FormCraft
 
 2. Register services in `Program.cs`:
 ```csharp
-builder.Services.AddDynamicForms();
+builder.Services.AddFormCraft();
 ```
 
 3. Create a form:
@@ -37,10 +37,11 @@ var configuration = FormBuilder<MyModel>.Create()
 
 4. Render the form:
 ```razor
-<DynamicFormComponent TModel="MyModel" 
-                     Model="@myModel" 
-                     Configuration="@configuration"
-                     OnValidSubmit="@HandleSubmit" />
+<FormCraftComponent TModel="MyModel" 
+                   Model="@myModel" 
+                   Configuration="@configuration"
+                   OnValidSubmit="@HandleSubmit"
+                   ShowSubmitButton="true" />
 ```
 
 ## Documentation

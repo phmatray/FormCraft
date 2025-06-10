@@ -35,7 +35,7 @@ public class JobApplicationModel
     /// <summary>
     /// Gets or sets the uploaded certificate files.
     /// </summary>
-    public IReadOnlyList<IBrowserFile>? Certificates { get; set; }
+    public IReadOnlyList<IBrowserFile> Certificates { get; set; } = new List<IBrowserFile>();
     
     /// <summary>
     /// Gets or sets the cover letter text.
