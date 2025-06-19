@@ -217,6 +217,23 @@ Adds email format validation.
     .WithEmailValidation("Please enter a valid email address"))
 ```
 
+#### WithFluentValidation()
+Integrates FluentValidation validators registered in DI.
+
+```csharp
+.AddField(x => x.Email, field => field
+    .WithFluentValidation(x => x.Email))
+```
+
+#### WithFluentValidator()
+Uses a specific FluentValidation validator instance.
+
+```csharp
+var validator = new CustomerValidator();
+.AddField(x => x.Name, field => field
+    .WithFluentValidator(validator, x => x.Name))
+```
+
 ### Appearance
 
 #### WithLabel()

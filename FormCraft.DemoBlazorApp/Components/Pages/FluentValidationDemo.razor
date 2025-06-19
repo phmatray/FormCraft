@@ -1,0 +1,85 @@
+@page "/fluent-validation-demo"
+
+<PageTitle>FluentValidation Integration Demo</PageTitle>
+
+<DemoPageLayout
+    Title="FluentValidation Integration"
+    Icon="@Icons.Material.Filled.CheckCircle"
+    Description="Seamlessly integrate your existing FluentValidation validators with FormCraft's dynamic forms. This demo shows how to leverage FluentValidation's powerful rule engine within FormCraft."
+    FormDemoIcon="@Icons.Material.Filled.FactCheck">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="CustomerModel"
+            Model="@_model"
+            Configuration="@_formConfig"
+            FormTitle="Customer Registration with FluentValidation"
+            FormIcon="@Icons.Material.Filled.PersonAdd"
+            IsSubmitted="@_submitted"
+            IsSubmitting="@_isSubmitting"
+            OnValidSubmit="@HandleValidSubmit"
+            OnFieldChanged="@HandleFieldChanged"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()"
+            ShowSubmitButton="true"
+            SubmitButtonText="Register Customer"
+            SubmittingText="Validating...">
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="FluentValidation Features" />
+                
+                <MudCard Elevation="1" Class="mt-3">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Filled.Rule" Class="me-1" />
+                            Active Validation Rules
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.TextFields">
+                                Name: 3-50 characters
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Email">
+                                Email: Valid format required
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Cake">
+                                Age: Must be 18 or older
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </SidebarContent>
+            <AdditionalContent>
+                @if (_validationAttempts > 0)
+                {
+                    <MudCard Class="mt-4" Elevation="2">
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Analytics" Class="me-2 text-info" />
+                                Validation Statistics
+                            </MudText>
+                            <MudGrid>
+                                <MudItem xs="6">
+                                    <MudText Typo="Typo.body2">Total Attempts: @_validationAttempts</MudText>
+                                </MudItem>
+                                <MudItem xs="6">
+                                    <MudText Typo="Typo.body2">Successful: @_successfulValidations</MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudCardContent>
+                    </MudCard>
+                }
+            </AdditionalContent>
+        </FormDemoSection>
+    </FormDemoContent>
+    
+    <CodeExampleContent>
+        <CodeExample
+            Title="FluentValidation Integration"
+            Language="csharp"
+            Code="@GetCodeExample()" />
+    </CodeExampleContent>
+    
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="FluentValidation API"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>
