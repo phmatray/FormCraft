@@ -29,7 +29,7 @@
     <PackageVersion Include="Octokit" Version="14.0.0" />
     <!-- Code quality -->
     <PackageVersion Include="FluentValidation" Version="12.0.0" />
-    <PackageVersion Include="Markdig" Version="0.41.2" />
+    <PackageVersion Include="Markdig" Version="0.41.3" />
     <!-- Versioning -->
     <PackageVersion Include="GitVersion.MsBuild" Version="6.3.0" />
     <PackageVersion Include="MinVer" Version="6.0.0" />
