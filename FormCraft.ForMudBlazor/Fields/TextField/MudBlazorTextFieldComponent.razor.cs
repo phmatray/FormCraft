@@ -16,7 +16,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
         // Load configuration from additional attributes
         Lines = GetAttribute("Lines", 1);
         MaxLength = GetAttribute<int?>("MaxLength");
-        InputType = GetAttribute("InputType", "text");
+        InputType = GetAttribute("InputType", "text") ?? "text";
         Mask = GetAttribute<string?>("Mask");
     }
 
