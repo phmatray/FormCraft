@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Configuration;
@@ -26,6 +27,7 @@ public class DefaultEncryptionService : IEncryptionService
         _iv = Encoding.UTF8.GetBytes(configuration["FormCraft:Encryption:IV"] ?? "1234567890123456");
     }
 
+    [UnsupportedOSPlatform("browser")]
     public string? Encrypt(string? value)
     {
         if (string.IsNullOrEmpty(value))
@@ -47,6 +49,7 @@ public class DefaultEncryptionService : IEncryptionService
         return Convert.ToBase64String(msEncrypt.ToArray());
     }
 
+    [UnsupportedOSPlatform("browser")]
     public string? Decrypt(string? encryptedValue)
     {
         if (string.IsNullOrEmpty(encryptedValue))

@@ -225,14 +225,13 @@ public partial class FormCraftComponent<TModel>
     private void RenderFileUploadField(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field)
     {
         builder.OpenComponent<MudFileUpload<IBrowserFile>>(0);
-        builder.AddAttribute(1, "T", typeof(IBrowserFile));
-        builder.AddAttribute(2, "OnFilesChanged",
+        builder.AddAttribute(1, "OnFilesChanged",
             EventCallback.Factory.Create<InputFileChangeEventArgs>(this,
                 args => HandleFileUpload(field.FieldName, args)));
-        builder.AddAttribute(3, "Accept",
+        builder.AddAttribute(2, "Accept",
             field.AdditionalAttributes.GetValueOrDefault("Accept", "*/*"));
-        builder.AddAttribute(4, "Disabled", field.IsDisabled);
-        builder.AddAttribute(5, "ChildContent", RenderFileUploadButton(field));
+        builder.AddAttribute(3, "Disabled", field.IsDisabled);
+        builder.AddAttribute(4, "ActivatorContent", RenderFileUploadButton(field));
         builder.CloseComponent();
     }
 

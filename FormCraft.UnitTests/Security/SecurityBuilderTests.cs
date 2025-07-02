@@ -171,6 +171,7 @@ public class SecurityBuilderTests
         
         // Audit Logging
         config.Security.IsAuditLoggingEnabled.ShouldBeTrue();
+        config.Security.AuditLog.ShouldNotBeNull();
         config.Security.AuditLog.ExcludedFields.ShouldContain("Password");
     }
 

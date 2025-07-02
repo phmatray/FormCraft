@@ -9,7 +9,7 @@ namespace FormCraft;
 internal class MinimalFieldConfiguration : IFieldConfiguration<object, object>
 {
     public string FieldName { get; set; } = string.Empty;
-    public string Label { get; set; } = string.Empty;
+    public string? Label { get; set; } = string.Empty;
     public string? Placeholder { get; set; }
     public string? HelpText { get; set; }
     public bool IsRequired { get; set; }

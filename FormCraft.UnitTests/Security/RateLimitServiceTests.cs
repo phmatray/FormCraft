@@ -68,7 +68,7 @@ public class RateLimitServiceTests
         blockedResult.IsAllowed.ShouldBeFalse();
 
         // Wait for time window to pass
-        await Task.Delay(150);
+        await Task.Delay(150, Xunit.TestContext.Current.CancellationToken);
 
         // Act
         var allowedResult = await _rateLimitService.CheckRateLimitAsync(identifier, maxAttempts, timeWindow);

@@ -163,7 +163,7 @@ public partial class FormSlots : IDisposable
         [
             new() { Label = "Name", Value = $"{_model.FirstName} {_model.LastName}" },
             new() { Label = "Email", Value = _model.Email },
-            new() { Label = "Phone", Value = _model.Phone },
+            new() { Label = "Phone", Value = _model.Phone ?? "" },
             new() { Label = "Dietary Restrictions", Value = _model.Country },
             new() { Label = "Special Requirements", Value = _model.Message ?? "None" },
             new() { Label = "Newsletter", Value = _model.SubscribeToNewsletter ? "Subscribed" : "Not Subscribed" }
