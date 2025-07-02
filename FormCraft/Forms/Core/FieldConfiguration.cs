@@ -17,7 +17,7 @@ public class FieldConfiguration<TModel, TValue> : IFieldConfiguration<TModel, TV
     public Expression<Func<TModel, TValue>> ValueExpression { get; }
 
     /// <inheritdoc />
-    public string Label { get; set; }
+    public string? Label { get; set; }
 
     /// <inheritdoc />
     public string? Placeholder { get; set; }

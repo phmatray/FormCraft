@@ -32,7 +32,7 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
             _inner.ValueExpression.Parameters);
 
     /// <inheritdoc />
-    public string Label { get => _inner.Label; set => _inner.Label = value; }
+    public string? Label { get => _inner.Label; set => _inner.Label = value; }
 
     /// <inheritdoc />
     public string? Placeholder { get => _inner.Placeholder; set => _inner.Placeholder = value; }
