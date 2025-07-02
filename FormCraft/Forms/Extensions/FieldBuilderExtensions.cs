@@ -8,9 +8,10 @@ namespace FormCraft;
 public static class FieldBuilderExtensions
 {
     /// <summary>
-    /// Configures a string field to be rendered as a multi-line text area.
+    /// Configures a string field to be rendered as a multi-line text area (supports both nullable and non-nullable strings).
     /// </summary>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <typeparam name="TValue">The type of the field value (string or string?).</typeparam>
     /// <param name="builder">The FieldBuilder instance for a string field.</param>
     /// <param name="lines">Number of visible lines for the text area (default: 3).</param>
     /// <param name="maxLength">Optional maximum character length allowed.</param>
@@ -21,10 +22,11 @@ public static class FieldBuilderExtensions
     ///     .AsTextArea(lines: 5, maxLength: 500)
     /// </code>
     /// </example>
-    public static FieldBuilder<TModel, string> AsTextArea<TModel>(
-        this FieldBuilder<TModel, string> builder,
+    public static FieldBuilder<TModel, TValue> AsTextArea<TModel, TValue>(
+        this FieldBuilder<TModel, TValue> builder,
         int lines = 3,
-        int? maxLength = null) where TModel : new()
+        int? maxLength = null) 
+        where TModel : new()
     {
         builder.WithAttribute("Lines", lines);
         if (maxLength.HasValue)
@@ -33,6 +35,8 @@ public static class FieldBuilderExtensions
         }
         return builder;
     }
+    
+
 
     /// <summary>
     /// Configures the field to use a custom renderer with explicit type parameters.
@@ -162,9 +166,10 @@ public static class FieldBuilderExtensions
     }
 
     /// <summary>
-    /// Adds email format validation to a string field.
+    /// Adds email format validation to a string field (supports both nullable and non-nullable strings).
     /// </summary>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <typeparam name="TValue">The type of the field value (string or string?).</typeparam>
     /// <param name="builder">The FieldBuilder instance for a string field.</param>
     /// <param name="errorMessage">Custom error message (default: "Please enter a valid email address").</param>
     /// <returns>The FieldBuilder instance for method chaining.</returns>
@@ -174,14 +179,17 @@ public static class FieldBuilderExtensions
     ///     .WithEmailValidation("Invalid email format")
     /// </code>
     /// </example>
-    public static FieldBuilder<TModel, string> WithEmailValidation<TModel>(
-        this FieldBuilder<TModel, string> builder,
-        string? errorMessage = null) where TModel : new()
+    public static FieldBuilder<TModel, TValue> WithEmailValidation<TModel, TValue>(
+        this FieldBuilder<TModel, TValue> builder,
+        string? errorMessage = null) 
+        where TModel : new()
     {
         return builder.WithValidator(
-            value => IsValidEmail(value),
+            value => value == null || IsValidEmail(value?.ToString() ?? ""),
             errorMessage ?? "Please enter a valid email address");
     }
+    
+
 
     /// <summary>
     /// Adds minimum length validation to a string field.

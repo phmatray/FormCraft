@@ -10,5 +10,8 @@
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=58c56b00_002Df81e_002D48fd_002Da74f_002Dc8e84271fcf4/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Continuous Testing" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;Project Location="/Users/phmatray/Repositories/github-phm/FormCraft/FormCraft.UnitTests" Presentation="&amp;lt;src&amp;gt;\&amp;lt;tests&amp;gt;\&amp;lt;FormCraft.UnitTests&amp;gt;" /&gt;
 &lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=d0cca998_002D6781_002D464f_002Da140_002D4ebf683fd39f/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from &amp;lt;src&amp;gt;" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;Project Location="/Users/phmatray/Repositories/github-phm/FormCraft" Presentation="&amp;lt;src&amp;gt;" /&gt;
+&lt;/SessionState&gt;</s:String>
 	
 	</wpf:ResourceDictionary>
