@@ -367,4 +367,3 @@ public static class FieldBuilderExtensions
         }
     }
 }
-

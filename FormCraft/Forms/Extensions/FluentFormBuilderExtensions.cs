@@ -452,5 +452,123 @@ public static class FluentFormBuilderExtensions
         });
     }
 
+    /// <summary>
+    /// Adds a text area field to the form with a single method call, allowing for additional field configuration.
+    /// Supports nullable string properties.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FormBuilder instance.</param>
+    /// <param name="propertyExpression">Expression selecting the property to bind.</param>
+    /// <param name="label">The label for the field.</param>
+    /// <param name="rows">Number of visible rows for the text area (default: 3).</param>
+    /// <param name="fieldConfig">Optional additional field configuration.</param>
+    /// <returns>The FormBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// formConfig = FormBuilder&lt;CreatePaisRequest&gt;
+    ///     .Create()
+    ///     .AddTextArea(x => x.Observacions, "Observacions", rows: 5, 
+    ///         fieldConfig: field => field
+    ///             .WithMaxLength(500)
+    ///             .WithHelpText("Maximum 500 characters"))
+    ///     .Build();
+    /// </code>
+    /// </example>
+    public static FormBuilder<TModel> AddTextArea<TModel>(
+        this FormBuilder<TModel> builder,
+        Expression<Func<TModel, string?>> propertyExpression,
+        string label,
+        int rows = 3,
+        Func<FieldBuilder<TModel, string?>, FieldBuilder<TModel, string?>>? fieldConfig = null)
+        where TModel : new()
+    {
+        return builder.AddField(propertyExpression, field =>
+        {
+            field.WithLabel(label)
+                 .AsTextArea(lines: rows);
+            
+            if (fieldConfig != null)
+            {
+                fieldConfig(field);
+            }
+        });
+    }
+
+    /// <summary>
+    /// Adds a required text field to the form with a single method call.
+    /// Supports nullable string properties.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FormBuilder instance.</param>
+    /// <param name="propertyExpression">Expression selecting the property to bind.</param>
+    /// <param name="label">The label for the field.</param>
+    /// <param name="placeholder">Optional placeholder text.</param>
+    /// <param name="errorMessage">Optional custom error message for required validation.</param>
+    /// <returns>The FormBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// formConfig = FormBuilder&lt;CreatePaisRequest&gt;
+    ///     .Create()
+    ///     .AddRequiredField(x => x.Codi, "Codi")
+    ///     .AddRequiredField(x => x.NomPais, "Nom Pais")
+    ///     .Build();
+    /// </code>
+    /// </example>
+    public static FormBuilder<TModel> AddRequiredField<TModel>(
+        this FormBuilder<TModel> builder,
+        Expression<Func<TModel, string?>> propertyExpression,
+        string label,
+        string? placeholder = null,
+        string? errorMessage = null)
+        where TModel : new()
+    {
+        return builder.AddField(propertyExpression, field =>
+        {
+            field.WithLabel(label)
+                 .Required(errorMessage);
+            
+            if (!string.IsNullOrWhiteSpace(placeholder))
+            {
+                field.WithPlaceholder(placeholder);
+            }
+        });
+    }
+
+    /// <summary>
+    /// Adds an optional text field to the form with a single method call.
+    /// Supports nullable string properties.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FormBuilder instance.</param>
+    /// <param name="propertyExpression">Expression selecting the property to bind.</param>
+    /// <param name="label">The label for the field.</param>
+    /// <param name="placeholder">Optional placeholder text.</param>
+    /// <returns>The FormBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// formConfig = FormBuilder&lt;ContactModel&gt;
+    ///     .Create()
+    ///     .AddOptionalField(x => x.MiddleName, "Middle Name", "Optional")
+    ///     .Build();
+    /// </code>
+    /// </example>
+    public static FormBuilder<TModel> AddOptionalField<TModel>(
+        this FormBuilder<TModel> builder,
+        Expression<Func<TModel, string?>> propertyExpression,
+        string label,
+        string? placeholder = null)
+        where TModel : new()
+    {
+        return builder.AddField(propertyExpression, field =>
+        {
+            field.WithLabel(label);
+            
+            if (!string.IsNullOrWhiteSpace(placeholder))
+            {
+                field.WithPlaceholder(placeholder);
+            }
+        });
+    }
+
     #endregion
 }
