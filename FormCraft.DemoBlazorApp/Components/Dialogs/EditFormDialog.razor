@@ -1,0 +1,20 @@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Class="mr-2" />
+            Edit Product
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Class="mb-4">Edit the product details below:</MudText>
+        <FormCraftComponent
+            TModel="ProductModel" 
+            Model="@Model" 
+            Configuration="@_formConfig"
+            ShowSubmitButton="false" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="@Submit" Variant="Variant.Filled">Save Changes</MudButton>
+    </DialogActions>
+</MudDialog>

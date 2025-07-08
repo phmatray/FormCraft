@@ -12,6 +12,7 @@ public class ProductModel
     public int Rating { get; set; } = 3;
     public double Volume { get; set; } = 50.0;
     public bool InStock { get; set; } = true;
+    public bool IsAvailable { get; set; } = true;
     public string Category { get; set; } = "";
     public DateTime ReleaseDate { get; set; } = DateTime.Today;
 }
