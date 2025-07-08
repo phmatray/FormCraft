@@ -197,12 +197,23 @@ public class AsyncValidatorTests
     public async Task ValidateAsync_Should_Support_Cancellation_Token_Timeout()
     {
         // Arrange
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+        using var cts = new CancellationTokenSource();
 
         Func<string, Task<bool>> slowValidation = async _ =>
         {
-            await Task.Delay(100, cts.Token); // This should timeout
-            return true;
+            // Cancel the token after ensuring we've entered the async method
+            cts.CancelAfter(TimeSpan.FromMilliseconds(10));
+            
+            try
+            {
+                await Task.Delay(100, cts.Token); // This should timeout
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                // Re-throw to let the AsyncValidator handle it
+                throw;
+            }
         };
 
         var validator = new AsyncValidator<TestModel, string>(
