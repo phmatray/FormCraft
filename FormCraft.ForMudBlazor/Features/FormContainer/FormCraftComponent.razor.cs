@@ -208,6 +208,15 @@ public partial class FormCraftComponent<TModel>
         builder.AddAttribute(3, "ValueChanged",
             EventCallback.Factory.Create<T>(this, 
                 newValue => UpdateFieldValue(field.FieldName, newValue)));
+        builder.AddAttribute(4, "Immediate", true);
+        
+        // Add culture and pattern to ensure proper decimal display
+        builder.AddAttribute(5, "Culture", System.Globalization.CultureInfo.InvariantCulture);
+        if (typeof(T) == typeof(decimal))
+        {
+            builder.AddAttribute(6, "Pattern", "[0-9]+([.,][0-9]+)?");
+        }
+        
         builder.CloseComponent();
     }
 

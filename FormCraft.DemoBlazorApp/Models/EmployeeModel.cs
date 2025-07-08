@@ -20,4 +20,5 @@ public class EmployeeModel
     
     // Additional
     public string? Biography { get; set; }
+    public string? Notes { get; set; }
 }
