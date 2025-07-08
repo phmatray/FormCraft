@@ -1,0 +1,78 @@
+@page "/dialog-demo"
+@inject IDialogService DialogService
+
+<PageTitle>Dialog Integration Demo</PageTitle>
+
+<DemoPageLayout
+    Title="Dialog Integration"
+    Icon="@Icons.Material.Filled.OpenInNew"
+    Description="Use FormCraft forms inside MudBlazor dialogs for consistent form experiences in modal contexts. Create, edit, and interact with forms in dialog windows."
+    FormDemoIcon="@Icons.Material.Filled.Window">
+    <FormDemoContent>
+        <MudGrid>
+            <!-- Simple Dialog Example -->
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6" GutterBottom="true">
+                        <MudIcon Icon="@Icons.Material.Filled.AddBox" Class="mr-2" />
+                        Simple Form Dialog
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        Demonstrates a basic form in a dialog for creating new records.
+                    </MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenSimpleDialog">
+                        Open Contact Form
+                    </MudButton>
+                    
+                    @if (!string.IsNullOrEmpty(_simpleDialogResult))
+                    {
+                        <MudAlert Severity="Severity.Success" Class="mt-4">
+                            @_simpleDialogResult
+                        </MudAlert>
+                    }
+                </MudPaper>
+            </MudItem>
+
+            <!-- Edit Dialog Example -->
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6" GutterBottom="true">
+                        <MudIcon Icon="@Icons.Material.Filled.Edit" Class="mr-2" />
+                        Edit Form Dialog
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        Shows how to pre-populate a form with existing data for editing.
+                    </MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OpenEditDialog">
+                        Edit Product
+                    </MudButton>
+                    
+                    @if (!string.IsNullOrEmpty(_editDialogResult))
+                    {
+                        <MudAlert Severity="Severity.Info" Class="mt-4">
+                            @_editDialogResult
+                        </MudAlert>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </FormDemoContent>
+    
+    <CodeExampleContent>
+        <MudText Typo="Typo.h6" GutterBottom="true">Dialog Component Example</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Here's how to create a dialog component with FormCraft:
+        </MudText>
+        <CodeExample Code="@_dialogExample" />
+        
+        <MudText Typo="Typo.h6" Class="mt-6" GutterBottom="true">Usage Example</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            How to open and handle dialog results:
+        </MudText>
+        <CodeExample Code="@_usageExample" />
+    </CodeExampleContent>
+    
+    <GuidelinesContent>
+        <FormGuidelines Guidelines="@_guidelines" Title="Dialog Integration Best Practices" />
+    </GuidelinesContent>
+</DemoPageLayout>

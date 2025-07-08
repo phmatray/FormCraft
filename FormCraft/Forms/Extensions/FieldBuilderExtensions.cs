@@ -35,8 +35,6 @@ public static class FieldBuilderExtensions
         }
         return builder;
     }
-    
-
 
     /// <summary>
     /// Configures the field to use a custom renderer with explicit type parameters.

@@ -1,0 +1,19 @@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Class="mr-2" />
+            New Contact
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <FormCraftComponent
+            TModel="ContactModel" 
+            Model="@Model" 
+            Configuration="@_formConfig"
+            ShowSubmitButton="false" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="@Submit" Variant="Variant.Filled">Create Contact</MudButton>
+    </DialogActions>
+</MudDialog>
