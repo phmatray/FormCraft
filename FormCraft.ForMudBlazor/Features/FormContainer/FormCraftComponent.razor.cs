@@ -182,7 +182,20 @@ public partial class FormCraftComponent<TModel>
         builder.AddAttribute(3, "ValueChanged",
             EventCallback.Factory.Create<string>(this,
                 newValue => UpdateFieldValue(field.FieldName, newValue)));
-        builder.AddAttribute(11, "Immediate", true);
+        
+        // Add Lines attribute for text area support
+        if (field.AdditionalAttributes.TryGetValue("Lines", out var linesObj) && linesObj is int lines)
+        {
+            builder.AddAttribute(10, "Lines", lines);
+        }
+        
+        // Add MaxLength attribute if present
+        if (field.AdditionalAttributes.TryGetValue("MaxLength", out var maxLengthObj) && maxLengthObj is int maxLength)
+        {
+            builder.AddAttribute(11, "MaxLength", maxLength);
+        }
+        
+        builder.AddAttribute(12, "Immediate", true);
         builder.CloseComponent();
     }
 
