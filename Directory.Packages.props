@@ -4,9 +4,9 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft packages -->
-    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="9.0.6" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.6" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.6" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="9.0.7" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.7" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.7" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.7" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.7" />
@@ -21,8 +21,11 @@
     <PackageVersion Include="FakeItEasy" Version="8.3.0" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.v3" Version="2.0.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.1" />
+    <PackageVersion Include="xunit.v3" Version="3.0.0" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageVersion>
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <!-- Development tools -->
     <PackageVersion Include="Nuke.Common" Version="9.0.4" />
