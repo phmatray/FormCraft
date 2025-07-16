@@ -110,6 +110,7 @@ class Build : NukeBuild
 
     Target GenerateChangelog => _ => _
         .Description("Generate CHANGELOG.md using git-cliff")
+        .OnlyWhenStatic(() => IsLocalBuild) // Only run changelog generation in local builds
         .Executes(() =>
         {
             try
@@ -164,6 +165,26 @@ class Build : NukeBuild
         .Produces(ArtifactsDirectory / "*.snupkg")
         .Executes(() =>
         {
+            // If changelog generation was skipped (in CI), check if we have existing changelog files
+            if (IsServerBuild)
+            {
+                // In CI, we'll use the committed CHANGELOG.md files if they exist
+                if (ChangelogPath.FileExists())
+                {
+                    var projectChangelogPath = SourceDirectory / "CHANGELOG.md";
+                    if (!projectChangelogPath.FileExists())
+                    {
+                        File.Copy(ChangelogPath, projectChangelogPath, overwrite: true);
+                    }
+                    
+                    var mudBlazorChangelogPath = MudBlazorDirectory / "CHANGELOG.md";
+                    if (!mudBlazorChangelogPath.FileExists())
+                    {
+                        File.Copy(ChangelogPath, mudBlazorChangelogPath, overwrite: true);
+                    }
+                }
+            }
+            
             // Pack FormCraft main package
             DotNetPack(s => s
                 .SetProject(SourceDirectory)
