@@ -108,8 +108,58 @@ class Build : NukeBuild
                     $"html;LogFileName={TestResultsDirectory / "test-results.html"}"));
         });
 
+    Target GenerateChangelog => _ => _
+        .Description("Generate CHANGELOG.md using git-cliff")
+        .Executes(() =>
+        {
+            try
+            {
+                // Check if git-cliff is installed
+                var checkProcess = ProcessTasks.StartProcess("git-cliff", "--version", RootDirectory, logOutput: false);
+                checkProcess.WaitForExit();
+                
+                if (checkProcess.ExitCode != 0)
+                {
+                    throw new Exception("git-cliff is not installed. Please install it from https://github.com/orhun/git-cliff");
+                }
+                
+                // Generate the full changelog
+                var process = ProcessTasks.StartProcess(
+                    "git-cliff", 
+                    "--config cliff.toml --output CHANGELOG.md", 
+                    RootDirectory, 
+                    logOutput: true);
+                process.WaitForExit();
+                
+                if (process.ExitCode == 0)
+                {
+                    Serilog.Log.Information("✅ Changelog generated successfully at {Path}", ChangelogPath);
+                    
+                    // Copy changelog to FormCraft project directory for packaging
+                    var projectChangelogPath = SourceDirectory / "CHANGELOG.md";
+                    File.Copy(ChangelogPath, projectChangelogPath, overwrite: true);
+                    
+                    // Also copy to ForMudBlazor project
+                    var mudBlazorChangelogPath = MudBlazorDirectory / "CHANGELOG.md";
+                    File.Copy(ChangelogPath, mudBlazorChangelogPath, overwrite: true);
+                    
+                    Serilog.Log.Information("📄 Changelog copied to project directories");
+                }
+                else
+                {
+                    throw new Exception($"git-cliff exited with code {process.ExitCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "Failed to generate changelog");
+                throw;
+            }
+        });
+
     Target Pack => _ => _
         .DependsOn(Test)
+        .DependsOn(GenerateChangelog)
         .Produces(ArtifactsDirectory / "*.nupkg")
         .Produces(ArtifactsDirectory / "*.snupkg")
         .Executes(() =>
