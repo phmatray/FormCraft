@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -68,19 +68,8 @@
     <!-- Include README, CHANGELOG, and icon in package -->
     <None Include="README.md" Pack="true" PackagePath="\" />
     <None Include="icon.png" Pack="true" PackagePath="\" Condition="Exists('icon.png')" />
-    <None Remove="CHANGELOG.md" />
+    <None Include="CHANGELOG.md" Pack="true" PackagePath="\" Condition="Exists('CHANGELOG.md')" />
   </ItemGroup>
 
-  <!-- Changelog Generation Target -->
-  <!-- Only run changelog generation locally, not in CI environments -->
-  <Target Name="GenerateChangelog" BeforeTargets="GenerateNuspec" 
-          Condition="'$(Configuration)' == 'Release' AND '$(GITHUB_ACTIONS)' != 'true' AND '$(CI)' != 'true'">
-    <Exec Command="pwsh -File &quot;$(MSBuildProjectDirectory)/../generate-changelog.ps1&quot;" 
-          Condition="$([MSBuild]::IsOSPlatform('Windows'))" 
-          ContinueOnError="true" />
-    <Exec Command="bash &quot;$(MSBuildProjectDirectory)/../generate-changelog.sh&quot;" 
-          Condition="!$([MSBuild]::IsOSPlatform('Windows'))" 
-          ContinueOnError="true" />
-  </Target>
 
 </Project>
