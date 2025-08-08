@@ -44,6 +44,7 @@ public class RequiredValidator<TModel, TValue> : IFieldValidator<TModel, TValue>
         {
             null => false,
             string str => !string.IsNullOrWhiteSpace(str),
+            bool b => b,
             System.Collections.IEnumerable enumerable => enumerable.Cast<object>().Any(),
             _ => true
         };
