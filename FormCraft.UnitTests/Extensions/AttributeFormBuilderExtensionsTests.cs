@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using Shouldly;
 
 namespace FormCraft.UnitTests.Extensions;
 
@@ -85,7 +84,7 @@ public class AttributeFormBuilderExtensionsTests
             .FirstOrDefault(f => f.TypedConfiguration.FieldName == "FirstName");
 
         firstNameField.ShouldNotBeNull();
-        firstNameField!.TypedConfiguration.Label.ShouldBe("First Name");
+        firstNameField.TypedConfiguration.Label.ShouldBe("First Name");
         firstNameField.TypedConfiguration.Placeholder.ShouldBe("Enter first name");
         firstNameField.TypedConfiguration.IsRequired.ShouldBeTrue();
         firstNameField.TypedConfiguration.InputType.ShouldBe("text");
@@ -104,7 +103,7 @@ public class AttributeFormBuilderExtensionsTests
             .FirstOrDefault(f => f.TypedConfiguration.FieldName == "Email");
 
         emailField.ShouldNotBeNull();
-        emailField!.TypedConfiguration.Label.ShouldBe("Email Address");
+        emailField.TypedConfiguration.Label.ShouldBe("Email Address");
         emailField.TypedConfiguration.Placeholder.ShouldBe("user@example.com");
         emailField.TypedConfiguration.InputType.ShouldBe("email");
         emailField.TypedConfiguration.IsRequired.ShouldBeTrue();
@@ -127,7 +126,7 @@ public class AttributeFormBuilderExtensionsTests
             .FirstOrDefault(f => f.TypedConfiguration.FieldName == "Age");
 
         ageField.ShouldNotBeNull();
-        ageField!.TypedConfiguration.Label.ShouldBe("Age");
+        ageField.TypedConfiguration.Label.ShouldBe("Age");
         ageField.TypedConfiguration.Placeholder.ShouldBe("Enter your age");
         ageField.TypedConfiguration.InputType.ShouldBe("number");
         ageField.TypedConfiguration.AdditionalAttributes.ShouldContainKey("min");
@@ -148,7 +147,7 @@ public class AttributeFormBuilderExtensionsTests
             .FirstOrDefault(f => f.TypedConfiguration.FieldName == "BirthDate");
 
         birthDateField.ShouldNotBeNull();
-        birthDateField!.TypedConfiguration.Label.ShouldBe("Birth Date");
+        birthDateField.TypedConfiguration.Label.ShouldBe("Birth Date");
         birthDateField.TypedConfiguration.InputType.ShouldBe("date");
     }
 
@@ -164,7 +163,7 @@ public class AttributeFormBuilderExtensionsTests
             .FirstOrDefault(f => f.TypedConfiguration.FieldName == "AgreeToTerms");
 
         checkboxField.ShouldNotBeNull();
-        checkboxField!.TypedConfiguration.Label.ShouldBe("I agree to terms");
+        checkboxField.TypedConfiguration.Label.ShouldBe("I agree to terms");
         checkboxField.TypedConfiguration.AdditionalAttributes.ShouldContainKey("text");
         checkboxField.TypedConfiguration.AdditionalAttributes["text"].ShouldBe("I agree to the terms and conditions");
     }
@@ -181,7 +180,7 @@ public class AttributeFormBuilderExtensionsTests
             .FirstOrDefault(f => f.TypedConfiguration.FieldName == "Comments");
 
         textAreaField.ShouldNotBeNull();
-        textAreaField!.TypedConfiguration.Label.ShouldBe("Comments");
+        textAreaField.TypedConfiguration.Label.ShouldBe("Comments");
         textAreaField.TypedConfiguration.Placeholder.ShouldBe("Enter your comments");
         textAreaField.TypedConfiguration.AdditionalAttributes.ShouldContainKey("rows");
         textAreaField.TypedConfiguration.AdditionalAttributes["rows"].ShouldBe(4);
@@ -198,7 +197,7 @@ public class AttributeFormBuilderExtensionsTests
             .FirstOrDefault(f => f.FieldName == "Country");
 
         selectField.ShouldNotBeNull();
-        selectField!.Label.ShouldBe("Country");
+        selectField.Label.ShouldBe("Country");
         selectField.Placeholder.ShouldBe("Select your country");
     }
 
@@ -214,7 +213,7 @@ public class AttributeFormBuilderExtensionsTests
             .FirstOrDefault();
 
         emailField.ShouldNotBeNull();
-        emailField!.TypedConfiguration.Placeholder.ShouldBe("work@example.com");
+        emailField.TypedConfiguration.Placeholder.ShouldBe("work@example.com");
     }
 
     [Fact]
@@ -230,31 +229,31 @@ public class AttributeFormBuilderExtensionsTests
             .OfType<FieldConfigurationWrapper<NumberTestModel, int>>()
             .FirstOrDefault();
         intField.ShouldNotBeNull();
-        intField!.TypedConfiguration.InputType.ShouldBe("number");
+        intField.TypedConfiguration.InputType.ShouldBe("number");
 
         var decimalField = config.Fields
             .OfType<FieldConfigurationWrapper<NumberTestModel, decimal>>()
             .FirstOrDefault();
         decimalField.ShouldNotBeNull();
-        decimalField!.TypedConfiguration.InputType.ShouldBe("number");
+        decimalField.TypedConfiguration.InputType.ShouldBe("number");
 
         var doubleField = config.Fields
             .OfType<FieldConfigurationWrapper<NumberTestModel, double>>()
             .FirstOrDefault();
         doubleField.ShouldNotBeNull();
-        doubleField!.TypedConfiguration.InputType.ShouldBe("number");
+        doubleField.TypedConfiguration.InputType.ShouldBe("number");
 
         var floatField = config.Fields
             .OfType<FieldConfigurationWrapper<NumberTestModel, float>>()
             .FirstOrDefault();
         floatField.ShouldNotBeNull();
-        floatField!.TypedConfiguration.InputType.ShouldBe("number");
+        floatField.TypedConfiguration.InputType.ShouldBe("number");
 
         var longField = config.Fields
             .OfType<FieldConfigurationWrapper<NumberTestModel, long>>()
             .FirstOrDefault();
         longField.ShouldNotBeNull();
-        longField!.TypedConfiguration.InputType.ShouldBe("number");
+        longField.TypedConfiguration.InputType.ShouldBe("number");
     }
 
     [Fact]
@@ -269,7 +268,7 @@ public class AttributeFormBuilderExtensionsTests
             .FirstOrDefault(f => f.TypedConfiguration.FieldName == "AppointmentDate");
 
         nullableDateField.ShouldNotBeNull();
-        nullableDateField!.TypedConfiguration.Label.ShouldBe("Appointment Date");
+        nullableDateField.TypedConfiguration.Label.ShouldBe("Appointment Date");
         nullableDateField.TypedConfiguration.InputType.ShouldBe("date");
     }
 
@@ -286,12 +285,12 @@ public class AttributeFormBuilderExtensionsTests
         statusField.ShouldNotBeNull();
         
         // Check if options are stored in additional attributes
-        var additionalAttrs = statusField!.AdditionalAttributes;
+        var additionalAttrs = statusField.AdditionalAttributes;
         additionalAttrs.ShouldContainKey("options");
         
         var options = additionalAttrs["options"] as string[];
         options.ShouldNotBeNull();
-        options!.Length.ShouldBe(3);
+        options.Length.ShouldBe(3);
         options.ShouldContain("Draft");
         options.ShouldContain("Published");
         options.ShouldContain("Archived");
@@ -311,7 +310,7 @@ public class AttributeFormBuilderExtensionsTests
         textAreaField.ShouldNotBeNull();
         
         // Should have max length validator
-        textAreaField!.TypedConfiguration.Validators
+        textAreaField.TypedConfiguration.Validators
             .OfType<CustomValidator<TestModel, string>>()
             .ShouldNotBeEmpty();
     }

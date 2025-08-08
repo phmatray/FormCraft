@@ -256,37 +256,40 @@ public static class AttributeFormBuilderExtensions
     private static void AddSelectField<TModel>(FormBuilder<TModel> builder, PropertyInfo prop, 
         SelectFieldAttribute selectAttr) where TModel : new()
     {
+        // Use reflection to call the generic helper method
+        var helperMethod = typeof(AttributeFormBuilderExtensions)
+            .GetMethod(nameof(AddSelectFieldGeneric), BindingFlags.NonPublic | BindingFlags.Static)!
+            .MakeGenericMethod(typeof(TModel), prop.PropertyType);
+        
+        helperMethod.Invoke(null, new object[] { builder, prop, selectAttr });
+    }
+    
+    private static void AddSelectFieldGeneric<TModel, TValue>(
+        FormBuilder<TModel> builder, 
+        PropertyInfo prop, 
+        SelectFieldAttribute selectAttr) where TModel : new()
+    {
         var parameter = Expression.Parameter(typeof(TModel), "x");
         var property = Expression.Property(parameter, prop);
+        var lambda = Expression.Lambda<Func<TModel, TValue>>(property, parameter);
         
-        // Create lambda expression based on property type
-        var lambdaType = typeof(Func<,>).MakeGenericType(typeof(TModel), prop.PropertyType);
-        var lambda = Expression.Lambda(lambdaType, property, parameter);
-        
-        // Use reflection to call AddField with the correct type
-        var addFieldMethod = typeof(FormBuilder<TModel>).GetMethod("AddField")!
-            .MakeGenericMethod(prop.PropertyType);
-        
-        var fieldBuilder = addFieldMethod.Invoke(builder, new object[] { lambda, 
-            (Action<object>)(fieldObj => 
-            {
-                dynamic field = fieldObj;
-                field.WithLabel(selectAttr.Label);
-                
-                if (!string.IsNullOrEmpty(selectAttr.Placeholder))
-                    field.WithPlaceholder(selectAttr.Placeholder);
-                
-                if (selectAttr.Options != null && selectAttr.Options.Length > 0)
-                    field.WithAttribute("options", selectAttr.Options);
-                
-                if (selectAttr.AllowMultiple)
-                    field.WithAttribute("multiple", true);
-                
-                if (!string.IsNullOrEmpty(selectAttr.OptionsProviderName))
-                    field.WithAttribute("options-provider", selectAttr.OptionsProviderName);
-                
-                ApplyValidationAttributesDynamic(field, prop, selectAttr.Label);
-            })
+        builder.AddField(lambda, field =>
+        {
+            field.WithLabel(selectAttr.Label);
+            
+            if (!string.IsNullOrEmpty(selectAttr.Placeholder))
+                field.WithPlaceholder(selectAttr.Placeholder);
+            
+            if (selectAttr.Options != null && selectAttr.Options.Length > 0)
+                field.WithAttribute("options", selectAttr.Options);
+            
+            if (selectAttr.AllowMultiple)
+                field.WithAttribute("multiple", true);
+            
+            if (!string.IsNullOrEmpty(selectAttr.OptionsProviderName))
+                field.WithAttribute("options-provider", selectAttr.OptionsProviderName);
+            
+            ApplyValidationAttributes(field, prop, selectAttr.Label);
         });
     }
 
@@ -332,20 +335,6 @@ public static class AttributeFormBuilderExtensions
         }
     }
 
-    private static void ApplyValidationAttributesDynamic(dynamic field, PropertyInfo prop, string label)
-    {
-        var required = prop.GetCustomAttribute<RequiredAttribute>();
-        if (required != null)
-            field.Required(required.ErrorMessage ?? $"{label} is required");
-
-        var minLength = prop.GetCustomAttribute<MinLengthAttribute>();
-        if (minLength != null && prop.PropertyType == typeof(string))
-            field.WithMinLength(minLength.Length, minLength.ErrorMessage ?? $"Must be at least {minLength.Length} characters");
-
-        var maxLength = prop.GetCustomAttribute<MaxLengthAttribute>();
-        if (maxLength != null && prop.PropertyType == typeof(string))
-            field.WithMaxLength(maxLength.Length, maxLength.ErrorMessage ?? $"Must be no more than {maxLength.Length} characters");
-    }
 
     private static bool IsNumericType(Type type)
     {
