@@ -35,10 +35,25 @@ var configuration = FormBuilder<MyModel>.Create()
     .Build();
 ```
 
+You can also configure fields using attributes on your model:
+
+```csharp
+public class MyModel
+{
+    [Required]
+    [TextField("Full Name", "Enter your name")]
+    public string Name { get; set; } = string.Empty;
+}
+
+var configuration = FormBuilder<MyModel>.Create()
+    .AddFieldsFromAttributes()
+    .Build();
+```
+
 4. Render the form:
 ```razor
-<FormCraftComponent TModel="MyModel" 
-                   Model="@myModel" 
+<FormCraftComponent TModel="MyModel"
+                   Model="@myModel"
                    Configuration="@configuration"
                    OnValidSubmit="@HandleSubmit"
                    ShowSubmitButton="true" />

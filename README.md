@@ -149,6 +149,22 @@ public class UserRegistration
 }
 ```
 
+Alternatively, you can configure fields directly on your model using attributes:
+
+```csharp
+public class ContactModel
+{
+    [Required]
+    [TextField("First Name", "Enter your first name")]
+    [MinLength(2)]
+    public string FirstName { get; set; } = string.Empty;
+}
+
+var config = FormBuilder<ContactModel>.Create()
+    .AddFieldsFromAttributes()
+    .Build();
+```
+
 ## 🎨 Examples
 
 ### Dynamic Field Dependencies
