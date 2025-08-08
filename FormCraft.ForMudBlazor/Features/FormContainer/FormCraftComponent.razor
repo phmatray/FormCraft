@@ -10,7 +10,6 @@
 }
 
 <EditForm EditContext="@_editContext" OnValidSubmit="@OnSubmit">
-    <DataAnnotationsValidator />
     <DynamicFormValidator TModel="TModel" Configuration="@Configuration" />
     
     @if (GroupedConfiguration != null && GroupedConfiguration.UseFieldGroups && GroupedConfiguration.FieldGroups.Any())

@@ -269,6 +269,22 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     }
 
     /// <summary>
+    /// Sets the HTML5 input type for the field (e.g., "text", "email", "tel", "number", "date").
+    /// </summary>
+    /// <param name="inputType">The HTML5 input type to use for this field.</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .WithInputType("email")
+    /// </code>
+    /// </example>
+    public FieldBuilder<TModel, TValue> WithInputType(string inputType)
+    {
+        _fieldConfiguration.InputType = inputType;
+        return this;
+    }
+
+    /// <summary>
     /// Creates a dependency on another field, executing an action when the dependency changes.
     /// </summary>
     /// <typeparam name="TDependsOn">The type of the field this field depends on.</typeparam>

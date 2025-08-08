@@ -46,7 +46,7 @@ FormCraft v2.0.0 brings exciting new features and improvements:
 - **Enhanced performance** with optimized rendering
 - **Better type safety** with improved generic constraints
 - **Comprehensive documentation** with live examples
-- **400+ unit tests** ensuring reliability
+- **500+ unit tests** ensuring reliability
 
 ## 🚀 Why FormCraft?
 

@@ -1,11 +1,11 @@
 namespace FormCraft;
 
 /// <summary>
-/// Specifies that a string property should be rendered as a text field
+/// Specifies that a string property should be rendered as an email field
 /// when generating a form from model attributes.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
-public class TextFieldAttribute : Attribute
+public class EmailFieldAttribute : Attribute
 {
     /// <summary>
     /// Gets the label to display for the field.
@@ -18,13 +18,18 @@ public class TextFieldAttribute : Attribute
     public string? Placeholder { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="TextFieldAttribute"/> class.
+    /// Gets whether to validate the email format.
+    /// </summary>
+    public bool ValidateFormat { get; set; } = true;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EmailFieldAttribute"/> class.
     /// </summary>
     /// <param name="label">The label to display for the field.</param>
     /// <param name="placeholder">Optional placeholder text.</param>
-    public TextFieldAttribute(string label, string? placeholder = null)
+    public EmailFieldAttribute(string label, string? placeholder = null)
     {
         Label = label;
-        Placeholder = placeholder;
+        Placeholder = placeholder ?? "user@example.com";
     }
 }
