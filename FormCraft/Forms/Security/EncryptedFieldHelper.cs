@@ -19,7 +19,7 @@ public static class EncryptedFieldHelper
         foreach (var fieldName in security.EncryptedFields)
         {
             var property = typeof(TModel).GetProperty(fieldName);
-            if (property?.PropertyType == typeof(string) && property.CanRead && property.CanWrite)
+            if (property?.PropertyType == typeof(string) && property is { CanRead: true, CanWrite: true })
             {
                 var value = property.GetValue(model) as string;
                 if (!string.IsNullOrEmpty(value))

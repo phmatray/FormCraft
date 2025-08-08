@@ -75,7 +75,7 @@ public class VersionService : IVersionService
                         // Remove 'v' prefix if present
                         if (version.StartsWith("v"))
                         {
-                            version = version.Substring(1);
+                            version = version[1..];
                         }
                         _cachedVersion = version;
                         _cacheExpiry = DateTime.UtcNow.AddHours(1);

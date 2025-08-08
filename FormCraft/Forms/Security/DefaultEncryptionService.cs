@@ -23,7 +23,7 @@ public class DefaultEncryptionService : IEncryptionService
             keyString = "DefaultKey123456DefaultKey123456"; // 32 bytes for AES-256
         }
 
-        _key = Encoding.UTF8.GetBytes(keyString.PadRight(32).Substring(0, 32));
+        _key = Encoding.UTF8.GetBytes(keyString.PadRight(32)[..32]);
         _iv = Encoding.UTF8.GetBytes(configuration["FormCraft:Encryption:IV"] ?? "1234567890123456");
     }
 
