@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Components;
+using System.Linq.Expressions;
+using System.Reflection;
 
 namespace FormCraft;
 
@@ -114,7 +116,21 @@ public class FieldRendererService : IFieldRendererService
             return property?.PropertyType ?? typeof(object);
         }
 
-        return field.ValueExpression.Body.Type;
+        var expressionBody = field.ValueExpression.Body;
+
+        return expressionBody switch
+        {
+            MemberExpression
+            {
+                Member: PropertyInfo propertyInfo
+            } => propertyInfo.PropertyType,
+            UnaryExpression
+            {
+                NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked,
+                Operand: MemberExpression { Member: PropertyInfo unaryPropertyInfo }
+            } => unaryPropertyInfo.PropertyType,
+            _ => expressionBody.Type
+        };
     }
 
     private static object GetCurrentValue<TModel>(TModel model, IFieldConfiguration<TModel, object> field)
