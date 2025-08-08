@@ -36,7 +36,7 @@ public static class ServiceCollectionExtensions
 
         // Only register built-in field renderers if no UI framework adapter is registered
         // This allows UI framework-specific renderers to take precedence
-        if (!services.Any(s => s.ServiceType == typeof(IUIFrameworkAdapter)))
+        if (services.All(s => s.ServiceType != typeof(IUIFrameworkAdapter)))
         {
             services.AddScoped<IFieldRenderer, StringFieldRenderer>();
             services.AddScoped<IFieldRenderer, IntFieldRenderer>();
