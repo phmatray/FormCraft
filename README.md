@@ -27,11 +27,17 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 - 📤 File upload capabilities
 - 🎨 Real-time form generation
 
-## 🎉 What's New in v2.0.0
+## 🎉 What's New in v2.5.0
 
-FormCraft v2.0.0 brings exciting new features and improvements:
+FormCraft v2.5.0 introduces powerful attribute-based form generation and more:
 
-### 🔒 Security Features
+### 🏷️ Attribute-Based Form Generation (NEW!)
+- **Zero-configuration forms** - Generate complete forms from model attributes
+- **Rich attribute library** - TextField, EmailField, NumberField, DateField, SelectField, CheckboxField, TextArea
+- **Automatic validation** - Integrates with DataAnnotations attributes
+- **One-line setup** - Just call `.AddFieldsFromAttributes()`
+
+### 🔒 Security Features (v2.0.0)
 - **Field-level encryption** for sensitive data protection
 - **CSRF protection** with built-in anti-forgery tokens
 - **Rate limiting** to prevent form spam
@@ -46,7 +52,7 @@ FormCraft v2.0.0 brings exciting new features and improvements:
 - **Enhanced performance** with optimized rendering
 - **Better type safety** with improved generic constraints
 - **Comprehensive documentation** with live examples
-- **500+ unit tests** ensuring reliability
+- **550+ unit tests** ensuring reliability
 
 ## 🚀 Why FormCraft?
 
@@ -56,13 +62,14 @@ FormCraft revolutionizes form building in Blazor applications by providing a **f
 
 - 🔒 **Type-Safe** - Full IntelliSense support with compile-time validation
 - 🎯 **Fluent API** - Intuitive method chaining for readable form configuration
+- 🏷️ **Attribute-Based Forms** - Generate forms from model attributes with zero configuration
 - 🎨 **MudBlazor Integration** - Beautiful Material Design components out of the box
 - 🔄 **Dynamic Forms** - Create forms that adapt based on user input
 - ✅ **Advanced Validation** - Built-in, custom, and async validators
 - 🔗 **Field Dependencies** - Link fields together with reactive updates
 - 📐 **Flexible Layouts** - Multiple layout options to fit your design
 - 🚀 **High Performance** - Optimized rendering with minimal overhead
-- 🧪 **Fully Tested** - 400+ unit tests ensuring reliability
+- 🧪 **Fully Tested** - 550+ unit tests ensuring reliability
 
 ## 📦 Installation
 
@@ -149,21 +156,116 @@ public class UserRegistration
 }
 ```
 
-Alternatively, you can configure fields directly on your model using attributes:
+## 🏷️ Attribute-Based Forms (NEW!)
+
+Define your forms directly on your model with attributes - no configuration code needed!
+
+### Define Your Model with Attributes
 
 ```csharp
-public class ContactModel
+public class UserRegistration
 {
-    [Required]
     [TextField("First Name", "Enter your first name")]
+    [Required(ErrorMessage = "First name is required")]
     [MinLength(2)]
     public string FirstName { get; set; } = string.Empty;
+    
+    [TextField("Last Name", "Enter your last name")]
+    [Required(ErrorMessage = "Last name is required")]
+    public string LastName { get; set; } = string.Empty;
+    
+    [EmailField("Email Address")]
+    [Required]
+    public string Email { get; set; } = string.Empty;
+    
+    [NumberField("Age", "Your age")]
+    [Range(18, 120, ErrorMessage = "Age must be between 18 and 120")]
+    public int Age { get; set; }
+    
+    [DateField("Date of Birth")]
+    public DateTime BirthDate { get; set; }
+    
+    [SelectField("Country", "United States", "Canada", "United Kingdom", "Australia")]
+    public string Country { get; set; } = string.Empty;
+    
+    [TextArea("Bio", "Tell us about yourself")]
+    [MaxLength(500)]
+    public string Bio { get; set; } = string.Empty;
+    
+    [CheckboxField("Newsletter", "Subscribe to our newsletter")]
+    public bool SubscribeToNewsletter { get; set; }
+}
+```
+
+### Generate the Form with One Line
+
+```csharp
+var formConfig = FormBuilder<UserRegistration>.Create()
+    .AddFieldsFromAttributes()  // That's it! 🎉
+    .Build();
+```
+
+### Available Attribute Types
+
+- `[TextField]` - Standard text input
+- `[EmailField]` - Email input with validation
+- `[NumberField]` - Numeric input with min/max support
+- `[DateField]` - Date picker with constraints
+- `[SelectField]` - Dropdown with predefined options
+- `[CheckboxField]` - Boolean checkbox
+- `[TextArea]` - Multiline text input
+
+All attributes work seamlessly with standard DataAnnotations validators like `[Required]`, `[MinLength]`, `[MaxLength]`, `[Range]`, and more!
+
+### Comparison: Fluent API vs Attributes
+
+<table>
+<tr>
+<th>Fluent API</th>
+<th>Attribute-Based</th>
+</tr>
+<tr>
+<td>
+
+```csharp
+var config = FormBuilder<User>.Create()
+    .AddField(x => x.Name, field => field
+        .WithLabel("Full Name")
+        .WithPlaceholder("Enter name")
+        .Required("Name is required")
+        .WithMinLength(2))
+    .AddField(x => x.Email, field => field
+        .WithLabel("Email")
+        .WithInputType("email")
+        .Required())
+    .Build();
+```
+
+</td>
+<td>
+
+```csharp
+public class User
+{
+    [TextField("Full Name", "Enter name")]
+    [Required(ErrorMessage = "Name is required")]
+    [MinLength(2)]
+    public string Name { get; set; }
+    
+    [EmailField("Email")]
+    [Required]
+    public string Email { get; set; }
 }
 
-var config = FormBuilder<ContactModel>.Create()
+// One line to generate!
+var config = FormBuilder<User>.Create()
     .AddFieldsFromAttributes()
     .Build();
 ```
+
+</td>
+</tr>
+</table>
 
 ## 🎨 Examples
 
