@@ -16,8 +16,8 @@ public partial class SecurityDemo
     private string _decryptedResult = "";
     private int _submissionCount;
     private const int _maxSubmissions = 3;
-    private string _resetTime = "1 minute";
-    
+    private const string _resetTime = "1 minute";
+
     private readonly List<GuidelineItem> _securityGuidelines = new()
     {
         new()
@@ -240,8 +240,8 @@ public partial class SecurityDemo
         {
             new() { Label = "Name", Value = _lastSubmission.Name },
             new() { Label = "Email", Value = _lastSubmission.Email },
-            new() { Label = "SSN", Value = _lastSubmission.SSN.Length > 10 ? "***-**-" + _lastSubmission.SSN.Substring(_lastSubmission.SSN.Length - 4) : "Encrypted" },
-            new() { Label = "Credit Card", Value = _lastSubmission.CreditCard.Length > 10 ? "****-****-****-" + _lastSubmission.CreditCard.Substring(_lastSubmission.CreditCard.Length - 4) : "Encrypted" },
+            new() { Label = "SSN", Value = _lastSubmission.SSN.Length > 10 ? "***-**-" + _lastSubmission.SSN[^4..] : "Encrypted" },
+            new() { Label = "Credit Card", Value = _lastSubmission.CreditCard.Length > 10 ? "****-****-****-" + _lastSubmission.CreditCard[^4..] : "Encrypted" },
             new() { Label = "Birth Date", Value = _lastSubmission.BirthDate.ToShortDateString() }
         };
     }

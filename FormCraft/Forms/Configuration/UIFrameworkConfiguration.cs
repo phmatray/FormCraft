@@ -8,7 +8,7 @@ public class UIFrameworkConfiguration
     /// <summary>
     /// Gets or sets the current UI framework adapter.
     /// </summary>
-    public IUIFrameworkAdapter CurrentFramework { get; set; } = default!;
+    public IUIFrameworkAdapter CurrentFramework { get; set; } = null!;
     
     /// <summary>
     /// Gets the registered UI framework adapters.

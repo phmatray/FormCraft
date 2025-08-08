@@ -22,7 +22,7 @@ public class BlazorEncryptionService : IEncryptionService
             keyString = "DefaultKey123456DefaultKey123456"; // 32 bytes
         }
 
-        _key = Encoding.UTF8.GetBytes(keyString.PadRight(32).Substring(0, 32));
+        _key = Encoding.UTF8.GetBytes(keyString.PadRight(32)[..32]);
     }
 
     public string? Encrypt(string? value)
