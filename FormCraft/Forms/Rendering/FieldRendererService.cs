@@ -118,23 +118,19 @@ public class FieldRendererService : IFieldRendererService
 
         var expressionBody = field.ValueExpression.Body;
 
-        if (expressionBody is MemberExpression memberExpression)
+        return expressionBody switch
         {
-            if (memberExpression.Member is PropertyInfo propertyInfo)
+            MemberExpression
             {
-                return propertyInfo.PropertyType;
-            }
-        }
-
-        if (expressionBody is UnaryExpression unaryExpression &&
-            (unaryExpression.NodeType == ExpressionType.Convert || unaryExpression.NodeType == ExpressionType.ConvertChecked) &&
-            unaryExpression.Operand is MemberExpression unaryMember &&
-            unaryMember.Member is PropertyInfo unaryPropertyInfo)
-        {
-            return unaryPropertyInfo.PropertyType;
-        }
-
-        return expressionBody.Type;
+                Member: PropertyInfo propertyInfo
+            } => propertyInfo.PropertyType,
+            UnaryExpression
+            {
+                NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked,
+                Operand: MemberExpression { Member: PropertyInfo unaryPropertyInfo }
+            } => unaryPropertyInfo.PropertyType,
+            _ => expressionBody.Type
+        };
     }
 
     private static object GetCurrentValue<TModel>(TModel model, IFieldConfiguration<TModel, object> field)
