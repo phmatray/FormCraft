@@ -103,6 +103,12 @@ public interface IFieldConfiguration<TModel, TValue>
     Dictionary<string, object> AdditionalAttributes { get; }
 
     /// <summary>
+    /// Gets or sets the HTML5 input type for the field (e.g., "text", "email", "tel", "number", "date").
+    /// This property is used to specify the type attribute of HTML input elements.
+    /// </summary>
+    string? InputType { get; set; }
+
+    /// <summary>
     /// Gets the list of validators that will be applied to this field's value.
     /// Validators are executed in the order they appear in this list.
     /// </summary>

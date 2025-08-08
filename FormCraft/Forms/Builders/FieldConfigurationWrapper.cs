@@ -62,6 +62,9 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
     public Dictionary<string, object> AdditionalAttributes => _inner.AdditionalAttributes;
 
     /// <inheritdoc />
+    public string? InputType { get => _inner.InputType; set => _inner.InputType = value; }
+
+    /// <inheritdoc />
     public List<IFieldValidator<TModel, object>> Validators =>
         _inner.Validators.Select<IFieldValidator<TModel, TValue>, IFieldValidator<TModel, object>>(v => new ValidatorWrapper<TModel, TValue>(v)).ToList();
 

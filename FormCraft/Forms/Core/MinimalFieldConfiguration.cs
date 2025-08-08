@@ -20,6 +20,7 @@ internal class MinimalFieldConfiguration : IFieldConfiguration<object, object>
     public string? GroupName { get; set; }
     public string? CssClass { get; set; }
     public Dictionary<string, object> AdditionalAttributes { get; set; } = new();
+    public string? InputType { get; set; }
     public List<IFieldValidator<object, object>> Validators { get; set; } = new();
     public List<IFieldDependency<object>> Dependencies { get; set; } = new();
     public Expression<Func<object, object>> ValueExpression { get; set; } = obj => obj;

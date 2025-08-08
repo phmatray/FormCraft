@@ -46,6 +46,11 @@ public class FieldConfiguration<TModel, TValue> : IFieldConfiguration<TModel, TV
     /// <inheritdoc />
     public Dictionary<string, object> AdditionalAttributes { get; } = new();
 
+    /// <summary>
+    /// Gets or sets the HTML5 input type for the field (e.g., "text", "email", "tel", "number", "date").
+    /// </summary>
+    public string? InputType { get; set; }
+
     /// <inheritdoc />
     public List<IFieldValidator<TModel, TValue>> Validators { get; } = new();
 

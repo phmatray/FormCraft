@@ -1,0 +1,57 @@
+@page "/attribute-based-forms"
+@using FormCraft.DemoBlazorApp.Models
+
+<DemoPageLayout
+    Title="Attribute-Based Form Generation"
+    Icon="@Icons.Material.Filled.Label"
+    Description="Generate complete forms automatically from model attributes without writing any form configuration code. Simply decorate your model properties with field attributes."
+    FormDemoIcon="@Icons.Material.Filled.AutoMode">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="UserRegistrationModel"
+            Model="@_model"
+            Configuration="@_formConfiguration"
+            FormTitle="User Registration Form"
+            FormIcon="@Icons.Material.Filled.PersonAdd"
+            IsSubmitted="@_isSubmitted"
+            IsSubmitting="@_isSubmitting"
+            OnValidSubmit="@HandleValidSubmit"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()"
+            ShowSubmitButton="true"
+            SubmitButtonText="Register"
+            SubmittingText="Registering..."
+            SubmitButtonClass="px-8">
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="Available Attributes" />
+            </SidebarContent>
+            <AdditionalContent>
+                @if (_isSubmitted)
+                {
+                    <MudAlert Severity="Severity.Success" Class="mt-4">
+                        Registration completed successfully! The form data has been processed.
+                    </MudAlert>
+                }
+            </AdditionalContent>
+        </FormDemoSection>
+    </FormDemoContent>
+    
+    <CodeExampleContent>
+        <CodeExample
+            Title="Model with Attributes"
+            Language="csharp"
+            Code="@GetModelCode()" />
+        
+        <CodeExample
+            Title="Form Generation (Just One Line!)"
+            Language="csharp"
+            Code="@GetFormGenerationCode()"
+            Class="mt-4" />
+    </CodeExampleContent>
+    
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Attribute-Based Form Guidelines"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>
