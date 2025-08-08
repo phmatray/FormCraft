@@ -5,6 +5,8 @@ public class RequiredValidatorTests
     private readonly RequiredValidator<TestModel, string> _stringValidator;
     private readonly RequiredValidator<TestModel, int> _intValidator;
     private readonly RequiredValidator<TestModel, int?> _nullableIntValidator;
+    private readonly RequiredValidator<TestModel, bool> _boolValidator;
+    private readonly RequiredValidator<TestModel, bool?> _nullableBoolValidator;
     private readonly IServiceProvider _services;
 
     public RequiredValidatorTests()
@@ -12,6 +14,8 @@ public class RequiredValidatorTests
         _stringValidator = new RequiredValidator<TestModel, string>("Field is required");
         _intValidator = new RequiredValidator<TestModel, int>("Field is required");
         _nullableIntValidator = new RequiredValidator<TestModel, int?>("Field is required");
+        _boolValidator = new RequiredValidator<TestModel, bool>("Field is required");
+        _nullableBoolValidator = new RequiredValidator<TestModel, bool?>("Field is required");
         _services = A.Fake<IServiceProvider>();
     }
 
@@ -93,6 +97,76 @@ public class RequiredValidatorTests
 
         // Act
         var result = await _intValidator.ValidateAsync(model, 42, _services);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+        result.ErrorMessage.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task ValidateAsync_Bool_Should_Fail_When_False()
+    {
+        // Arrange
+        var model = new TestModel();
+
+        // Act
+        var result = await _boolValidator.ValidateAsync(model, false, _services);
+
+        // Assert
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Field is required");
+    }
+
+    [Fact]
+    public async Task ValidateAsync_Bool_Should_Pass_When_True()
+    {
+        // Arrange
+        var model = new TestModel();
+
+        // Act
+        var result = await _boolValidator.ValidateAsync(model, true, _services);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+        result.ErrorMessage.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task ValidateAsync_NullableBool_Should_Fail_When_Null()
+    {
+        // Arrange
+        var model = new TestModel();
+
+        // Act
+        var result = await _nullableBoolValidator.ValidateAsync(model, null, _services);
+
+        // Assert
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Field is required");
+    }
+
+    [Fact]
+    public async Task ValidateAsync_NullableBool_Should_Fail_When_False()
+    {
+        // Arrange
+        var model = new TestModel();
+
+        // Act
+        var result = await _nullableBoolValidator.ValidateAsync(model, false, _services);
+
+        // Assert
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Field is required");
+    }
+
+    [Fact]
+    public async Task ValidateAsync_NullableBool_Should_Pass_When_True()
+    {
+        // Arrange
+        var model = new TestModel();
+
+        // Act
+        var result = await _nullableBoolValidator.ValidateAsync(model, true, _services);
 
         // Assert
         result.IsValid.ShouldBeTrue();
