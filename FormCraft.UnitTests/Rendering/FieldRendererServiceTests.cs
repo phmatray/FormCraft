@@ -162,6 +162,40 @@ public class FieldRendererServiceTests
     }
 
     [Fact]
+    public void RenderField_Should_Use_Custom_Renderer_And_Bypass_Standard_Renderers()
+    {
+        // Arrange
+        var model = new TestModel { Name = "Test" };
+        var field = new FieldConfiguration<TestModel, string?>(x => x.Name);
+
+        var customRenderer = new FakeCustomRenderer();
+        var services = new ServiceCollection();
+        services.AddSingleton(customRenderer.GetType(), customRenderer);
+        var serviceProvider = services.BuildServiceProvider();
+
+        field.CustomRendererType = customRenderer.GetType();
+
+        var standardRenderer = A.Fake<IFieldRenderer>();
+        A.CallTo(() => standardRenderer.CanRender(A<Type>._, A<IFieldConfiguration<object, object>>._)).Returns(true);
+
+        var service = new FieldRendererService(new[] { standardRenderer }, serviceProvider);
+        var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
+        var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
+
+        // Act
+        var result = service.RenderField(model,
+            new FieldConfigurationWrapper<TestModel, string?>(field),
+            onValueChanged,
+            onDependencyChanged);
+
+        // Assert
+        result.ShouldNotBeNull();
+        customRenderer.WasCalled.ShouldBeTrue();
+        A.CallTo(() => standardRenderer.CanRender(A<Type>._, A<IFieldConfiguration<object, object>>._)).MustNotHaveHappened();
+        A.CallTo(() => standardRenderer.Render(A<IFieldRenderContext<TestModel>>._)).MustNotHaveHappened();
+    }
+
+    [Fact]
     public void RenderField_Should_Handle_Null_Current_Value()
     {
         // Arrange
@@ -246,5 +280,16 @@ public class FieldRendererServiceTests
     {
         public string? Name { get; set; }
         public int Value { get; set; }
+    }
+
+    private class FakeCustomRenderer : ICustomFieldRenderer<string>
+    {
+        public bool WasCalled { get; private set; }
+        public Type ValueType => typeof(string);
+        public RenderFragment Render(IFieldRenderContext context)
+        {
+            WasCalled = true;
+            return builder => builder.AddContent(0, "Custom");
+        }
     }
 }
