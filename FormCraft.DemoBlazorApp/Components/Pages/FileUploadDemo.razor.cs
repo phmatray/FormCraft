@@ -154,7 +154,7 @@ public partial class FileUploadDemo
             });
         }
 
-        if (_model.Certificates?.Any() == true)
+        if (_model.Certificates.Any())
         {
             items.Add(new FormSuccessDisplay.DataDisplayItem
             {

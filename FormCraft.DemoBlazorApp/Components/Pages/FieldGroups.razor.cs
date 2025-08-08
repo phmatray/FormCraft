@@ -179,7 +179,7 @@ public partial class FieldGroups
         if (!string.IsNullOrEmpty(_model.Biography))
         {
             var bio = _model.Biography.Length > 50
-                ? _model.Biography.Substring(0, 50) + "..."
+                ? _model.Biography[..50] + "..."
                 : _model.Biography;
             items.Add(new() { Label = "Biography", Value = bio });
         }

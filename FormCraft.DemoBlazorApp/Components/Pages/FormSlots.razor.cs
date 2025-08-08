@@ -11,7 +11,7 @@ public partial class FormSlots : IDisposable
     private IFormConfiguration<ContactModel> _formConfiguration = null!;
     private bool _isSubmitting;
     private bool _isSubmitted;
-    private int _activeStep = 0;
+    private int _activeStep;
     private bool _showCountdown = true;
     private string _countdownText = "";
     private System.Timers.Timer? _countdownTimer;
