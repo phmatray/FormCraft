@@ -36,13 +36,16 @@ public static class ServiceCollectionExtensions
 
         // Only register built-in field renderers if no UI framework adapter is registered
         // This allows UI framework-specific renderers to take precedence
-        services.AddScoped<IFieldRenderer, StringFieldRenderer>();
-        services.AddScoped<IFieldRenderer, IntFieldRenderer>();
-        services.AddScoped<IFieldRenderer, DecimalFieldRenderer>();
-        services.AddScoped<IFieldRenderer, DoubleFieldRenderer>();
-        services.AddScoped<IFieldRenderer, BoolFieldRenderer>();
-        services.AddScoped<IFieldRenderer, DateTimeFieldRenderer>();
-        services.AddScoped<IFieldRenderer, FileUploadFieldRenderer>();
+        if (!services.Any(s => s.ServiceType == typeof(IUIFrameworkAdapter)))
+        {
+            services.AddScoped<IFieldRenderer, StringFieldRenderer>();
+            services.AddScoped<IFieldRenderer, IntFieldRenderer>();
+            services.AddScoped<IFieldRenderer, DecimalFieldRenderer>();
+            services.AddScoped<IFieldRenderer, DoubleFieldRenderer>();
+            services.AddScoped<IFieldRenderer, BoolFieldRenderer>();
+            services.AddScoped<IFieldRenderer, DateTimeFieldRenderer>();
+            services.AddScoped<IFieldRenderer, FileUploadFieldRenderer>();
+        }
 
         // Register security services
         services.AddScoped<IEncryptionService, BlazorEncryptionService>();
