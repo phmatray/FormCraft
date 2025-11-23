@@ -31,12 +31,16 @@
         }(window.location))
     </script>
     <!-- End Single Page Apps for GitHub Pages -->
+
+    <link rel="preload" id="webassembly" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link href="app.css" rel="stylesheet" />
     <link href="FormCraft.DemoBlazorApp.styles.css" rel="stylesheet" />
     <link href="lib/prism/prism.min.css" rel="stylesheet" />
+    <script type="importmap"></script>
+    
     <style>
         #app-loading {
             position: fixed;
@@ -126,12 +130,12 @@
 
     <div id="blazor-error-ui">
         An unhandled error has occurred.
-        <a href="" class="reload">Reload</a>
+        <a href="." class="reload">Reload</a>
         <a class="dismiss">🗙</a>
     </div>
 
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-    <script src="_framework/blazor.webassembly.js"></script>
     <script src="lib/prism/prism.min.js"></script>
     <script src="lib/prism/prism-csharp.min.js"></script>
     <script src="lib/prism/prism-cshtml.min.js"></script>

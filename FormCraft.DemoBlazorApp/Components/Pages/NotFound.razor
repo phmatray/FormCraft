@@ -1,0 +1,13 @@
+@page "/not-found"
+@layout MainLayout
+
+<PageTitle>Not found</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex align-center justify-center" Style="height: 80vh;">
+    <div class="text-center">
+        <MudIcon Icon="@Icons.Material.Filled.Warning" Style="font-size: 5rem;" Color="Color.Warning" />
+        <MudText Typo="Typo.h3" Class="mt-4">Page Not Found</MudText>
+        <MudText Typo="Typo.body1" Class="mt-2 mb-4">Sorry, the page you're looking for doesn't exist.</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/">Go to Home</MudButton>
+    </div>
+</MudContainer>
