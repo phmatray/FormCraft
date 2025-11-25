@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
     
     <!-- Package Information -->
     <PackageId>FormCraft.ForMudBlazor</PackageId>
