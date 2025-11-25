@@ -98,6 +98,23 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     }
 
     /// <summary>
+    /// Sets the HTML5 input type for the field (e.g., "text", "email", "password", "tel", "number", "date").
+    /// </summary>
+    /// <param name="inputType">The HTML5 input type to set.</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .WithInputType("password")
+    /// .WithInputType("email")
+    /// </code>
+    /// </example>
+    public FieldBuilder<TModel, TValue> WithInputType(string inputType)
+    {
+        _fieldConfiguration.InputType = inputType;
+        return this;
+    }
+
+    /// <summary>
     /// Makes the field required and adds validation to ensure it has a value.
     /// </summary>
     /// <param name="errorMessage">Custom error message to display when validation fails. If null, a default message is used.</param>
@@ -265,22 +282,6 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     public FieldBuilder<TModel, TValue> WithAsyncValidator(Func<TValue, Task<bool>> validation, string errorMessage)
     {
         _fieldConfiguration.Validators.Add(new AsyncValidator<TModel, TValue>(validation, errorMessage));
-        return this;
-    }
-
-    /// <summary>
-    /// Sets the HTML5 input type for the field (e.g., "text", "email", "tel", "number", "date").
-    /// </summary>
-    /// <param name="inputType">The HTML5 input type to use for this field.</param>
-    /// <returns>The FieldBuilder instance for method chaining.</returns>
-    /// <example>
-    /// <code>
-    /// .WithInputType("email")
-    /// </code>
-    /// </example>
-    public FieldBuilder<TModel, TValue> WithInputType(string inputType)
-    {
-        _fieldConfiguration.InputType = inputType;
         return this;
     }
 

@@ -85,4 +85,62 @@ public static class MudBlazorFieldBuilderExtensions
             .WithAttribute("ShowValueLabel", showValueLabel);
     }
 
+    /// <summary>
+    /// Configures a string field as a password field with an optional visibility toggle.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FieldBuilder instance for a string field.</param>
+    /// <param name="enableVisibilityToggle">Whether to show a toggle icon to show/hide the password (default: true).</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Password)
+    ///     .AsPassword(enableVisibilityToggle: true)
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, string> AsPassword<TModel>(
+        this FieldBuilder<TModel, string> builder,
+        bool enableVisibilityToggle = true)
+        where TModel : new()
+    {
+        builder.WithInputType("password");
+
+        if (enableVisibilityToggle)
+        {
+            builder.WithAttribute("EnablePasswordToggle", true);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds an adornment (icon or text) to a text field.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FieldBuilder instance for a string field.</param>
+    /// <param name="icon">The MudBlazor icon to display (e.g., Icons.Material.Filled.Email).</param>
+    /// <param name="position">The position of the adornment (Start or End, default: Start).</param>
+    /// <param name="color">The color of the adornment icon (default: Default).</param>
+    /// <param name="onClick">Optional click handler for the adornment.</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Email)
+    ///     .WithAdornment(Icons.Material.Filled.Email, MudBlazor.Adornment.Start)
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, string> WithAdornment<TModel>(
+        this FieldBuilder<TModel, string> builder,
+        string icon,
+        MudBlazor.Adornment position = MudBlazor.Adornment.Start,
+        MudBlazor.Color color = MudBlazor.Color.Default,
+        Action<string?>? onClick = null)
+        where TModel : new()
+    {
+        return builder
+            .WithAttribute("Adornment", position)
+            .WithAttribute("AdornmentIcon", icon)
+            .WithAttribute("AdornmentColor", color);
+    }
+
 }

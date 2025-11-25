@@ -9,8 +9,8 @@ public partial class AttributeBasedForms : ComponentBase
 {
     private UserRegistrationModel _model = new();
     private IFormConfiguration<UserRegistrationModel>? _formConfiguration;
-    private bool _isSubmitted = false;
-    private bool _isSubmitting = false;
+    private bool _isSubmitted;
+    private bool _isSubmitting;
 
     private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
     [

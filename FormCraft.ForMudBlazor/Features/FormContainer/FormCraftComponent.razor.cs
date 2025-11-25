@@ -176,26 +176,20 @@ public partial class FormCraftComponent<TModel>
 
     private void RenderTextField(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, string? value)
     {
-        builder.OpenComponent<MudTextField<string>>(0);
-        AddCommonFieldAttributes(builder, field, 1);
-        builder.AddAttribute(2, "Value", value);
-        builder.AddAttribute(3, "ValueChanged",
-            EventCallback.Factory.Create<string>(this,
-                newValue => UpdateFieldValue(field.FieldName, newValue)));
-        
-        // Add Lines attribute for text area support
-        if (field.AdditionalAttributes.TryGetValue("Lines", out var linesObj) && linesObj is int lines)
+        // Create a proper FieldRenderContext to pass to MudBlazorTextFieldComponent
+        var context = new FieldRenderContext<TModel>
         {
-            builder.AddAttribute(10, "Lines", lines);
-        }
-        
-        // Add MaxLength attribute if present
-        if (field.AdditionalAttributes.TryGetValue("MaxLength", out var maxLengthObj) && maxLengthObj is int maxLength)
-        {
-            builder.AddAttribute(11, "MaxLength", maxLength);
-        }
-        
-        builder.AddAttribute(12, "Immediate", true);
+            Model = Model,
+            Field = field,
+            ActualFieldType = typeof(string),
+            CurrentValue = value,
+            OnValueChanged = EventCallback.Factory.Create<object?>(this, val => UpdateFieldValue(field.FieldName, val)),
+            OnDependencyChanged = EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName))
+        };
+
+        // Render MudBlazorTextFieldComponent instead of MudTextField directly
+        builder.OpenComponent<MudBlazorTextFieldComponent<TModel>>(0);
+        builder.AddAttribute(1, "Context", context);
         builder.CloseComponent();
     }
 
