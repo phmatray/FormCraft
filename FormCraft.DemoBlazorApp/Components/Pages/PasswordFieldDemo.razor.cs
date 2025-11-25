@@ -169,7 +169,7 @@ public partial class PasswordFieldDemo
             .AddField(x => x.Username, field => field
                 .WithLabel("Username")
                 .WithPlaceholder("Choose a username")
-                .WithAdornment(Icons.Material.Filled.Person, MudBlazor.Adornment.Start)
+                .WithAdornment(Icons.Material.Filled.Person, Adornment.Start)
                 .Required("Username is required")
                 .WithMinLength(3, "Username must be at least 3 characters"))
             .AddEmailField(x => x.Email,
@@ -210,8 +210,8 @@ public partial class PasswordFieldDemo
                 .WithInputType("password")  // Basic password without toggle
                 .WithAdornment(
                     Icons.Material.Filled.VpnKey,
-                    MudBlazor.Adornment.Start,
-                    MudBlazor.Color.Secondary)
+                    Adornment.Start,
+                    Color.Secondary)
                 .Required("Secret token is required"))
             .AddField(x => x.Pin, field => field
                 .WithLabel("Security PIN")
@@ -219,8 +219,8 @@ public partial class PasswordFieldDemo
                 .WithInputType("password")  // Basic password without toggle
                 .WithAdornment(
                     Icons.Material.Filled.Pin,
-                    MudBlazor.Adornment.Start,
-                    MudBlazor.Color.Tertiary)
+                    Adornment.Start,
+                    Color.Tertiary)
                 .WithAttribute("MaxLength", 4)
                 .WithMinLength(4, "PIN must be 4 digits")
                 .WithMaxLength(4, "PIN must be 4 digits")

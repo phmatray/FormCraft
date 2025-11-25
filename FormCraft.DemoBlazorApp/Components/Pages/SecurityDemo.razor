@@ -39,7 +39,7 @@
                                 CSRF Protection
                             </MudListItem>
                             <MudListItem T="string" Icon="@Icons.Material.Filled.Speed">
-                                Rate Limiting (@_maxSubmissions per minute)
+                                Rate Limiting (@MaxSubmissions per minute)
                             </MudListItem>
                             <MudListItem T="string" Icon="@Icons.Material.Filled.History">
                                 Audit Logging
@@ -51,9 +51,9 @@
                 @if (_submissionCount > 0)
                 {
                     <MudAlert Severity="Severity.Info" Class="mt-3">
-                        Submissions: @_submissionCount / @_maxSubmissions
+                        Submissions: @_submissionCount / @MaxSubmissions
                         <br />
-                        <MudText Typo="Typo.caption">Rate limit resets in @_resetTime</MudText>
+                        <MudText Typo="Typo.caption">Rate limit resets in @ResetTime</MudText>
                     </MudAlert>
                 }
                 
@@ -186,7 +186,7 @@
         <CodeExample
             Title="Security Configuration"
             Language="csharp"
-            Code="@_securityCodeExample" />
+            Code="@SecurityCodeExample" />
     </CodeExampleContent>
     
     <GuidelinesContent>

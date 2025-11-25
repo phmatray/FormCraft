@@ -54,7 +54,7 @@ public class DoubleFieldRendererTests
     {
         // Arrange
         var model = new TestModel { Temperature = 3.14159 };
-        var field = CreateMockField("Temperature", "Enter temperature in Celsius", true, false);
+        var field = CreateMockField("Temperature", "Enter temperature in Celsius", true);
         var context = CreateContext(model, field, 3.14159, typeof(double));
 
         // Act

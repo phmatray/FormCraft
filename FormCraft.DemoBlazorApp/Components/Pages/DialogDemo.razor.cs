@@ -67,7 +67,7 @@ public partial class DialogDemo
         }
     }
 
-    private const string _dialogExample = @"@using FormCraft
+    private const string DialogExample = @"@using FormCraft
 @using MudBlazor
 
 <MudDialog>
@@ -118,7 +118,7 @@ public partial class DialogDemo
     private void Cancel() => MudDialog.Cancel();
 }";
 
-    private const string _usageExample = @"@inject IDialogService DialogService
+    private const string UsageExample = @"@inject IDialogService DialogService
 
 private async Task OpenDialog()
 {

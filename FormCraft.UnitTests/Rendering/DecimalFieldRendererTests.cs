@@ -53,7 +53,7 @@ public class DecimalFieldRendererTests
     {
         // Arrange
         var model = new TestModel { Price = 123.45m };
-        var field = CreateMockField("Price", "Enter the price", true, false);
+        var field = CreateMockField("Price", "Enter the price", true);
         var context = CreateContext(model, field, 123.45m, typeof(decimal));
 
         // Act

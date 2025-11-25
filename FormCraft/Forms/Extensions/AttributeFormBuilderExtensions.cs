@@ -133,7 +133,6 @@ public static class AttributeFormBuilderExtensions
             if (selectAttr != null)
             {
                 AddSelectField(builder, prop, selectAttr);
-                continue;
             }
         }
 

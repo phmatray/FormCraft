@@ -15,8 +15,8 @@ public partial class SecurityDemo
     private string _encryptedResult = "";
     private string _decryptedResult = "";
     private int _submissionCount;
-    private const int _maxSubmissions = 3;
-    private const string _resetTime = "1 minute";
+    private const int MaxSubmissions = 3;
+    private const string ResetTime = "1 minute";
 
     private readonly List<GuidelineItem> _securityGuidelines = new()
     {
@@ -52,7 +52,7 @@ public partial class SecurityDemo
         }
     };
 
-    private const string _securityCodeExample = @"var config = FormBuilder<SecureUserModel>.Create()
+    private const string SecurityCodeExample = @"var config = FormBuilder<SecureUserModel>.Create()
     .AddRequiredTextField(x => x.Name, ""Full Name"")
     .AddEmailField(x => x.Email)
     .AddField(x => x.SSN, field => field
@@ -141,7 +141,7 @@ public partial class SecurityDemo
         {
             // Simulate rate limiting check
             _submissionCount++;
-            if (_submissionCount > _maxSubmissions)
+            if (_submissionCount > MaxSubmissions)
             {
                 _isRateLimited = true;
                 _auditLogs.Add(new AuditLogEntry
