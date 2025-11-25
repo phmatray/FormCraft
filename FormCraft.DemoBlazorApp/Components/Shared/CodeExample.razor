@@ -3,12 +3,25 @@
 <div @ref="_element">
     <MudCard Elevation="2" Class="@($"mt-4 {Class}")">
         <MudCardContent>
-            <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
-                <MudIcon Icon="@Icons.Material.Filled.Code" Class="me-2 text-info" />
-                @Title
-            </MudText>
+            <div class="d-flex justify-space-between align-center mb-2">
+                <MudText Typo="Typo.h6" Class="d-flex align-items-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Code" Class="me-2 text-info" />
+                    @Title
+                </MudText>
+                <div class="d-flex align-center gap-2">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@GetLanguageLabel()</MudChip>
+                    <MudTooltip Text="@(_copied ? "Copied!" : "Copy to clipboard")">
+                        <MudIconButton
+                            Icon="@(_copied ? Icons.Material.Filled.Check : Icons.Material.Filled.ContentCopy)"
+                            Color="@(_copied ? Color.Success : Color.Default)"
+                            Size="Size.Small"
+                            OnClick="CopyToClipboard" />
+                    </MudTooltip>
+                </div>
+            </div>
             <MudPaper Class="pa-0" Elevation="1" Style="overflow: hidden;">
-                <pre class="language-@Language" style="margin: 0;"><code class="language-@Language">@Code</code></pre>
+                <pre class="@GetPreClasses()" style="margin: 0;"><code class="language-@Language">@Code</code>@if (ShowLineNumbers)
+{<span class="line-numbers-rows">@((MarkupString)GetLineNumbersHtml())</span>}</pre>
             </MudPaper>
         </MudCardContent>
     </MudCard>

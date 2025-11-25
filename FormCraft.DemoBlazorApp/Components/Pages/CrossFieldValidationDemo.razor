@@ -1,0 +1,89 @@
+@page "/cross-field-validation"
+
+<PageTitle>Cross-Field Validation Demo</PageTitle>
+
+<DemoPageLayout
+    DemoId="cross-field-validation"
+    Title="Cross-Field Validation"
+    Icon="@Icons.Material.Filled.CompareArrows"
+    Description="Implement validations that depend on multiple fields, such as password confirmation, date range validation, and conditional requirements. FormCraft makes cross-field validation intuitive and type-safe."
+    FormDemoIcon="@Icons.Material.Filled.Compare">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="BookingModel"
+            Model="@_model"
+            Configuration="@_formConfig"
+            FormTitle="Event Booking Form"
+            FormIcon="@Icons.Material.Filled.Event"
+            IsSubmitted="@_submitted"
+            IsSubmitting="@_isSubmitting"
+            OnValidSubmit="@HandleValidSubmit"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()"
+            ShowSubmitButton="true"
+            SubmitButtonText="Book Event"
+            SubmittingText="Processing...">
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="Cross-Field Features" />
+
+                <MudCard Elevation="1" Class="mt-3">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Filled.Rule" Class="me-1" />
+                            Active Cross-Field Rules
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.DateRange">
+                                End date must be after start date
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Password">
+                                Passwords must match
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.People">
+                                Max guests cannot exceed venue capacity
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.AttachMoney">
+                                Budget must cover minimum cost
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </SidebarContent>
+            <AdditionalContent>
+                @if (_validationErrors.Any())
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mt-4">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">
+                            <strong>Cross-Field Validation Issues:</strong>
+                        </MudText>
+                        <ul class="mb-0">
+                            @foreach (var error in _validationErrors)
+                            {
+                                <li>@error</li>
+                            }
+                        </ul>
+                    </MudAlert>
+                }
+            </AdditionalContent>
+        </FormDemoSection>
+    </FormDemoContent>
+
+    <CodeExampleContent>
+        <CodeExample
+            Title="Cross-Field Validation Implementation"
+            Language="csharp"
+            Code="@GetCodeExample()" />
+
+        <CodeExample
+            Title="FluentValidation Cross-Field Rules"
+            Language="csharp"
+            Code="@GetValidatorCodeExample()"
+            Class="mt-4" />
+    </CodeExampleContent>
+
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Cross-Field Validation API"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>

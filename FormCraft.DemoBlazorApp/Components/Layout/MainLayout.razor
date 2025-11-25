@@ -56,7 +56,7 @@
         </MudButton>
     </MudAppBar>
     
-    <MudDrawer @bind-Open="@_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+    <MudDrawer @bind-Open="@_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Breakpoint="Breakpoint.Md" Variant="DrawerVariant.Responsive">
         <MudNavMenu>
             <MudNavLink Href="home" Icon="@Icons.Material.Filled.Home">
                 Welcome
@@ -105,6 +105,15 @@
                 <MudNavLink Href="dialog-demo" Icon="@Icons.Material.Filled.OpenInNew">
                     Dialog Integration
                 </MudNavLink>
+                <MudNavLink Href="cross-field-validation" Icon="@Icons.Material.Filled.CompareArrows">
+                    Cross-Field Validation
+                </MudNavLink>
+                <MudNavLink Href="complex-dependencies" Icon="@Icons.Material.Filled.AccountTree">
+                    Complex Dependencies
+                </MudNavLink>
+                <MudNavLink Href="async-value-provider" Icon="@Icons.Material.Filled.CloudSync">
+                    Async Value Providers
+                </MudNavLink>
             </MudNavGroup>
             
             <MudNavGroup Title="Documentation" Icon="@Icons.Material.Filled.MenuBook" Expanded="true">
@@ -147,6 +156,10 @@
             </div>
         </MudContainer>
     </MudMainContent>
+
+    <MudScrollToTop>
+        <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.KeyboardArrowUp" />
+    </MudScrollToTop>
 </MudLayout>
 
 <div id="blazor-error-ui" data-nosnippet>

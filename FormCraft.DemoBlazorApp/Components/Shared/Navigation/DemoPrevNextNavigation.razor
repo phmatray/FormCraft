@@ -1,0 +1,30 @@
+@inject IDemoRegistry DemoRegistry
+
+@if (_previous != null || _next != null)
+{
+    <MudPaper Elevation="0" Class="d-flex justify-space-between mt-6 pa-4" Style="background: transparent;">
+        @if (_previous != null)
+        {
+            <MudButton Href="@_previous.Id" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Color="Color.Primary">
+                <div class="d-flex flex-column align-start">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Previous</MudText>
+                    <MudText Typo="Typo.body2">@_previous.Title</MudText>
+                </div>
+            </MudButton>
+        }
+        else
+        {
+            <div></div>
+        }
+
+        @if (_next != null)
+        {
+            <MudButton Href="@_next.Id" Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ArrowForward" Color="Color.Primary">
+                <div class="d-flex flex-column align-end">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Next</MudText>
+                    <MudText Typo="Typo.body2">@_next.Title</MudText>
+                </div>
+            </MudButton>
+        }
+    </MudPaper>
+}

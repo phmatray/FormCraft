@@ -1,0 +1,17 @@
+@inject IDemoRegistry DemoRegistry
+
+@if (_items.Count > 0)
+{
+    <MudBreadcrumbs Items="_items" Class="pa-0 mb-4">
+        <ItemTemplate Context="item">
+            @if (string.IsNullOrEmpty(item.Href))
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">@item.Text</MudText>
+            }
+            else
+            {
+                <MudLink Href="@item.Href" Typo="Typo.body2">@item.Text</MudLink>
+            }
+        </ItemTemplate>
+    </MudBreadcrumbs>
+}

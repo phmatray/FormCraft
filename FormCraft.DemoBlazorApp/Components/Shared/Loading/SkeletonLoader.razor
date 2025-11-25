@@ -1,0 +1,78 @@
+@for (int i = 0; i < Count; i++)
+{
+    @switch (Type)
+    {
+        case SkeletonType.Card:
+            <MudCard Class="mb-4">
+                <MudCardContent>
+                    <MudSkeleton SkeletonType="MudBlazor.SkeletonType.Rectangle" Height="200px" />
+                    <MudSkeleton Class="mt-4" />
+                    <MudSkeleton Width="60%" />
+                </MudCardContent>
+            </MudCard>
+            break;
+
+        case SkeletonType.Form:
+            <div class="mb-4">
+                <MudSkeleton Width="30%" Height="20px" Class="mb-2" />
+                <MudSkeleton SkeletonType="MudBlazor.SkeletonType.Rectangle" Height="56px" />
+            </div>
+            <div class="mb-4">
+                <MudSkeleton Width="25%" Height="20px" Class="mb-2" />
+                <MudSkeleton SkeletonType="MudBlazor.SkeletonType.Rectangle" Height="56px" />
+            </div>
+            <div class="mb-4">
+                <MudSkeleton Width="20%" Height="20px" Class="mb-2" />
+                <MudSkeleton SkeletonType="MudBlazor.SkeletonType.Rectangle" Height="56px" />
+            </div>
+            <MudSkeleton Width="120px" Height="36px" />
+            break;
+
+        case SkeletonType.CodeBlock:
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudSkeleton Width="40%" Class="mb-2" />
+                <MudSkeleton />
+                <MudSkeleton Width="80%" />
+                <MudSkeleton Width="60%" />
+                <MudSkeleton Width="90%" />
+            </MudPaper>
+            break;
+
+        case SkeletonType.Text:
+            <MudSkeleton Width="60%" Height="32px" Class="mb-4" />
+            <MudSkeleton Width="100%" Height="20px" Class="mb-2" />
+            <MudSkeleton Width="100%" Height="20px" Class="mb-2" />
+            <MudSkeleton Width="80%" Height="20px" Class="mb-4" />
+            <MudSkeleton Width="40%" Height="24px" Class="mb-3" />
+            <MudSkeleton Width="100%" Height="20px" Class="mb-2" />
+            <MudSkeleton Width="95%" Height="20px" />
+            break;
+
+        case SkeletonType.Table:
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudSkeleton Width="100%" Height="40px" Class="mb-2" />
+                <MudSkeleton Width="100%" Height="32px" Class="mb-1" />
+                <MudSkeleton Width="100%" Height="32px" Class="mb-1" />
+                <MudSkeleton Width="100%" Height="32px" Class="mb-1" />
+                <MudSkeleton Width="100%" Height="32px" />
+            </MudPaper>
+            break;
+    }
+}
+
+@code {
+    [Parameter]
+    public SkeletonType Type { get; set; } = SkeletonType.Card;
+
+    [Parameter]
+    public int Count { get; set; } = 1;
+
+    public enum SkeletonType
+    {
+        Card,
+        Form,
+        CodeBlock,
+        Text,
+        Table
+    }
+}

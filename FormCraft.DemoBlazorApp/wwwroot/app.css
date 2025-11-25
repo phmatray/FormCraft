@@ -142,3 +142,67 @@ h1:focus {
     border-color: var(--mud-palette-primary);
     background-color: rgba(var(--mud-palette-primary-rgb), 0.05);
 }
+
+/* ==========================================================================
+   Page Transitions
+   ========================================================================== */
+
+.mud-main-content > .mud-container {
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Smooth transitions for cards and papers */
+.mud-card, .mud-paper {
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+/* ==========================================================================
+   Code Example Line Numbers
+   ========================================================================== */
+
+pre.line-numbers {
+    position: relative;
+    padding-left: 3.8em;
+    counter-reset: linenumber;
+}
+
+pre.line-numbers > code {
+    position: relative;
+    white-space: inherit;
+}
+
+.line-numbers .line-numbers-rows {
+    position: absolute;
+    pointer-events: none;
+    top: 0;
+    font-size: 100%;
+    left: -3.8em;
+    width: 3em;
+    letter-spacing: -1px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    user-select: none;
+}
+
+.line-numbers-rows > span {
+    display: block;
+    counter-increment: linenumber;
+}
+
+.line-numbers-rows > span::before {
+    content: counter(linenumber);
+    color: rgba(255, 255, 255, 0.3);
+    display: block;
+    padding-right: 0.8em;
+    text-align: right;
+}

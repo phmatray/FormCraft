@@ -1,0 +1,115 @@
+@page "/complex-dependencies"
+
+<PageTitle>Complex Dependencies Demo</PageTitle>
+
+<DemoPageLayout
+    DemoId="complex-dependencies"
+    Title="Complex Field Dependencies"
+    Icon="@Icons.Material.Filled.AccountTree"
+    Description="Build sophisticated forms with cascading updates, conditional visibility, and computed values. Learn how to create dynamic forms where fields react to changes in other fields."
+    FormDemoIcon="@Icons.Material.Filled.Sync">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="OrderModel"
+            Model="@_model"
+            Configuration="@_formConfig"
+            FormTitle="Product Order Form"
+            FormIcon="@Icons.Material.Filled.ShoppingCart"
+            IsSubmitted="@_submitted"
+            IsSubmitting="@_isSubmitting"
+            OnValidSubmit="@HandleValidSubmit"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()"
+            ShowSubmitButton="true"
+            SubmitButtonText="Place Order"
+            SubmittingText="Processing...">
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="Dependency Features" />
+
+                <MudCard Elevation="1" Class="mt-3">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Filled.Calculate" Class="me-1" />
+                            Live Calculations
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string">
+                                <div class="d-flex justify-space-between">
+                                    <span>Subtotal:</span>
+                                    <strong>@_model.Subtotal.ToString("C")</strong>
+                                </div>
+                            </MudListItem>
+                            <MudListItem T="string">
+                                <div class="d-flex justify-space-between">
+                                    <span>Discount (@_model.DiscountPercent%):</span>
+                                    <strong class="text-success">-@((_model.Subtotal * _model.DiscountPercent / 100).ToString("C"))</strong>
+                                </div>
+                            </MudListItem>
+                            <MudListItem T="string">
+                                <div class="d-flex justify-space-between">
+                                    <span>Shipping:</span>
+                                    <strong>@_model.ShippingCost.ToString("C")</strong>
+                                </div>
+                            </MudListItem>
+                            <MudDivider Class="my-2" />
+                            <MudListItem T="string">
+                                <div class="d-flex justify-space-between">
+                                    <MudText Typo="Typo.subtitle1">Total:</MudText>
+                                    <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                                        <strong>@_model.Total.ToString("C")</strong>
+                                    </MudText>
+                                </div>
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </SidebarContent>
+            <AdditionalContent>
+                <MudCard Class="mt-4" Elevation="1">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2 text-info" />
+                            How Dependencies Work
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.ArrowForward">
+                                Selecting a <strong>Category</strong> updates available Products
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.ArrowForward">
+                                Selecting a <strong>Product</strong> sets the unit price
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.ArrowForward">
+                                Changing <strong>Quantity</strong> recalculates the subtotal
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.ArrowForward">
+                                <strong>Coupon Code</strong> applies discount to total
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.ArrowForward">
+                                <strong>Shipping Method</strong> affects final price
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </AdditionalContent>
+        </FormDemoSection>
+    </FormDemoContent>
+
+    <CodeExampleContent>
+        <CodeExample
+            Title="Cascading Dependencies"
+            Language="csharp"
+            Code="@GetCascadingCodeExample()" />
+
+        <CodeExample
+            Title="Computed Values"
+            Language="csharp"
+            Code="@GetComputedValuesCodeExample()"
+            Class="mt-4" />
+    </CodeExampleContent>
+
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Dependency API Reference"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>

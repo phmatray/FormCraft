@@ -10,8 +10,7 @@
                 <MudCardContent>
                     @if (_isLoading)
                     {
-                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-                        <MudText Class="mt-4" Align="Align.Center">Loading documentation...</MudText>
+                        <SkeletonLoader Type="SkeletonLoader.SkeletonType.Text" />
                     }
                     else
                     {
