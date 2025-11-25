@@ -1,0 +1,140 @@
+@page "/async-value-provider"
+
+<PageTitle>Async Value Provider Demo</PageTitle>
+
+<DemoPageLayout
+    DemoId="async-value-provider"
+    Title="Async Value Providers"
+    Icon="@Icons.Material.Filled.CloudSync"
+    Description="Load field values and options asynchronously from APIs, databases, or other data sources. Perfect for dynamic dropdowns, auto-complete fields, and data that needs to be fetched on demand."
+    FormDemoIcon="@Icons.Material.Filled.CloudDownload">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="AddressModel"
+            Model="@_model"
+            Configuration="@_formConfig"
+            FormTitle="Address Form with Async Data"
+            FormIcon="@Icons.Material.Filled.LocationOn"
+            IsSubmitted="@_submitted"
+            IsSubmitting="@_isSubmitting"
+            OnValidSubmit="@HandleValidSubmit"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()"
+            ShowSubmitButton="true"
+            SubmitButtonText="Save Address"
+            SubmittingText="Saving...">
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="Async Features" />
+
+                <MudCard Elevation="1" Class="mt-3">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Filled.DataUsage" Class="me-1" />
+                            Data Source Status
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Public">
+                                <div class="d-flex justify-space-between align-center">
+                                    <span>Countries</span>
+                                    @if (_countriesLoaded)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Loaded</MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                    }
+                                </div>
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Map">
+                                <div class="d-flex justify-space-between align-center">
+                                    <span>States/Regions</span>
+                                    @if (_statesLoaded)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success">@_stateCount available</MudChip>
+                                    }
+                                    else if (_loadingStates)
+                                    {
+                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Default">Select country first</MudChip>
+                                    }
+                                </div>
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.LocationCity">
+                                <div class="d-flex justify-space-between align-center">
+                                    <span>Cities</span>
+                                    @if (_citiesLoaded)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success">@_cityCount available</MudChip>
+                                    }
+                                    else if (_loadingCities)
+                                    {
+                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Default">Select state first</MudChip>
+                                    }
+                                </div>
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </SidebarContent>
+            <AdditionalContent>
+                <MudCard Class="mt-4" Elevation="1">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Timer" Class="me-2 text-info" />
+                            Async Loading Pattern
+                        </MudText>
+                        <MudTimeline TimelinePosition="TimelinePosition.Start">
+                            <MudTimelineItem Color="Color.Success" Size="Size.Small">
+                                <MudText Typo="Typo.body2">
+                                    <strong>Step 1:</strong> Countries load on page init (simulated API call)
+                                </MudText>
+                            </MudTimelineItem>
+                            <MudTimelineItem Color="Color.Primary" Size="Size.Small">
+                                <MudText Typo="Typo.body2">
+                                    <strong>Step 2:</strong> States load when country is selected
+                                </MudText>
+                            </MudTimelineItem>
+                            <MudTimelineItem Color="Color.Secondary" Size="Size.Small">
+                                <MudText Typo="Typo.body2">
+                                    <strong>Step 3:</strong> Cities load when state is selected
+                                </MudText>
+                            </MudTimelineItem>
+                            <MudTimelineItem Color="Color.Tertiary" Size="Size.Small">
+                                <MudText Typo="Typo.body2">
+                                    <strong>Step 4:</strong> Postal code auto-validates format
+                                </MudText>
+                            </MudTimelineItem>
+                        </MudTimeline>
+                    </MudCardContent>
+                </MudCard>
+            </AdditionalContent>
+        </FormDemoSection>
+    </FormDemoContent>
+
+    <CodeExampleContent>
+        <CodeExample
+            Title="Async Options Loading"
+            Language="csharp"
+            Code="@GetAsyncOptionsCodeExample()" />
+
+        <CodeExample
+            Title="Async Validation"
+            Language="csharp"
+            Code="@GetAsyncValidationCodeExample()"
+            Class="mt-4" />
+    </CodeExampleContent>
+
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Async Value Provider API"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>

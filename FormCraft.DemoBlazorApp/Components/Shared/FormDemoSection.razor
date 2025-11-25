@@ -15,6 +15,10 @@
                     DataDisplayItems="@DataDisplayItems"
                     OnReset="@OnReset" />
             }
+            else if (Configuration == null)
+            {
+                <SkeletonLoader />
+            }
             else
             {
                 <FormCraftComponent
