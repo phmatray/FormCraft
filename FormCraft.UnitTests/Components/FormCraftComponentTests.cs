@@ -12,7 +12,7 @@ public class FormCraftComponentTests : BunitContext
         Services.AddSingleton(_fieldRendererService);
         // Add MudBlazor services required by FormCraftComponent
         Services.AddMudServices();
-        
+
         // Setup JSInterop for MudBlazor components
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
@@ -65,7 +65,7 @@ public class FormCraftComponentTests : BunitContext
         // Check the order of rendered fields by their labels
         var fields = component.FindAll(".mb-4");
         fields.Count.ShouldBe(3);
-        
+
         // The fields should be rendered in order: Email (1), Name (2), Age (3)
         var labels = component.FindAll(".mud-input-label");
         labels[0].TextContent.ShouldContain("Email");
@@ -122,7 +122,7 @@ public class FormCraftComponentTests : BunitContext
 
         // Assert
         component.FindAll(".mb-4").Count.ShouldBe(1); // Only Name field should be visible
-        
+
         // Check that only the Name field is rendered
         var labels = component.FindAll(".mud-input-label");
         labels.Count.ShouldBe(1);
@@ -181,7 +181,7 @@ public class FormCraftComponentTests : BunitContext
         // This test would require a full integration test setup with real MudBlazor components
         // and proper EditContext handling, which is beyond the scope of a unit test.
         // The functionality is tested through integration tests in the demo application.
-        
+
         // Arrange
         var model = new TestModel { Name = "Initial" };
         var config = FormBuilder<TestModel>.Create()
@@ -219,12 +219,12 @@ public class FormCraftComponentTests : BunitContext
         component.ShouldNotBeNull();
         var editForm = component.Find("form");
         editForm.ShouldNotBeNull();
-        
+
         // The DynamicFormValidator is rendered inside the EditForm
         // We can't directly find it with FindComponents due to how Blazor handles nested components,
         // but we can verify the form structure is correct
         editForm.Attributes.FirstOrDefault(a => a.Name == "novalidate")?.Value.ShouldBe("novalidate");
-        
+
         // Ensure DataAnnotationsValidator is NOT present to avoid duplicate validation messages
         component.FindComponents<DataAnnotationsValidator>().Count.ShouldBe(0);
     }

@@ -33,7 +33,7 @@ public static class FluentFormBuilderExtensions
         int minLength = 1,
         int maxLength = 255) where TModel : new()
     {
-        return builder.AddField(expression, field => 
+        return builder.AddField(expression, field =>
         {
             field.WithLabel(label)
                  .Required($"{label} is required");
@@ -71,7 +71,7 @@ public static class FluentFormBuilderExtensions
         string label = "Email Address",
         string? placeholder = null) where TModel : new()
     {
-        return builder.AddField(expression, field => 
+        return builder.AddField(expression, field =>
         {
             field.WithLabel(label)
                  .Required($"{label} is required")
@@ -106,7 +106,7 @@ public static class FluentFormBuilderExtensions
         int max = int.MaxValue,
         bool required = true) where TModel : new()
     {
-        return builder.AddField(expression, field => 
+        return builder.AddField(expression, field =>
         {
             field.WithLabel(label);
 
@@ -144,7 +144,7 @@ public static class FluentFormBuilderExtensions
         bool required = true,
         string? placeholder = null) where TModel : new()
     {
-        return builder.AddField(expression, field => 
+        return builder.AddField(expression, field =>
         {
             field.WithLabel(label);
 
@@ -181,7 +181,7 @@ public static class FluentFormBuilderExtensions
         string currencySymbol = "$",
         bool required = true) where TModel : new()
     {
-        return builder.AddField(expression, field => 
+        return builder.AddField(expression, field =>
         {
             field.WithLabel(label)
                  .WithPlaceholder($"{currencySymbol}0.00")
@@ -215,7 +215,7 @@ public static class FluentFormBuilderExtensions
         string label,
         bool required = true) where TModel : new()
     {
-        return builder.AddField(expression, field => 
+        return builder.AddField(expression, field =>
         {
             field.WithLabel(label)
                  .WithPlaceholder("0.00")
@@ -250,7 +250,7 @@ public static class FluentFormBuilderExtensions
         string label,
         params (string value, string label)[] options) where TModel : new()
     {
-        return builder.AddField(expression, field => 
+        return builder.AddField(expression, field =>
         {
             field.WithLabel(label)
                  .Required($"Please select {label}")
@@ -278,7 +278,7 @@ public static class FluentFormBuilderExtensions
         string label = "Phone Number",
         bool required = false) where TModel : new()
     {
-        return builder.AddField(expression, field => 
+        return builder.AddField(expression, field =>
         {
             field.WithLabel(label)
                  .WithPlaceholder("(555) 123-4567")
@@ -312,7 +312,7 @@ public static class FluentFormBuilderExtensions
         int minLength = 8,
         bool requireSpecialChars = true) where TModel : new()
     {
-        return builder.AddField(expression, field => 
+        return builder.AddField(expression, field =>
         {
             field.WithLabel(label)
                  .Required($"{label} is required")
@@ -348,7 +348,7 @@ public static class FluentFormBuilderExtensions
         string label,
         string? helpText = null) where TModel : new()
     {
-        return builder.AddField(expression, field => 
+        return builder.AddField(expression, field =>
         {
             field.WithLabel(label);
 
@@ -376,7 +376,7 @@ public static class FluentFormBuilderExtensions
     {
         return password.Any(c => !char.IsLetterOrDigit(c));
     }
-    
+
     /// <summary>
     /// Adds a file upload field with specified constraints.
     /// </summary>
@@ -403,16 +403,16 @@ public static class FluentFormBuilderExtensions
         long maxFileSize = 10 * 1024 * 1024,
         bool required = false) where TModel : new()
     {
-        return builder.AddField(expression, field => 
+        return builder.AddField(expression, field =>
         {
             field.WithLabel(label)
                  .AsFileUpload(acceptedFileTypes, maxFileSize);
-            
+
             if (required)
                 field.Required($"{label} is required");
         });
     }
-    
+
     /// <summary>
     /// Adds a multiple file upload field with specified constraints.
     /// </summary>
@@ -442,11 +442,11 @@ public static class FluentFormBuilderExtensions
         long maxFileSize = 10 * 1024 * 1024,
         bool required = false) where TModel : new()
     {
-        return builder.AddField(expression, field => 
+        return builder.AddField(expression, field =>
         {
             field.WithLabel(label)
                  .AsMultipleFileUpload(maxFiles, acceptedFileTypes, maxFileSize);
-            
+
             if (required)
                 field.Required($"At least one {label.ToLower()} is required");
         });
@@ -486,7 +486,7 @@ public static class FluentFormBuilderExtensions
         {
             field.WithLabel(label)
                  .AsTextArea(lines: rows);
-            
+
             if (fieldConfig != null)
             {
                 fieldConfig(field);
@@ -526,7 +526,7 @@ public static class FluentFormBuilderExtensions
         {
             field.WithLabel(label)
                  .Required(errorMessage);
-            
+
             if (!string.IsNullOrWhiteSpace(placeholder))
             {
                 field.WithPlaceholder(placeholder);
@@ -562,7 +562,7 @@ public static class FluentFormBuilderExtensions
         return builder.AddField(propertyExpression, field =>
         {
             field.WithLabel(label);
-            
+
             if (!string.IsNullOrWhiteSpace(placeholder))
             {
                 field.WithPlaceholder(placeholder);

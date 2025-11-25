@@ -27,11 +27,11 @@ public class MudBlazorRatingFieldRenderer : FieldRendererBase
 {
     /// <inheritdoc />
     protected override Type ComponentType => typeof(MudBlazorRatingComponent<>);
-    
+
     /// <inheritdoc />
     public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
     {
-        return fieldType == typeof(int) && 
+        return fieldType == typeof(int) &&
                field.AdditionalAttributes.ContainsKey("rating");
     }
 }

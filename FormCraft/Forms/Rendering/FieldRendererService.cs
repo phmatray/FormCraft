@@ -57,7 +57,7 @@ public class FieldRendererService : IFieldRendererService
             FieldName = field.FieldName,
             AdditionalAttributes = field.AdditionalAttributes
         };
-        
+
         var renderer = _renderers.FirstOrDefault(r => r.CanRender(fieldType, minimalFieldConfig));
         if (renderer != null)
         {

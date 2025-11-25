@@ -44,13 +44,13 @@ public static class AttributeFormBuilderExtensions
                 {
                     field.WithLabel(emailAttr.Label)
                          .WithInputType("email");
-                    
+
                     if (!string.IsNullOrEmpty(emailAttr.Placeholder))
                         field.WithPlaceholder(emailAttr.Placeholder);
 
                     if (emailAttr.ValidateFormat)
                     {
-                        field.WithValidator(value => 
+                        field.WithValidator(value =>
                             !string.IsNullOrEmpty(value) && value.Contains("@") && value.Contains("."),
                             "Please enter a valid email address");
                     }
@@ -71,15 +71,15 @@ public static class AttributeFormBuilderExtensions
                 builder.AddField(lambda, field =>
                 {
                     field.WithLabel(textAreaAttr.Label);
-                    
+
                     if (!string.IsNullOrEmpty(textAreaAttr.Placeholder))
                         field.WithPlaceholder(textAreaAttr.Placeholder);
 
                     field.WithAttribute("rows", textAreaAttr.Rows);
-                    
+
                     if (textAreaAttr.MaxLength.HasValue)
                     {
-                        field.WithMaxLength(textAreaAttr.MaxLength.Value, 
+                        field.WithMaxLength(textAreaAttr.MaxLength.Value,
                             $"Must be no more than {textAreaAttr.MaxLength.Value} characters");
                     }
 
@@ -118,10 +118,10 @@ public static class AttributeFormBuilderExtensions
                 builder.AddField(lambda, field =>
                 {
                     field.WithLabel(checkboxAttr.Label);
-                    
+
                     if (!string.IsNullOrEmpty(checkboxAttr.Text))
                         field.WithAttribute("text", checkboxAttr.Text);
-                    
+
                     if (checkboxAttr.DefaultChecked)
                         field.WithAttribute("default-checked", true);
                 });
@@ -140,7 +140,7 @@ public static class AttributeFormBuilderExtensions
         return builder;
     }
 
-    private static void AddStringField<TModel>(FormBuilder<TModel> builder, PropertyInfo prop, 
+    private static void AddStringField<TModel>(FormBuilder<TModel> builder, PropertyInfo prop,
         string label, string? placeholder, string inputType) where TModel : new()
     {
         var parameter = Expression.Parameter(typeof(TModel), "x");
@@ -151,7 +151,7 @@ public static class AttributeFormBuilderExtensions
         {
             field.WithLabel(label)
                  .WithInputType(inputType);
-            
+
             if (!string.IsNullOrEmpty(placeholder))
                 field.WithPlaceholder(placeholder);
 
@@ -159,12 +159,12 @@ public static class AttributeFormBuilderExtensions
         });
     }
 
-    private static void AddNumericField<TModel>(FormBuilder<TModel> builder, PropertyInfo prop, 
+    private static void AddNumericField<TModel>(FormBuilder<TModel> builder, PropertyInfo prop,
         NumberFieldAttribute numberAttr) where TModel : new()
     {
         var parameter = Expression.Parameter(typeof(TModel), "x");
         var property = Expression.Property(parameter, prop);
-        
+
         // Handle different numeric types
         if (prop.PropertyType == typeof(int))
         {
@@ -193,33 +193,33 @@ public static class AttributeFormBuilderExtensions
         }
     }
 
-    private static void ConfigureNumericField<TModel, TValue>(FieldBuilder<TModel, TValue> field, 
+    private static void ConfigureNumericField<TModel, TValue>(FieldBuilder<TModel, TValue> field,
         NumberFieldAttribute numberAttr, PropertyInfo prop) where TModel : new()
     {
         field.WithLabel(numberAttr.Label)
              .WithInputType("number");
-        
+
         if (!string.IsNullOrEmpty(numberAttr.Placeholder))
             field.WithPlaceholder(numberAttr.Placeholder);
-        
+
         if (numberAttr.Min.HasValue)
             field.WithAttribute("min", numberAttr.Min.Value);
-        
+
         if (numberAttr.Max.HasValue)
             field.WithAttribute("max", numberAttr.Max.Value);
-        
+
         if (numberAttr.Step.HasValue)
             field.WithAttribute("step", numberAttr.Step.Value);
-        
+
         ApplyValidationAttributes(field, prop, numberAttr.Label);
     }
 
-    private static void AddDateField<TModel>(FormBuilder<TModel> builder, PropertyInfo prop, 
+    private static void AddDateField<TModel>(FormBuilder<TModel> builder, PropertyInfo prop,
         DateFieldAttribute dateAttr) where TModel : new()
     {
         var parameter = Expression.Parameter(typeof(TModel), "x");
         var property = Expression.Property(parameter, prop);
-        
+
         if (prop.PropertyType == typeof(DateTime))
         {
             var lambda = Expression.Lambda<Func<TModel, DateTime>>(property, parameter);
@@ -232,68 +232,68 @@ public static class AttributeFormBuilderExtensions
         }
     }
 
-    private static void ConfigureDateField<TModel, TValue>(FieldBuilder<TModel, TValue> field, 
+    private static void ConfigureDateField<TModel, TValue>(FieldBuilder<TModel, TValue> field,
         DateFieldAttribute dateAttr, PropertyInfo prop) where TModel : new()
     {
         field.WithLabel(dateAttr.Label)
              .WithInputType("date");
-        
+
         if (!string.IsNullOrEmpty(dateAttr.Placeholder))
             field.WithPlaceholder(dateAttr.Placeholder);
-        
+
         if (dateAttr.MinDate.HasValue)
             field.WithAttribute("min", dateAttr.MinDate.Value.ToString("yyyy-MM-dd"));
-        
+
         if (dateAttr.MaxDate.HasValue)
             field.WithAttribute("max", dateAttr.MaxDate.Value.ToString("yyyy-MM-dd"));
-        
+
         if (!string.IsNullOrEmpty(dateAttr.Format))
             field.WithAttribute("format", dateAttr.Format);
-        
+
         ApplyValidationAttributes(field, prop, dateAttr.Label);
     }
 
-    private static void AddSelectField<TModel>(FormBuilder<TModel> builder, PropertyInfo prop, 
+    private static void AddSelectField<TModel>(FormBuilder<TModel> builder, PropertyInfo prop,
         SelectFieldAttribute selectAttr) where TModel : new()
     {
         // Use reflection to call the generic helper method
         var helperMethod = typeof(AttributeFormBuilderExtensions)
             .GetMethod(nameof(AddSelectFieldGeneric), BindingFlags.NonPublic | BindingFlags.Static)!
             .MakeGenericMethod(typeof(TModel), prop.PropertyType);
-        
+
         helperMethod.Invoke(null, new object[] { builder, prop, selectAttr });
     }
-    
+
     private static void AddSelectFieldGeneric<TModel, TValue>(
-        FormBuilder<TModel> builder, 
-        PropertyInfo prop, 
+        FormBuilder<TModel> builder,
+        PropertyInfo prop,
         SelectFieldAttribute selectAttr) where TModel : new()
     {
         var parameter = Expression.Parameter(typeof(TModel), "x");
         var property = Expression.Property(parameter, prop);
         var lambda = Expression.Lambda<Func<TModel, TValue>>(property, parameter);
-        
+
         builder.AddField(lambda, field =>
         {
             field.WithLabel(selectAttr.Label);
-            
+
             if (!string.IsNullOrEmpty(selectAttr.Placeholder))
                 field.WithPlaceholder(selectAttr.Placeholder);
-            
+
             if (selectAttr.Options != null && selectAttr.Options.Length > 0)
                 field.WithAttribute("options", selectAttr.Options);
-            
+
             if (selectAttr.AllowMultiple)
                 field.WithAttribute("multiple", true);
-            
+
             if (!string.IsNullOrEmpty(selectAttr.OptionsProviderName))
                 field.WithAttribute("options-provider", selectAttr.OptionsProviderName);
-            
+
             ApplyValidationAttributes(field, prop, selectAttr.Label);
         });
     }
 
-    private static void ApplyValidationAttributes<TModel, TValue>(FieldBuilder<TModel, TValue> field, 
+    private static void ApplyValidationAttributes<TModel, TValue>(FieldBuilder<TModel, TValue> field,
         PropertyInfo prop, string label) where TModel : new()
     {
         var required = prop.GetCustomAttribute<RequiredAttribute>();
@@ -327,7 +327,7 @@ public static class AttributeFormBuilderExtensions
         if (pattern != null)
         {
             field.WithAttribute("pattern", pattern.Pattern);
-            field.WithValidator(value => 
+            field.WithValidator(value =>
             {
                 if (value == null) return true;
                 return System.Text.RegularExpressions.Regex.IsMatch(value.ToString()!, pattern.Pattern);

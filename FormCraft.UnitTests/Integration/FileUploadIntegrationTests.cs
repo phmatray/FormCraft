@@ -43,37 +43,37 @@ public class FileUploadIntegrationTests
 
         // Assert
         formConfig.Fields.Count.ShouldBe(4);
-        
+
         // Check Name field
         var nameField = formConfig.Fields[0];
         nameField.FieldName.ShouldBe("Name");
         nameField.Label.ShouldBe("Full Name");
         nameField.IsRequired.ShouldBeTrue();
-        
+
         // Check Resume field
         var resumeField = formConfig.Fields[1];
         resumeField.FieldName.ShouldBe("Resume");
         resumeField.Label.ShouldBe("Upload Resume");
         resumeField.IsRequired.ShouldBeTrue();
         resumeField.AdditionalAttributes.ShouldContainKey("FileUploadConfiguration");
-        
+
         var resumeConfig = resumeField.AdditionalAttributes["FileUploadConfiguration"] as FileUploadConfiguration;
         resumeConfig.ShouldNotBeNull();
         resumeConfig.AcceptedFileTypes.ShouldBe([".pdf", ".doc", ".docx"]);
         resumeConfig.MaxFileSize.ShouldBe(5 * 1024 * 1024);
         resumeConfig.MaxFiles.ShouldBe(1);
-        
+
         // Check Certificates field
         var certificatesField = formConfig.Fields[2];
         certificatesField.FieldName.ShouldBe("Certificates");
         certificatesField.Label.ShouldBe("Upload Certificates");
         certificatesField.IsRequired.ShouldBeFalse();
-        
+
         var certsConfig = certificatesField.AdditionalAttributes["FileUploadConfiguration"] as FileUploadConfiguration;
         certsConfig.ShouldNotBeNull();
         certsConfig.MaxFiles.ShouldBe(3);
         certsConfig.Multiple.ShouldBeTrue();
-        
+
         // Check AgreeToTerms field
         var agreeField = formConfig.Fields[3];
         agreeField.FieldName.ShouldBe("AgreeToTerms");
@@ -90,9 +90,9 @@ public class FileUploadIntegrationTests
             Label = "Resume",
             CustomRendererType = typeof(FileUploadFieldRenderer)
         };
-        
+
         field.AdditionalAttributes["CustomRendererInstance"] = new FileUploadFieldRenderer();
-        
+
         var fieldWrapper = new FieldConfigurationWrapper<FileUploadTestModel, IBrowserFile>(field);
 
         // Act
@@ -113,7 +113,7 @@ public class FileUploadIntegrationTests
         var formConfig = FormBuilder<FileUploadTestModel>.Create()
             .AddFileUploadField(x => x.Resume!, "Resume", required: true)
             .Build();
-            
+
         var model = new FileUploadTestModel { Resume = null };
         var resumeField = formConfig.Fields.First();
         var services = new ServiceCollection().BuildServiceProvider();
@@ -144,7 +144,7 @@ public class FileUploadIntegrationTests
         var formConfig = FormBuilder<FileUploadTestModel>.Create()
             .AddFileUploadField(x => x.Resume!, "Resume", required: true)
             .Build();
-            
+
         var file = A.Fake<IBrowserFile>();
         var model = new FileUploadTestModel { Resume = file };
         var resumeField = formConfig.Fields.First();
@@ -173,7 +173,7 @@ public class FileUploadIntegrationTests
         var formConfig = FormBuilder<FileUploadTestModel>.Create()
             .AddMultipleFileUploadField(x => x.Certificates!, "Certificates", required: true)
             .Build();
-            
+
         var model = new FileUploadTestModel { Certificates = null };
         var certificatesField = formConfig.Fields.First();
         var services = new ServiceCollection().BuildServiceProvider();
@@ -228,16 +228,16 @@ public class FileUploadIntegrationTests
 
         // Assert
         formConfig.Fields.Count.ShouldBe(4);
-        
+
         // Verify all fields are properly configured
         formConfig.Fields.ShouldAllBe(f => !string.IsNullOrEmpty(f.Label));
         formConfig.Fields.Count(f => f.IsRequired).ShouldBe(3); // All except Certificates
-        
+
         // Verify file upload fields have custom renderer
         var fileFields = formConfig.Fields
             .Where(f => f.FieldName == "Resume" || f.FieldName == "Certificates")
             .ToList();
-            
+
         fileFields.ShouldAllBe(f => f.CustomRendererType == typeof(FileUploadFieldRenderer));
         fileFields.ShouldAllBe(f => f.AdditionalAttributes.ContainsKey("FileUploadConfiguration"));
     }

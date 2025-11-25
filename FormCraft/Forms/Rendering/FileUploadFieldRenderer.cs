@@ -20,7 +20,7 @@ public class FileUploadFieldRenderer : IFieldRenderer
                fieldType == typeof(IBrowserFile[]) ||
                fieldType == typeof(List<IBrowserFile>);
     }
-    
+
     /// <inheritdoc />
     public RenderFragment Render<TModel>(IFieldRenderContext<TModel> context)
     {
@@ -32,48 +32,48 @@ public class FileUploadFieldRenderer : IFieldRenderer
             builder.CloseComponent();
         };
     }
-    
+
     /// <summary>
     /// Simple test component that renders a file input-like representation.
     /// </summary>
     private class TestStubComponent<TModel> : ComponentBase
     {
         [Parameter] public IFieldRenderContext<TModel>? Context { get; set; }
-        
+
         protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder)
         {
             if (Context == null) return;
-            
+
             var sequence = 0;
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "test-fileupload-field");
-            
+
             builder.OpenElement(sequence++, "label");
             builder.AddContent(sequence++, Context.Field.Label);
             builder.CloseElement();
-            
+
             builder.OpenElement(sequence++, "input");
             builder.AddAttribute(sequence++, "type", "file");
             builder.AddAttribute(sequence++, "disabled", Context.Field.IsDisabled);
-            
+
             // Check if field type supports multiple files
             var isMultiple = Context.ActualFieldType == typeof(IReadOnlyList<IBrowserFile>) ||
                            Context.ActualFieldType == typeof(IBrowserFile[]) ||
                            Context.ActualFieldType == typeof(List<IBrowserFile>);
-            
+
             if (isMultiple)
             {
                 builder.AddAttribute(sequence++, "multiple", true);
             }
-            
+
             // Check for accept attribute in additional attributes
             if (Context.Field.AdditionalAttributes.TryGetValue("accept", out var accept))
             {
                 builder.AddAttribute(sequence++, "accept", accept);
             }
-            
+
             builder.CloseElement();
-            
+
             if (!string.IsNullOrEmpty(Context.Field.HelpText))
             {
                 builder.OpenElement(sequence++, "div");
@@ -81,7 +81,7 @@ public class FileUploadFieldRenderer : IFieldRenderer
                 builder.AddContent(sequence, Context.Field.HelpText);
                 builder.CloseElement();
             }
-            
+
             builder.CloseElement();
         }
     }

@@ -34,7 +34,7 @@ public static class FluentValidationExtensions
     {
         return builder.WithValidator(new FluentValidationAdapter<TModel, TProperty>(propertyExpression));
     }
-    
+
     /// <summary>
     /// Adds a specific FluentValidation validator instance to a field.
     /// This allows using a validator without registering it in dependency injection.

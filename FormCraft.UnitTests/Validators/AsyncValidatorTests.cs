@@ -203,7 +203,7 @@ public class AsyncValidatorTests
         {
             // Cancel the token after ensuring we've entered the async method
             cts.CancelAfter(TimeSpan.FromMilliseconds(10));
-            
+
             try
             {
                 await Task.Delay(100, cts.Token); // This should timeout

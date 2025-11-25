@@ -25,7 +25,7 @@ public class FileUploadExtensionsTests
         formConfig.Fields.Count.ShouldBe(1);
         var field = formConfig.Fields.First();
         field.AdditionalAttributes.ShouldContainKey("FileUploadConfiguration");
-        
+
         var uploadConfig = field.AdditionalAttributes["FileUploadConfiguration"] as FileUploadConfiguration;
         uploadConfig.ShouldNotBeNull();
         uploadConfig.AcceptedFileTypes.ShouldBe(new[] { ".pdf", ".doc" });
@@ -47,7 +47,7 @@ public class FileUploadExtensionsTests
         // Assert
         var field = formConfig.Fields.First();
         var uploadConfig = field.AdditionalAttributes["FileUploadConfiguration"] as FileUploadConfiguration;
-        
+
         uploadConfig.ShouldNotBeNull();
         uploadConfig.AcceptedFileTypes.ShouldBeNull();
         uploadConfig.MaxFileSize.ShouldBeNull();
@@ -73,7 +73,7 @@ public class FileUploadExtensionsTests
         // Assert
         var field = formConfig.Fields.First();
         field.AdditionalAttributes.ShouldContainKey("FileUploadConfiguration");
-        
+
         var uploadConfig = field.AdditionalAttributes["FileUploadConfiguration"] as FileUploadConfiguration;
         uploadConfig.ShouldNotBeNull();
         uploadConfig.AcceptedFileTypes.ShouldBe(new[] { ".jpg", ".png" });
@@ -95,7 +95,7 @@ public class FileUploadExtensionsTests
         // Assert
         var field = formConfig.Fields.First();
         var uploadConfig = field.AdditionalAttributes["FileUploadConfiguration"] as FileUploadConfiguration;
-        
+
         uploadConfig.ShouldNotBeNull();
         uploadConfig.AcceptedFileTypes.ShouldBeNull();
         uploadConfig.MaxFileSize.ShouldBeNull();
@@ -119,11 +119,11 @@ public class FileUploadExtensionsTests
 
         // Assert
         formConfig.Fields.Count.ShouldBe(1);
-        
+
         var field = formConfig.Fields.First();
         field.Label.ShouldBe("Upload Document");
         field.IsRequired.ShouldBeTrue();
-        
+
         var uploadConfig = field.AdditionalAttributes["FileUploadConfiguration"] as FileUploadConfiguration;
         uploadConfig.ShouldNotBeNull();
         uploadConfig.AcceptedFileTypes.ShouldBe(new[] { ".pdf" });
@@ -162,11 +162,11 @@ public class FileUploadExtensionsTests
 
         // Assert
         formConfig.Fields.Count.ShouldBe(1);
-        
+
         var field = formConfig.Fields.First();
         field.Label.ShouldBe("Upload Photos");
         field.IsRequired.ShouldBeTrue();
-        
+
         var uploadConfig = field.AdditionalAttributes["FileUploadConfiguration"] as FileUploadConfiguration;
         uploadConfig.ShouldNotBeNull();
         uploadConfig.MaxFiles.ShouldBe(3);
@@ -187,11 +187,11 @@ public class FileUploadExtensionsTests
 
         // Assert
         var field = formConfig.Fields.First();
-        
+
         // Assert
         field.IsRequired.ShouldBeTrue();
         field.Validators.Count.ShouldBeGreaterThan(0);
-        
+
         // The validator is wrapped in ValidatorWrapper, so we need to check the wrapped validator
         var validatorWrapper = field.Validators.First();
         validatorWrapper.ShouldBeOfType<ValidatorWrapper<TestModel, IReadOnlyList<IBrowserFile>>>();

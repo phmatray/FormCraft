@@ -19,17 +19,17 @@ public class ColorPickerRenderer : CustomFieldRendererBase<string>
             var sequence = 0;
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "test-color-picker");
-            
+
             // For testing, just use simple labels
             builder.OpenElement(sequence++, "label");
             builder.AddContent(sequence++, "Color");
             builder.CloseElement();
-            
+
             builder.OpenElement(sequence++, "input");
             builder.AddAttribute(sequence++, "type", "color");
             builder.AddAttribute(sequence, "value", GetValue(context) ?? "#000000");
             builder.CloseElement();
-            
+
             builder.CloseElement();
         };
     }

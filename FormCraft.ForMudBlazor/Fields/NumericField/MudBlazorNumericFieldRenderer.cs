@@ -7,7 +7,7 @@ public class MudBlazorNumericFieldRenderer : FieldRendererBase
 {
     /// <inheritdoc />
     protected override Type ComponentType => typeof(MudBlazorNumericFieldComponent<,>);
-    
+
     /// <inheritdoc />
     public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
     {

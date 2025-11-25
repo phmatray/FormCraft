@@ -10,7 +10,7 @@ public static class EncryptedFieldHelper
     /// <summary>
     /// Encrypts all fields marked for encryption in the model.
     /// </summary>
-    public static void EncryptFields<TModel>(TModel model, IFormSecurity security, IEncryptionService encryptionService) 
+    public static void EncryptFields<TModel>(TModel model, IFormSecurity security, IEncryptionService encryptionService)
         where TModel : new()
     {
         if (model == null || security?.EncryptedFields == null || !security.EncryptedFields.Any())
@@ -34,7 +34,7 @@ public static class EncryptedFieldHelper
     /// <summary>
     /// Decrypts all fields marked for encryption in the model.
     /// </summary>
-    public static void DecryptFields<TModel>(TModel model, IFormSecurity security, IEncryptionService encryptionService) 
+    public static void DecryptFields<TModel>(TModel model, IFormSecurity security, IEncryptionService encryptionService)
         where TModel : new()
     {
         if (model == null || security?.EncryptedFields == null || !security.EncryptedFields.Any())
@@ -58,7 +58,7 @@ public static class EncryptedFieldHelper
     /// <summary>
     /// Creates a clone of the model with encrypted fields decrypted for display.
     /// </summary>
-    public static TModel CreateDecryptedCopy<TModel>(TModel model, IFormSecurity security, IEncryptionService encryptionService) 
+    public static TModel CreateDecryptedCopy<TModel>(TModel model, IFormSecurity security, IEncryptionService encryptionService)
         where TModel : new()
     {
         if (model == null)
@@ -66,7 +66,7 @@ public static class EncryptedFieldHelper
 
         // Create a shallow copy
         var copy = (TModel)Activator.CreateInstance(typeof(TModel))!;
-        
+
         // Copy all properties
         foreach (var property in typeof(TModel).GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
@@ -78,7 +78,7 @@ public static class EncryptedFieldHelper
 
         // Decrypt encrypted fields in the copy
         DecryptFields(copy, security, encryptionService);
-        
+
         return copy;
     }
 }

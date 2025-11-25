@@ -346,7 +346,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         _fieldConfiguration.Order = order;
         return this;
     }
-    
+
     /// <summary>
     /// Sets a custom field renderer for this field.
     /// </summary>

@@ -19,19 +19,19 @@ public class RatingRenderer : CustomFieldRendererBase<int>
             var sequence = 0;
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "test-rating");
-            
+
             // For testing, just use simple labels
             builder.OpenElement(sequence++, "label");
             builder.AddContent(sequence++, "Rating");
             builder.CloseElement();
-            
+
             builder.OpenElement(sequence++, "input");
             builder.AddAttribute(sequence++, "type", "range");
             builder.AddAttribute(sequence++, "min", "0");
             builder.AddAttribute(sequence++, "max", "5");
             builder.AddAttribute(sequence, "value", GetValue(context));
             builder.CloseElement();
-            
+
             builder.CloseElement();
         };
     }

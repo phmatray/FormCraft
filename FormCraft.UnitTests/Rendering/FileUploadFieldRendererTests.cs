@@ -86,7 +86,7 @@ public class FileUploadFieldRendererTests
         A.CallTo(() => field.IsRequired).Returns(false);
         A.CallTo(() => field.IsDisabled).Returns(false);
         A.CallTo(() => field.IsReadOnly).Returns(false);
-        
+
         var context = A.Fake<IFieldRenderContext<TestModel>>();
         A.CallTo(() => context.Model).Returns(model);
         A.CallTo(() => context.Field).Returns(field);
@@ -112,18 +112,18 @@ public class FileUploadFieldRendererTests
             MaxFiles = 1,
             EnableDragDrop = true
         };
-        
+
         var attributes = new Dictionary<string, object>
         {
             ["FileUploadConfiguration"] = uploadConfig
         };
-        
+
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
         A.CallTo(() => field.Label).Returns("Upload Document");
         A.CallTo(() => field.FieldName).Returns("Document");
         A.CallTo(() => field.AdditionalAttributes).Returns(attributes);
         A.CallTo(() => field.IsRequired).Returns(true);
-        
+
         var context = A.Fake<IFieldRenderContext<TestModel>>();
         A.CallTo(() => context.Model).Returns(model);
         A.CallTo(() => context.Field).Returns(field);
@@ -143,15 +143,15 @@ public class FileUploadFieldRendererTests
         // Arrange
         var model = new TestModel();
         var uploadConfig = new FileUploadConfiguration { MaxFiles = 5 };
-        
+
         var attributes = new Dictionary<string, object>
         {
             ["FileUploadConfiguration"] = uploadConfig
         };
-        
+
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
         A.CallTo(() => field.AdditionalAttributes).Returns(attributes);
-        
+
         var context = A.Fake<IFieldRenderContext<TestModel>>();
         A.CallTo(() => context.Field).Returns(field);
         A.CallTo(() => context.ActualFieldType).Returns(typeof(IReadOnlyList<IBrowserFile>));
@@ -172,10 +172,10 @@ public class FileUploadFieldRendererTests
         var existingFile = A.Fake<IBrowserFile>();
         A.CallTo(() => existingFile.Name).Returns("test.pdf");
         A.CallTo(() => existingFile.Size).Returns(1024);
-        
+
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
         A.CallTo(() => field.AdditionalAttributes).Returns(new Dictionary<string, object>());
-        
+
         var context = A.Fake<IFieldRenderContext<TestModel>>();
         A.CallTo(() => context.Field).Returns(field);
         A.CallTo(() => context.CurrentValue).Returns(existingFile);
@@ -195,10 +195,10 @@ public class FileUploadFieldRendererTests
         var file1 = A.Fake<IBrowserFile>();
         var file2 = A.Fake<IBrowserFile>();
         var files = new List<IBrowserFile> { file1, file2 }.AsReadOnly();
-        
+
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
         A.CallTo(() => field.AdditionalAttributes).Returns(new Dictionary<string, object>());
-        
+
         var context = A.Fake<IFieldRenderContext<TestModel>>();
         A.CallTo(() => context.Field).Returns(field);
         A.CallTo(() => context.CurrentValue).Returns(files);
@@ -219,12 +219,12 @@ public class FileUploadFieldRendererTests
         {
             ["FileUploadErrors"] = errorList
         };
-        
+
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
         A.CallTo(() => field.Label).Returns("Upload File");
         A.CallTo(() => field.AdditionalAttributes).Returns(additionalAttributes);
         A.CallTo(() => field.IsRequired).Returns(true);
-        
+
         var context = A.Fake<IFieldRenderContext<TestModel>>();
         A.CallTo(() => context.Field).Returns(field);
         A.CallTo(() => context.CurrentValue).Returns(null);
@@ -237,7 +237,7 @@ public class FileUploadFieldRendererTests
         // Note: Actual validation of the error attributes would require rendering the component
         // which is beyond the scope of unit tests - this would be covered by integration tests
     }
-    
+
     [Fact]
     public void Render_ClearsValidationErrors_OnSuccessfulUpload()
     {
@@ -245,13 +245,13 @@ public class FileUploadFieldRendererTests
         var file = A.Fake<IBrowserFile>();
         A.CallTo(() => file.Name).Returns("test.pdf");
         A.CallTo(() => file.Size).Returns(1024);
-        
+
         var additionalAttributes = new Dictionary<string, object>();
-        
+
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
         A.CallTo(() => field.Label).Returns("Upload File");
         A.CallTo(() => field.AdditionalAttributes).Returns(additionalAttributes);
-        
+
         var context = A.Fake<IFieldRenderContext<TestModel>>();
         A.CallTo(() => context.Field).Returns(field);
         A.CallTo(() => context.CurrentValue).Returns(file);

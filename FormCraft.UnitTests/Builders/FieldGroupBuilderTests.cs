@@ -161,7 +161,7 @@ public class FieldGroupBuilderTests
 
         // Assert
         config.Fields.Count.ShouldBe(2);
-        
+
         var groupedConfig = config as IGroupedFormConfiguration<TestModel>;
         var fieldGroup = groupedConfig?.FieldGroups[0];
         fieldGroup?.FieldNames.Count.ShouldBe(2);

@@ -155,20 +155,20 @@ public class SecurityBuilderTests
 
         // Assert
         config.Security.ShouldNotBeNull();
-        
+
         // Encryption
         config.Security.EncryptedFields.Count.ShouldBe(2);
         config.Security.EncryptedFields.ShouldContain("SSN");
         config.Security.EncryptedFields.ShouldContain("Password");
-        
+
         // CSRF
         config.Security.IsCsrfProtectionEnabled.ShouldBeTrue();
-        
+
         // Rate Limiting
         config.Security.RateLimit.ShouldNotBeNull();
         config.Security.RateLimit.MaxAttempts.ShouldBe(3);
         config.Security.RateLimit.TimeWindow.ShouldBe(TimeSpan.FromMinutes(5));
-        
+
         // Audit Logging
         config.Security.IsAuditLoggingEnabled.ShouldBeTrue();
         config.Security.AuditLog.ShouldNotBeNull();

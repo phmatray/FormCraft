@@ -107,7 +107,7 @@ public class AttributeFormBuilderExtensionsTests
         emailField.TypedConfiguration.Placeholder.ShouldBe("user@example.com");
         emailField.TypedConfiguration.InputType.ShouldBe("email");
         emailField.TypedConfiguration.IsRequired.ShouldBeTrue();
-        
+
         // Should have email validation
         emailField.TypedConfiguration.Validators
             .OfType<CustomValidator<TestModel, string>>()
@@ -283,11 +283,11 @@ public class AttributeFormBuilderExtensionsTests
             .FirstOrDefault(f => f.FieldName == "Status");
 
         statusField.ShouldNotBeNull();
-        
+
         // Check if options are stored in additional attributes
         var additionalAttrs = statusField.AdditionalAttributes;
         additionalAttrs.ShouldContainKey("options");
-        
+
         var options = additionalAttrs["options"] as string[];
         options.ShouldNotBeNull();
         options.Length.ShouldBe(3);
@@ -308,7 +308,7 @@ public class AttributeFormBuilderExtensionsTests
             .FirstOrDefault(f => f.TypedConfiguration.FieldName == "Comments");
 
         textAreaField.ShouldNotBeNull();
-        
+
         // Should have max length validator
         textAreaField.TypedConfiguration.Validators
             .OfType<CustomValidator<TestModel, string>>()
@@ -324,7 +324,7 @@ public class AttributeFormBuilderExtensionsTests
 
         // Should have all fields from the model
         config.Fields.Count.ShouldBeGreaterThanOrEqualTo(9);
-        
+
         // Verify each field type exists
         config.Fields.ShouldContain(f => f.FieldName == "FirstName");
         config.Fields.ShouldContain(f => f.FieldName == "Email");

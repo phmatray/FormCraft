@@ -10,13 +10,13 @@ public partial class FormSuccessDisplay
 
     [Parameter]
     public List<DataDisplayItem> DataDisplayItems { get; set; } = [];
-    
+
     [Parameter]
     public bool ShowResetButton { get; set; } = true;
-    
+
     [Parameter]
     public string ResetButtonText { get; set; } = "Submit Another Form";
-    
+
     [Parameter]
     public EventCallback OnReset { get; set; }
 

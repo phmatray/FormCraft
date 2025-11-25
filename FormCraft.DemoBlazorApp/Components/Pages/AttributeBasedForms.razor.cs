@@ -90,14 +90,14 @@ public partial class AttributeBasedForms : ComponentBase
     {
         _isSubmitting = true;
         StateHasChanged();
-        
+
         // Simulate async operation
         await Task.Delay(1500);
-        
+
         _isSubmitting = false;
         _isSubmitted = true;
         StateHasChanged();
-        
+
         // Hide success message after 5 seconds
         await Task.Delay(5000);
         _isSubmitted = false;

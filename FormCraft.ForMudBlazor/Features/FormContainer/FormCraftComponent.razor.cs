@@ -9,43 +9,43 @@ public partial class FormCraftComponent<TModel>
 {
     [Parameter]
     public TModel Model { get; set; } = new();
-    
+
     [Parameter]
     public IFormConfiguration<TModel> Configuration { get; set; } = null!;
-    
+
     [Parameter]
     public EventCallback<TModel> OnValidSubmit { get; set; }
-    
+
     [Parameter]
     public EventCallback<(string fieldName, object? value)> OnFieldChanged { get; set; }
-    
+
     [Parameter]
     public bool ShowSubmitButton { get; set; } = true;
-    
+
     [Parameter]
     public string SubmitButtonText { get; set; } = "Submit";
-    
+
     [Parameter]
     public string SubmittingText { get; set; } = "Submitting...";
-    
+
     [Parameter]
     public bool IsSubmitting { get; set; }
-    
+
     [Parameter]
     public string? SubmitButtonClass { get; set; }
-    
+
     [Parameter]
     public RenderFragment? BeforeForm { get; set; }
-    
+
     [Parameter]
     public RenderFragment? AfterForm { get; set; }
-    
+
     [Parameter]
     public EventCallback<EditContext> OnEditContextCreated { get; set; }
-    
+
     private EditContext? _editContext;
     private IGroupedFormConfiguration<TModel>? GroupedConfiguration => Configuration as IGroupedFormConfiguration<TModel>;
-    
+
     protected override async Task OnInitializedAsync()
     {
         if (Model != null)
@@ -58,12 +58,12 @@ public partial class FormCraftComponent<TModel>
         }
         await base.OnInitializedAsync();
     }
-    
+
     public bool Validate()
     {
         return _editContext?.Validate() ?? false;
     }
-    
+
     public EditContext? GetEditContext()
     {
         return _editContext;
@@ -193,24 +193,24 @@ public partial class FormCraftComponent<TModel>
         builder.CloseComponent();
     }
 
-    private void RenderNumericField<T>(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, T value) 
+    private void RenderNumericField<T>(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, T value)
         where T : struct
     {
         builder.OpenComponent(0, typeof(MudNumericField<>).MakeGenericType(typeof(T)));
         AddCommonFieldAttributes(builder, field, 1);
         builder.AddAttribute(2, "Value", value);
         builder.AddAttribute(3, "ValueChanged",
-            EventCallback.Factory.Create<T>(this, 
+            EventCallback.Factory.Create<T>(this,
                 newValue => UpdateFieldValue(field.FieldName, newValue)));
         builder.AddAttribute(4, "Immediate", true);
-        
+
         // Add culture and pattern to ensure proper decimal display
         builder.AddAttribute(5, "Culture", System.Globalization.CultureInfo.InvariantCulture);
         if (typeof(T) == typeof(decimal))
         {
             builder.AddAttribute(6, "Pattern", "[0-9]+([.,][0-9]+)?");
         }
-        
+
         builder.CloseComponent();
     }
 
@@ -220,7 +220,7 @@ public partial class FormCraftComponent<TModel>
         builder.AddAttribute(1, "Label", field.Label);
         builder.AddAttribute(2, "Value", value);
         builder.AddAttribute(3, "ValueChanged",
-            EventCallback.Factory.Create<bool>(this, 
+            EventCallback.Factory.Create<bool>(this,
                 newValue => UpdateFieldValue(field.FieldName, newValue)));
         builder.AddAttribute(4, "ReadOnly", field.IsReadOnly);
         builder.AddAttribute(5, "Disabled", field.IsDisabled);

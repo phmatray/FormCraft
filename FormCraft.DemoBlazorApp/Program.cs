@@ -18,9 +18,9 @@ builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.H
 builder.Services.AddMudServices();
 builder.Services.AddFormCraft();
 builder.Services.AddFormCraftMudBlazor(); // Add MudBlazor-specific renderers
-builder.Services.AddScoped<IMarkdownService>(sp => 
+builder.Services.AddScoped<IMarkdownService>(sp =>
     new MarkdownService(sp.GetRequiredService<HttpClient>()));
-builder.Services.AddScoped<IVersionService>(sp => 
+builder.Services.AddScoped<IVersionService>(sp =>
     new VersionService(sp.GetRequiredService<HttpClient>()));
 
 // Register FluentValidation validators

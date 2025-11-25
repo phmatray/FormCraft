@@ -7,7 +7,7 @@ public partial class MudBlazorFileUploadFieldComponent<TModel>
 {
     private MudFileUpload<IReadOnlyList<IBrowserFile>>? _fileUpload;
     private IReadOnlyList<IBrowserFile>? _singleFileList;
-    
+
     public IReadOnlyList<IBrowserFile>? SingleFileList
     {
         get => _singleFileList;
@@ -22,9 +22,9 @@ public partial class MudBlazorFileUploadFieldComponent<TModel>
         }
     }
     private string _dragClass = DefaultDragClass;
-    
+
     private const string DefaultDragClass = "relative rounded-lg border-2 border-dashed pa-4 mud-width-full mud-height-full d-flex justify-center align-center";
-    
+
     public string? Accept { get; set; }
     public bool AllowMultiple { get; set; }
     public long? MaxFileSize { get; set; }
@@ -43,7 +43,7 @@ public partial class MudBlazorFileUploadFieldComponent<TModel>
         ShowPreview = GetAttribute<bool>("ShowPreview");
         EnableDragDrop = GetAttribute("EnableDragDrop", true);
         UploadMode = GetAttribute("UploadMode", FileUploadMode.Immediate);
-        
+
         // Initialize the single file list to sync with CurrentValue
         UpdateSingleFileList();
     }

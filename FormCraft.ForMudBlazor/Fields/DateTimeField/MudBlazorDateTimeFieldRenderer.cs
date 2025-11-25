@@ -7,7 +7,7 @@ public class MudBlazorDateTimeFieldRenderer : FieldRendererBase
 {
     /// <inheritdoc />
     protected override Type ComponentType => typeof(MudBlazorDateTimeFieldComponent<>);
-    
+
     /// <inheritdoc />
     public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
     {

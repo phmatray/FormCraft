@@ -20,7 +20,7 @@ public class BlazorCsrfTokenService : ICsrfTokenService
     public async Task<string> GenerateTokenAsync()
     {
         var token = GenerateRandomToken();
-        
+
         // Store token in session storage
         try
         {
@@ -30,7 +30,7 @@ public class BlazorCsrfTokenService : ICsrfTokenService
         {
             // Fallback for when JavaScript is not available (e.g., prerendering)
         }
-        
+
         return token;
     }
 

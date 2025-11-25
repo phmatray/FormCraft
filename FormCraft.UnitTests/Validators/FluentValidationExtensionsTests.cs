@@ -26,7 +26,7 @@ public class FluentValidationExtensionsTests
     {
         // Arrange
         var validator = A.Fake<IValidator<TestModel>>();
-        
+
         // Act
         var formConfig = FormBuilder<TestModel>.Create()
             .AddField(x => x.Name, field => field
@@ -124,7 +124,7 @@ public class FluentValidationExtensionsTests
             RuleFor(x => x.Name)
                 .NotEmpty().WithMessage("Name is required")
                 .MinimumLength(3).WithMessage("Name must be at least 3 characters");
-            
+
             RuleFor(x => x.Email)
                 .NotEmpty().WithMessage("Email is required")
                 .EmailAddress().WithMessage("Invalid email format");

@@ -9,15 +9,15 @@ namespace FormCraft.DemoBlazorApp.Components.Pages;
 public partial class TabbedForm
 {
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
-    
+
     private EmployeeModel _model = new();
     private bool _isSubmitted;
     private int _activeTabIndex;
-    
+
     private IFormConfiguration<EmployeeModel> _personalInfoConfig = null!;
     private IFormConfiguration<EmployeeModel> _contactConfig = null!;
     private IFormConfiguration<EmployeeModel> _professionalConfig = null!;
-    
+
     // Component references for validation (simplified API)
     private FormCraftComponent<EmployeeModel>? _personalFormComponent;
     private FormCraftComponent<EmployeeModel>? _contactFormComponent;
@@ -137,10 +137,10 @@ public partial class TabbedForm
                     .WithLabel("Remote Work")))
             .Build();
     }
-    
+
     private EventCallback<(string fieldName, object? value)> OnFieldChangedCallback =>
         EventCallback.Factory.Create<(string fieldName, object? value)>(this, OnFieldChanged);
-    
+
     private void OnFieldChanged((string fieldName, object? value) args)
     {
         // Field changed - can be used for tracking changes
@@ -211,7 +211,7 @@ public partial class TabbedForm
             return Icons.Material.Filled.CheckCircle;
         if (HasPersonalInfoData())
             return Icons.Material.Filled.Warning;
-        
+
         return null;
     }
 
@@ -221,7 +221,7 @@ public partial class TabbedForm
             return Icons.Material.Filled.CheckCircle;
         if (HasContactInfoData())
             return Icons.Material.Filled.Warning;
-        
+
         return null;
     }
 
@@ -231,7 +231,7 @@ public partial class TabbedForm
             return Icons.Material.Filled.CheckCircle;
         if (HasProfessionalInfoData())
             return Icons.Material.Filled.Warning;
-        
+
         return null;
     }
 
@@ -241,7 +241,7 @@ public partial class TabbedForm
             return Color.Success;
         if (hasData)
             return Color.Warning;
-        
+
         return Color.Default;
     }
 
@@ -293,34 +293,34 @@ public partial class TabbedForm
         var completedSections = GetCompletedSectionsCount();
         return $"{completedSections} of 3 sections completed";
     }
-    
+
     private int GetCompletedSectionsCount()
     {
         var completedSections = 0;
-        
+
         if (IsPersonalInfoComplete())
         {
             completedSections++;
         }
-        
+
         if (IsContactInfoComplete())
         {
             completedSections++;
         }
-        
+
         if (IsProfessionalInfoComplete())
         {
             completedSections++;
         }
-        
+
         return completedSections;
     }
-    
+
     private int GetProgressPercentage()
     {
         return (GetCompletedSectionsCount() * 100) / 3;
     }
-    
+
     private string GetTabTooltip(int tabIndex)
     {
         return tabIndex switch
@@ -332,7 +332,7 @@ public partial class TabbedForm
             _ => ""
         };
     }
-    
+
 
     private async Task SubmitForm()
     {
@@ -340,7 +340,7 @@ public partial class TabbedForm
         var isPersonalValid = ValidatePersonalInfo();
         var isContactValid = ValidateContactInfo();
         var isProfessionalValid = ValidateProfessionalInfo();
-        
+
         if (isPersonalValid && isContactValid && isProfessionalValid)
         {
             _isSubmitted = true;
@@ -365,7 +365,7 @@ public partial class TabbedForm
                 _activeTabIndex = 2;
                 Snackbar.Add("Please complete professional information", Severity.Warning);
             }
-            
+
             await InvokeAsync(StateHasChanged);
         }
     }

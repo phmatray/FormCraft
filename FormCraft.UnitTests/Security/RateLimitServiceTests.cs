@@ -23,7 +23,7 @@ public class RateLimitServiceTests
             var result = await _rateLimitService.CheckRateLimitAsync(identifier, maxAttempts, timeWindow);
             result.IsAllowed.ShouldBeTrue();
             result.RemainingAttempts.ShouldBe(maxAttempts - i);
-            
+
             await _rateLimitService.RecordAttemptAsync(identifier);
         }
     }

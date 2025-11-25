@@ -27,7 +27,7 @@ public class FormBuilderTests
         // Assert
         result.ShouldBeSameAs(builder);
         config.Fields.Count.ShouldBe(1);
-        
+
         var field = config.Fields.First(f => f.FieldName == "Name");
         field.FieldName.ShouldBe("Name");
         field.Label.ShouldBe("Name");
@@ -153,13 +153,13 @@ public class FormBuilderTests
             .WithLabel("Full Name")
             .Required("Name is required")
             .WithPlaceholder("Enter your name"));
-        
+
         var configuration = result.Build();
 
         // Assert
         result.ShouldBeOfType<FormBuilder<TestModel>>();
         result.ShouldBeSameAs(builder);
-        
+
         var nameField = configuration.Fields.First(f => f.FieldName == "Name");
         nameField.Label.ShouldBe("Full Name");
         nameField.IsRequired.ShouldBeTrue();
@@ -189,15 +189,15 @@ public class FormBuilderTests
 
         // Assert
         configuration.Fields.Count.ShouldBe(3);
-        
+
         var nameField = configuration.Fields.First(f => f.FieldName == "Name");
         nameField.Label.ShouldBe("Name");
         nameField.Order.ShouldBe(1);
-        
+
         var emailField = configuration.Fields.First(f => f.FieldName == "Email");
         emailField.Label.ShouldBe("Email");
         emailField.Order.ShouldBe(2);
-        
+
         var ageField = configuration.Fields.First(f => f.FieldName == "Age");
         ageField.Label.ShouldBe("Age");
         ageField.Order.ShouldBe(3);

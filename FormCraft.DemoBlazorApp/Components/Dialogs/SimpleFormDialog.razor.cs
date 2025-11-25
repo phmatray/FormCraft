@@ -10,7 +10,7 @@ public partial class SimpleFormDialog
 
     [CascadingParameter]
     public IMudDialogInstance MudDialog { get; set; } = null!;
-    
+
     [Parameter]
     public ContactModel Model { get; set; } = new();
 

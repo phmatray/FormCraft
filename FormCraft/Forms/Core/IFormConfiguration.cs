@@ -40,7 +40,7 @@ public interface IFormConfiguration<TModel> where TModel : new()
     /// Gets or sets the text/symbol to display for required field indicators.
     /// </summary>
     string RequiredIndicator { get; set; }
-    
+
     /// <summary>
     /// Gets the security configuration for the form.
     /// </summary>
@@ -122,7 +122,7 @@ public class FormConfiguration<TModel> : IGroupedFormConfiguration<TModel> where
 
     /// <inheritdoc />
     public bool UseFieldGroups { get; set; } = false;
-    
+
     /// <inheritdoc />
     public IFormSecurity? Security { get; set; }
 }

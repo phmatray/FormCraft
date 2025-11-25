@@ -52,8 +52,8 @@ public class FileUploadConfigurationTests
     public void Accept_ReturnsCommaSeparatedString_WhenAcceptedFileTypesSet()
     {
         // Arrange
-        var config = new FileUploadConfiguration 
-        { 
+        var config = new FileUploadConfiguration
+        {
             AcceptedFileTypes = new[] { ".pdf", ".doc", ".docx" }
         };
 
@@ -82,8 +82,8 @@ public class FileUploadConfigurationTests
     public void ValidateFile_ReturnsFailure_WhenFileSizeExceedsLimit()
     {
         // Arrange
-        var config = new FileUploadConfiguration 
-        { 
+        var config = new FileUploadConfiguration
+        {
             MaxFileSize = 1024 * 1024 // 1MB
         };
         var file = A.Fake<IBrowserFile>();
@@ -102,8 +102,8 @@ public class FileUploadConfigurationTests
     public void ValidateFile_ReturnsSuccess_WhenFileSizeWithinLimit()
     {
         // Arrange
-        var config = new FileUploadConfiguration 
-        { 
+        var config = new FileUploadConfiguration
+        {
             MaxFileSize = 5 * 1024 * 1024 // 5MB
         };
         var file = A.Fake<IBrowserFile>();
@@ -120,8 +120,8 @@ public class FileUploadConfigurationTests
     public void ValidateFile_ReturnsFailure_WhenFileTypeNotAccepted()
     {
         // Arrange
-        var config = new FileUploadConfiguration 
-        { 
+        var config = new FileUploadConfiguration
+        {
             AcceptedFileTypes = new[] { ".pdf", ".doc" }
         };
         var file = A.Fake<IBrowserFile>();
@@ -141,8 +141,8 @@ public class FileUploadConfigurationTests
     public void ValidateFile_ReturnsSuccess_WhenFileTypeAccepted()
     {
         // Arrange
-        var config = new FileUploadConfiguration 
-        { 
+        var config = new FileUploadConfiguration
+        {
             AcceptedFileTypes = new[] { ".pdf", ".PDF" } // Test case insensitive
         };
         var file = A.Fake<IBrowserFile>();
@@ -187,8 +187,8 @@ public class FileUploadConfigurationTests
     public void GetConstraintsDescription_IncludesAcceptedFormats_WhenSpecified()
     {
         // Arrange
-        var config = new FileUploadConfiguration 
-        { 
+        var config = new FileUploadConfiguration
+        {
             AcceptedFileTypes = new[] { ".pdf", ".doc" }
         };
 
@@ -203,8 +203,8 @@ public class FileUploadConfigurationTests
     public void GetConstraintsDescription_IncludesMaxSize_WhenSpecified()
     {
         // Arrange
-        var config = new FileUploadConfiguration 
-        { 
+        var config = new FileUploadConfiguration
+        {
             MaxFileSize = 5 * 1024 * 1024 // 5MB
         };
 
@@ -245,8 +245,8 @@ public class FileUploadConfigurationTests
     public void GetConstraintsDescription_CombinesAllConstraints()
     {
         // Arrange
-        var config = new FileUploadConfiguration 
-        { 
+        var config = new FileUploadConfiguration
+        {
             AcceptedFileTypes = new[] { ".pdf", ".doc" },
             MaxFileSize = 10 * 1024 * 1024, // 10MB
             MaxFiles = 5

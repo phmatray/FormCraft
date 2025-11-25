@@ -216,7 +216,7 @@ public partial class SecurityDemo
             _decryptedResult = EncryptionService.Decrypt(_encryptedResult) ?? "";
         }
     }
-    
+
     private void ResetForm()
     {
         _model = new SecureUserModel();
@@ -231,11 +231,11 @@ public partial class SecurityDemo
             Timestamp = DateTime.Now
         });
     }
-    
+
     private List<FormSuccessDisplay.DataDisplayItem> GetDataDisplayItems()
     {
         if (_lastSubmission == null) return new();
-        
+
         return new List<FormSuccessDisplay.DataDisplayItem>
         {
             new() { Label = "Name", Value = _lastSubmission.Name },

@@ -9,7 +9,7 @@ public class MudBlazorMultipleFileUploadRenderer : FieldRendererBase
 {
     /// <inheritdoc />
     protected override Type ComponentType => typeof(MudBlazorMultipleFileUploadComponent<>);
-    
+
     /// <inheritdoc />
     public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
     {

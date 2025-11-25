@@ -21,12 +21,12 @@ public class VersionService : IVersionService
     private readonly HttpClient _httpClient;
     private string? _cachedVersion;
     private DateTime _cacheExpiry = DateTime.MinValue;
-    
+
     public VersionService(HttpClient httpClient)
     {
         _httpClient = httpClient;
     }
-    
+
     /// <inheritdoc />
     public async Task<string> GetFormCraftVersionAsync()
     {
@@ -35,7 +35,7 @@ public class VersionService : IVersionService
         {
             return _cachedVersion;
         }
-        
+
         try
         {
             // Try to fetch from NuGet API
@@ -44,7 +44,7 @@ public class VersionService : IVersionService
             {
                 var json = await response.Content.ReadAsStringAsync();
                 using var document = JsonDocument.Parse(json);
-                
+
                 if (document.RootElement.TryGetProperty("versions", out var versions))
                 {
                     var versionArray = versions.EnumerateArray().ToList();
@@ -68,7 +68,7 @@ public class VersionService : IVersionService
                 {
                     var json = await ghResponse.Content.ReadAsStringAsync();
                     using var document = JsonDocument.Parse(json);
-                    
+
                     if (document.RootElement.TryGetProperty("tag_name", out var tagName))
                     {
                         var version = tagName.GetString() ?? "latest";
@@ -88,7 +88,7 @@ public class VersionService : IVersionService
                 // Ignore secondary failure
             }
         }
-        
+
         // Return a default if all else fails
         return "latest";
     }

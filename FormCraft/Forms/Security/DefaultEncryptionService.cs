@@ -68,7 +68,7 @@ public class DefaultEncryptionService : IEncryptionService
             using var msDecrypt = new MemoryStream(buffer);
             using var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read);
             using var srDecrypt = new StreamReader(csDecrypt);
-            
+
             return srDecrypt.ReadToEnd();
         }
         catch

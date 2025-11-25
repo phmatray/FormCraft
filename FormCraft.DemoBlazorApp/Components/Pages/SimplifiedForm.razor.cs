@@ -11,7 +11,7 @@ public partial class SimplifiedForm
     private bool _isSubmitting;
     private readonly List<string> _fieldChanges = [];
     private IFormConfiguration<ContactModel> _formConfiguration = null!;
-    
+
     private readonly List<GuidelineItem> _apiGuidelineTableItems =
     [
         new()
@@ -112,7 +112,7 @@ public partial class SimplifiedForm
                         model.City = null;
                     }
                 }))
-            .AddCheckboxField(x => x.SubscribeToNewsletter, "Subscribe to Newsletter", 
+            .AddCheckboxField(x => x.SubscribeToNewsletter, "Subscribe to Newsletter",
                 helpText: "Get updates about new features")
             .Build();
     }

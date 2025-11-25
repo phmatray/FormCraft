@@ -27,10 +27,10 @@ public static class ServiceCollectionExtensions
         {
             services.Remove(descriptor);
         }
-        
+
         // Register MudBlazor UI framework adapter
         services.AddSingleton<IUIFrameworkAdapter, MudBlazorUIFrameworkAdapter>();
-        
+
         // Register MudBlazor-specific renderers
         services.AddScoped<IFieldRenderer, MudBlazorTextFieldRenderer>();
         services.AddScoped<IFieldRenderer, MudBlazorNumericFieldRenderer>();
@@ -41,7 +41,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFieldRenderer, MudBlazorMultipleFileUploadRenderer>();
         // Note: MudBlazorColorPickerRenderer and MudBlazorRatingRenderer are custom renderers,
         // not IFieldRenderer implementations. They should be used via WithCustomRenderer().
-        
+
         return services;
     }
 }

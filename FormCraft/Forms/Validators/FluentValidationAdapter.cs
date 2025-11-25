@@ -14,7 +14,7 @@ public class FluentValidationAdapter<TModel, TProperty> : IFieldValidator<TModel
     where TModel : new()
 {
     private readonly Expression<Func<TModel, TProperty>> _propertyExpression;
-    
+
     /// <summary>
     /// Gets or sets the custom error message to display when validation fails.
     /// If not set, the error message from FluentValidation will be used.
@@ -38,8 +38,8 @@ public class FluentValidationAdapter<TModel, TProperty> : IFieldValidator<TModel
     /// <param name="serviceProvider">The service provider used to resolve the FluentValidation validator</param>
     /// <returns>A task that represents the asynchronous validation operation, containing the validation result</returns>
     public async Task<ValidationResult> ValidateAsync(
-        TModel model, 
-        TProperty value, 
+        TModel model,
+        TProperty value,
         IServiceProvider serviceProvider)
     {
         var validator = serviceProvider.GetService<IValidator<TModel>>();
@@ -56,7 +56,7 @@ public class FluentValidationAdapter<TModel, TProperty> : IFieldValidator<TModel
             var propertyName = GetPropertyName();
             var error = validationResult.Errors
                 .FirstOrDefault(e => e.PropertyName == propertyName);
-            
+
             if (error != null)
             {
                 return ValidationResult.Failure(error.ErrorMessage);
@@ -75,18 +75,18 @@ public class FluentValidationAdapter<TModel, TProperty> : IFieldValidator<TModel
     {
         var expression = _propertyExpression.Body;
         var propertyPath = new List<string>();
-        
+
         while (expression is MemberExpression memberExpression)
         {
             propertyPath.Insert(0, memberExpression.Member.Name);
             expression = memberExpression.Expression;
         }
-        
+
         if (propertyPath.Count == 0)
         {
             throw new InvalidOperationException("Unable to determine property name from expression");
         }
-        
+
         return string.Join(".", propertyPath);
     }
 }
@@ -102,7 +102,7 @@ internal class SpecificFluentValidationAdapter<TModel, TProperty> : IFieldValida
 {
     private readonly IValidator<TModel> _validator;
     private readonly Expression<Func<TModel, TProperty>> _propertyExpression;
-    
+
     /// <summary>
     /// Gets or sets the custom error message to display when validation fails.
     /// If not set, the error message from FluentValidation will be used.
@@ -115,7 +115,7 @@ internal class SpecificFluentValidationAdapter<TModel, TProperty> : IFieldValida
     /// <param name="validator">The FluentValidation validator instance to use</param>
     /// <param name="propertyExpression">The expression identifying the property to validate</param>
     public SpecificFluentValidationAdapter(
-        IValidator<TModel> validator, 
+        IValidator<TModel> validator,
         Expression<Func<TModel, TProperty>> propertyExpression)
     {
         _validator = validator;
@@ -130,8 +130,8 @@ internal class SpecificFluentValidationAdapter<TModel, TProperty> : IFieldValida
     /// <param name="serviceProvider">The service provider (not used in this implementation)</param>
     /// <returns>A task that represents the asynchronous validation operation, containing the validation result</returns>
     public async Task<ValidationResult> ValidateAsync(
-        TModel model, 
-        TProperty value, 
+        TModel model,
+        TProperty value,
         IServiceProvider serviceProvider)
     {
         var context = new ValidationContext<TModel>(model);
@@ -142,7 +142,7 @@ internal class SpecificFluentValidationAdapter<TModel, TProperty> : IFieldValida
             var propertyName = GetPropertyName();
             var error = validationResult.Errors
                 .FirstOrDefault(e => e.PropertyName == propertyName);
-            
+
             if (error != null)
             {
                 return ValidationResult.Failure(error.ErrorMessage);
@@ -161,18 +161,18 @@ internal class SpecificFluentValidationAdapter<TModel, TProperty> : IFieldValida
     {
         var expression = _propertyExpression.Body;
         var propertyPath = new List<string>();
-        
+
         while (expression is MemberExpression memberExpression)
         {
             propertyPath.Insert(0, memberExpression.Member.Name);
             expression = memberExpression.Expression;
         }
-        
+
         if (propertyPath.Count == 0)
         {
             throw new InvalidOperationException("Unable to determine property name from expression");
         }
-        
+
         return string.Join(".", propertyPath);
     }
 }

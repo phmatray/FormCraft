@@ -77,7 +77,7 @@ public class MarkdownService : IMarkdownService
         try
         {
             var response = await _httpClient.GetAsync($"docs/{fileName}.md");
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();

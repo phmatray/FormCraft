@@ -11,37 +11,37 @@ public class JobApplicationModel
     /// Gets or sets the applicant's full name.
     /// </summary>
     public string FullName { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets the applicant's email address.
     /// </summary>
     public string Email { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets the applicant's phone number.
     /// </summary>
     public string? Phone { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the position being applied for.
     /// </summary>
     public string Position { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets the uploaded resume file.
     /// </summary>
     public IBrowserFile? Resume { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the uploaded certificate files.
     /// </summary>
     public IReadOnlyList<IBrowserFile> Certificates { get; set; } = new List<IBrowserFile>();
-    
+
     /// <summary>
     /// Gets or sets the cover letter text.
     /// </summary>
     public string CoverLetter { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets whether the applicant agrees to terms and conditions.
     /// </summary>

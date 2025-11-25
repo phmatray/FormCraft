@@ -15,7 +15,7 @@ public class EncryptionServiceTests
                 ["FormCraft:Encryption:IV"] = "1234567890123456"
             })
             .Build();
-            
+
         _encryptionService = new DefaultEncryptionService(configuration);
     }
 

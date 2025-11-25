@@ -7,7 +7,7 @@ public class MudBlazorSelectFieldRenderer : FieldRendererBase
 {
     /// <inheritdoc />
     protected override Type ComponentType => typeof(MudBlazorSelectFieldComponent<,>);
-    
+
     /// <inheritdoc />
     public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
     {

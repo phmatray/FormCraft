@@ -13,7 +13,7 @@ public interface IRateLimitService
     /// <param name="timeWindow">Time window for rate limiting.</param>
     /// <returns>True if the request is allowed, false if rate limited.</returns>
     Task<RateLimitResult> CheckRateLimitAsync(string identifier, int maxAttempts, TimeSpan timeWindow);
-    
+
     /// <summary>
     /// Records an attempt for rate limiting.
     /// </summary>
@@ -30,12 +30,12 @@ public class RateLimitResult
     /// Whether the request is allowed.
     /// </summary>
     public bool IsAllowed { get; set; }
-    
+
     /// <summary>
     /// Number of remaining attempts.
     /// </summary>
     public int RemainingAttempts { get; set; }
-    
+
     /// <summary>
     /// Time until the rate limit resets.
     /// </summary>

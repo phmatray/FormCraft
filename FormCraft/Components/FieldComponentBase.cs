@@ -11,18 +11,18 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
 {
     private TValue? _currentValue;
     private bool _isInitialized;
-    
+
     /// <summary>
     /// Gets or sets the field render context.
     /// </summary>
     [Parameter]
     public IFieldRenderContext<TModel> Context { get; set; } = default!;
-    
+
     /// <summary>
     /// Gets or sets the current value of the field.
     /// </summary>
-    protected TValue? CurrentValue 
-    { 
+    protected TValue? CurrentValue
+    {
         get => _currentValue;
         set
         {
@@ -33,7 +33,7 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
             }
         }
     }
-    
+
     /// <summary>
     /// Notifies that the value has changed.
     /// </summary>
@@ -42,7 +42,7 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
         await Context.OnValueChanged.InvokeAsync(value);
         StateHasChanged(); // Force re-render after value change
     }
-    
+
     /// <inheritdoc />
     protected override void OnInitialized()
     {
@@ -50,19 +50,19 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
         LoadValueFromModel();
         _isInitialized = true;
     }
-    
+
     /// <inheritdoc />
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
-        
+
         // Only reload value if the model reference has changed or on first load
         if (!_isInitialized || ShouldReloadValue())
         {
             LoadValueFromModel();
         }
     }
-    
+
     /// <summary>
     /// Loads the current value from the model.
     /// </summary>
@@ -80,7 +80,7 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
             _currentValue = Context.CurrentValue is TValue contextValue ? contextValue : default;
         }
     }
-    
+
     /// <summary>
     /// Determines if the value should be reloaded from the model.
     /// </summary>
@@ -96,37 +96,37 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
         }
         return false;
     }
-    
+
     /// <summary>
     /// Gets the label text for the field.
     /// </summary>
     protected string? Label => Context.Field.Label;
-    
+
     /// <summary>
     /// Gets the placeholder text for the field.
     /// </summary>
     protected string? Placeholder => Context.Field.Placeholder;
-    
+
     /// <summary>
     /// Gets the help text for the field.
     /// </summary>
     protected string? HelpText => Context.Field.HelpText;
-    
+
     /// <summary>
     /// Gets whether the field is required.
     /// </summary>
     protected bool IsRequired => Context.Field.IsRequired;
-    
+
     /// <summary>
     /// Gets whether the field is read-only.
     /// </summary>
     protected bool IsReadOnly => Context.Field.IsReadOnly;
-    
+
     /// <summary>
     /// Gets whether the field is disabled.
     /// </summary>
     protected bool IsDisabled => Context.Field.IsDisabled;
-    
+
     /// <summary>
     /// Gets an attribute value from the field's additional attributes.
     /// </summary>

@@ -7,9 +7,9 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
 {
     private MudFileUpload<IReadOnlyList<IBrowserFile>>? _fileUpload;
     private string _dragClass = DefaultDragClass;
-    
+
     private const string DefaultDragClass = "relative rounded-lg border-2 border-dashed pa-4 mud-width-full mud-height-full d-flex justify-center align-center";
-    
+
     public string? Accept { get; set; }
     public int MaxFiles { get; set; } = 10;
     public long? MaxFileSize { get; set; }
@@ -19,7 +19,7 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        
+
         // Get configuration from FileUploadConfiguration if available
         var config = GetAttribute<FileUploadConfiguration>("FileUploadConfiguration");
         if (config != null)
@@ -78,7 +78,7 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
     private static string FormatFileSize(long bytes)
     {
         if (bytes == 0) return "0 Bytes";
-        
+
         const int scale = 1024;
         string[] orders = { "GB", "MB", "KB", "Bytes" };
         long max = (long)Math.Pow(scale, orders.Length - 1);

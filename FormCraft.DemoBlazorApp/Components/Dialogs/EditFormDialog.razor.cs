@@ -10,10 +10,10 @@ public partial class EditFormDialog
 
     [CascadingParameter]
     public IMudDialogInstance MudDialog { get; set; } = null!;
-    
+
     [Parameter]
     public ProductModel Model { get; set; } = new();
-    
+
     protected override void OnInitialized()
     {
         _formConfig = FormBuilder<ProductModel>

@@ -7,10 +7,10 @@ public partial class DocumentationPage
 {
     [Parameter]
     public string DocumentName { get; set; } = "";
-    
+
     [Parameter]
     public string Title { get; set; } = "Documentation";
-    
+
     private bool _isLoading = true;
     private string _htmlContent = "";
     private readonly List<TocSection> _tableOfContents = [];

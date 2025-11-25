@@ -64,7 +64,7 @@ class Build : NukeBuild
             DotNetClean(s => s
                 .SetProject(Solution)
                 .SetConfiguration(Configuration));
-            
+
             SourceDirectory.GlobDirectories("**/bin", "**/obj").ForEach(x => x.DeleteDirectory());
             TestsDirectory.GlobDirectories("**/bin", "**/obj").ForEach(x => x.DeleteDirectory());
             ArtifactsDirectory.CreateOrCleanDirectory();
@@ -118,32 +118,32 @@ class Build : NukeBuild
                 // Check if git-cliff is installed
                 var checkProcess = ProcessTasks.StartProcess("git-cliff", "--version", RootDirectory, logOutput: false);
                 checkProcess.WaitForExit();
-                
+
                 if (checkProcess.ExitCode != 0)
                 {
                     throw new Exception("git-cliff is not installed. Please install it from https://github.com/orhun/git-cliff");
                 }
-                
+
                 // Generate the full changelog
                 var process = ProcessTasks.StartProcess(
-                    "git-cliff", 
-                    "--config cliff.toml --output CHANGELOG.md", 
-                    RootDirectory, 
+                    "git-cliff",
+                    "--config cliff.toml --output CHANGELOG.md",
+                    RootDirectory,
                     logOutput: true);
                 process.WaitForExit();
-                
+
                 if (process.ExitCode == 0)
                 {
                     Serilog.Log.Information("✅ Changelog generated successfully at {Path}", ChangelogPath);
-                    
+
                     // Copy changelog to FormCraft project directory for packaging
                     var projectChangelogPath = SourceDirectory / "CHANGELOG.md";
                     File.Copy(ChangelogPath, projectChangelogPath, overwrite: true);
-                    
+
                     // Also copy to ForMudBlazor project
                     var mudBlazorChangelogPath = MudBlazorDirectory / "CHANGELOG.md";
                     File.Copy(ChangelogPath, mudBlazorChangelogPath, overwrite: true);
-                    
+
                     Serilog.Log.Information("📄 Changelog copied to project directories");
                 }
                 else
@@ -176,7 +176,7 @@ class Build : NukeBuild
                     {
                         File.Copy(ChangelogPath, projectChangelogPath, overwrite: true);
                     }
-                    
+
                     var mudBlazorChangelogPath = MudBlazorDirectory / "CHANGELOG.md";
                     if (!mudBlazorChangelogPath.FileExists())
                     {
@@ -184,7 +184,7 @@ class Build : NukeBuild
                     }
                 }
             }
-            
+
             // Pack FormCraft main package
             DotNetPack(s => s
                 .SetProject(SourceDirectory)
@@ -195,7 +195,7 @@ class Build : NukeBuild
                 .SetVersion(CurrentVersion)
                 .EnableIncludeSymbols()
                 .SetSymbolPackageFormat(DotNetSymbolPackageFormat.snupkg));
-                
+
             // Pack FormCraft.ForMudBlazor package
             DotNetPack(s => s
                 .SetProject(MudBlazorDirectory)
@@ -245,19 +245,19 @@ class Build : NukeBuild
         .Executes(async () =>
         {
             var releaseTag = $"v{CurrentVersion}";
-            
+
             // Generate changelog for this release using git-cliff
             var changelogContent = GenerateChangelogForRelease(releaseTag);
-            
+
             // Get the repository owner and name
             var (owner, name) = GetOwnerAndRepositoryName();
-            
+
             // Initialize GitHub client
             var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("FormCraft"))
             {
                 Credentials = new Octokit.Credentials(GitHubToken)
             };
-            
+
             // Create GitHub release
             var release = await client
                 .Repository
@@ -269,7 +269,7 @@ class Build : NukeBuild
                     Draft = false,
                     Prerelease = CurrentVersion.Contains("-")
                 });
-            
+
             // Upload NuGet packages as release assets
             var packages = ArtifactsDirectory.GlobFiles("*.nupkg", "*.snupkg");
             foreach (var package in packages)
@@ -286,7 +286,7 @@ class Build : NukeBuild
                     .Release
                     .UploadAsset(release, assetUpload);
             }
-            
+
             Serilog.Log.Information("📦 GitHub Release created: {ReleaseUrl}", release.HtmlUrl);
         });
 
@@ -302,7 +302,7 @@ class Build : NukeBuild
             var isVersionTag = IsOnVersionTag();
             var currentTag = GetCurrentTag();
             var branch = GitRepository.Branch;
-            
+
             Serilog.Log.Information("PublishIfNeeded conditions:");
             Serilog.Log.Information("  - IsServerBuild: {IsServerBuild}", IsServerBuild);
             Serilog.Log.Information("  - Current branch: {Branch}", branch);
@@ -312,7 +312,7 @@ class Build : NukeBuild
         })
         .DependsOn(Publish)
         .Triggers(CreateGitHubRelease);
-    
+
     Target Release => _ => _
         .Description("Creates a new release (NuGet + GitHub)")
         .DependsOn(Pack)
@@ -332,14 +332,14 @@ class Build : NukeBuild
         {
             return currentTag.TrimStart('v');
         }
-        
+
         // Try to get version from MinVer or GitVersion
         var minVerVersion = EnvironmentInfo.GetVariable("MINVER_VERSION");
         if (!string.IsNullOrEmpty(minVerVersion))
         {
             return minVerVersion;
         }
-        
+
         // Fallback to latest tag
         try
         {
@@ -351,10 +351,10 @@ class Build : NukeBuild
             }
         }
         catch { }
-        
+
         return "1.0.0";
     }
-    
+
     string GetCurrentTag()
     {
         try
@@ -367,10 +367,10 @@ class Build : NukeBuild
             }
         }
         catch { }
-        
+
         return null;
     }
-    
+
     bool IsOnVersionTag()
     {
         var tag = GetCurrentTag();
@@ -383,12 +383,12 @@ class Build : NukeBuild
         {
             // Run git-cliff to generate changelog for this specific release
             var process = ProcessTasks.StartProcess(
-                "git-cliff", 
-                $"--config cliff.toml --unreleased --tag {tag} --strip all", 
-                RootDirectory, 
+                "git-cliff",
+                $"--config cliff.toml --unreleased --tag {tag} --strip all",
+                RootDirectory,
                 logOutput: false);
             process.WaitForExit();
-            
+
             if (process.ExitCode == 0)
             {
                 return string.Join(Environment.NewLine, process.Output.Select(x => x.Text));
@@ -398,7 +398,7 @@ class Build : NukeBuild
         {
             Serilog.Log.Warning("Failed to generate changelog with git-cliff: {Message}", ex.Message);
         }
-        
+
         // Fallback to reading from CHANGELOG.md if git-cliff fails
         if (ChangelogPath.FileExists())
         {
@@ -407,28 +407,28 @@ class Build : NukeBuild
             if (!string.IsNullOrEmpty(versionSection))
                 return versionSection;
         }
-        
+
         // Default changelog if all else fails
         return $"## What's Changed in v{CurrentVersion}\n\nSee the [full changelog](https://github.com/phmatray/FormCraft/blob/main/CHANGELOG.md) for details.";
     }
-    
+
     string ExtractVersionSection(string changelog, string version)
     {
         var pattern = $@"##\s*\[?{Regex.Escape(version)}\]?.*?(?=##\s*\[?|\z)";
         var match = Regex.Match(changelog, pattern, RegexOptions.Singleline);
         return match.Success ? match.Value.Trim() : string.Empty;
     }
-    
+
     (string owner, string name) GetOwnerAndRepositoryName()
     {
         var remoteUrl = GitRepository.HttpsUrl ?? GitRepository.SshUrl ?? "";
         var match = Regex.Match(remoteUrl, @"github\.com[:/]([^/]+)/([^/\.]+)");
-        
+
         if (match.Success)
         {
             return (match.Groups[1].Value, match.Groups[2].Value);
         }
-        
+
         // Fallback values
         return ("phmatray", "FormCraft");
     }

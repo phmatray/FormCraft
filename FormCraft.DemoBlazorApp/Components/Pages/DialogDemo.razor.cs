@@ -15,7 +15,7 @@ public partial class DialogDemo
         MaxWidth = MaxWidth.Small,
         FullWidth = true
     };
-    
+
     private readonly List<FormGuidelines.GuidelineItem> _guidelines = new()
     {
         new() { Icon = Icons.Material.Filled.Window, Text = "Use FormCraft forms seamlessly within MudBlazor dialogs" },
@@ -25,7 +25,7 @@ public partial class DialogDemo
         new() { Icon = Icons.Material.Filled.Cancel, Text = "Always provide cancel functionality in dialogs" },
         new() { Icon = Icons.Material.Filled.CheckCircle, Text = "Validate forms before closing dialogs" }
     };
-    
+
     private async Task OpenSimpleDialog()
     {
         var parameters = new DialogParameters

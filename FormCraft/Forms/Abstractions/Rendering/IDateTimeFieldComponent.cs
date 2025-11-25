@@ -10,27 +10,27 @@ public interface IDateTimeFieldComponent<TModel> : IFieldComponent<TModel>
     /// Gets or sets the input mode for date/time selection.
     /// </summary>
     DateTimeInputMode InputMode { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the date/time format string.
     /// </summary>
     string? Format { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the minimum allowed date/time.
     /// </summary>
     DateTime? MinDate { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the maximum allowed date/time.
     /// </summary>
     DateTime? MaxDate { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether to show a clear button.
     /// </summary>
     bool ShowClearButton { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether the picker opens on field focus.
     /// </summary>
@@ -46,22 +46,22 @@ public enum DateTimeInputMode
     /// Date picker only.
     /// </summary>
     Date,
-    
+
     /// <summary>
     /// Time picker only.
     /// </summary>
     Time,
-    
+
     /// <summary>
     /// Combined date and time picker.
     /// </summary>
     DateTime,
-    
+
     /// <summary>
     /// Month and year picker only.
     /// </summary>
     Month,
-    
+
     /// <summary>
     /// Year picker only.
     /// </summary>

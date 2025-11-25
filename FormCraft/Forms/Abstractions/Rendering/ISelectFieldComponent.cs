@@ -11,32 +11,32 @@ public interface ISelectFieldComponent<TModel, TValue> : IFieldComponent<TModel>
     /// Gets or sets the available options for selection.
     /// </summary>
     IEnumerable<SelectOption<TValue>> Options { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether multiple selection is allowed.
     /// </summary>
     bool AllowMultiple { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether the dropdown is searchable.
     /// </summary>
     bool IsSearchable { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the placeholder text when no item is selected.
     /// </summary>
     string? Placeholder { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether to show a clear button.
     /// </summary>
     bool ShowClearButton { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the maximum number of items that can be selected (for multi-select).
     /// </summary>
     int? MaxSelections { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether to group options.
     /// </summary>

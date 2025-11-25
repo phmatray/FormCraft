@@ -10,32 +10,32 @@ public interface IFileUploadFieldComponent<TModel> : IFieldComponent<TModel>
     /// Gets or sets the accepted file types (MIME types or extensions).
     /// </summary>
     string? Accept { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether multiple file selection is allowed.
     /// </summary>
     bool AllowMultiple { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the maximum file size in bytes.
     /// </summary>
     long? MaxFileSize { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the maximum number of files that can be uploaded.
     /// </summary>
     int? MaxFiles { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether to show file preview.
     /// </summary>
     bool ShowPreview { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether drag and drop is enabled.
     /// </summary>
     bool EnableDragDrop { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the upload mode.
     /// </summary>
@@ -51,12 +51,12 @@ public enum FileUploadMode
     /// Upload immediately after selection.
     /// </summary>
     Immediate,
-    
+
     /// <summary>
     /// Upload when form is submitted.
     /// </summary>
     OnSubmit,
-    
+
     /// <summary>
     /// Manual upload triggered by user action.
     /// </summary>

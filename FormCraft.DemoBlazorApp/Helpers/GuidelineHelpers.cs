@@ -14,12 +14,12 @@ public static class GuidelineHelpers
             IsCode = isCode
         };
     }
-    
+
     public static GuidelineItem CreateCodeGuideline(string feature, string usage, string example)
     {
         return CreateGuideline(feature, usage, example);
     }
-    
+
     public static GuidelineItem CreateTextGuideline(string feature, string usage, string example)
     {
         return CreateGuideline(feature, usage, example, false);

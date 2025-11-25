@@ -17,7 +17,7 @@ public class EmployeeModel
     public string? Position { get; set; }
     public DateTime? StartDate { get; set; }
     public bool IsRemote { get; set; }
-    
+
     // Additional
     public string? Biography { get; set; }
     public string? Notes { get; set; }

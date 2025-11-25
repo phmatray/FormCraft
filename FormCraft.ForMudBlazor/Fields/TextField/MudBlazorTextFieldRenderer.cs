@@ -7,7 +7,7 @@ public class MudBlazorTextFieldRenderer : FieldRendererBase
 {
     /// <inheritdoc />
     protected override Type ComponentType => typeof(MudBlazorTextFieldComponent<>);
-    
+
     /// <inheritdoc />
     public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field) => fieldType == typeof(string);
 }

@@ -14,7 +14,7 @@ public abstract class FrameworkAgnosticFieldRenderer<TComponent> : IFieldRendere
     /// Gets the UI framework adapter to use for rendering.
     /// </summary>
     protected IUIFrameworkAdapter UIFramework { get; }
-    
+
     /// <summary>
     /// Initializes a new instance of the <see cref="FrameworkAgnosticFieldRenderer{TComponent}"/> class.
     /// </summary>
@@ -23,10 +23,10 @@ public abstract class FrameworkAgnosticFieldRenderer<TComponent> : IFieldRendere
     {
         UIFramework = uiFramework ?? throw new ArgumentNullException(nameof(uiFramework));
     }
-    
+
     /// <inheritdoc />
     public virtual bool CanRender(Type fieldType, IFieldConfiguration<object, object> field) => GetSupportedTypes().Contains(fieldType);
-    
+
     /// <inheritdoc />
     public RenderFragment Render<TModel>(IFieldRenderContext<TModel> context)
     {
@@ -34,29 +34,29 @@ public abstract class FrameworkAgnosticFieldRenderer<TComponent> : IFieldRendere
         {
             var sequence = 0;
             var componentType = typeof(TComponent);
-            
+
             // Handle generic component types
             if (componentType.IsGenericTypeDefinition)
             {
                 componentType = componentType.MakeGenericType(typeof(TModel));
             }
-            
+
             builder.OpenComponent(sequence++, componentType);
             builder.AddAttribute(sequence++, "Context", context);
-            
+
             // Add any additional attributes specific to this renderer
             AddAdditionalAttributes(builder, ref sequence, context);
-            
+
             builder.CloseComponent();
         };
     }
-    
+
     /// <summary>
     /// Gets the types supported by this renderer.
     /// </summary>
     /// <returns>A collection of supported types.</returns>
     protected abstract IEnumerable<Type> GetSupportedTypes();
-    
+
     /// <summary>
     /// Adds additional attributes to the component being rendered.
     /// </summary>

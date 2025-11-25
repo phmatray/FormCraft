@@ -17,36 +17,36 @@ public class IntFieldRenderer : FieldRendererBase<int>
         // Only handle non-nullable int
         return fieldType == typeof(int);
     }
-    
+
     /// <inheritdoc />
     protected override Type ComponentType => typeof(TestStubComponent<>);
-    
+
     /// <summary>
     /// Simple test component that renders a numeric input-like representation.
     /// </summary>
     private class TestStubComponent<TModel> : ComponentBase
     {
         [Parameter] public IFieldRenderContext<TModel>? Context { get; set; }
-        
+
         protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder)
         {
             if (Context == null) return;
-            
+
             var sequence = 0;
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "test-int-field");
-            
+
             builder.OpenElement(sequence++, "label");
             builder.AddContent(sequence++, Context.Field.Label);
             builder.CloseElement();
-            
+
             builder.OpenElement(sequence++, "input");
             builder.AddAttribute(sequence++, "type", "number");
             builder.AddAttribute(sequence++, "value", Context.CurrentValue);
             builder.AddAttribute(sequence++, "placeholder", Context.Field.Placeholder);
             builder.AddAttribute(sequence++, "disabled", Context.Field.IsDisabled);
             builder.CloseElement();
-            
+
             if (!string.IsNullOrEmpty(Context.Field.HelpText))
             {
                 builder.OpenElement(sequence++, "div");
@@ -54,7 +54,7 @@ public class IntFieldRenderer : FieldRendererBase<int>
                 builder.AddContent(sequence, Context.Field.HelpText);
                 builder.CloseElement();
             }
-            
+
             builder.CloseElement();
         }
     }

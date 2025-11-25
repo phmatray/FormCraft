@@ -10,7 +10,7 @@ public interface ICsrfTokenService
     /// </summary>
     /// <returns>A new CSRF token.</returns>
     Task<string> GenerateTokenAsync();
-    
+
     /// <summary>
     /// Validates a CSRF token.
     /// </summary>

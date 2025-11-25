@@ -16,36 +16,36 @@ public class DateTimeFieldRenderer : FieldRendererBase<DateTime>
     {
         return fieldType == typeof(DateTime) || fieldType == typeof(DateTime?);
     }
-    
+
     /// <inheritdoc />
     protected override Type ComponentType => typeof(TestStubComponent<>);
-    
+
     /// <summary>
     /// Simple test component that renders a date input-like representation.
     /// </summary>
     private class TestStubComponent<TModel> : ComponentBase
     {
         [Parameter] public IFieldRenderContext<TModel>? Context { get; set; }
-        
+
         protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder)
         {
             if (Context == null) return;
-            
+
             var sequence = 0;
             builder.OpenElement(sequence++, "div");
             builder.AddAttribute(sequence++, "class", "test-datetime-field");
-            
+
             builder.OpenElement(sequence++, "label");
             builder.AddContent(sequence++, Context.Field.Label);
             builder.CloseElement();
-            
+
             builder.OpenElement(sequence++, "input");
             builder.AddAttribute(sequence++, "type", "datetime-local");
             builder.AddAttribute(sequence++, "value", Context.CurrentValue);
             builder.AddAttribute(sequence++, "placeholder", Context.Field.Placeholder);
             builder.AddAttribute(sequence++, "disabled", Context.Field.IsDisabled);
             builder.CloseElement();
-            
+
             if (!string.IsNullOrEmpty(Context.Field.HelpText))
             {
                 builder.OpenElement(sequence++, "div");
@@ -53,7 +53,7 @@ public class DateTimeFieldRenderer : FieldRendererBase<DateTime>
                 builder.AddContent(sequence, Context.Field.HelpText);
                 builder.CloseElement();
             }
-            
+
             builder.CloseElement();
         }
     }

@@ -26,13 +26,13 @@ public class InMemoryRateLimitService : IRateLimitService
         {
             // Remove old attempts outside the time window
             entry.Attempts.RemoveAll(a => a < windowStart);
-            
+
             var attemptCount = entry.Attempts.Count;
             if (attemptCount >= maxAttempts)
             {
                 var oldestAttempt = entry.Attempts.Min();
                 var retryAfter = oldestAttempt.Add(timeWindow).Subtract(now);
-                
+
                 return Task.FromResult(new RateLimitResult
                 {
                     IsAllowed = false,
@@ -58,7 +58,7 @@ public class InMemoryRateLimitService : IRateLimitService
     public Task RecordAttemptAsync(string identifier)
     {
         var now = DateTime.UtcNow;
-        
+
         _attempts.AddOrUpdate(identifier,
             new RateLimitEntry { Attempts = new List<DateTime> { now } },
             (_, entry) =>

@@ -12,11 +12,11 @@ public partial class StepperForm
     private bool _isSubmitted;
     private int _currentStep;
     private bool _hasValidationErrors;
-    
+
     private IFormConfiguration<EmployeeModel> _personalInfoConfig = null!;
     private IFormConfiguration<EmployeeModel> _contactConfig = null!;
     private IFormConfiguration<EmployeeModel> _professionalConfig = null!;
-    
+
     // Component references for validation (simplified API)
     private FormCraftComponent<EmployeeModel>? _personalFormComponent;
     private FormCraftComponent<EmployeeModel>? _contactFormComponent;
@@ -134,7 +134,7 @@ public partial class StepperForm
     }
 
     private async Task NextStep()
-    {        
+    {
         // Validate based on current step
         var isValid = _currentStep switch
         {
@@ -143,15 +143,15 @@ public partial class StepperForm
             2 => ValidateProfessionalInfo(),
             _ => true
         };
-        
+
         _hasValidationErrors = !isValid;
-        
+
         if (isValid && _stepper != null)
         {
             await _stepper.NextStepAsync();
             _hasValidationErrors = false;
         }
-        
+
         StateHasChanged();
     }
 
@@ -186,9 +186,9 @@ public partial class StepperForm
         _model = new EmployeeModel();
         _isSubmitted = false;
         _hasValidationErrors = false;
-        
+
         // Component references will be re-initialized when the form re-renders
-        
+
         if (_stepper != null)
         {
             await _stepper.ResetAsync();

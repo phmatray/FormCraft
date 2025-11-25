@@ -111,7 +111,7 @@ public partial class FormSlots : IDisposable
         _countdownTimer.Elapsed += UpdateCountdown;
         _countdownTimer.Start();
         UpdateCountdown(null, null);
-        
+
         // Simulate step progression
         _activeStep = 0;
     }
@@ -120,7 +120,7 @@ public partial class FormSlots : IDisposable
     {
         var endDate = new DateTime(2024, 7, 1);
         var timeRemaining = endDate - DateTime.Now;
-        
+
         if (timeRemaining.TotalSeconds > 0)
         {
             _countdownText = $"{timeRemaining.Days}d {timeRemaining.Hours}h {timeRemaining.Minutes}m {timeRemaining.Seconds}s";
@@ -130,7 +130,7 @@ public partial class FormSlots : IDisposable
             _showCountdown = false;
             _countdownTimer?.Stop();
         }
-        
+
         InvokeAsync(StateHasChanged);
     }
 
@@ -142,7 +142,7 @@ public partial class FormSlots : IDisposable
 
         // Simulate API call
         await Task.Delay(1500);
-        
+
         _activeStep = 2;
         _isSubmitted = true;
         _isSubmitting = false;

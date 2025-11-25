@@ -7,16 +7,16 @@ public partial class CodeExample
 {
     [Parameter]
     public string Title { get; set; } = "Code Example";
-    
+
     [Parameter]
     public string Code { get; set; } = "";
-    
+
     [Parameter]
     public string Language { get; set; } = "csharp";
-    
+
     [Parameter]
     public string Class { get; set; } = "";
-    
+
     private ElementReference _element;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

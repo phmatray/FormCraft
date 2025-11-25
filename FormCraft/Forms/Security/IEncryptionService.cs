@@ -11,7 +11,7 @@ public interface IEncryptionService
     /// <param name="value">The value to encrypt.</param>
     /// <returns>The encrypted value as a base64 string.</returns>
     string? Encrypt(string? value);
-    
+
     /// <summary>
     /// Decrypts a value.
     /// </summary>

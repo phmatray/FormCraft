@@ -13,17 +13,17 @@ public abstract class FieldRendererBase : IFieldRenderer
     /// Gets the type of the Razor component that renders this field.
     /// </summary>
     protected abstract Type ComponentType { get; }
-    
+
     /// <inheritdoc />
     public abstract bool CanRender(Type fieldType, IFieldConfiguration<object, object> field);
-    
+
     /// <inheritdoc />
     public RenderFragment Render<TModel>(IFieldRenderContext<TModel> context)
     {
         return builder =>
         {
             var sequence = 0;
-            
+
             // If ComponentType is a generic type definition, make it concrete
             var componentType = ComponentType;
             if (componentType.IsGenericTypeDefinition)
@@ -39,14 +39,14 @@ public abstract class FieldRendererBase : IFieldRenderer
                     // Two generic arguments - TModel and TValue
                     // Get the actual field type from the context
                     var valueType = context.ActualFieldType;
-                    
+
                     // For nullable types, we need to use the underlying type for components with struct constraints
                     var underlyingType = Nullable.GetUnderlyingType(valueType);
                     if (underlyingType != null && HasStructConstraint(componentType, 1))
                     {
                         valueType = underlyingType;
                     }
-                    
+
                     componentType = componentType.MakeGenericType(typeof(TModel), valueType);
                 }
                 else
@@ -54,17 +54,17 @@ public abstract class FieldRendererBase : IFieldRenderer
                     throw new NotSupportedException($"Component type {ComponentType} has {genericArgs.Length} generic arguments, which is not supported.");
                 }
             }
-            
+
             builder.OpenComponent(sequence++, componentType);
             builder.AddAttribute(sequence++, "Context", context);
-            
+
             // Add any additional parameters specific to the renderer
             AddComponentParameters(builder, ref sequence, context);
-            
+
             builder.CloseComponent();
         };
     }
-    
+
     /// <summary>
     /// Override to add additional parameters to the component.
     /// </summary>
@@ -72,7 +72,7 @@ public abstract class FieldRendererBase : IFieldRenderer
     {
         // Base implementation does nothing
     }
-    
+
     /// <summary>
     /// Checks if a generic type parameter has a struct constraint.
     /// </summary>
@@ -81,9 +81,9 @@ public abstract class FieldRendererBase : IFieldRenderer
         var genericArgs = genericType.GetGenericArguments();
         if (parameterIndex >= genericArgs.Length)
             return false;
-            
+
         var attributes = genericArgs[parameterIndex].GenericParameterAttributes;
-        
+
         // Check for the NotNullableValueTypeConstraint flag which indicates struct constraint
         return (attributes & GenericParameterAttributes.NotNullableValueTypeConstraint) != 0;
     }
@@ -98,10 +98,10 @@ public abstract class FieldRendererBase<TValue> : FieldRendererBase
     /// <inheritdoc />
     public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
     {
-        return fieldType == typeof(TValue) || 
+        return fieldType == typeof(TValue) ||
                (typeof(TValue).IsAssignableFrom(fieldType) && CanRenderDerivedType(fieldType));
     }
-    
+
     /// <summary>
     /// Override to allow rendering of derived types.
     /// </summary>

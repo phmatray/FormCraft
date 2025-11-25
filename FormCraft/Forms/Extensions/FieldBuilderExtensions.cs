@@ -25,7 +25,7 @@ public static class FieldBuilderExtensions
     public static FieldBuilder<TModel, TValue> AsTextArea<TModel, TValue>(
         this FieldBuilder<TModel, TValue> builder,
         int lines = 3,
-        int? maxLength = null) 
+        int? maxLength = null)
         where TModel : new()
     {
         builder.WithAttribute("Lines", lines);
@@ -179,14 +179,14 @@ public static class FieldBuilderExtensions
     /// </example>
     public static FieldBuilder<TModel, TValue> WithEmailValidation<TModel, TValue>(
         this FieldBuilder<TModel, TValue> builder,
-        string? errorMessage = null) 
+        string? errorMessage = null)
         where TModel : new()
     {
         return builder.WithValidator(
             value => value == null || IsValidEmail(value?.ToString() ?? ""),
             errorMessage ?? "Please enter a valid email address");
     }
-    
+
 
 
     /// <summary>
@@ -298,13 +298,13 @@ public static class FieldBuilderExtensions
             ShowPreview = showPreview,
             EnableDragDrop = enableDragDrop
         };
-        
+
         builder.WithAttribute("FileUploadConfiguration", config);
         builder.WithCustomRenderer(new FileUploadFieldRenderer());
-        
+
         return builder;
     }
-    
+
     /// <summary>
     /// Configures a field for multiple file uploads with specified constraints.
     /// </summary>
@@ -342,10 +342,10 @@ public static class FieldBuilderExtensions
             ShowPreview = showPreview,
             EnableDragDrop = enableDragDrop
         };
-        
+
         builder.WithAttribute("FileUploadConfiguration", config);
         builder.WithCustomRenderer(new FileUploadFieldRenderer());
-        
+
         return builder;
     }
 

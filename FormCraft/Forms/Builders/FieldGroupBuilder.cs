@@ -11,7 +11,7 @@ public class FieldGroupBuilder<TModel> where TModel : new()
 {
     private readonly FormBuilder<TModel> _formBuilder;
     private readonly FieldGroup<TModel> _fieldGroup;
-    
+
     /// <summary>
     /// Initializes a new instance of the FieldGroupBuilder class.
     /// </summary>
@@ -22,7 +22,7 @@ public class FieldGroupBuilder<TModel> where TModel : new()
         _formBuilder = formBuilder;
         _fieldGroup = fieldGroup;
     }
-    
+
     /// <summary>
     /// Adds a field to this group with configuration and returns the FieldGroupBuilder for method chaining.
     /// </summary>
@@ -142,16 +142,16 @@ public class FieldGroupBuilder<TModel> where TModel : new()
         _fieldGroup.HeaderRightContent = builder =>
         {
             builder.OpenComponent<TComponent>(0);
-            
+
             var paramDict = new Dictionary<string, object>();
             parameters(paramDict);
-            
+
             var sequence = 1;
             foreach (var param in paramDict)
             {
                 builder.AddAttribute(sequence++, param.Key, param.Value);
             }
-            
+
             builder.CloseComponent();
         };
         return this;
