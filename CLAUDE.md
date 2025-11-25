@@ -23,11 +23,12 @@ dotnet build /p:TreatWarningsAsErrors=true
 
 ### Running Tests
 ```bash
-# Run all tests (400+ unit tests)
+# Run all tests (600+ unit tests across 2 test projects)
 dotnet test
 
 # Run specific test project
 dotnet test FormCraft.UnitTests/FormCraft.UnitTests.csproj
+dotnet test FormCraft.ForMudBlazor.UnitTests/FormCraft.ForMudBlazor.UnitTests.csproj
 
 # Run tests with coverage
 dotnet test --collect:"XPlat Code Coverage"
@@ -92,9 +93,13 @@ FormCraft.ForMudBlazor/         # MudBlazor UI implementation
 └── Services/                   # UI framework services
 
 FormCraft.DemoBlazorApp/        # Interactive demo application
-FormCraft.UnitTests/            # Comprehensive test suite
+FormCraft.UnitTests/            # Core library test suite (560+ tests)
+FormCraft.ForMudBlazor.UnitTests/ # MudBlazor integration tests (47 tests)
 build/                          # NUKE build automation
 ```
+
+### Target Frameworks
+- **net9.0** and **net10.0** - Multi-targeting for .NET 9 and .NET 10
 
 ### Core Design Patterns
 
@@ -228,12 +233,34 @@ public void MethodName_Should_ExpectedBehavior_When_Condition()
 {
     // Arrange
     var builder = FormBuilder<TestModel>.Create();
-    
+
     // Act
     var result = builder.AddField(x => x.Name);
-    
+
     // Assert
     result.ShouldBeSameAs(builder);
+}
+```
+
+#### MudBlazor Component Testing (bUnit)
+```csharp
+// Use MudBlazorTestBase for component tests
+public class MyTests : MudBlazorTestBase  // Inherits from BunitContext
+{
+    [Fact]
+    public void Component_Should_Render_Field()
+    {
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field.WithLabel("Name"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        component.FindComponent<MudTextField<string>>().ShouldNotBeNull();
+    }
 }
 ```
 
