@@ -146,7 +146,7 @@ public partial class AsyncValueProviderDemo : ComponentBase
             .AddField(x => x.Country, field => field
                 .WithLabel("Country")
                 .WithPlaceholder("Select a country")
-                .WithOptions([
+                .WithSelectOptions([
                     new("United States", "United States"),
                     new("Canada", "Canada"),
                     new("United Kingdom", "United Kingdom"),

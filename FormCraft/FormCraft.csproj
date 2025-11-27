@@ -73,6 +73,7 @@
 
   <ItemGroup>
     <PackageVersion Update="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageVersion Update="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
   </ItemGroup>
 
 

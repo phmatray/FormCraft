@@ -88,6 +88,17 @@ public static class FieldBuilderExtensions
             var selectOptions = options.Select(o => new SelectOption<TValue>(o.value, o.label));
             return builder.WithAttribute("Options", selectOptions);
         }
+
+        /// <summary>
+        /// Adds options to a field for rendering as a dropdown or select list.
+        /// This overload accepts SelectOption collection for more control over options.
+        /// </summary>
+        /// <param name="options">Collection of SelectOption objects.</param>
+        /// <returns>The FieldBuilder instance for method chaining.</returns>
+        public FieldBuilder<TModel, TValue> WithSelectOptions(IEnumerable<SelectOption<TValue>> options)
+        {
+            return builder.WithAttribute("Options", options);
+        }
     }
 
     /// <param name="builder">The FieldBuilder instance for an IEnumerable field.</param>

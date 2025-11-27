@@ -142,7 +142,7 @@ public partial class ComplexDependenciesDemo : ComponentBase
             .AddField(x => x.Category, field => field
                 .WithLabel("Product Category")
                 .WithPlaceholder("Select a category")
-                .WithOptions([
+                .WithSelectOptions([
                     new("Electronics", "Electronics"),
                     new("Clothing", "Clothing"),
                     new("Books", "Books")
@@ -182,7 +182,7 @@ public partial class ComplexDependenciesDemo : ComponentBase
                 .WithHelpText("Try: SAVE10, SAVE20, or HALFOFF"))
             .AddField(x => x.ShippingMethod, field => field
                 .WithLabel("Shipping Method")
-                .WithOptions([
+                .WithSelectOptions([
                     new("Standard", "Standard - $5.99"),
                     new("Express", "Express - $12.99"),
                     new("Overnight", "Overnight - $24.99"),
