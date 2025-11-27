@@ -2,17 +2,21 @@ namespace FormCraft.ForMudBlazor;
 
 public partial class MudBlazorDateTimeFieldComponent<TModel>
 {
+    private DateTime? _localValue;
+
     public DateTimeInputMode InputMode { get; set; } = DateTimeInputMode.Date;
     public string? Format { get; set; } = "yyyy-MM-dd";
     public DateTime? MinDate { get; set; }
     public DateTime? MaxDate { get; set; }
     public bool ShowClearButton { get; set; } = true;
     public bool OpenOnFocus { get; set; } = true;
-    private DateTime? DateValue => CurrentValue == default ? null : CurrentValue;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
+
+        // Initialize local value
+        _localValue = CurrentValue == default ? null : CurrentValue;
 
         // Load configuration from additional attributes
         InputMode = GetAttribute("InputMode", DateTimeInputMode.Date);
@@ -23,10 +27,21 @@ public partial class MudBlazorDateTimeFieldComponent<TModel>
         OpenOnFocus = GetAttribute("OpenOnFocus", true);
     }
 
-    private async Task HandleDateChanged(DateTime? date)
+    protected override void OnParametersSet()
     {
-        var value = date ?? default;
-        // Update local state FIRST to prevent race condition during parent re-render
+        base.OnParametersSet();
+
+        // Sync local value when model changes externally
+        var currentDateValue = CurrentValue == default ? null : (DateTime?)CurrentValue;
+        if (currentDateValue != _localValue)
+        {
+            _localValue = currentDateValue;
+        }
+    }
+
+    private async Task OnLocalValueChanged()
+    {
+        var value = _localValue ?? default;
         SetValueWithoutNotification(value);
         await Context.OnValueChanged.InvokeAsync(value);
     }

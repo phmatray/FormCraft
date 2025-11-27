@@ -2,6 +2,8 @@ namespace FormCraft.ForMudBlazor;
 
 public partial class MudBlazorNumericFieldComponent<TModel, TValue>
 {
+    private TValue _localValue;
+
     public TValue? Min { get; set; }
     public TValue? Max { get; set; }
     public TValue? Step { get; set; }
@@ -11,11 +13,27 @@ public partial class MudBlazorNumericFieldComponent<TModel, TValue>
     protected override void OnInitialized()
     {
         base.OnInitialized();
+
+        // Initialize local value (CurrentValue is TValue, not TValue? due to TValue? behavior with unconstrained generics)
+        _localValue = CurrentValue is TValue val ? val : default!;
+
         Min = GetAttribute<TValue?>("Min");
         Max = GetAttribute<TValue?>("Max");
         Step = GetAttribute<TValue?>("Step") ?? GetDefaultStep();
         Format = GetAttribute<string>("Format");
         ShowSpinButtons = GetAttribute("ShowSpinButtons", true);
+    }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        // Sync local value when model changes externally
+        var currentVal = CurrentValue is TValue val ? val : default!;
+        if (!EqualityComparer<TValue>.Default.Equals(currentVal, _localValue))
+        {
+            _localValue = currentVal;
+        }
     }
 
     private TValue GetDefaultStep()
@@ -29,10 +47,9 @@ public partial class MudBlazorNumericFieldComponent<TModel, TValue>
         return (TValue)(object)1;
     }
 
-    private async Task HandleValueChanged(TValue value)
+    private async Task OnLocalValueChanged()
     {
-        // Update local state FIRST to prevent race condition during parent re-render
-        SetValueWithoutNotification(value);
-        await Context.OnValueChanged.InvokeAsync(value);
+        SetValueWithoutNotification(_localValue);
+        await Context.OnValueChanged.InvokeAsync(_localValue);
     }
 }

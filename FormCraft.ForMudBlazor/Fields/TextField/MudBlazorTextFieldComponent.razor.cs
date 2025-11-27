@@ -5,6 +5,7 @@ namespace FormCraft.ForMudBlazor;
 public partial class MudBlazorTextFieldComponent<TModel>
 {
     private bool _passwordVisible;
+    private string? _localValue;
 
     public int Lines { get; set; } = 1;
     public int? MaxLength { get; set; }
@@ -18,6 +19,9 @@ public partial class MudBlazorTextFieldComponent<TModel>
     protected override void OnInitialized()
     {
         base.OnInitialized();
+
+        // Initialize local value from CurrentValue
+        _localValue = CurrentValue;
 
         // Load configuration - prioritize field.InputType over AdditionalAttributes
         Lines = GetAttribute("Lines", 1);
@@ -46,6 +50,18 @@ public partial class MudBlazorTextFieldComponent<TModel>
             Adornment = customAdornment;
             AdornmentIcon = customAdornmentIcon;
             AdornmentColor = customAdornmentColor;
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        // Sync local value when model changes externally (e.g., form reset)
+        // Only update if the value actually changed to avoid breaking user input
+        if (CurrentValue != _localValue)
+        {
+            _localValue = CurrentValue;
         }
     }
 
@@ -90,14 +106,12 @@ public partial class MudBlazorTextFieldComponent<TModel>
         OnAdornmentClick?.Invoke(CurrentValue);
     }
 
-    private async Task HandleValueChanged(string value)
+    private async Task OnLocalValueChanged()
     {
-        // IMPORTANT: Update local state FIRST before notifying parent
-        // This prevents a race condition where OnParametersSet might see stale _currentValue
-        // during the parent's re-render triggered by OnValueChanged
-        SetValueWithoutNotification(value);
+        // Sync to base class
+        SetValueWithoutNotification(_localValue);
 
-        // Now notify the parent to update the model
-        await Context.OnValueChanged.InvokeAsync(value);
+        // Notify parent to update the model
+        await Context.OnValueChanged.InvokeAsync(_localValue);
     }
 }

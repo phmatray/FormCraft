@@ -5,8 +5,8 @@
 
 <MudDatePicker
     Label="@Label"
-    Date="@DateValue"
-    DateChanged="@HandleDateChanged"
+    @bind-Date="@_localValue"
+    @bind-Date:after="OnLocalValueChanged"
     Placeholder="@Placeholder"
     HelperText="@HelpText"
     ReadOnly="@IsReadOnly"

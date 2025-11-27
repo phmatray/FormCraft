@@ -7,8 +7,8 @@
 <MudSelect
     T="TValue"
     Label="@Label"
-    Value="@CurrentValue"
-    ValueChanged="@HandleValueChanged"
+    @bind-Value="@_localValue"
+    @bind-Value:after="OnLocalValueChanged"
     Placeholder="@Placeholder"
     HelperText="@HelpText"
     ReadOnly="@IsReadOnly"

@@ -2,6 +2,8 @@ namespace FormCraft.ForMudBlazor;
 
 public partial class MudBlazorSelectFieldComponent<TModel, TValue>
 {
+    private TValue? _localValue;
+
     public IEnumerable<SelectOption<TValue>> Options { get; set; } = new List<SelectOption<TValue>>();
     public bool AllowMultiple { get; set; }
     public bool IsSearchable { get; set; }
@@ -13,6 +15,10 @@ public partial class MudBlazorSelectFieldComponent<TModel, TValue>
     protected override void OnInitialized()
     {
         base.OnInitialized();
+
+        // Initialize local value
+        _localValue = CurrentValue;
+
         var options = GetAttribute<IEnumerable<SelectOption<TValue>>>("Options");
         if (options != null)
         {
@@ -20,10 +26,20 @@ public partial class MudBlazorSelectFieldComponent<TModel, TValue>
         }
     }
 
-    private async Task HandleValueChanged(TValue value)
+    protected override void OnParametersSet()
     {
-        // Update local state FIRST to prevent race condition during parent re-render
-        SetValueWithoutNotification(value);
-        await Context.OnValueChanged.InvokeAsync(value);
+        base.OnParametersSet();
+
+        // Sync local value when model changes externally
+        if (!EqualityComparer<TValue>.Default.Equals(CurrentValue, _localValue))
+        {
+            _localValue = CurrentValue;
+        }
+    }
+
+    private async Task OnLocalValueChanged()
+    {
+        SetValueWithoutNotification(_localValue);
+        await Context.OnValueChanged.InvokeAsync(_localValue);
     }
 }
