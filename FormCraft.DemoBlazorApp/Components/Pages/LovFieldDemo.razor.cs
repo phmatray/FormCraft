@@ -1,5 +1,6 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.DemoBlazorApp.Services;
 using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
@@ -10,6 +11,60 @@ public partial class LovFieldDemo
     private IFormConfiguration<OrderFormModel>? _formConfiguration;
     private bool _isSubmitting;
     private bool _isSubmitted;
+
+    /// <summary>
+    /// Structured documentation for this demo page.
+    /// </summary>
+    public static DemoDocumentation Documentation { get; } = new()
+    {
+        DemoId = "lov-field",
+        Title = "LOV Field (List of Values)",
+        Description = "Demonstrates the List of Values (LOV) field component for selecting from large datasets with a modal table picker. Perfect for scenarios requiring searchable, paginated selection dialogs with automatic field mapping and multi-column displays.",
+        Icon = Icons.Material.Filled.TableChart,
+        FeatureHighlights =
+        [
+            new() { Icon = Icons.Material.Filled.TableChart, Color = Color.Primary, Text = "Modal table picker for large datasets" },
+            new() { Icon = Icons.Material.Filled.Search, Color = Color.Secondary, Text = "Built-in search and pagination" },
+            new() { Icon = Icons.Material.Filled.Link, Color = Color.Tertiary, Text = "Field mapping for auto-population" },
+            new() { Icon = Icons.Material.Filled.ViewColumn, Color = Color.Info, Text = "Customizable columns and display" },
+            new() { Icon = Icons.Material.Filled.CheckBox, Color = Color.Success, Text = "Supports single and multi-select modes" },
+            new() { Icon = Icons.Material.Filled.Storage, Color = Color.Warning, Text = "Works with any data source (sync/async)" }
+        ],
+        ApiGuidelines =
+        [
+            new() { Feature = "AsLov<TModel, TValue, TItem>", Usage = "Configure a field as a LOV selector", Example = ".AsLov<OrderModel, int, Customer>(lov => ...)" },
+            new() { Feature = "WithDataSource", Usage = "Provide data from a collection or async function", Example = ".WithDataSource(() => customers)" },
+            new() { Feature = "WithKey / WithDisplay", Usage = "Configure which properties to use for value and display", Example = ".WithKey(c => c.Id).WithDisplay(c => c.Name)" },
+            new() { Feature = "AddColumn", Usage = "Add columns to the selection table with optional configuration", Example = ".AddColumn(c => c.Name, \"Name\", col => col.Width(\"100px\"))" },
+            new() { Feature = "MapField", Usage = "Auto-populate form fields from selection", Example = ".MapField(c => c.Email, m => m.CustomerEmail)" },
+            new() { Feature = "WithModalTitle / WithModalSize", Usage = "Configure the modal dialog appearance", Example = ".WithModalTitle(\"Select\").WithModalSize(LovModalSize.Large)" },
+            new() { Feature = "WithDataService<T>", Usage = "Use a DI-registered service for data", Example = ".WithDataService<ICustomerLovService>()" }
+        ],
+        CodeExamples =
+        [
+            new() { Title = "Basic LOV Configuration", Language = "csharp", CodeProvider = GetBasicExampleCode },
+            new() { Title = "With Field Mapping", Language = "csharp", CodeProvider = GetFieldMappingExampleCode }
+        ],
+        WhenToUse = "Use LOV fields when users need to select from large datasets (hundreds or thousands of items) where a simple dropdown would be inefficient. Ideal for customer lookups, product catalogs, employee directories, or any scenario requiring searchable data with detailed information across multiple columns. The field mapping feature is especially useful when the selection should populate related fields automatically.",
+        CommonPitfalls =
+        [
+            "Don't use LOV for small datasets (< 20 items) - use regular select fields instead",
+            "Remember to configure meaningful columns - don't show all properties",
+            "Consider performance with very large datasets - use async data loading",
+            "Field mapping requires writable properties - read-only properties won't update",
+            "The WithKey property must return a unique identifier for each item"
+        ],
+        RelatedDemoIds = ["async-value-provider", "field-dependencies", "fluent"]
+    };
+
+    // Legacy properties for backward compatibility with existing razor template
+    private List<GuidelineItem> _apiGuidelineTableItems => Documentation.ApiGuidelines
+        .Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example })
+        .ToList();
+
+    private List<FormGuidelines.GuidelineItem> _sidebarFeatures => Documentation.FeatureHighlights
+        .Select(f => new FormGuidelines.GuidelineItem { Icon = f.Icon, Color = f.Color, Text = f.Text })
+        .ToList();
 
     // Sample customer data for the LOV
     private static readonly List<CustomerModel> _customers =
@@ -31,64 +86,11 @@ public partial class LovFieldDemo
         new() { Id = 15, Code = "CUST015", Name = "Seoul Systems Co", Email = "support@seoulsystems.kr", Phone = "+82-2-5550115", City = "Seoul", Country = "South Korea", CreditLimit = 95000, IsActive = true }
     ];
 
-    private readonly List<GuidelineItem> _apiGuidelineTableItems =
-    [
-        new()
-        {
-            Feature = "AsLov<TModel, TValue, TItem>",
-            Usage = "Configure a field as a LOV selector",
-            Example = ".AsLov<OrderModel, int, Customer>(lov => ...)"
-        },
-        new()
-        {
-            Feature = "WithDataSource",
-            Usage = "Provide data from a collection or async function",
-            Example = ".WithDataSource(() => customers)"
-        },
-        new()
-        {
-            Feature = "WithKey / WithDisplay",
-            Usage = "Configure which properties to use for value and display",
-            Example = ".WithKey(c => c.Id).WithDisplay(c => c.Name)"
-        },
-        new()
-        {
-            Feature = "AddColumn",
-            Usage = "Add columns to the selection table with optional configuration",
-            Example = ".AddColumn(c => c.Name, \"Name\", col => col.Width(\"100px\"))"
-        },
-        new()
-        {
-            Feature = "MapField",
-            Usage = "Auto-populate form fields from selection",
-            Example = ".MapField(c => c.Email, m => m.CustomerEmail)"
-        },
-        new()
-        {
-            Feature = "WithModalTitle / WithModalSize",
-            Usage = "Configure the modal dialog appearance",
-            Example = ".WithModalTitle(\"Select\").WithModalSize(LovModalSize.Large)"
-        },
-        new()
-        {
-            Feature = "WithDataService<T>",
-            Usage = "Use a DI-registered service for data",
-            Example = ".WithDataService<ICustomerLovService>()"
-        }
-    ];
-
-    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
-    [
-        new() { Text = "Modal table picker for large datasets", Icon = Icons.Material.Filled.TableChart },
-        new() { Text = "Built-in search and pagination", Icon = Icons.Material.Filled.Search },
-        new() { Text = "Field mapping for auto-population", Icon = Icons.Material.Filled.Link },
-        new() { Text = "Customizable columns and display", Icon = Icons.Material.Filled.ViewColumn },
-        new() { Text = "Supports single and multi-select modes", Icon = Icons.Material.Filled.CheckBox },
-        new() { Text = "Works with any data source", Icon = Icons.Material.Filled.Storage }
-    ];
-
     protected override void OnInitialized()
     {
+        // Validate documentation in DEBUG mode
+        new DemoDocumentationValidator().ValidateOrThrow(Documentation);
+
         _formConfiguration = FormBuilder<OrderFormModel>
             .Create()
             .AddFieldGroup(group => group

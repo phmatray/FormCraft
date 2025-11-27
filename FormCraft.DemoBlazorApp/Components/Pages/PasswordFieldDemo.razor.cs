@@ -1,5 +1,6 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.DemoBlazorApp.Services;
 using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
@@ -25,120 +26,76 @@ public partial class PasswordFieldDemo
     private bool _securitySubmitting;
     private IFormConfiguration<SecurityFormModel> _securityFormConfiguration = null!;
 
-    private readonly List<GuidelineItem> _apiGuidelineTableItems =
-    [
-        new()
-        {
-            Feature = ".WithInputType(\"password\")",
-            Usage = "Sets input type to password (basic masking)",
-            Example = ".AddField(x => x.Password).WithInputType(\"password\")"
-        },
-        new()
-        {
-            Feature = ".AsPassword()",
-            Usage = "Creates password field with visibility toggle",
-            Example = ".AddField(x => x.Password).AsPassword(enableVisibilityToggle: true)"
-        },
-        new()
-        {
-            Feature = ".WithAdornment(icon, position)",
-            Usage = "Adds icon to start or end of field",
-            Example = ".WithAdornment(Icons.Material.Filled.Lock, Adornment.Start)"
-        },
-        new()
-        {
-            Feature = "EnablePasswordToggle attribute",
-            Usage = "Adds eye icon to show/hide password",
-            Example = ".WithAttribute(\"EnablePasswordToggle\", true)"
-        },
-        new()
-        {
-            Feature = "Custom Adornment Colors",
-            Usage = "Customize adornment icon color",
-            Example = ".WithAdornment(icon, Adornment.Start, Color.Primary)"
-        }
-    ];
+    /// <summary>
+    /// Structured documentation for this demo page.
+    /// </summary>
+    public static DemoDocumentation Documentation { get; } = new()
+    {
+        DemoId = "password-demo",
+        Title = "Password Fields & Adornments",
+        Description = "Comprehensive demonstration of password fields with visibility toggle, custom adornments, and secure input handling using MudBlazor components. Learn how to implement secure password inputs with various configurations.",
+        Icon = Icons.Material.Filled.Lock,
+        FeatureHighlights =
+        [
+            new() { Icon = Icons.Material.Filled.Lock, Color = Color.Primary, Text = "Basic password masking with WithInputType(\"password\")" },
+            new() { Icon = Icons.Material.Filled.Visibility, Color = Color.Secondary, Text = "Password visibility toggle with AsPassword() method" },
+            new() { Icon = Icons.Material.Filled.Shield, Color = Color.Warning, Text = "Real-time password strength indicators" },
+            new() { Icon = Icons.Material.Filled.VpnKey, Color = Color.Tertiary, Text = "Custom adornments for security credentials" },
+            new() { Icon = Icons.Material.Filled.Security, Color = Color.Success, Text = "Password confirmation validation patterns" },
+            new() { Icon = Icons.Material.Filled.Info, Color = Color.Info, Text = "Flexible adornment positioning and styling" }
+        ],
+        ApiGuidelines =
+        [
+            new() { Feature = ".WithInputType(\"password\")", Usage = "Sets input type to password (basic masking)", Example = ".AddField(x => x.Password).WithInputType(\"password\")" },
+            new() { Feature = ".AsPassword()", Usage = "Creates password field with visibility toggle", Example = ".AddField(x => x.Password).AsPassword(enableVisibilityToggle: true)" },
+            new() { Feature = ".WithAdornment(icon, position)", Usage = "Adds icon to start or end of field", Example = ".WithAdornment(Icons.Material.Filled.Lock, Adornment.Start)" },
+            new() { Feature = "EnablePasswordToggle attribute", Usage = "Adds eye icon to show/hide password", Example = ".WithAttribute(\"EnablePasswordToggle\", true)" },
+            new() { Feature = "Custom Adornment Colors", Usage = "Customize adornment icon color", Example = ".WithAdornment(icon, Adornment.Start, Color.Primary)" }
+        ],
+        CodeExamples =
+        [
+            new() { Title = "Basic Login Form Configuration", Language = "csharp", CodeProvider = GetLoginCodeStatic },
+            new() { Title = "Registration with Password Toggle", Language = "csharp", CodeProvider = GetRegisterCodeStatic },
+            new() { Title = "Security Credentials with Custom Adornments", Language = "csharp", CodeProvider = GetSecurityCodeStatic }
+        ],
+        WhenToUse = "Use password fields for sensitive information like passwords, API keys, tokens, and PINs. The AsPassword() method is ideal for user-facing password inputs where visibility toggle enhances UX. For credentials that should remain hidden (like API keys), use basic password masking with custom adornments. Always combine with proper validation and strength indicators for user registration flows.",
+        CommonPitfalls =
+        [
+            "Don't combine AsPassword() visibility toggle with custom adornments - they conflict",
+            "Remember to add password confirmation fields for registration/change password forms",
+            "Avoid overly strict password requirements that frustrate users",
+            "Always mask sensitive credentials in success displays and logs"
+        ],
+        RelatedDemoIds = ["fluent", "validation", "field-dependencies"]
+    };
 
-    private readonly List<FormGuidelines.GuidelineItem> _loginFeatures =
-    [
-        new()
-        {
-            Icon = Icons.Material.Filled.Lock,
-            Color = Color.Primary,
-            Text = "Basic password masking with WithInputType(\"password\")"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Email,
-            Color = Color.Secondary,
-            Text = "Email field with built-in validation"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.CheckCircle,
-            Color = Color.Success,
-            Text = "Remember me checkbox for persistence"
-        }
-    ];
+    // Legacy properties for backward compatibility with existing razor template
+    private List<GuidelineItem> _apiGuidelineTableItems => Documentation.ApiGuidelines
+        .Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example })
+        .ToList();
 
-    private readonly List<FormGuidelines.GuidelineItem> _registerFeatures =
-    [
-        new()
-        {
-            Icon = Icons.Material.Filled.Visibility,
-            Color = Color.Primary,
-            Text = "Password visibility toggle with eye icon"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Shield,
-            Color = Color.Warning,
-            Text = "Real-time password strength indicator"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.CompareArrows,
-            Color = Color.Info,
-            Text = "Password confirmation validation"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Security,
-            Color = Color.Success,
-            Text = "Minimum length and complexity requirements"
-        }
-    ];
+    private List<FormGuidelines.GuidelineItem> _loginFeatures => Documentation.FeatureHighlights
+        .Take(3)
+        .Select(f => new FormGuidelines.GuidelineItem { Icon = f.Icon, Color = f.Color, Text = f.Text })
+        .ToList();
 
-    private readonly List<FormGuidelines.GuidelineItem> _securityFeatures =
-    [
-        new()
-        {
-            Icon = Icons.Material.Filled.Visibility,
-            Color = Color.Primary,
-            Text = "API Key with password toggle (no custom adornment)"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.VpnKey,
-            Color = Color.Secondary,
-            Text = "Token with custom icon at start (no toggle)"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Pin,
-            Color = Color.Tertiary,
-            Text = "PIN field with custom icon and max length"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Info,
-            Color = Color.Info,
-            Text = "Note: Can't combine toggle with custom adornments"
-        }
-    ];
+    private List<FormGuidelines.GuidelineItem> _registerFeatures => Documentation.FeatureHighlights
+        .Skip(1)
+        .Take(4)
+        .Select(f => new FormGuidelines.GuidelineItem { Icon = f.Icon, Color = f.Color, Text = f.Text })
+        .ToList();
+
+    private List<FormGuidelines.GuidelineItem> _securityFeatures => Documentation.FeatureHighlights
+        .Skip(3)
+        .Concat([new() { Icon = Icons.Material.Filled.Info, Color = Color.Info, Text = "Note: Can't combine toggle with custom adornments" }])
+        .Select(f => new FormGuidelines.GuidelineItem { Icon = f.Icon, Color = f.Color, Text = f.Text })
+        .ToList();
 
     protected override void OnInitialized()
     {
+        // Validate documentation in DEBUG mode
+        new DemoDocumentationValidator().ValidateOrThrow(Documentation);
+
         InitializeLoginForm();
         InitializeRegisterForm();
         InitializeSecurityForm();
@@ -358,7 +315,9 @@ public partial class PasswordFieldDemo
     }
 
     // Code Examples
-    private string GetLoginCode()
+    private string GetLoginCode() => GetLoginCodeStatic();
+
+    private static string GetLoginCodeStatic()
     {
         return @"var loginForm = FormBuilder<LoginFormModel>
     .Create()
@@ -376,7 +335,9 @@ public partial class PasswordFieldDemo
     .Build();";
     }
 
-    private string GetRegisterCode()
+    private string GetRegisterCode() => GetRegisterCodeStatic();
+
+    private static string GetRegisterCodeStatic()
     {
         return @"var registerForm = FormBuilder<RegisterFormModel>
     .Create()
@@ -388,13 +349,13 @@ public partial class PasswordFieldDemo
     .AddEmailField(x => x.Email, label: ""Email Address"")
     .AddField(x => x.Password, field => field
         .WithLabel(""Password"")
-        .AsPassword(enableVisibilityToggle: true)  // 👁️ Eye icon toggle!
+        .AsPassword(enableVisibilityToggle: true)  // Eye icon toggle!
         .Required(""Password is required"")
         .WithMinLength(8, ""Password must be at least 8 characters"")
         .WithHelpText(""Use letters, numbers, and symbols""))
     .AddField(x => x.ConfirmPassword, field => field
         .WithLabel(""Confirm Password"")
-        .AsPassword(enableVisibilityToggle: true)  // 👁️ Eye icon toggle!
+        .AsPassword(enableVisibilityToggle: true)  // Eye icon toggle!
         .Required(""Please confirm your password""))
     .AddField(x => x.AcceptTerms, field => field
         .WithLabel(""I accept the terms and conditions"")
@@ -402,7 +363,9 @@ public partial class PasswordFieldDemo
     .Build();";
     }
 
-    private string GetSecurityCode()
+    private string GetSecurityCode() => GetSecurityCodeStatic();
+
+    private static string GetSecurityCodeStatic()
     {
         return @"var securityForm = FormBuilder<SecurityFormModel>
     .Create()

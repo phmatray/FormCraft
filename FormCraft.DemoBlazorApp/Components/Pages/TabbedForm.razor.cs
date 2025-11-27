@@ -1,5 +1,6 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.DemoBlazorApp.Services;
 using FormCraft.ForMudBlazor;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
@@ -23,54 +24,62 @@ public partial class TabbedForm
     private FormCraftComponent<EmployeeModel>? _contactFormComponent;
     private FormCraftComponent<EmployeeModel>? _professionalFormComponent;
 
-    private readonly List<GuidelineItem> _apiGuidelineTableItems =
-    [
-        new()
-        {
-            Feature = "MudTabs Integration",
-            Usage = "Organize forms into logical sections",
-            Example = "<MudTabs @bind-ActivePanelIndex=\"_activeTabIndex\">"
-        },
-        new()
-        {
-            Feature = "Free Navigation",
-            Usage = "Users can switch tabs without validation",
-            Example = "No validation on tab change"
-        },
-        new()
-        {
-            Feature = "Visual Feedback",
-            Usage = "Show completion status with badges",
-            Example = "BadgeData=\"@GetValidationBadge()\""
-        },
-        new()
-        {
-            Feature = "Final Validation",
-            Usage = "Validate all sections before submit",
-            Example = "IsFormComplete() method"
-        },
-        new()
-        {
-            Feature = "Progress Tracking",
-            Usage = "Display overall form completion",
-            Example = "GetProgressText() helper"
-},
-        new()
-        {
-            Feature = "Smart Tooltips",
-            Usage = "Context-aware hints for each tab",
-            Example = "<MudTooltip Text=\"@GetTabTooltip(0)\">"
-        },
-        new()
-        {
-            Feature = "Summary Dashboard",
-            Usage = "Visual completion overview",
-            Example = "Completion Summary card"
-        }
-    ];
+    /// <summary>
+    /// Structured documentation for this demo page.
+    /// </summary>
+    public static DemoDocumentation Documentation { get; } = new()
+    {
+        DemoId = "tabbed-form",
+        Title = "Tabbed Form",
+        Description = "Create multi-section forms using MudTabs with FormCraft, allowing free navigation between sections while maintaining data persistence and providing visual completion indicators. Perfect for complex forms that benefit from logical grouping and step-by-step data entry without enforcing strict sequential validation.",
+        Icon = Icons.Material.Filled.Tab,
+        FeatureHighlights =
+        [
+            new() { Icon = Icons.Material.Filled.Tab, Color = Color.Primary, Text = "Seamless MudTabs integration" },
+            new() { Icon = Icons.Material.Filled.SwapHoriz, Color = Color.Secondary, Text = "Free navigation between sections" },
+            new() { Icon = Icons.Material.Filled.Storage, Color = Color.Tertiary, Text = "Shared model across all tabs" },
+            new() { Icon = Icons.Material.Filled.NotificationImportant, Color = Color.Info, Text = "Visual completion badges" },
+            new() { Icon = Icons.Material.Filled.Analytics, Color = Color.Success, Text = "Progress tracking and tooltips" },
+            new() { Icon = Icons.Material.Filled.CheckCircle, Color = Color.Warning, Text = "Final validation before submit" }
+        ],
+        ApiGuidelines =
+        [
+            new() { Feature = "MudTabs Integration", Usage = "Organize forms into logical sections", Example = "<MudTabs @bind-ActivePanelIndex=\"_activeTabIndex\">" },
+            new() { Feature = "Free Navigation", Usage = "Users can switch tabs without validation", Example = "No validation on tab change" },
+            new() { Feature = "Visual Feedback", Usage = "Show completion status with badges", Example = "BadgeData=\"@GetValidationBadge()\"" },
+            new() { Feature = "Final Validation", Usage = "Validate all sections before submit", Example = "IsFormComplete() method" },
+            new() { Feature = "Progress Tracking", Usage = "Display overall form completion", Example = "GetProgressText() helper" },
+            new() { Feature = "Smart Tooltips", Usage = "Context-aware hints for each tab", Example = "<MudTooltip Text=\"@GetTabTooltip(0)\">" },
+            new() { Feature = "Summary Dashboard", Usage = "Visual completion overview", Example = "Completion Summary card" }
+        ],
+        CodeExamples =
+        [
+            new() { Title = "Tabbed Form Implementation", Language = "csharp", CodeProvider = GetExampleCodeStatic },
+            new() { Title = "Tab Validation and Progress", Language = "csharp", CodeProvider = GetValidationCodeStatic }
+        ],
+        WhenToUse = "Use tabbed forms when you have complex multi-section forms where users benefit from seeing all sections upfront and freely navigating between them. Ideal for profile creation, multi-step registration, or data entry forms where sections are logically grouped but can be filled in any order. Best for situations where you want to show progress without enforcing strict sequential navigation.",
+        CommonPitfalls =
+        [
+            "Don't validate on tab change - users should freely navigate between sections without being blocked",
+            "Always validate all sections before final submission, even if some appear complete",
+            "Remember to store component references (@ref) for each tab's FormCraftComponent to enable validation",
+            "Use shared model instance across all tabs to maintain data consistency",
+            "Provide clear visual indicators (badges, progress bars) to show which sections are complete",
+            "Set ShowSubmitButton=\"false\" on individual tab FormCraftComponents to avoid multiple submit buttons"
+        ],
+        RelatedDemoIds = ["wizard-form", "field-groups", "conditional-fields"]
+    };
+
+    // Legacy properties for backward compatibility with existing razor template
+    private List<GuidelineItem> _apiGuidelineTableItems => Documentation.ApiGuidelines
+        .Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example })
+        .ToList();
 
     protected override void OnInitialized()
     {
+        // Validate documentation in DEBUG mode
+        new DemoDocumentationValidator().ValidateOrThrow(Documentation);
+
         // Step 1: Personal Information
         _personalInfoConfig = FormBuilder<EmployeeModel>
             .Create()
@@ -394,7 +403,9 @@ public partial class TabbedForm
         ];
     }
 
-    private string GetExampleCode()
+    private string GetExampleCode() => GetExampleCodeStatic();
+
+    private static string GetExampleCodeStatic()
     {
         return """
             // Create separate configurations for each tab
@@ -407,7 +418,7 @@ public partial class TabbedForm
                     .WithLabel("Last Name")
                     .Required())
                 .Build();
-            
+
             // Use MudTabs with FormCraftComponent in each tab
             <MudTabs @bind-ActivePanelIndex="_activeTabIndex">
                 <MudTabPanel Text="Personal Info" Icon="@Icons.Material.Filled.Person">
@@ -417,7 +428,7 @@ public partial class TabbedForm
                         Configuration="@_personalInfoConfig"
                         ShowSubmitButton="false" />
                 </MudTabPanel>
-                
+
                 <MudTabPanel Text="Contact Details" Icon="@Icons.Material.Filled.ContactMail">
                     <FormCraftComponent @ref="_contactFormComponent"
                         TModel="EmployeeModel"
@@ -425,7 +436,7 @@ public partial class TabbedForm
                         Configuration="@_contactConfig"
                         ShowSubmitButton="false" />
                 </MudTabPanel>
-                
+
                 <MudTabPanel Text="Review & Submit" BadgeData="@GetValidationBadge()">
                     <!-- Show review content -->
                     @if (IsFormComplete())
@@ -437,7 +448,9 @@ public partial class TabbedForm
             """;
     }
 
-    private string GetValidationCode()
+    private string GetValidationCode() => GetValidationCodeStatic();
+
+    private static string GetValidationCodeStatic()
     {
         return """
             // Check if form is complete (without blocking navigation)
@@ -452,7 +465,7 @@ public partial class TabbedForm
                        !string.IsNullOrWhiteSpace(_model.Position) &&
                        _model.StartDate.HasValue;
             }
-            
+
             // Submit with validation
             private Task SubmitForm()
             {
@@ -460,7 +473,7 @@ public partial class TabbedForm
                 var isPersonalValid = _personalFormComponent?.Validate() ?? false;
                 var isContactValid = _contactFormComponent?.Validate() ?? false;
                 var isProfessionalValid = _professionalFormComponent?.Validate() ?? false;
-                
+
                 if (isPersonalValid && isContactValid && isProfessionalValid)
                 {
                     _isSubmitted = true;
@@ -472,10 +485,10 @@ public partial class TabbedForm
                     else if (!isContactValid) _activeTabIndex = 1;
                     else if (!isProfessionalValid) _activeTabIndex = 2;
                 }
-                
+
                 return Task.CompletedTask;
             }
-            
+
             // Visual indicators
             private object? GetValidationBadge()
             {

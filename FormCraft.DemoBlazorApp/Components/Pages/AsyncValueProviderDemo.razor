@@ -115,6 +115,52 @@
                         </MudTimeline>
                     </MudCardContent>
                 </MudCard>
+
+                <MudCard Class="mt-4" Elevation="1">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.TipsAndUpdates" Class="me-2 text-warning" />
+                            When to Use Async Providers
+                        </MudText>
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            @AsyncValueProviderDemo.Documentation.WhenToUse
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+
+                <MudCard Class="mt-4" Elevation="1">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Warning" Class="me-2 text-error" />
+                            Common Pitfalls
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            @foreach (var pitfall in AsyncValueProviderDemo.Documentation.CommonPitfalls ?? [])
+                            {
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.ChevronRight" IconColor="Color.Error">
+                                    <MudText Typo="Typo.body2">@pitfall</MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+
+                <MudCard Class="mt-4" Elevation="1">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Link" Class="me-2 text-primary" />
+                            Related Demos
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            @foreach (var demoId in AsyncValueProviderDemo.Documentation.RelatedDemoIds ?? [])
+                            {
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.ArrowForward" IconColor="Color.Primary">
+                                    <MudLink Href="@($"/{demoId}")" Typo="Typo.body2">@demoId</MudLink>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
             </AdditionalContent>
         </FormDemoSection>
     </FormDemoContent>

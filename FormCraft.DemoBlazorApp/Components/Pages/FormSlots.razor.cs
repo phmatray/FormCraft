@@ -1,6 +1,7 @@
 using System.Timers;
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.DemoBlazorApp.Services;
 using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
@@ -16,51 +17,64 @@ public partial class FormSlots : IDisposable
     private string _countdownText = "";
     private System.Timers.Timer? _countdownTimer;
 
-    private readonly List<GuidelineItem> _apiGuidelineTableItems =
-    [
-        new()
-        {
-            Feature = "BeforeForm",
-            Usage = "Add content before the form fields",
-            Example = "<BeforeForm>@YourContent</BeforeForm>"
-        },
-        new()
-        {
-            Feature = "AfterForm",
-            Usage = "Add content after the form fields",
-            Example = "<AfterForm>@YourContent</AfterForm>"
-        },
-        new()
-        {
-            Feature = "Conditional Content",
-            Usage = "Show/hide slot content dynamically",
-            Example = "@if (condition) { <content> }"
-        },
-        new()
-        {
-            Feature = "Interactive Elements",
-            Usage = "Include interactive components in slots",
-            Example = "<MudStepper>, <MudAlert>, etc."
-        },
-        new()
-        {
-            Feature = "Flexible Layout",
-            Usage = "Use any layout within slots",
-            Example = "<MudGrid>, <MudCard>, custom HTML"
-        }
-    ];
+    /// <summary>
+    /// Structured documentation for this demo page.
+    /// </summary>
+    public static DemoDocumentation Documentation { get; } = new()
+    {
+        DemoId = "form-slots",
+        Title = "Form Slots (Before/After Content)",
+        Description = "This demonstrates how to add custom content before and after the form using BeforeForm and AfterForm render fragments. Form slots provide powerful extensibility points for adding instructions, progress indicators, alerts, help content, and any other custom content to enhance the user experience.",
+        Icon = Icons.Material.Filled.ViewCarousel,
+        FeatureHighlights =
+        [
+            new() { Icon = Icons.Material.Filled.Info, Color = Color.Primary, Text = "Add instructions and context before forms" },
+            new() { Icon = Icons.Material.Filled.Help, Color = Color.Secondary, Text = "Display help content and resources after forms" },
+            new() { Icon = Icons.Material.Filled.Timeline, Color = Color.Tertiary, Text = "Show progress indicators and steps" },
+            new() { Icon = Icons.Material.Filled.Warning, Color = Color.Info, Text = "Include alerts and important notices" },
+            new() { Icon = Icons.Material.Filled.Dashboard, Color = Color.Success, Text = "Fully customizable with any Blazor content" },
+            new() { Icon = Icons.Material.Filled.DynamicFeed, Color = Color.Warning, Text = "Support for conditional and dynamic content" }
+        ],
+        ApiGuidelines =
+        [
+            new() { Feature = "BeforeForm", Usage = "Add content before the form fields", Example = "<BeforeForm>@YourContent</BeforeForm>" },
+            new() { Feature = "AfterForm", Usage = "Add content after the form fields", Example = "<AfterForm>@YourContent</AfterForm>" },
+            new() { Feature = "Conditional Content", Usage = "Show/hide slot content dynamically", Example = "@if (condition) { <BeforeForm>...</BeforeForm> }" },
+            new() { Feature = "Interactive Elements", Usage = "Include interactive components in slots", Example = "<BeforeForm><MudStepper>...</MudStepper></BeforeForm>" },
+            new() { Feature = "Flexible Layout", Usage = "Use any layout within slots", Example = "<AfterForm><MudGrid>...</MudGrid></AfterForm>" },
+            new() { Feature = "Multiple Components", Usage = "Combine multiple components in a single slot", Example = "<BeforeForm><MudAlert /><MudStepper /></BeforeForm>" }
+        ],
+        CodeExamples =
+        [
+            new() { Title = "Using Form Slots", Language = "razor", CodeProvider = GetExampleCodeStatic },
+            new() { Title = "Component Implementation", Language = "csharp", CodeProvider = GetImplementationCodeStatic }
+        ],
+        WhenToUse = "Use form slots when you need to provide context, instructions, or additional information around your forms. Perfect for multi-step wizards with progress indicators, event registrations with countdowns, forms with important notices or alerts, help documentation alongside forms, or any scenario where you need to guide users through the form completion process.",
+        CommonPitfalls =
+        [
+            "Don't overload slots with too much content - keep it focused and relevant to the form",
+            "Remember that slot content is part of the component tree - state changes will trigger re-renders",
+            "Use conditional rendering (@if) to show/hide slot content based on form state",
+            "BeforeForm and AfterForm are optional - only use them when they add value to the user experience",
+            "Avoid placing form fields directly in slots - they won't be part of the form configuration"
+        ],
+        RelatedDemoIds = ["fluent", "field-groups", "improved", "custom-layout"]
+    };
 
-    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
-    [
-        new() { Text = "Add instructions and context before forms", Icon = Icons.Material.Filled.Info },
-        new() { Text = "Display help content and resources after forms", Icon = Icons.Material.Filled.Help },
-        new() { Text = "Show progress indicators and steps", Icon = Icons.Material.Filled.Timeline },
-        new() { Text = "Include alerts and important notices", Icon = Icons.Material.Filled.Warning },
-        new() { Text = "Fully customizable with any Blazor content", Icon = Icons.Material.Filled.Dashboard }
-    ];
+    // Legacy properties for backward compatibility with existing razor template
+    private List<GuidelineItem> _apiGuidelineTableItems => Documentation.ApiGuidelines
+        .Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example })
+        .ToList();
+
+    private List<FormGuidelines.GuidelineItem> _sidebarFeatures => Documentation.FeatureHighlights
+        .Select(f => new FormGuidelines.GuidelineItem { Icon = f.Icon, Color = f.Color, Text = f.Text })
+        .ToList();
 
     protected override void OnInitialized()
     {
+        // Validate documentation in DEBUG mode
+        new DemoDocumentationValidator().ValidateOrThrow(Documentation);
+
         _formConfiguration = FormBuilder<ContactModel>
             .Create()
             .AddFieldGroup(group => group
@@ -170,7 +184,9 @@ public partial class FormSlots : IDisposable
         ];
     }
 
-    private string GetExampleCode()
+    private string GetExampleCode() => GetExampleCodeStatic();
+
+    private static string GetExampleCodeStatic()
     {
         return """
             <FormCraftComponent
@@ -183,17 +199,17 @@ public partial class FormSlots : IDisposable
                         <MudText Typo="Typo.h6">Welcome!</MudText>
                         <MudText>Please fill out the registration form below.</MudText>
                     </MudAlert>
-                    
+
                     <MudStepper @bind-ActiveIndex="@_activeStep" NonLinear="true">
                         <MudStep Title="Personal Info" />
                         <MudStep Title="Preferences" />
                         <MudStep Title="Review" />
                     </MudStepper>
                 </BeforeForm>
-                
+
                 <AfterForm>
                     <MudDivider Class="my-4" />
-                    
+
                     <MudGrid>
                         <MudItem xs="12" md="6">
                             <MudCard>
@@ -204,7 +220,7 @@ public partial class FormSlots : IDisposable
                             </MudCard>
                         </MudItem>
                     </MudGrid>
-                    
+
                     @if (_showCountdown)
                     {
                         <MudAlert Severity="Severity.Warning">
@@ -216,26 +232,28 @@ public partial class FormSlots : IDisposable
             """;
     }
 
-    private string GetImplementationCode()
+    private string GetImplementationCode() => GetImplementationCodeStatic();
+
+    private static string GetImplementationCodeStatic()
     {
         return """
             // In FormCraftComponent.razor.cs
             [Parameter]
             public RenderFragment? BeforeForm { get; set; }
-            
+
             [Parameter]
             public RenderFragment? AfterForm { get; set; }
-            
+
             // In FormCraftComponent.razor
             @if (BeforeForm != null)
             {
                 @BeforeForm
             }
-            
+
             <EditForm Model="@Model" OnValidSubmit="@OnSubmit">
                 @* Form fields rendered here *@
             </EditForm>
-            
+
             @if (AfterForm != null)
             {
                 @AfterForm

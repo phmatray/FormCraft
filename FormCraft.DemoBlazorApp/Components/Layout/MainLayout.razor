@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject IVersionService VersionService
+@inject IDemoRegistry DemoRegistry
 @inject NavigationManager Navigation
 
 <MudThemeProvider Theme="_theme" IsDarkMode="@_isDarkMode" />
@@ -61,86 +62,45 @@
             <MudNavLink Href="home" Icon="@Icons.Material.Filled.Home">
                 Welcome
             </MudNavLink>
-            
-            <MudNavGroup Title="Form Examples" Icon="@Icons.Material.Filled.Dashboard" Expanded="true">
-                <MudNavLink Href="simplified" Icon="@Icons.Material.Filled.AutoFixHigh">
-                    Simplified API
-                </MudNavLink>
-                <MudNavLink Href="improved" Icon="@Icons.Material.Filled.Engineering">
-                    Type-Safe Builder
-                </MudNavLink>
-                <MudNavLink Href="fluent" Icon="@Icons.Material.Filled.FlashOn">
-                    Fluent API
-                </MudNavLink>
-                <MudNavLink Href="attribute-based-forms" Icon="@Icons.Material.Filled.Label">
-                    Attribute-Based Forms
-                </MudNavLink>
-                <MudNavLink Href="field-groups" Icon="@Icons.Material.Filled.GridView">
-                    Field Groups
-                </MudNavLink>
-                <MudNavLink Href="custom-renderers" Icon="@Icons.Material.Filled.Palette">
-                    Custom Renderers
-                </MudNavLink>
-                <MudNavLink Href="password-demo" Icon="@Icons.Material.Filled.Lock">
-                    Password Fields
-                </MudNavLink>
-                <MudNavLink Href="file-upload" Icon="@Icons.Material.Filled.CloudUpload">
-                    File Upload
-                </MudNavLink>
-                <MudNavLink Href="form-slots" Icon="@Icons.Material.Filled.ViewCarousel">
-                    Form Slots
-                </MudNavLink>
-                <MudNavLink Href="stepper-form" Icon="@Icons.Material.Filled.LinearScale">
-                    Stepper Form
-                </MudNavLink>
-                <MudNavLink Href="tabbed-form" Icon="@Icons.Material.Filled.Tab">
-                    Tabbed Form
-                </MudNavLink>
-                <MudNavLink Href="security-demo" Icon="@Icons.Material.Filled.Security">
-                    Security Features
-                </MudNavLink>
-                <MudNavLink Href="fluent-validation-demo" Icon="@Icons.Material.Filled.CheckCircle">
-                    FluentValidation Demo
-                </MudNavLink>
-                <MudNavLink Href="dialog-demo" Icon="@Icons.Material.Filled.OpenInNew">
-                    Dialog Integration
-                </MudNavLink>
-                <MudNavLink Href="cross-field-validation" Icon="@Icons.Material.Filled.CompareArrows">
-                    Cross-Field Validation
-                </MudNavLink>
-                <MudNavLink Href="complex-dependencies" Icon="@Icons.Material.Filled.AccountTree">
-                    Complex Dependencies
-                </MudNavLink>
-                <MudNavLink Href="async-value-provider" Icon="@Icons.Material.Filled.CloudSync">
-                    Async Value Providers
-                </MudNavLink>
-                <MudNavLink Href="lov-field" Icon="@Icons.Material.Filled.TableChart">
-                    LOV Field
-                </MudNavLink>
+
+            <MudNavGroup Title="Demos" Icon="@Icons.Material.Filled.Dashboard" Expanded="true">
+                @foreach (var level in _levels)
+                {
+                    var levelInfo = DemoRegistry.GetLevelInfo(level);
+                    var demos = DemoRegistry.GetDemosByLevel(level);
+
+                    <MudNavGroup Title="@levelInfo.Name" Icon="@levelInfo.Icon" Expanded="@(level == Services.DemoRegistry.Levels.Beginner)">
+                        <div class="d-flex align-center mb-1 px-4">
+                            <MudChip T="string" Size="Size.Small" Color="@levelInfo.Color" Class="me-2">@demos.Count demos</MudChip>
+                            <MudText Typo="Typo.caption" Class="text-muted">@GetLevelSubtitle(level)</MudText>
+                        </div>
+                        @foreach (var demo in demos)
+                        {
+                            <MudNavLink Href="@demo.Id" Icon="@demo.Icon">
+                                <div class="d-flex align-center">
+                                    <span>@demo.Title</span>
+                                    @if (demo.IsLevelEntryPoint && level == Services.DemoRegistry.Levels.Beginner)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="ms-2" Style="font-size: 0.65rem; height: 18px;">START</MudChip>
+                                    }
+                                    else if (demo.IsLevelEntryPoint)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Color="@levelInfo.Color" Class="ms-2" />
+                                    }
+                                </div>
+                            </MudNavLink>
+                        }
+                    </MudNavGroup>
+                }
             </MudNavGroup>
-            
+
             <MudNavGroup Title="Documentation" Icon="@Icons.Material.Filled.MenuBook" Expanded="true">
-                <MudNavLink Href="docs/getting-started" Icon="@Icons.Material.Filled.PlayArrow">
-                    Getting Started
-                </MudNavLink>
-                <MudNavLink Href="docs/api-reference" Icon="@Icons.Material.Filled.Code">
-                    API Reference
-                </MudNavLink>
-                <MudNavLink Href="docs/examples" Icon="@Icons.Material.Filled.AutoAwesome">
-                    Examples
-                </MudNavLink>
-                <MudNavLink Href="docs/customization" Icon="@Icons.Material.Filled.Palette">
-                    Customization
-                </MudNavLink>
-                <MudNavLink Href="docs/fluent-validation" Icon="@Icons.Material.Filled.CheckCircle">
-                    FluentValidation
-                </MudNavLink>
-                <MudNavLink Href="docs/security" Icon="@Icons.Material.Filled.Security">
-                    Security
-                </MudNavLink>
-                <MudNavLink Href="docs/troubleshooting" Icon="@Icons.Material.Filled.BugReport">
-                    Troubleshooting
-                </MudNavLink>
+                @foreach (var doc in DemoRegistry.GetDemosByCategory("documentation"))
+                {
+                    <MudNavLink Href="@doc.Id" Icon="@doc.Icon">
+                        @doc.Title
+                    </MudNavLink>
+                }
             </MudNavGroup>
         </MudNavMenu>
     </MudDrawer>

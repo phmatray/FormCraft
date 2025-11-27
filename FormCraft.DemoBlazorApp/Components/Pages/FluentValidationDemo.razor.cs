@@ -1,6 +1,7 @@
 using FluentValidation;
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.DemoBlazorApp.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -15,98 +16,62 @@ public partial class FluentValidationDemo : ComponentBase
     private int _validationAttempts;
     private int _successfulValidations;
 
-    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
-    [
-        new()
-        {
-            Icon = Icons.Material.Filled.Merge,
-            Color = Color.Primary,
-            Text = "Seamless integration with existing validators"
-        },
+    /// <summary>
+    /// Structured documentation for this demo page.
+    /// </summary>
+    public static DemoDocumentation Documentation { get; } = new()
+    {
+        DemoId = "fluent-validation-demo",
+        Title = "FluentValidation Integration",
+        Description = "Seamlessly integrate your existing FluentValidation validators with FormCraft's dynamic forms. This demo shows how to leverage FluentValidation's powerful rule engine within FormCraft for complex validation scenarios, async validation, nested object validation, and custom error messages.",
+        Icon = Icons.Material.Filled.CheckCircle,
+        FeatureHighlights =
+        [
+            new() { Icon = Icons.Material.Filled.Merge, Color = Color.Primary, Text = "Seamless integration with existing validators" },
+            new() { Icon = Icons.Material.Filled.Rule, Color = Color.Secondary, Text = "Support for complex validation rules" },
+            new() { Icon = Icons.Material.Filled.CloudSync, Color = Color.Tertiary, Text = "Async validation support" },
+            new() { Icon = Icons.Material.Filled.AccountTree, Color = Color.Info, Text = "Nested object validation" },
+            new() { Icon = Icons.Material.Filled.Message, Color = Color.Success, Text = "Custom error messages" },
+            new() { Icon = Icons.Material.Filled.FilterAlt, Color = Color.Warning, Text = "Conditional validation logic" }
+        ],
+        ApiGuidelines =
+        [
+            new() { Feature = "WithFluentValidation()", Usage = "Uses validator registered in DI", Example = "field.WithFluentValidation(x => x.Email)" },
+            new() { Feature = "WithFluentValidator()", Usage = "Uses specific validator instance", Example = "field.WithFluentValidator(validator, x => x.Name)" },
+            new() { Feature = "Register Validators", Usage = "Add to dependency injection", Example = "services.AddScoped<IValidator<Model>, ModelValidator>()" },
+            new() { Feature = "Combine Validators", Usage = "Mix with FormCraft validators", Example = "field.Required().WithFluentValidation(x => x.Name)" },
+            new() { Feature = "Nested Validation", Usage = "Supports SetValidator rules", Example = "RuleFor(x => x.Address).SetValidator(new AddressValidator())" },
+            new() { Feature = "Async Rules", Usage = "Supports MustAsync", Example = "RuleFor(x => x.Email).MustAsync(async (email, ct) => ...)" }
+        ],
+        CodeExamples =
+        [
+            new() { Title = "FluentValidation Integration", Language = "csharp", CodeProvider = GetCodeExampleStatic }
+        ],
+        WhenToUse = "Use FluentValidation integration when you have existing FluentValidation validators or need advanced validation scenarios like async rules, complex business logic, nested object validation, or conditional validation. It's perfect for enterprise applications with sophisticated validation requirements that go beyond simple field-level rules.",
+        CommonPitfalls =
+        [
+            "Don't forget to register validators in DI container using AddScoped<IValidator<T>, TValidator>()",
+            "Avoid mixing FluentValidation property expressions with FormCraft's Required() - use FluentValidation's NotEmpty() instead",
+            "Remember that async validators require proper async/await handling in your validator class",
+            "Be careful with nested validators - ensure all nested validator classes are also registered in DI"
+        ],
+        RelatedDemoIds = ["cross-field-validation", "async-value-provider", "custom-validators"]
+    };
 
-        new()
-        {
-            Icon = Icons.Material.Filled.Rule,
-            Color = Color.Secondary,
-            Text = "Support for complex validation rules"
-        },
+    // Legacy properties for backward compatibility with existing razor template
+    private List<FormGuidelines.GuidelineItem> _sidebarFeatures => Documentation.FeatureHighlights
+        .Select(f => new FormGuidelines.GuidelineItem { Icon = f.Icon, Color = f.Color, Text = f.Text })
+        .ToList();
 
-        new()
-        {
-            Icon = Icons.Material.Filled.CloudSync,
-            Color = Color.Tertiary,
-            Text = "Async validation support"
-        },
-
-        new()
-        {
-            Icon = Icons.Material.Filled.AccountTree,
-            Color = Color.Info,
-            Text = "Nested object validation"
-        },
-
-        new()
-        {
-            Icon = Icons.Material.Filled.Message,
-            Color = Color.Success,
-            Text = "Custom error messages"
-        },
-
-        new()
-        {
-            Icon = Icons.Material.Filled.FilterAlt,
-            Color = Color.Warning,
-            Text = "Conditional validation logic"
-        }
-    ];
-
-    private readonly List<GuidelineItem> _apiGuidelineTableItems =
-    [
-        new()
-        {
-            Feature = "WithFluentValidation()",
-            Usage = "Uses validator registered in DI",
-            Example = "field.WithFluentValidation(x => x.Email)"
-        },
-
-        new()
-        {
-            Feature = "WithFluentValidator()",
-            Usage = "Uses specific validator instance",
-            Example = "field.WithFluentValidator(validator, x => x.Name)"
-        },
-
-        new()
-        {
-            Feature = "Register Validators",
-            Usage = "Add to dependency injection",
-            Example = "services.AddScoped<IValidator<Model>, ModelValidator>()"
-        },
-
-        new()
-        {
-            Feature = "Combine Validators",
-            Usage = "Mix with FormCraft validators",
-            Example = "field.Required().WithFluentValidation(x => x.Name)"
-        },
-
-        new()
-        {
-            Feature = "Nested Validation",
-            Usage = "Supports SetValidator rules",
-            Example = "RuleFor(x => x.Address).SetValidator(new AddressValidator())"
-        },
-
-        new()
-        {
-            Feature = "Async Rules",
-            Usage = "Supports MustAsync",
-            Example = "RuleFor(x => x.Email).MustAsync(async (email, ct) => ...)"
-        }
-    ];
+    private List<GuidelineItem> _apiGuidelineTableItems => Documentation.ApiGuidelines
+        .Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example })
+        .ToList();
 
     protected override void OnInitialized()
     {
+        // Validate documentation in DEBUG mode
+        new DemoDocumentationValidator().ValidateOrThrow(Documentation);
+
         // Create form configuration using FluentValidation
         _formConfig = FormBuilder<CustomerModel>
             .Create()
@@ -168,7 +133,9 @@ public partial class FluentValidationDemo : ComponentBase
         };
     }
 
-    private string GetCodeExample()
+    private string GetCodeExample() => GetCodeExampleStatic();
+
+    private static string GetCodeExampleStatic()
     {
         return @"// 1. Define your FluentValidation validator
 public class CustomerValidator : AbstractValidator<Customer>
@@ -179,11 +146,11 @@ public class CustomerValidator : AbstractValidator<Customer>
             .NotEmpty().WithMessage(""Name is required"")
             .MinimumLength(3).WithMessage(""Name must be at least 3 characters"")
             .MaximumLength(50).WithMessage(""Name cannot exceed 50 characters"");
-            
+
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage(""Email is required"")
             .EmailAddress().WithMessage(""Invalid email format"");
-            
+
         RuleFor(x => x.Age)
             .GreaterThanOrEqualTo(18).WithMessage(""Must be 18 or older"");
     }

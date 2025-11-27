@@ -1,5 +1,6 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.DemoBlazorApp.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -11,6 +12,50 @@ public partial class ComplexDependenciesDemo : ComponentBase
     private IFormConfiguration<OrderModel>? _formConfig;
     private bool _submitted;
     private bool _isSubmitting;
+
+    /// <summary>
+    /// Structured documentation for this demo page.
+    /// </summary>
+    public static DemoDocumentation Documentation { get; } = new()
+    {
+        DemoId = "complex-dependencies",
+        Title = "Complex Field Dependencies",
+        Description = "Build sophisticated forms with cascading updates, conditional visibility, and computed values. Learn how to create dynamic forms where fields react to changes in other fields through a complex dependency chain. This demo shows product ordering with real-time price calculations, coupon validation, and shipping cost updates.",
+        Icon = Icons.Material.Filled.AccountTree,
+        FeatureHighlights =
+        [
+            new() { Icon = Icons.Material.Filled.AccountTree, Color = Color.Primary, Text = "Cascading field updates" },
+            new() { Icon = Icons.Material.Filled.Visibility, Color = Color.Secondary, Text = "Conditional field visibility" },
+            new() { Icon = Icons.Material.Filled.Calculate, Color = Color.Tertiary, Text = "Auto-computed field values" },
+            new() { Icon = Icons.Material.Filled.FilterList, Color = Color.Info, Text = "Dynamic dropdown options" },
+            new() { Icon = Icons.Material.Filled.Refresh, Color = Color.Success, Text = "Real-time recalculations" },
+            new() { Icon = Icons.Material.Filled.Code, Color = Color.Warning, Text = "Type-safe dependency chain" }
+        ],
+        ApiGuidelines =
+        [
+            new() { Feature = "DependsOn()", Usage = "React to another field's changes", Example = ".DependsOn(x => x.Category, (m, v) => UpdateProducts(m, v))" },
+            new() { Feature = "WithValueProvider()", Usage = "Compute field value from model", Example = ".WithValueProvider((m, _) => m.Quantity * m.UnitPrice)" },
+            new() { Feature = "WithVisibilityProvider()", Usage = "Show/hide based on conditions", Example = ".WithVisibilityProvider(m => m.Category != null)" },
+            new() { Feature = "WithOptionsProvider()", Usage = "Dynamic dropdown options", Example = ".WithOptionsProvider((m, _) => GetProductsForCategory(m))" },
+            new() { Feature = "Chain Dependencies", Usage = "Multiple DependsOn calls", Example = ".DependsOn(x => x.A, ...).DependsOn(x => x.B, ...)" },
+            new() { Feature = "ReadOnly()", Usage = "Prevent editing computed fields", Example = ".ReadOnly() // For calculated totals" }
+        ],
+        CodeExamples =
+        [
+            new() { Title = "Cascading Dependencies", Language = "csharp", CodeProvider = GetCascadingCodeExampleStatic },
+            new() { Title = "Computed Values", Language = "csharp", CodeProvider = GetComputedValuesCodeExampleStatic }
+        ],
+        WhenToUse = "Use complex dependencies when building forms with interconnected fields that need to update each other. Perfect for e-commerce order forms (product selection updates price, quantity updates total), financial calculators (interest rate changes update payment amounts), booking systems (room type affects available amenities), and configuration forms (selecting a category filters available options). The DependsOn() pattern ensures fields stay synchronized without manual event wiring.",
+        CommonPitfalls =
+        [
+            "Circular dependencies - Field A depends on B, B depends on C, C depends on A creates infinite loops",
+            "Forgetting to call StateHasChanged() in async dependency handlers - UI won't update",
+            "Not resetting dependent fields when parent changes - leads to invalid state",
+            "Over-complicating dependency chains - keep them simple and unidirectional when possible",
+            "Missing null checks in value providers - can cause runtime errors when fields are cleared"
+        ],
+        RelatedDemoIds = ["async-value-provider", "field-dependencies", "fluent-validation", "dynamic-forms"]
+    };
 
     // Product catalog
     private static readonly Dictionary<string, List<(string Name, decimal Price)>> ProductsByCategory = new()
@@ -55,88 +100,20 @@ public partial class ComplexDependenciesDemo : ComponentBase
         ["Free Pickup"] = 0m
     };
 
-    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
-    [
-        new()
-        {
-            Icon = Icons.Material.Filled.AccountTree,
-            Color = Color.Primary,
-            Text = "Cascading field updates"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Visibility,
-            Color = Color.Secondary,
-            Text = "Conditional field visibility"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Calculate,
-            Color = Color.Tertiary,
-            Text = "Auto-computed field values"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.FilterList,
-            Color = Color.Info,
-            Text = "Dynamic dropdown options"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Refresh,
-            Color = Color.Success,
-            Text = "Real-time recalculations"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Code,
-            Color = Color.Warning,
-            Text = "Type-safe dependency chain"
-        }
-    ];
+    // Legacy properties for backward compatibility with existing razor template
+    private List<FormGuidelines.GuidelineItem> _sidebarFeatures => Documentation.FeatureHighlights
+        .Select(f => new FormGuidelines.GuidelineItem { Icon = f.Icon, Color = f.Color, Text = f.Text })
+        .ToList();
 
-    private readonly List<GuidelineItem> _apiGuidelineTableItems =
-    [
-        new()
-        {
-            Feature = "DependsOn()",
-            Usage = "React to another field's changes",
-            Example = ".DependsOn(x => x.Category, (m, v) => UpdateProducts(m, v))"
-        },
-        new()
-        {
-            Feature = "WithValueProvider()",
-            Usage = "Compute field value from model",
-            Example = ".WithValueProvider((m, _) => m.Quantity * m.UnitPrice)"
-        },
-        new()
-        {
-            Feature = "WithVisibilityProvider()",
-            Usage = "Show/hide based on conditions",
-            Example = ".WithVisibilityProvider(m => m.Category != null)"
-        },
-        new()
-        {
-            Feature = "WithOptionsProvider()",
-            Usage = "Dynamic dropdown options",
-            Example = ".WithOptionsProvider((m, _) => GetProductsForCategory(m))"
-        },
-        new()
-        {
-            Feature = "Chain Dependencies",
-            Usage = "Multiple DependsOn calls",
-            Example = ".DependsOn(x => x.A, ...).DependsOn(x => x.B, ...)"
-        },
-        new()
-        {
-            Feature = "ReadOnly()",
-            Usage = "Prevent editing computed fields",
-            Example = ".ReadOnly() // For calculated totals"
-        }
-    ];
+    private List<GuidelineItem> _apiGuidelineTableItems => Documentation.ApiGuidelines
+        .Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example })
+        .ToList();
 
     protected override void OnInitialized()
     {
+        // Validate documentation in DEBUG mode
+        new DemoDocumentationValidator().ValidateOrThrow(Documentation);
+
         _formConfig = FormBuilder<OrderModel>
             .Create()
             .AddField(x => x.Category, field => field
@@ -255,7 +232,12 @@ public partial class ComplexDependenciesDemo : ComponentBase
         ];
     }
 
-    private string GetCascadingCodeExample()
+    // Code Examples (instance methods for backward compatibility)
+    private string GetCascadingCodeExample() => GetCascadingCodeExampleStatic();
+    private string GetComputedValuesCodeExample() => GetComputedValuesCodeExampleStatic();
+
+    // Static code providers for Documentation
+    private static string GetCascadingCodeExampleStatic()
     {
         return """
             // Cascading dependencies - each field reacts to the previous
@@ -282,7 +264,7 @@ public partial class ComplexDependenciesDemo : ComponentBase
             """;
     }
 
-    private string GetComputedValuesCodeExample()
+    private static string GetComputedValuesCodeExampleStatic()
     {
         return """
             // Computed values that update automatically

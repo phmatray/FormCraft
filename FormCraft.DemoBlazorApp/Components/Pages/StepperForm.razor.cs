@@ -1,5 +1,6 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.DemoBlazorApp.Services;
 using FormCraft.ForMudBlazor;
 using MudBlazor;
 
@@ -22,42 +23,63 @@ public partial class StepperForm
     private FormCraftComponent<EmployeeModel>? _contactFormComponent;
     private FormCraftComponent<EmployeeModel>? _professionalFormComponent;
 
-    private readonly List<GuidelineItem> _apiGuidelineTableItems =
-    [
-        new()
-        {
-            Feature = "MudStepper Integration",
-            Usage = "Divide forms into logical steps",
-            Example = "<MudStepper @ref=\"_stepper\">"
-        },
-        new()
-        {
-            Feature = "Shared Model",
-            Usage = "Single model instance across all steps",
-            Example = "Model=\"@_model\" (same for all steps)"
-        },
-        new()
-        {
-            Feature = "Step Validation",
-            Usage = "Validate before allowing step change",
-            Example = "Custom validation in NextStep method"
-        },
-        new()
-        {
-            Feature = "Dynamic Content",
-            Usage = "Show data from previous steps",
-            Example = "Welcome, @_model.FirstName!"
-        },
-        new()
-        {
-            Feature = "Review Step",
-            Usage = "Display all collected data before submit",
-            Example = "Custom review layout with all fields"
-        }
-    ];
+    /// <summary>
+    /// Structured documentation for this demo page.
+    /// </summary>
+    public static DemoDocumentation Documentation { get; } = new()
+    {
+        DemoId = "stepper-form",
+        Title = "Multi-Step Form with Stepper",
+        Description = "Build sophisticated multi-step forms using MudStepper with FormCraft. This demo showcases how to divide complex forms into logical steps, maintain data persistence across steps, validate each step independently, and create a comprehensive review step before final submission. Perfect for onboarding flows, surveys, and complex data entry scenarios.",
+        Icon = Icons.Material.Filled.LinearScale,
+        FeatureHighlights =
+        [
+            new() { Icon = Icons.Material.Filled.LinearScale, Color = Color.Primary, Text = "Divide complex forms into logical, manageable steps" },
+            new() { Icon = Icons.Material.Filled.Storage, Color = Color.Secondary, Text = "Maintain single model instance across all steps for data persistence" },
+            new() { Icon = Icons.Material.Filled.Security, Color = Color.Info, Text = "Validate each step independently before allowing progression" },
+            new() { Icon = Icons.Material.Filled.Preview, Color = Color.Tertiary, Text = "Provide review step with comprehensive data summary" },
+            new() { Icon = Icons.Material.Filled.PersonPin, Color = Color.Success, Text = "Display dynamic content based on data from previous steps" },
+            new() { Icon = Icons.Material.Filled.Navigation, Color = Color.Warning, Text = "Control step navigation with custom validation logic" }
+        ],
+        ApiGuidelines =
+        [
+            new() { Feature = "MudStepper Integration", Usage = "Divide forms into logical steps with MudStepper", Example = "<MudStepper @ref=\"_stepper\" @bind-ActiveIndex=\"_currentStep\">" },
+            new() { Feature = "Shared Model Instance", Usage = "Use same model across all steps for persistence", Example = "Model=\"@_model\" (same instance for all FormCraftComponent)" },
+            new() { Feature = "Step Validation", Usage = "Validate current step before allowing progression", Example = "_personalFormComponent?.Validate() ?? false" },
+            new() { Feature = "Component References", Usage = "Store references to forms for validation", Example = "@ref=\"_personalFormComponent\"" },
+            new() { Feature = "Dynamic Content", Usage = "Show data from previous steps in subsequent steps", Example = "Welcome, @_model.FirstName!" },
+            new() { Feature = "Review Step", Usage = "Display all collected data before submission", Example = "Custom layout with cards showing categorized data" }
+        ],
+        CodeExamples =
+        [
+            new() { Title = "Multi-Step Form Implementation", Language = "razor", CodeProvider = GetExampleCode },
+            new() { Title = "Step Validation", Language = "csharp", CodeProvider = GetValidationCode }
+        ],
+        WhenToUse = "Use multi-step forms when you have complex data entry that benefits from logical grouping. Perfect for employee onboarding, user registration flows, surveys, checkout processes, or any scenario with 10+ fields that can be categorized into distinct steps (personal info, contact details, preferences, etc.). Step-by-step progression reduces cognitive load and improves completion rates. Avoid for simple forms (under 8 fields) where a single page is more efficient.",
+        CommonPitfalls =
+        [
+            "Not sharing the same model instance across steps - creates data loss between steps",
+            "Allowing step progression without validation - leads to incomplete data",
+            "Forgetting to show validation errors when blocking step progression",
+            "Not providing a review step - users need to verify all data before submission",
+            "Using ShowSubmitButton=\"true\" on step forms - breaks step navigation flow",
+            "Missing component references for validation - prevents proper step validation",
+            "Not resetting the stepper when resetting the form - leaves UI in inconsistent state",
+            "Creating too many steps (5+) - consider grouping or using a different pattern"
+        ],
+        RelatedDemoIds = ["fluent", "field-groups", "validation", "dialog-demo"]
+    };
+
+    // Legacy properties for backward compatibility with existing razor template
+    private List<GuidelineItem> _apiGuidelineTableItems => Documentation.ApiGuidelines
+        .Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example })
+        .ToList();
 
     protected override void OnInitialized()
     {
+        // Validate documentation in DEBUG mode
+        new DemoDocumentationValidator().ValidateOrThrow(Documentation);
+
         // Step 1: Personal Information
         _personalInfoConfig = FormBuilder<EmployeeModel>
             .Create()
@@ -212,7 +234,8 @@ public partial class StepperForm
         ];
     }
 
-    private string GetExampleCode()
+    // Code example methods
+    private static string GetExampleCode()
     {
         return """
             // Create separate configurations for each step
@@ -225,7 +248,7 @@ public partial class StepperForm
                     .WithLabel("Last Name")
                     .Required())
                 .Build();
-            
+
             // Use MudStepper with FormCraftComponent in each step
             <MudStepper @ref="_stepper" @bind-ActiveIndex="_currentStep">
                 <ChildContent>
@@ -238,7 +261,7 @@ public partial class StepperForm
                                 ShowSubmitButton="false" />
                         </ChildContent>
                     </MudStep>
-                    
+
                     <MudStep Title="Contact Details">
                         <ChildContent>
                             <FormCraftComponent @ref="_contactFormComponent"
@@ -262,21 +285,21 @@ public partial class StepperForm
             """;
     }
 
-    private string GetValidationCode()
+    private static string GetValidationCode()
     {
         return """
             // Component references only - simplified API!
             private FormCraftComponent<EmployeeModel>? _personalFormComponent;
             private FormCraftComponent<EmployeeModel>? _contactFormComponent;
             private FormCraftComponent<EmployeeModel>? _professionalFormComponent;
-            
+
             // In Razor markup - just use @ref:
             <FormCraftComponent @ref="_personalFormComponent"
                 TModel="EmployeeModel"
                 Model="@_model"
                 Configuration="@_personalInfoConfig"
                 ShowSubmitButton="false" />
-            
+
             // Validation method - directly call Validate() on components
             private async Task NextStep()
             {
@@ -288,9 +311,9 @@ public partial class StepperForm
                     2 => _professionalFormComponent?.Validate() ?? false,
                     _ => true
                 };
-                
+
                 _hasValidationErrors = !isValid;
-                
+
                 if (isValid && _stepper != null)
                 {
                     await _stepper.NextStepAsync();

@@ -1,3 +1,4 @@
+using FormCraft.DemoBlazorApp.Services;
 using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Layout;
@@ -7,6 +8,13 @@ public partial class MainLayout
     private bool _drawerOpen = true;
     private bool _isDarkMode;
     private string _version = "loading...";
+
+    private static readonly string[] _levels =
+    [
+        Services.DemoRegistry.Levels.Beginner,
+        Services.DemoRegistry.Levels.Intermediate,
+        Services.DemoRegistry.Levels.Advanced
+    ];
 
     protected override async Task OnInitializedAsync()
     {
@@ -61,4 +69,12 @@ public partial class MainLayout
     {
         Navigation.NavigateTo("home");
     }
+
+    private static string GetLevelSubtitle(string level) => level switch
+    {
+        Services.DemoRegistry.Levels.Beginner => "Getting started",
+        Services.DemoRegistry.Levels.Intermediate => "Building better forms",
+        Services.DemoRegistry.Levels.Advanced => "Mastering FormCraft",
+        _ => ""
+    };
 }

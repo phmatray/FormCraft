@@ -1,5 +1,6 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.DemoBlazorApp.Services;
 using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
@@ -11,82 +12,61 @@ public partial class ImprovedForm
     private bool _isSubmitting;
     private IFormConfiguration<ContactModel> _formConfiguration = null!;
 
-    private readonly List<GuidelineItem> _apiGuidelineTableItems =
-    [
-        new()
-        {
-            Feature = "Type-Safe Builder",
-            Usage = "Strongly typed field configuration",
-            Example = ".AddField(x => x.FirstName)"
-        },
-        new()
-        {
-            Feature = "Built-in Validation",
-            Usage = "Common validation rules",
-            Example = ".WithMinLength(2, \"Must be at least 2 characters\")"
-        },
-        new()
-        {
-            Feature = "Email Validation",
-            Usage = "Pre-built email validator",
-            Example = ".WithEmailValidation()"
-        },
-        new()
-        {
-            Feature = "Range Validation",
-            Usage = "Min/max value constraints",
-            Example = ".WithRange(16, 100, \"Age must be between 16 and 100\")"
-        },
-        new()
-        {
-            Feature = "Automatic Rendering",
-            Usage = "Single component handles all rendering",
-            Example = "&lt;FormCraftComponent TModel=\"ContactModel\" /&gt;"
-        }
-    ];
+    /// <summary>
+    /// Structured documentation for this demo page.
+    /// </summary>
+    public static DemoDocumentation Documentation { get; } = new()
+    {
+        DemoId = "improved",
+        Title = "Improved Dynamic Form API",
+        Description = "Build dynamic forms using a type-safe fluent API with comprehensive validation, field dependencies, conditional visibility, and advanced configuration options for complex form scenarios.",
+        Icon = Icons.Material.Filled.Engineering,
+        FeatureHighlights =
+        [
+            new() { Icon = Icons.Material.Filled.Security, Color = Color.Primary, Text = "Type-safe form builder API" },
+            new() { Icon = Icons.Material.Filled.Verified, Color = Color.Secondary, Text = "Fluent validation integration" },
+            new() { Icon = Icons.Material.Filled.AccountTree, Color = Color.Tertiary, Text = "Field dependencies & visibility" },
+            new() { Icon = Icons.Material.Filled.AutoAwesome, Color = Color.Info, Text = "Automatic field rendering" },
+            new() { Icon = Icons.Material.Filled.Extension, Color = Color.Success, Text = "Extensible with custom validators" },
+            new() { Icon = Icons.Material.Filled.Speed, Color = Color.Warning, Text = "Real-time validation feedback" }
+        ],
+        ApiGuidelines =
+        [
+            new() { Feature = "Type-Safe Builder", Usage = "Strongly typed field configuration", Example = ".AddField(x => x.FirstName)" },
+            new() { Feature = "Built-in Validation", Usage = "Common validation rules", Example = ".WithMinLength(2, \"Must be at least 2 characters\")" },
+            new() { Feature = "Email Validation", Usage = "Pre-built email validator", Example = ".WithEmailValidation()" },
+            new() { Feature = "Range Validation", Usage = "Min/max value constraints", Example = ".WithRange(16, 100, \"Age must be between 16 and 100\")" },
+            new() { Feature = "Automatic Rendering", Usage = "Single component handles all rendering", Example = "&lt;FormCraftComponent TModel=\"ContactModel\" /&gt;" }
+        ],
+        CodeExamples =
+        [
+            new() { Title = "Type-Safe Form Configuration", Language = "csharp", CodeProvider = GetGeneratedCodeStatic }
+        ],
+        WhenToUse = "Use the improved API when you need full control over form configuration with type safety. It's ideal for complex forms requiring custom validation, field dependencies, conditional visibility, and advanced field configuration. Choose this approach when building enterprise applications that need maintainable, testable form logic.",
+        CommonPitfalls =
+        [
+            "Don't forget to call .Build() at the end of the fluent chain to get the immutable configuration",
+            "Remember that Required() adds validation but not the HTML5 required attribute - this is intentional",
+            "Field dependencies should be declared with DependsOn() before using VisibleWhen() or WithValueProvider()",
+            "When using WithRange() or WithMinLength(), always provide user-friendly error messages for better UX"
+        ],
+        RelatedDemoIds = ["fluent", "simplified", "fluent-validation-demo"]
+    };
 
-    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
-    [
-        new()
-        {
-            Icon = Icons.Material.Filled.Security,
-            Color = Color.Primary,
-            Text = "Type-safe form builder API"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Verified,
-            Color = Color.Secondary,
-            Text = "Fluent validation integration"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.AccountTree,
-            Color = Color.Tertiary,
-            Text = "Field dependencies & visibility"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.AutoAwesome,
-            Color = Color.Info,
-            Text = "Automatic field rendering"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Extension,
-            Color = Color.Success,
-            Text = "Extensible with custom validators"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Speed,
-            Color = Color.Warning,
-            Text = "Real-time validation feedback"
-        }
-    ];
+    // Legacy properties for backward compatibility with existing razor template
+    private List<GuidelineItem> _apiGuidelineTableItems => Documentation.ApiGuidelines
+        .Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example })
+        .ToList();
+
+    private List<FormGuidelines.GuidelineItem> _sidebarFeatures => Documentation.FeatureHighlights
+        .Select(f => new FormGuidelines.GuidelineItem { Icon = f.Icon, Color = f.Color, Text = f.Text })
+        .ToList();
 
     protected override void OnInitialized()
     {
+        // Validate documentation in DEBUG mode
+        new DemoDocumentationValidator().ValidateOrThrow(Documentation);
+
         // This is our improved API in action!
         _formConfiguration = FormBuilder<ContactModel>
             .Create()
@@ -179,7 +159,9 @@ public partial class ImprovedForm
         return items;
     }
 
-    private string GetGeneratedCode()
+    private string GetGeneratedCode() => GetGeneratedCodeStatic();
+
+    private static string GetGeneratedCodeStatic()
     {
         const string code = @"// This is our improved API in action!
 _formConfiguration = FormBuilder<ContactModel>
@@ -230,8 +212,8 @@ _formConfiguration = FormBuilder<ContactModel>
 
 // Use the FormCraftComponent for automatic rendering
 <FormCraftComponent
-    TModel=""ContactModel"" 
-    Model=""@_model"" 
+    TModel=""ContactModel""
+    Model=""@_model""
     Configuration=""@_formConfiguration""
     OnValidSubmit=""@HandleValidSubmit""
     OnFieldChanged=""@((args) => HandleFieldChanged(args.fieldName, args.value))""

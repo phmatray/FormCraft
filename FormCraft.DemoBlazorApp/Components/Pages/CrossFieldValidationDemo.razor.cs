@@ -1,6 +1,7 @@
 using FluentValidation;
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.DemoBlazorApp.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -14,88 +15,64 @@ public partial class CrossFieldValidationDemo : ComponentBase
     private bool _isSubmitting;
     private List<string> _validationErrors = [];
 
-    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
-    [
-        new()
-        {
-            Icon = Icons.Material.Filled.CompareArrows,
-            Color = Color.Primary,
-            Text = "Compare values across multiple fields"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.DateRange,
-            Color = Color.Secondary,
-            Text = "Date range validation (start/end)"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Password,
-            Color = Color.Tertiary,
-            Text = "Password confirmation matching"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Calculate,
-            Color = Color.Info,
-            Text = "Numeric range and sum validations"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Rule,
-            Color = Color.Success,
-            Text = "Conditional field requirements"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Security,
-            Color = Color.Warning,
-            Text = "Type-safe expression-based rules"
-        }
-    ];
+    /// <summary>
+    /// Structured documentation for this demo page.
+    /// </summary>
+    public static DemoDocumentation Documentation { get; } = new()
+    {
+        DemoId = "cross-field-validation",
+        Title = "Cross-Field Validation",
+        Description = "Implement validations that depend on multiple fields, such as password confirmation, date range validation, and conditional requirements. FormCraft makes cross-field validation intuitive and type-safe using FluentValidation's powerful cross-field comparison features.",
+        Icon = Icons.Material.Filled.CompareArrows,
+        FeatureHighlights =
+        [
+            new() { Icon = Icons.Material.Filled.CompareArrows, Color = Color.Primary, Text = "Compare values across multiple fields" },
+            new() { Icon = Icons.Material.Filled.DateRange, Color = Color.Secondary, Text = "Date range validation (start/end)" },
+            new() { Icon = Icons.Material.Filled.Password, Color = Color.Tertiary, Text = "Password confirmation matching" },
+            new() { Icon = Icons.Material.Filled.Calculate, Color = Color.Info, Text = "Numeric range and sum validations" },
+            new() { Icon = Icons.Material.Filled.Rule, Color = Color.Success, Text = "Conditional field requirements" },
+            new() { Icon = Icons.Material.Filled.Security, Color = Color.Warning, Text = "Type-safe expression-based rules" }
+        ],
+        ApiGuidelines =
+        [
+            new() { Feature = "DependsOn()", Usage = "Declare field dependencies", Example = "field.DependsOn(x => x.OtherField)" },
+            new() { Feature = "FluentValidation GreaterThan()", Usage = "Compare field values (dates, numbers)", Example = "RuleFor(x => x.EndDate).GreaterThan(x => x.StartDate)" },
+            new() { Feature = "FluentValidation Equal()", Usage = "Ensure fields match (password confirmation)", Example = "RuleFor(x => x.ConfirmPassword).Equal(x => x.Password)" },
+            new() { Feature = "FluentValidation LessThanOrEqualTo()", Usage = "Numeric comparison with other field", Example = "RuleFor(x => x.ExpectedGuests).LessThanOrEqualTo(x => x.VenueCapacity)" },
+            new() { Feature = "FluentValidation Must()", Usage = "Custom validation with model access", Example = "RuleFor(x => x.End).Must((m, end) => end > m.Start)" },
+            new() { Feature = "WithMessage()", Usage = "Dynamic error messages with field values", Example = ".WithMessage(x => $\"Must be after {x.Start}\")" }
+        ],
+        CodeExamples =
+        [
+            new() { Title = "Cross-Field Validation Implementation", Language = "csharp", CodeProvider = GetFormConfigCodeStatic },
+            new() { Title = "FluentValidation Cross-Field Rules", Language = "csharp", CodeProvider = GetValidatorCodeStatic }
+        ],
+        WhenToUse = "Use cross-field validation when one field's validity depends on another field's value. Common scenarios include date ranges (end date after start date), password confirmation, numeric constraints (max greater than min), conditional requirements based on other fields, and capacity validation (guests not exceeding venue capacity). DependsOn() ensures dependent fields re-validate when their dependencies change.",
+        CommonPitfalls =
+        [
+            "Forgetting to use DependsOn() - dependent fields won't re-validate when dependencies change",
+            "Not handling null values in cross-field comparisons - can cause validation errors",
+            "Creating circular dependencies between fields that validate each other",
+            "Overly complex validation logic that's hard to debug - keep rules simple and focused",
+            "Not providing clear error messages that indicate which fields are being compared"
+        ],
+        RelatedDemoIds = ["fluent", "validation", "field-dependencies", "async-validation"]
+    };
 
-    private readonly List<GuidelineItem> _apiGuidelineTableItems =
-    [
-        new()
-        {
-            Feature = "DependsOn()",
-            Usage = "Declare field dependencies",
-            Example = "field.DependsOn(x => x.OtherField)"
-        },
-        new()
-        {
-            Feature = "WithCrossFieldValidator()",
-            Usage = "Custom cross-field validation",
-            Example = "field.WithCrossFieldValidator((model, value) => ...)"
-        },
-        new()
-        {
-            Feature = "FluentValidation Rules",
-            Usage = "When() and Unless() conditions",
-            Example = "RuleFor(x => x.Field).GreaterThan(x => x.OtherField)"
-        },
-        new()
-        {
-            Feature = "Must()",
-            Usage = "Custom validation with model access",
-            Example = "RuleFor(x => x.End).Must((m, end) => end > m.Start)"
-        },
-        new()
-        {
-            Feature = "Conditional Validation",
-            Usage = "Apply rules conditionally",
-            Example = "When(x => x.HasValue, () => RuleFor(...))"
-        },
-        new()
-        {
-            Feature = "WithMessage()",
-            Usage = "Dynamic error messages",
-            Example = ".WithMessage(x => $\"Must be after {x.Start}\")"
-        }
-    ];
+    // Legacy properties for backward compatibility with existing razor template
+    private List<FormGuidelines.GuidelineItem> _sidebarFeatures => Documentation.FeatureHighlights
+        .Select(f => new FormGuidelines.GuidelineItem { Icon = f.Icon, Color = f.Color, Text = f.Text })
+        .ToList();
+
+    private List<GuidelineItem> _apiGuidelineTableItems => Documentation.ApiGuidelines
+        .Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example })
+        .ToList();
 
     protected override void OnInitialized()
     {
+        // Validate documentation in DEBUG mode
+        new DemoDocumentationValidator().ValidateOrThrow(Documentation);
+
         _formConfig = FormBuilder<BookingModel>
             .Create()
             .AddField(x => x.EventName, field => field
@@ -182,7 +159,10 @@ public partial class CrossFieldValidationDemo : ComponentBase
         ];
     }
 
-    private string GetCodeExample()
+    // Code Examples
+    private string GetCodeExample() => GetFormConfigCodeStatic();
+
+    private static string GetFormConfigCodeStatic()
     {
         return """
             // FormCraft configuration with cross-field dependencies
@@ -211,7 +191,9 @@ public partial class CrossFieldValidationDemo : ComponentBase
             """;
     }
 
-    private string GetValidatorCodeExample()
+    private string GetValidatorCodeExample() => GetValidatorCodeStatic();
+
+    private static string GetValidatorCodeStatic()
     {
         return """
             public class BookingValidator : AbstractValidator<BookingModel>

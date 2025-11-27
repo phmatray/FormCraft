@@ -1,0 +1,168 @@
+@namespace FormCraft.DemoBlazorApp.Components.Shared
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-12">
+    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-2 font-weight-bold">
+        See It In Action
+    </MudText>
+    <MudText Typo="Typo.subtitle1" Align="Align.Center" Class="mb-8 mud-text-secondary">
+        Interactive examples of FormCraft's powerful features
+    </MudText>
+
+    <MudPaper Elevation="3" Class="rounded-lg overflow-hidden">
+        <MudTabs Elevation="0" Rounded="false" Centered="true" Color="Color.Primary"
+                 PanelClass="pa-6" ApplyEffectsToContainer="true">
+            <MudTabPanel Text="Validation" Icon="@Icons.Material.Filled.CheckCircle">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.h6" Class="mb-3">Try Invalid Input</MudText>
+                        <MudTextField @bind-Value="_validationEmail"
+                                      Label="Email Address"
+                                      Placeholder="Enter an email"
+                                      Error="@_hasValidationError"
+                                      ErrorText="Please enter a valid email address"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@Icons.Material.Filled.Email" />
+                        <MudButton Class="mt-3"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="ValidateEmail">
+                            Validate
+                        </MudButton>
+                        @if (_validationSuccess)
+                        {
+                            <MudAlert Severity="Severity.Success" Class="mt-3">Valid email!</MudAlert>
+                        }
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Code</MudText>
+                        <MudPaper Class="pa-3" Style="background: #1e1e1e; border-radius: 8px;">
+                            <pre style="color: #9cdcfe; margin: 0; font-size: 0.8rem;"><span style="color: #dcdcaa;">.AddField</span>(x => x.Email, f => f
+    .<span style="color: #dcdcaa;">WithLabel</span>(<span style="color: #ce9178;">"Email"</span>)
+    .<span style="color: #dcdcaa;">Required</span>()
+    .<span style="color: #dcdcaa;">WithValidator</span>(<span style="color: #569cd6;">new</span> EmailValidator()))</pre>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Dependencies" Icon="@Icons.Material.Filled.AccountTree">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.h6" Class="mb-3">Cascading Fields</MudText>
+                        <MudNumericField @bind-Value="_quantity" Label="Quantity" Min="0" Max="100" />
+                        <MudNumericField @bind-Value="_price" Label="Price ($)" Min="0" Class="mt-3" />
+                        <MudTextField Value="@_total.ToString("C")" Label="Total" ReadOnly="true" Class="mt-3"
+                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Code</MudText>
+                        <MudPaper Class="pa-3" Style="background: #1e1e1e; border-radius: 8px;">
+                            <pre style="color: #9cdcfe; margin: 0; font-size: 0.8rem;"><span style="color: #dcdcaa;">.AddField</span>(x => x.Total, f => f
+    .<span style="color: #dcdcaa;">DependsOn</span>(x => x.Quantity, x => x.Price)
+    .<span style="color: #dcdcaa;">WithValueProvider</span>((m, _) =>
+        m.Quantity * m.Price)
+    .<span style="color: #dcdcaa;">ReadOnly</span>())</pre>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Field Types" Icon="@Icons.Material.Filled.Palette">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.h6" Class="mb-3">Various Input Types</MudText>
+                        <MudTextField @bind-Value="_sampleText" Label="Text Field" Class="mb-3" />
+                        <MudSelect @bind-Value="_sampleSelect" Label="Select Field" Class="mb-3">
+                            <MudSelectItem Value="@("option1")">Option 1</MudSelectItem>
+                            <MudSelectItem Value="@("option2")">Option 2</MudSelectItem>
+                            <MudSelectItem Value="@("option3")">Option 3</MudSelectItem>
+                        </MudSelect>
+                        <MudCheckBox @bind-Value="_sampleCheck" Label="Checkbox Field" />
+                        <MudDatePicker @bind-Date="_sampleDate" Label="Date Field" Class="mt-3" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Available Field Types</MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.TextFields">Text, Email, Password, Multiline</MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Numbers">Numeric (int, decimal, double)</MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.ArrowDropDown">Select, MultiSelect</MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.CheckBox">Checkbox, Switch</MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.CalendarMonth">Date, DateTime, Time</MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.CloudUpload">File Upload</MudListItem>
+                        </MudList>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Layouts" Icon="@Icons.Material.Filled.GridView">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.h6" Class="mb-3">Flexible Layouts</MudText>
+                        <MudPaper Class="pa-4" Elevation="1">
+                            <MudGrid>
+                                <MudItem xs="6">
+                                    <MudTextField T="string" Label="First Name" Variant="Variant.Outlined" />
+                                </MudItem>
+                                <MudItem xs="6">
+                                    <MudTextField T="string" Label="Last Name" Variant="Variant.Outlined" />
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField T="string" Label="Email Address" Variant="Variant.Outlined" />
+                                </MudItem>
+                                <MudItem xs="4">
+                                    <MudTextField T="string" Label="City" Variant="Variant.Outlined" />
+                                </MudItem>
+                                <MudItem xs="4">
+                                    <MudTextField T="string" Label="State" Variant="Variant.Outlined" />
+                                </MudItem>
+                                <MudItem xs="4">
+                                    <MudTextField T="string" Label="Zip" Variant="Variant.Outlined" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Code</MudText>
+                        <MudPaper Class="pa-3" Style="background: #1e1e1e; border-radius: 8px;">
+                            <pre style="color: #9cdcfe; margin: 0; font-size: 0.8rem;"><span style="color: #dcdcaa;">.AddFieldGroup</span>(g => g
+    .<span style="color: #dcdcaa;">WithColumns</span>(<span style="color: #b5cea8;">2</span>)
+    .<span style="color: #dcdcaa;">AddField</span>(x => x.FirstName)
+    .<span style="color: #dcdcaa;">AddField</span>(x => x.LastName))
+<span style="color: #dcdcaa;">.AddField</span>(x => x.Email, f => f
+    .<span style="color: #dcdcaa;">FullWidth</span>())</pre>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+        </MudTabs>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    // Validation tab state
+    private string _validationEmail = "";
+    private bool _hasValidationError;
+    private bool _validationSuccess;
+
+    // Dependencies tab state
+    private int _quantity = 2;
+    private decimal _price = 29.99m;
+    private decimal _total => _quantity * _price;
+
+    // Field types tab state
+    private string _sampleText = "";
+    private string _sampleSelect = "option1";
+    private bool _sampleCheck;
+    private DateTime? _sampleDate = DateTime.Today;
+
+    private void ValidateEmail()
+    {
+        _validationSuccess = false;
+        var isValid = !string.IsNullOrWhiteSpace(_validationEmail) &&
+                      _validationEmail.Contains("@") &&
+                      _validationEmail.Contains(".");
+
+        _hasValidationError = !isValid;
+        _validationSuccess = isValid;
+    }
+}

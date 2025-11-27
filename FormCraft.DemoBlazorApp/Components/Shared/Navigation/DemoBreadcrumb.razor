@@ -2,16 +2,40 @@
 
 @if (_items.Count > 0)
 {
-    <MudBreadcrumbs Items="_items" Class="pa-0 mb-4">
-        <ItemTemplate Context="item">
-            @if (string.IsNullOrEmpty(item.Href))
+    <div class="d-flex align-center flex-wrap mb-4">
+        <MudBreadcrumbs Items="_items" Class="pa-0">
+            <ItemTemplate Context="item">
+                @if (string.IsNullOrEmpty(item.Href))
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@item.Text</MudText>
+                }
+                else
+                {
+                    <MudLink Href="@item.Href" Typo="Typo.body2">@item.Text</MudLink>
+                }
+            </ItemTemplate>
+        </MudBreadcrumbs>
+
+        @if (_levelInfo.HasValue)
+        {
+            <MudChip T="string"
+                     Size="Size.Small"
+                     Color="@_levelInfo.Value.Color"
+                     Icon="@_levelInfo.Value.Icon"
+                     Class="ms-2">
+                @_levelInfo.Value.Name
+            </MudChip>
+
+            @if (_currentDemo?.EstimatedMinutes > 0)
             {
-                <MudText Typo="Typo.body2" Class="mud-text-secondary">@item.Text</MudText>
+                <MudChip T="string"
+                         Size="Size.Small"
+                         Variant="Variant.Outlined"
+                         Icon="@Icons.Material.Filled.Schedule"
+                         Class="ms-1">
+                    ~@_currentDemo.EstimatedMinutes min
+                </MudChip>
             }
-            else
-            {
-                <MudLink Href="@item.Href" Typo="Typo.body2">@item.Text</MudLink>
-            }
-        </ItemTemplate>
-    </MudBreadcrumbs>
+        }
+    </div>
 }

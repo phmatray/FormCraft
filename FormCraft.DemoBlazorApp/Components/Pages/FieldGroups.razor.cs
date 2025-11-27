@@ -1,5 +1,6 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.DemoBlazorApp.Services;
 using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
@@ -11,89 +12,62 @@ public partial class FieldGroups
     private bool _isSubmitting;
     private IFormConfiguration<EmployeeModel> _formConfiguration = null!;
 
-    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
-    [
-        new()
-        {
-            Icon = Icons.Material.Filled.GridView,
-            Color = Color.Primary,
-            Text = "Built-in field groups support"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Code,
-            Color = Color.Secondary,
-            Text = "Single form configuration"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.ViewModule,
-            Color = Color.Tertiary,
-            Text = "Flexible column layouts"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Dashboard,
-            Color = Color.Info,
-            Text = "Named group sections"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Speed,
-            Color = Color.Success,
-            Text = "Optimized rendering"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.AutoAwesome,
-            Color = Color.Warning,
-            Text = "Fluent API design"
-        }
-    ];
+    /// <summary>
+    /// Structured documentation for this demo page.
+    /// </summary>
+    public static DemoDocumentation Documentation { get; } = new()
+    {
+        DemoId = "field-groups",
+        Title = "Field Groups Layout",
+        Description = "This demonstrates organizing form fields into logical groups with different column layouts, card containers, and custom header content. Field groups provide a powerful way to structure complex forms while maintaining clean, maintainable code.",
+        Icon = Icons.Material.Filled.GridView,
+        FeatureHighlights =
+        [
+            new() { Icon = Icons.Material.Filled.GridView, Color = Color.Primary, Text = "Built-in field groups support" },
+            new() { Icon = Icons.Material.Filled.Code, Color = Color.Secondary, Text = "Single form configuration" },
+            new() { Icon = Icons.Material.Filled.ViewModule, Color = Color.Tertiary, Text = "Flexible column layouts" },
+            new() { Icon = Icons.Material.Filled.Dashboard, Color = Color.Info, Text = "Named group sections" },
+            new() { Icon = Icons.Material.Filled.Speed, Color = Color.Success, Text = "Optimized rendering" },
+            new() { Icon = Icons.Material.Filled.AutoAwesome, Color = Color.Warning, Text = "Fluent API design" }
+        ],
+        ApiGuidelines =
+        [
+            new() { Feature = "Field Groups", Usage = "Organize fields into logical sections", Example = ".AddFieldGroup(group => group...)" },
+            new() { Feature = "Group Name", Usage = "Provide a title for each section", Example = ".WithGroupName(\"Personal Information\")" },
+            new() { Feature = "Column Layout", Usage = "Set number of columns per row", Example = ".WithColumns(2)" },
+            new() { Feature = "Card Display", Usage = "Show group in a card container", Example = ".ShowInCard()" },
+            new() { Feature = "Header Content", Usage = "Add custom content to group headers", Example = ".WithHeaderRightContent<InfoTooltip>(p => p[\"Text\"] = \"Info\")" },
+            new() { Feature = "Responsive Design", Usage = "Columns automatically stack on mobile", Example = "Built-in responsive behavior" }
+        ],
+        CodeExamples =
+        [
+            new() { Title = "Field Groups Configuration", Language = "csharp", CodeProvider = GetGeneratedCodeStatic }
+        ],
+        WhenToUse = "Use field groups when you need to organize complex forms into logical sections with different layouts. Perfect for multi-step processes, employee onboarding, registration forms, or any scenario where grouping related fields improves user experience and form clarity.",
+        CommonPitfalls =
+        [
+            "Don't nest field groups - they are designed to work at a single level",
+            "Remember that WithColumns() affects only that specific group, not the entire form",
+            "ShowInCard() adds visual separation - use it sparingly to avoid cluttered UI",
+            "Custom header content must be a component - simple strings should use WithGroupName()"
+        ],
+        RelatedDemoIds = ["fluent", "improved", "complex-dependencies", "custom-layout"]
+    };
 
-    private readonly List<GuidelineItem> _apiGuidelineTableItems =
-    [
-        new()
-        {
-            Feature = "Field Groups",
-            Usage = "Organize fields into logical sections",
-            Example = ".AddFieldGroup(group => group...)"
-        },
-        new()
-        {
-            Feature = "Group Name",
-            Usage = "Provide a title for each section",
-            Example = ".WithGroupName(\"Personal Information\")"
-        },
-        new()
-        {
-            Feature = "Column Layout",
-            Usage = "Set number of columns per row",
-            Example = ".WithColumns(2)"
-        },
-        new()
-        {
-            Feature = "Card Display",
-            Usage = "Show group in a card container",
-            Example = ".ShowInCard()"
-        },
-        new()
-        {
-            Feature = "Header Content",
-            Usage = "Add custom content to group headers",
-            Example = ".WithHeaderRightContent<InfoTooltip>(p => p[\"Text\"] = \"Info\")"
-        },
-        new()
-        {
-            Feature = "Responsive Design",
-            Usage = "Columns automatically stack on mobile",
-            Example = "Built-in responsive behavior",
-            IsCode = false
-        }
-    ];
+    // Legacy properties for backward compatibility with existing razor template
+    private List<GuidelineItem> _apiGuidelineTableItems => Documentation.ApiGuidelines
+        .Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example })
+        .ToList();
+
+    private List<FormGuidelines.GuidelineItem> _sidebarFeatures => Documentation.FeatureHighlights
+        .Select(f => new FormGuidelines.GuidelineItem { Icon = f.Icon, Color = f.Color, Text = f.Text })
+        .ToList();
 
     protected override void OnInitialized()
     {
+        // Validate documentation in DEBUG mode
+        new DemoDocumentationValidator().ValidateOrThrow(Documentation);
+
         // Build form with field groups using the new fluent API
         _formConfiguration = FormBuilder<EmployeeModel>
             .Create()
@@ -189,7 +163,9 @@ public partial class FieldGroups
 
     // Helper methods removed - now using generic component syntax
 
-    private string GetGeneratedCode()
+    private string GetGeneratedCode() => GetGeneratedCodeStatic();
+
+    private static string GetGeneratedCodeStatic()
     {
         const string code = @"// Build form with field groups using the new fluent API
 _formConfiguration = FormBuilder<EmployeeModel>

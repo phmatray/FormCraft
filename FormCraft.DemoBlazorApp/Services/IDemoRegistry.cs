@@ -1,4 +1,5 @@
 using FormCraft.DemoBlazorApp.Models;
+using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Services;
 
@@ -31,4 +32,28 @@ public interface IDemoRegistry
     /// Gets the display name for a category.
     /// </summary>
     string GetCategoryDisplayName(string category);
+
+    /// <summary>
+    /// Gets demos filtered by complexity level.
+    /// </summary>
+    /// <param name="level">The complexity level: "beginner", "intermediate", or "advanced".</param>
+    IReadOnlyList<DemoMetadata> GetDemosByLevel(string level);
+
+    /// <summary>
+    /// Gets the previous and next demos following the learning path order.
+    /// This crosses level boundaries: Beginner → Intermediate → Advanced.
+    /// </summary>
+    (DemoMetadata? Previous, DemoMetadata? Next) GetLearningPathAdjacentDemos(string currentId);
+
+    /// <summary>
+    /// Gets display information for a complexity level.
+    /// </summary>
+    /// <param name="level">The complexity level: "beginner", "intermediate", or "advanced".</param>
+    /// <returns>A tuple containing the display name, icon, and color for the level.</returns>
+    (string Name, string Icon, Color Color) GetLevelInfo(string level);
+
+    /// <summary>
+    /// Gets the display name for a complexity level.
+    /// </summary>
+    string GetLevelDisplayName(string level);
 }

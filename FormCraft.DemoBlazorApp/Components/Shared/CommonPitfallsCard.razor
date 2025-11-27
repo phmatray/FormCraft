@@ -1,0 +1,26 @@
+@namespace FormCraft.DemoBlazorApp.Components.Shared
+
+@if (Pitfalls is { Count: > 0 })
+{
+    <MudCard Elevation="1" Class="mt-4">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" Class="mb-2 d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Class="me-2" />
+                Common Pitfalls
+            </MudText>
+            <MudList T="string" Dense="true">
+                @foreach (var pitfall in Pitfalls)
+                {
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Close" IconColor="Color.Error">
+                        <MudText Typo="Typo.body2">@pitfall</MudText>
+                    </MudListItem>
+                }
+            </MudList>
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<string>? Pitfalls { get; set; }
+}

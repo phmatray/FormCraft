@@ -24,7 +24,7 @@
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenSimpleDialog">
                         Open Contact Form
                     </MudButton>
-                    
+
                     @if (!string.IsNullOrEmpty(_simpleDialogResult))
                     {
                         <MudAlert Severity="Severity.Success" Class="mt-4">
@@ -47,7 +47,7 @@
                     <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OpenEditDialog">
                         Edit Product
                     </MudButton>
-                    
+
                     @if (!string.IsNullOrEmpty(_editDialogResult))
                     {
                         <MudAlert Severity="Severity.Info" Class="mt-4">
@@ -57,23 +57,41 @@
                 </MudPaper>
             </MudItem>
         </MudGrid>
+
+        <!-- Additional Content Cards -->
+        <MudGrid Class="mt-4">
+            <MudItem xs="12">
+                <WhenToUseCard Text="@DialogDemo.Documentation.WhenToUse" />
+            </MudItem>
+            <MudItem xs="12">
+                <CommonPitfallsCard Pitfalls="@DialogDemo.Documentation.CommonPitfalls" />
+            </MudItem>
+            <MudItem xs="12">
+                <RelatedDemosCard DemoIds="@DialogDemo.Documentation.RelatedDemoIds" />
+            </MudItem>
+        </MudGrid>
     </FormDemoContent>
     
     <CodeExampleContent>
-        <MudText Typo="Typo.h6" GutterBottom="true">Dialog Component Example</MudText>
-        <MudText Typo="Typo.body2" Class="mb-3">
-            Here's how to create a dialog component with FormCraft:
-        </MudText>
-        <CodeExample Code="@DialogExample" />
-        
-        <MudText Typo="Typo.h6" Class="mt-6" GutterBottom="true">Usage Example</MudText>
-        <MudText Typo="Typo.body2" Class="mb-3">
-            How to open and handle dialog results:
-        </MudText>
-        <CodeExample Code="@UsageExample" />
+        @foreach (var example in DialogDemo.Documentation.CodeExamples)
+        {
+            <CodeExample
+                Title="@example.Title"
+                Language="@example.Language"
+                Code="@example.CodeProvider()" />
+        }
     </CodeExampleContent>
     
     <GuidelinesContent>
-        <FormGuidelines Guidelines="@_guidelines" Title="Dialog Integration Best Practices" />
+        <MudGrid>
+            <MudItem xs="12">
+                <FormGuidelines Guidelines="@_guidelines" Title="Dialog Integration Best Practices" />
+            </MudItem>
+            <MudItem xs="12" Class="mt-4">
+                <ApiGuidelinesTable
+                    Title="Dialog API Reference"
+                    Items="@DialogDemo.Documentation.ApiGuidelines.Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example }).ToList()" />
+            </MudItem>
+        </MudGrid>
     </GuidelinesContent>
 </DemoPageLayout>

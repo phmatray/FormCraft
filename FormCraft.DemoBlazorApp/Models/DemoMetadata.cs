@@ -31,7 +31,38 @@ public record DemoMetadata
     public required string Category { get; init; }
 
     /// <summary>
-    /// Sort order within the category.
+    /// Sort order within the category (legacy, use LevelOrder for complexity-based ordering).
     /// </summary>
     public int Order { get; init; }
+
+    /// <summary>
+    /// Complexity level: "beginner", "intermediate", "advanced".
+    /// Only applicable for form-examples category.
+    /// </summary>
+    public string Level { get; init; } = "";
+
+    /// <summary>
+    /// Order within the complexity level (1-based).
+    /// </summary>
+    public int LevelOrder { get; init; }
+
+    /// <summary>
+    /// Demo IDs that should be completed before this one.
+    /// </summary>
+    public IReadOnlyList<string> Prerequisites { get; init; } = [];
+
+    /// <summary>
+    /// Key concepts taught in this demo.
+    /// </summary>
+    public IReadOnlyList<string> Concepts { get; init; } = [];
+
+    /// <summary>
+    /// Estimated time to complete the demo in minutes.
+    /// </summary>
+    public int EstimatedMinutes { get; init; } = 5;
+
+    /// <summary>
+    /// Whether this is the recommended starting point for its level.
+    /// </summary>
+    public bool IsLevelEntryPoint { get; init; }
 }

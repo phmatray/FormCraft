@@ -23,7 +23,7 @@
             SubmittingText="Saving...">
             <SidebarContent>
                 <FormGuidelines Guidelines="@_sidebarFeatures" Title="Custom Renderer Features" />
-                
+
                 <MudCard Elevation="2" Class="mt-4">
                     <MudCardContent>
                         <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
@@ -47,6 +47,11 @@
                     </MudCardContent>
                 </MudCard>
             </SidebarContent>
+            <AdditionalContent>
+                <WhenToUseCard Text="@CustomRenderers.Documentation.WhenToUse" />
+                <CommonPitfallsCard Pitfalls="@CustomRenderers.Documentation.CommonPitfalls" />
+                <RelatedDemosCard DemoIds="@CustomRenderers.Documentation.RelatedDemoIds" />
+            </AdditionalContent>
         </FormDemoSection>
     </FormDemoContent>
     

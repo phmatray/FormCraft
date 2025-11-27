@@ -1,5 +1,6 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.DemoBlazorApp.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -54,88 +55,65 @@ public partial class AsyncValueProviderDemo : ComponentBase
         ["Victoria"] = ["Melbourne", "Geelong", "Ballarat", "Bendigo"]
     };
 
-    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
-    [
-        new()
-        {
-            Icon = Icons.Material.Filled.CloudDownload,
-            Color = Color.Primary,
-            Text = "Load options from API"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.AccountTree,
-            Color = Color.Secondary,
-            Text = "Cascading async updates"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Cached,
-            Color = Color.Tertiary,
-            Text = "Caching support for performance"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.HourglassEmpty,
-            Color = Color.Info,
-            Text = "Loading state indicators"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.Verified,
-            Color = Color.Success,
-            Text = "Async validation with APIs"
-        },
-        new()
-        {
-            Icon = Icons.Material.Filled.ErrorOutline,
-            Color = Color.Warning,
-            Text = "Error handling for failed requests"
-        }
-    ];
+    /// <summary>
+    /// Structured documentation for this demo page.
+    /// </summary>
+    public static DemoDocumentation Documentation { get; } = new()
+    {
+        DemoId = "async-value-provider",
+        Title = "Async Value Providers",
+        Description = "Load field values and options asynchronously from APIs, databases, or other data sources. Perfect for dynamic dropdowns, auto-complete fields, and data that needs to be fetched on demand. Demonstrates cascading dropdowns where selecting one field triggers async loading of options for dependent fields.",
+        Icon = Icons.Material.Filled.CloudSync,
+        FeatureHighlights =
+        [
+            new() { Icon = Icons.Material.Filled.CloudDownload, Color = Color.Primary, Text = "Load options from API" },
+            new() { Icon = Icons.Material.Filled.AccountTree, Color = Color.Secondary, Text = "Cascading async updates" },
+            new() { Icon = Icons.Material.Filled.Cached, Color = Color.Tertiary, Text = "Caching support for performance" },
+            new() { Icon = Icons.Material.Filled.HourglassEmpty, Color = Color.Info, Text = "Loading state indicators" },
+            new() { Icon = Icons.Material.Filled.Verified, Color = Color.Success, Text = "Async validation with APIs" },
+            new() { Icon = Icons.Material.Filled.ErrorOutline, Color = Color.Warning, Text = "Error handling for failed requests" }
+        ],
+        ApiGuidelines =
+        [
+            new() { Feature = "WithAsyncOptionsProvider()", Usage = "Load dropdown options asynchronously", Example = ".WithAsyncOptionsProvider(async (m, s) => await api.GetOptions())" },
+            new() { Feature = "WithAsyncValueProvider()", Usage = "Compute value from async source", Example = ".WithAsyncValueProvider(async (m, s) => await api.GetDefault())" },
+            new() { Feature = "WithAsyncValidator()", Usage = "Validate against external service", Example = ".WithAsyncValidator(async (v, s) => await api.Validate(v))" },
+            new() { Feature = "DependsOn with Async", Usage = "Trigger async load on dependency change", Example = ".DependsOn(x => x.Country, async (m, c) => await LoadStates(c))" },
+            new() { Feature = "Loading States", Usage = "Show loading indicators", Example = "Track IsLoading property in component" },
+            new() { Feature = "Error Handling", Usage = "Handle API failures gracefully", Example = "try/catch with fallback options" }
+        ],
+        CodeExamples =
+        [
+            new() { Title = "Async Options Loading", Language = "csharp", CodeProvider = GetAsyncOptionsCodeStatic },
+            new() { Title = "Async Validation", Language = "csharp", CodeProvider = GetAsyncValidationCodeStatic }
+        ],
+        WhenToUse = "Use async value providers when field options or values must be loaded from external sources like REST APIs, databases, or file systems. Common scenarios include country/state/city cascading dropdowns, dynamic category selection, user search with auto-complete, loading configuration from remote services, and validating unique values against a database. The DependsOn() pattern ensures dependent fields reload when their dependencies change, creating responsive cascading forms.",
+        CommonPitfalls =
+        [
+            "Not handling null/empty selections in dependent fields - always clear dependent values when parent changes",
+            "Forgetting to add loading state indicators - users need visual feedback during async operations",
+            "Not implementing error handling for failed API calls - network failures should be graceful",
+            "Creating circular dependencies between async fields that load each other",
+            "Missing StateHasChanged() calls after async operations - UI may not update properly",
+            "Not debouncing expensive async validators - can cause performance issues with frequent calls"
+        ],
+        RelatedDemoIds = ["field-dependencies", "fluent", "cross-field-validation", "async-validation"]
+    };
 
-    private readonly List<GuidelineItem> _apiGuidelineTableItems =
-    [
-        new()
-        {
-            Feature = "WithAsyncOptionsProvider()",
-            Usage = "Load dropdown options asynchronously",
-            Example = ".WithAsyncOptionsProvider(async (m, s) => await api.GetOptions())"
-        },
-        new()
-        {
-            Feature = "WithAsyncValueProvider()",
-            Usage = "Compute value from async source",
-            Example = ".WithAsyncValueProvider(async (m, s) => await api.GetDefault())"
-        },
-        new()
-        {
-            Feature = "WithAsyncValidator()",
-            Usage = "Validate against external service",
-            Example = ".WithAsyncValidator(async (v, s) => await api.Validate(v))"
-        },
-        new()
-        {
-            Feature = "DependsOn with Async",
-            Usage = "Trigger async load on dependency change",
-            Example = ".DependsOn(x => x.Country, async (m, c) => await LoadStates(c))"
-        },
-        new()
-        {
-            Feature = "Loading States",
-            Usage = "Show loading indicators",
-            Example = "Track IsLoading property in component"
-        },
-        new()
-        {
-            Feature = "Error Handling",
-            Usage = "Handle API failures gracefully",
-            Example = "try/catch with fallback options"
-        }
-    ];
+    // Legacy properties for backward compatibility with existing razor template
+    private List<FormGuidelines.GuidelineItem> _sidebarFeatures => Documentation.FeatureHighlights
+        .Select(f => new FormGuidelines.GuidelineItem { Icon = f.Icon, Color = f.Color, Text = f.Text })
+        .ToList();
+
+    private List<GuidelineItem> _apiGuidelineTableItems => Documentation.ApiGuidelines
+        .Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example })
+        .ToList();
 
     protected override async Task OnInitializedAsync()
     {
+        // Validate documentation in DEBUG mode
+        new DemoDocumentationValidator().ValidateOrThrow(Documentation);
+
         // Simulate loading countries from API
         await Task.Delay(800);
         _countriesLoaded = true;
@@ -269,7 +247,10 @@ public partial class AsyncValueProviderDemo : ComponentBase
         ];
     }
 
-    private string GetAsyncOptionsCodeExample()
+    // Code Examples
+    private string GetAsyncOptionsCodeExample() => GetAsyncOptionsCodeStatic();
+
+    private static string GetAsyncOptionsCodeStatic()
     {
         return """
             // Load dropdown options asynchronously
@@ -309,7 +290,9 @@ public partial class AsyncValueProviderDemo : ComponentBase
             """;
     }
 
-    private string GetAsyncValidationCodeExample()
+    private string GetAsyncValidationCodeExample() => GetAsyncValidationCodeStatic();
+
+    private static string GetAsyncValidationCodeStatic()
     {
         return """
             // Async validation with external API

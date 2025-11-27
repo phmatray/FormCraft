@@ -1,5 +1,6 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.DemoBlazorApp.Services;
 using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
@@ -12,87 +13,60 @@ public partial class FluentForm
     private readonly List<string> _fieldChanges = [];
     private IFormConfiguration<ContactModel> _formConfiguration = null!;
 
-    private readonly List<GuidelineItem> _apiGuidelineTableItems =
-    [
-        new()
-        {
-            Feature = "Text Fields",
-            Usage = "Quick text field creation",
-            Example = ".AddRequiredTextField(x => x.Name, \"Name\", \"Enter name\")"
-        },
-        new()
-        {
-            Feature = "Email Fields",
-            Usage = "Email with built-in validation",
-            Example = ".AddEmailField(x => x.Email)"
-        },
-        new()
-        {
-            Feature = "Numeric Fields",
-            Usage = "Numbers with min/max constraints",
-            Example = ".AddNumericField(x => x.Age, \"Age\", 16, 100)"
-        },
-        new()
-        {
-            Feature = "Field Dependencies",
-            Usage = "Conditional visibility/updates",
-            Example = ".VisibleWhen(m => !string.IsNullOrEmpty(m.Country))"
-        },
-        new()
-        {
-            Feature = "Layout Control",
-            Usage = "Form layout configuration",
-            Example = ".WithLayout(FormLayout.Horizontal)"
-        }
-    ];
+    /// <summary>
+    /// Structured documentation for this demo page.
+    /// </summary>
+    public static DemoDocumentation Documentation { get; } = new()
+    {
+        DemoId = "fluent",
+        Title = "Fluent API Dynamic Form",
+        Description = "This demonstrates the fluent API with helper methods for common field types and streamlined form building. Combines the power of FormBuilder with convenient shortcuts.",
+        Icon = Icons.Material.Filled.FlashOn,
+        FeatureHighlights =
+        [
+            new() { Icon = Icons.Material.Filled.FlashOn, Color = Color.Primary, Text = "Fluent helper methods for common fields" },
+            new() { Icon = Icons.Material.Filled.Speed, Color = Color.Secondary, Text = "Streamlined form building process" },
+            new() { Icon = Icons.Material.Filled.AutoAwesome, Color = Color.Tertiary, Text = "Automatic validation and layout" },
+            new() { Icon = Icons.Material.Filled.Tune, Color = Color.Info, Text = "Configurable form layouts" },
+            new() { Icon = Icons.Material.Filled.Security, Color = Color.Success, Text = "Built-in field validation rules" },
+            new() { Icon = Icons.Material.Filled.Psychology, Color = Color.Warning, Text = "Intelligent dependency handling" }
+        ],
+        ApiGuidelines =
+        [
+            new() { Feature = "Text Fields", Usage = "Quick text field creation", Example = ".AddRequiredTextField(x => x.Name, \"Name\", \"Enter name\")" },
+            new() { Feature = "Email Fields", Usage = "Email with built-in validation", Example = ".AddEmailField(x => x.Email)" },
+            new() { Feature = "Numeric Fields", Usage = "Numbers with min/max constraints", Example = ".AddNumericField(x => x.Age, \"Age\", 16, 100)" },
+            new() { Feature = "Field Dependencies", Usage = "Conditional visibility/updates", Example = ".VisibleWhen(m => !string.IsNullOrEmpty(m.Country))" },
+            new() { Feature = "Layout Control", Usage = "Form layout configuration", Example = ".WithLayout(FormLayout.Horizontal)" }
+        ],
+        CodeExamples =
+        [
+            new() { Title = "Fluent API Configuration", Language = "csharp", CodeProvider = GetGeneratedCodeStatic }
+        ],
+        WhenToUse = "Use the fluent API when you need more control than attribute-based forms but want to keep your code concise. It's ideal for forms that need field dependencies, custom layouts, or conditional visibility while still benefiting from helper methods.",
+        CommonPitfalls =
+        [
+            "Remember that WithLayout must be called before adding fields",
+            "DependsOn callbacks run synchronously - avoid heavy operations",
+            "VisibleWhen conditions are evaluated on every render",
+            "Fluent methods return a new builder - always chain or reassign"
+        ],
+        RelatedDemoIds = ["simplified", "improved", "complex-dependencies"]
+    };
 
-    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
-    [
-        new()
-        {
-            Icon = Icons.Material.Filled.FlashOn,
-            Color = Color.Primary,
-            Text = "Fluent helper methods for common fields"
-        },
+    // Legacy properties for backward compatibility with existing razor template
+    private List<GuidelineItem> _apiGuidelineTableItems => Documentation.ApiGuidelines
+        .Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example })
+        .ToList();
 
-        new()
-        {
-            Icon = Icons.Material.Filled.Speed,
-            Color = Color.Secondary,
-            Text = "Streamlined form building process"
-        },
-
-        new()
-        {
-            Icon = Icons.Material.Filled.AutoAwesome,
-            Color = Color.Tertiary,
-            Text = "Automatic validation and layout"
-        },
-
-        new()
-        {
-            Icon = Icons.Material.Filled.Tune,
-            Color = Color.Info,
-            Text = "Configurable form layouts"
-        },
-
-        new()
-        {
-            Icon = Icons.Material.Filled.Security,
-            Color = Color.Success,
-            Text = "Built-in field validation rules"
-        },
-
-        new()
-        {
-            Icon = Icons.Material.Filled.Psychology,
-            Color = Color.Warning,
-            Text = "Intelligent dependency handling"
-        }
-    ];
+    private List<FormGuidelines.GuidelineItem> _sidebarFeatures => Documentation.FeatureHighlights
+        .Select(f => new FormGuidelines.GuidelineItem { Icon = f.Icon, Color = f.Color, Text = f.Text })
+        .ToList();
 
     protected override void OnInitialized()
     {
+        // Validate documentation in DEBUG mode
+        new DemoDocumentationValidator().ValidateOrThrow(Documentation);
         // Much simpler form creation using fluent methods
         _formConfiguration = FormBuilder<ContactModel>
             .Create()
@@ -191,7 +165,9 @@ public partial class FluentForm
         return items;
     }
 
-    private string GetGeneratedCode()
+    private string GetGeneratedCode() => GetGeneratedCodeStatic();
+
+    private static string GetGeneratedCodeStatic()
     {
         const string code = @"// Much simpler form creation using fluent methods
 _formConfiguration = FormBuilder<ContactModel>
@@ -236,8 +212,8 @@ _formConfiguration = FormBuilder<ContactModel>
 
 // Use in Razor component
 <FormCraftComponent
-    TModel=""ContactModel"" 
-    Model=""@_model"" 
+    TModel=""ContactModel""
+    Model=""@_model""
     Configuration=""@_formConfiguration""
     OnValidSubmit=""@HandleValidSubmit""
     OnFieldChanged=""@(args => HandleFieldChanged(args.fieldName, args.value))""

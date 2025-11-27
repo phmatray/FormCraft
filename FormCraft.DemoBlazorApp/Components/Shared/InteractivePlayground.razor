@@ -1,0 +1,81 @@
+@namespace FormCraft.DemoBlazorApp.Components.Shared
+
+<MudPaper Elevation="4" Class="pa-4 rounded-lg">
+    <MudText Typo="Typo.h6" Class="mb-3">
+        <MudIcon Icon="@Icons.Material.Filled.PlayCircle" Class="me-2" />
+        Try It Live
+    </MudText>
+
+    <MudChipSet T="string" @bind-SelectedValue="_selectedTemplate" Class="mb-4">
+        <MudChip T="string" Value="@("contact")" Color="Color.Primary" Variant="Variant.Outlined">
+            <MudIcon Icon="@Icons.Material.Filled.ContactMail" Class="me-1" Size="Size.Small" />
+            Contact
+        </MudChip>
+        <MudChip T="string" Value="@("login")" Color="Color.Primary" Variant="Variant.Outlined">
+            <MudIcon Icon="@Icons.Material.Filled.Login" Class="me-1" Size="Size.Small" />
+            Login
+        </MudChip>
+        <MudChip T="string" Value="@("order")" Color="Color.Primary" Variant="Variant.Outlined">
+            <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Class="me-1" Size="Size.Small" />
+            Order
+        </MudChip>
+    </MudChipSet>
+
+    <MudGrid>
+        <MudItem xs="12" md="5">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Filled.Settings" Class="me-1" Size="Size.Small" />
+                Configure Fields
+            </MudText>
+            @foreach (var field in GetAvailableFields())
+            {
+                <MudSwitch T="bool"
+                           Value="@IsFieldEnabled(field.Key)"
+                           ValueChanged="@(enabled => ToggleField(field.Key, enabled))"
+                           Label="@field.Value"
+                           Color="Color.Primary"
+                           Class="mb-1" />
+            }
+            <MudDivider Class="my-3" />
+            <MudSwitch @bind-Value="_showValidation" Label="Show Validation" Color="Color.Secondary" />
+        </MudItem>
+
+        <MudItem xs="12" md="7">
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudText Typo="Typo.subtitle2" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Preview" Class="me-1" Size="Size.Small" />
+                    Live Preview
+                </MudText>
+                @if (_configuration != null)
+                {
+                    <FormCraftComponent TModel="PlaygroundModel"
+                                        Model="@_model"
+                                        Configuration="@_configuration"
+                                        OnValidSubmit="@HandleValidSubmit" />
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudExpansionPanels Class="mt-4">
+        <MudExpansionPanel Text="View Generated Code" Icon="@Icons.Material.Filled.Code">
+            <MudPaper Class="pa-3" Style="background: #1e1e1e; border-radius: 8px; overflow-x: auto;">
+                <pre style="color: #dcdcdc; margin: 0; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.85rem; white-space: pre-wrap;">@GenerateCode()</pre>
+            </MudPaper>
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.ContentCopy"
+                       OnClick="CopyCode"
+                       Class="mt-2">
+                @(_copied ? "Copied!" : "Copy Code")
+            </MudButton>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+</MudPaper>
+
+@if (_submitted)
+{
+    <MudAlert Severity="Severity.Success" Class="mt-4" ShowCloseIcon="true" CloseIconClicked="@(() => _submitted = false)">
+        Form submitted successfully! Check the console for submitted data.
+    </MudAlert>
+}

@@ -1,0 +1,70 @@
+@namespace FormCraft.DemoBlazorApp.Components.Shared
+@implements IDisposable
+
+<div class="text-center animated-stat @(_isVisible ? "visible" : "")">
+    <MudIcon Icon="@Icon" Size="Size.Large" Style="@($"color: {IconColorHex};")" Class="mb-2" />
+    <MudText Typo="Typo.h3" Class="font-weight-bold" Style="@($"color: {IconColorHex};")">
+        @_displayValue@Suffix
+    </MudText>
+    <MudText Typo="Typo.body1" Style="opacity: 0.9;">@Label</MudText>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public int Target { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string Icon { get; set; } = Icons.Material.Filled.Star;
+
+    [Parameter]
+    public string IconColorHex { get; set; } = "#ffffff";
+
+    [Parameter]
+    public string Suffix { get; set; } = "";
+
+    [Parameter]
+    public int AnimationDurationMs { get; set; } = 1500;
+
+    private int _displayValue;
+    private bool _isVisible;
+    private Timer? _timer;
+    private int _elapsed;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Start the animation after a short delay
+            _timer = new Timer(OnTimerTick, null, 100, 16);
+        }
+    }
+
+    private void OnTimerTick(object? state)
+    {
+        _isVisible = true;
+        _elapsed += 16;
+
+        // Easing function (ease-out)
+        var progress = Math.Min(1.0, (double)_elapsed / AnimationDurationMs);
+        var easedProgress = 1 - Math.Pow(1 - progress, 3);
+
+        _displayValue = (int)(Target * easedProgress);
+
+        if (progress >= 1.0)
+        {
+            _displayValue = Target;
+            _timer?.Dispose();
+            _timer = null;
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+}

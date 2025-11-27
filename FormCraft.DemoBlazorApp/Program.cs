@@ -23,6 +23,7 @@ builder.Services.AddScoped<IMarkdownService>(sp =>
 builder.Services.AddScoped<IVersionService>(sp =>
     new VersionService(sp.GetRequiredService<HttpClient>()));
 builder.Services.AddSingleton<IDemoRegistry, DemoRegistry>();
+builder.Services.AddSingleton<IDemoDocumentationValidator, DemoDocumentationValidator>();
 
 // Register FluentValidation validators
 builder.Services.AddScoped<IValidator<FluentValidationDemo.CustomerModel>, FluentValidationDemo.CustomerValidator>();

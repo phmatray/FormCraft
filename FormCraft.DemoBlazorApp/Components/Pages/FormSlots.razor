@@ -107,7 +107,7 @@
             
             <SidebarContent>
                 <FormGuidelines Guidelines="@_sidebarFeatures" Title="Form Slots Features" />
-                
+
                 <MudCard Elevation="2" Class="mt-4">
                     <MudCardContent>
                         <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
@@ -128,6 +128,11 @@
                     </MudCardContent>
                 </MudCard>
             </SidebarContent>
+            <AdditionalContent>
+                <WhenToUseCard Text="@FormSlots.Documentation.WhenToUse" />
+                <CommonPitfallsCard Pitfalls="@FormSlots.Documentation.CommonPitfalls" />
+                <RelatedDemosCard DemoIds="@FormSlots.Documentation.RelatedDemoIds" />
+            </AdditionalContent>
         </FormDemoSection>
     </FormDemoContent>
     

@@ -172,21 +172,32 @@
                 </MudListItem>
             </MudList>
         </MudPaper>
+
+        <!-- Additional Content Cards -->
+        <MudGrid Class="mt-4">
+            <MudItem xs="12">
+                <WhenToUseCard Text="@StepperForm.Documentation.WhenToUse" />
+            </MudItem>
+            <MudItem xs="12">
+                <CommonPitfallsCard Pitfalls="@StepperForm.Documentation.CommonPitfalls" />
+            </MudItem>
+            <MudItem xs="12">
+                <RelatedDemosCard DemoIds="@StepperForm.Documentation.RelatedDemoIds" />
+            </MudItem>
+        </MudGrid>
     </FormDemoContent>
-    
+
     <CodeExampleContent>
-        <CodeExample
-            Title="Multi-Step Form Implementation"
-            Language="csharp"
-            Code="@GetExampleCode()" />
-        
-        <CodeExample
-            Title="Step Validation"
-            Language="csharp"
-            Code="@GetValidationCode()"
-            Class="mt-4" />
+        @foreach (var example in StepperForm.Documentation.CodeExamples)
+        {
+            <CodeExample
+                Title="@example.Title"
+                Language="@example.Language"
+                Code="@example.CodeProvider()"
+                Class="@(example != StepperForm.Documentation.CodeExamples.First() ? "mt-4" : "")" />
+        }
     </CodeExampleContent>
-    
+
     <GuidelinesContent>
         <ApiGuidelinesTable
             Title="Stepper Form Guidelines"

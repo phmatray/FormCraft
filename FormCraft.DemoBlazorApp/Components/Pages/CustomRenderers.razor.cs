@@ -1,5 +1,6 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.DemoBlazorApp.Services;
 using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
@@ -11,57 +12,63 @@ public partial class CustomRenderers
     private bool _isSubmitting;
     private bool _isSubmitted;
 
-    private readonly List<GuidelineItem> _apiGuidelineTableItems =
-    [
-        new()
-        {
-            Feature = "Color Picker",
-            Usage = "Visual color selection for string fields",
-            Example = ".AsColorPicker()"
-        },
-        new()
-        {
-            Feature = "Rating Control",
-            Usage = "Star-based rating for integer fields",
-            Example = ".AsRating(maxRating: 5)"
-        },
-        new()
-        {
-            Feature = "Slider Control",
-            Usage = "Range selection for numeric fields",
-            Example = ".AsSlider(min: 0, max: 100, step: 5)"
-        },
-        new()
-        {
-            Feature = "Field Groups",
-            Usage = "Organize fields into responsive columns",
-            Example = ".AddFieldGroup(g => g.WithColumns(2))"
-        },
-        new()
-        {
-            Feature = "Show In Card",
-            Usage = "Display field groups in Material cards",
-            Example = ".ShowInCard(elevation: 2)"
-        },
-        new()
-        {
-            Feature = "Creating Custom Renderers",
-            Usage = "Extend with your own field types",
-            Example = "class MyRenderer : CustomFieldRendererBase<T>"
-        }
-    ];
+    /// <summary>
+    /// Structured documentation for this demo page.
+    /// </summary>
+    public static DemoDocumentation Documentation { get; } = new()
+    {
+        DemoId = "custom-renderers",
+        Title = "Custom Field Renderers",
+        Description = "Create specialized input controls for specific data types using custom renderers. FormCraft provides built-in renderers for color pickers, ratings, and sliders, and makes it easy to create your own custom renderers for any input type.",
+        Icon = Icons.Material.Filled.Palette,
+        FeatureHighlights =
+        [
+            new() { Icon = Icons.Material.Filled.ColorLens, Color = Color.Primary, Text = "Color picker provides visual color selection" },
+            new() { Icon = Icons.Material.Filled.Star, Color = Color.Secondary, Text = "Rating control offers intuitive star-based input" },
+            new() { Icon = Icons.Material.Filled.Tune, Color = Color.Tertiary, Text = "Slider control enables precise range selection" },
+            new() { Icon = Icons.Material.Filled.CheckCircle, Color = Color.Success, Text = "Custom renderers integrate seamlessly with validation" },
+            new() { Icon = Icons.Material.Filled.Extension, Color = Color.Info, Text = "Easily create your own renderers for specific needs" },
+            new() { Icon = Icons.Material.Filled.ViewQuilt, Color = Color.Warning, Text = "Field groups organize controls into responsive layouts" }
+        ],
+        ApiGuidelines =
+        [
+            new() { Feature = "AsColorPicker()", Usage = "Visual color selection for string fields", Example = "field.AsColorPicker().WithLabel(\"Product Color\")" },
+            new() { Feature = "AsRating()", Usage = "Star-based rating for integer fields", Example = "field.AsRating(maxRating: 5).WithLabel(\"Quality\")" },
+            new() { Feature = "AsSlider()", Usage = "Range selection for numeric fields", Example = "field.AsSlider(min: 0, max: 100, step: 5)" },
+            new() { Feature = "CustomFieldRendererBase<T>", Usage = "Base class for creating custom renderers", Example = "class MyRenderer : CustomFieldRendererBase<string>" },
+            new() { Feature = "WithCustomRenderer()", Usage = "Apply a custom renderer to a field", Example = "field.WithCustomRenderer<TModel, TValue, TRenderer>()" },
+            new() { Feature = "ShowInCard()", Usage = "Display field groups in Material cards", Example = "group.ShowInCard(elevation: 2)" }
+        ],
+        CodeExamples =
+        [
+            new() { Title = "Form Configuration with Custom Renderers", Language = "csharp", CodeProvider = GetFormConfigCodeStatic },
+            new() { Title = "Creating a Custom Renderer", Language = "csharp", CodeProvider = GetCustomRendererCodeStatic }
+        ],
+        WhenToUse = "Use custom renderers when you need specialized input controls beyond standard text fields, selects, and checkboxes. Examples include color pickers for design tools, star ratings for reviews, sliders for volume or range settings, rich text editors, file uploaders with preview, or any domain-specific input widget. Custom renderers maintain full integration with FormCraft's validation, field dependencies, and state management while providing a tailored user experience.",
+        CommonPitfalls =
+        [
+            "Not implementing proper two-way binding - custom renderers must update model values correctly",
+            "Ignoring field configuration properties like IsReadOnly, IsDisabled, or validation state",
+            "Creating overly complex renderers - consider if a standard field with styling would suffice",
+            "Not handling null values or default states properly in custom renderers",
+            "Forgetting to pass through label, placeholder, and help text to the custom component"
+        ],
+        RelatedDemoIds = ["field-groups", "validation", "conditional-fields", "field-dependencies"]
+    };
 
-    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
-    [
-        new() { Text = "Color picker provides visual color selection", Icon = Icons.Material.Filled.ColorLens },
-        new() { Text = "Rating control offers intuitive star-based input", Icon = Icons.Material.Filled.Star },
-        new() { Text = "Slider control enables precise range selection", Icon = Icons.Material.Filled.Tune },
-        new() { Text = "Custom renderers integrate seamlessly with validation", Icon = Icons.Material.Filled.CheckCircle },
-        new() { Text = "Easily create your own renderers for specific needs", Icon = Icons.Material.Filled.Extension }
-    ];
+    // Legacy properties for backward compatibility with existing razor template
+    private List<FormGuidelines.GuidelineItem> _sidebarFeatures => Documentation.FeatureHighlights
+        .Select(f => new FormGuidelines.GuidelineItem { Icon = f.Icon, Color = f.Color, Text = f.Text })
+        .ToList();
+
+    private List<GuidelineItem> _apiGuidelineTableItems => Documentation.ApiGuidelines
+        .Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example })
+        .ToList();
 
     protected override void OnInitialized()
     {
+        // Validate documentation in DEBUG mode
+        new DemoDocumentationValidator().ValidateOrThrow(Documentation);
         _formConfiguration = FormBuilder<ProductModel>
             .Create()
             .AddFieldGroup(group => group
@@ -149,7 +156,10 @@ public partial class CustomRenderers
         ];
     }
 
-    private string GetExampleCode()
+    // Code Examples
+    private string GetExampleCode() => GetFormConfigCodeStatic();
+
+    private static string GetFormConfigCodeStatic()
     {
         return """
             _formConfiguration = FormBuilder<ProductModel>
@@ -205,7 +215,9 @@ public partial class CustomRenderers
             """;
     }
 
-    private string GetCustomRendererExample()
+    private string GetCustomRendererExample() => GetCustomRendererCodeStatic();
+
+    private static string GetCustomRendererCodeStatic()
     {
         return """
             // Step 1: Create the custom renderer class

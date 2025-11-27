@@ -1,5 +1,6 @@
 using FormCraft.DemoBlazorApp.Components.Shared;
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.DemoBlazorApp.Services;
 using MudBlazor;
 using Microsoft.AspNetCore.Components;
 
@@ -12,73 +13,68 @@ public partial class AttributeBasedForms : ComponentBase
     private bool _isSubmitted;
     private bool _isSubmitting;
 
-    private readonly List<FormGuidelines.GuidelineItem> _sidebarFeatures =
-    [
-        new() { Icon = Icons.Material.Filled.TextFields, Text = "[TextField] - Text inputs" },
-        new() { Icon = Icons.Material.Filled.Email, Text = "[EmailField] - Email validation" },
-        new() { Icon = Icons.Material.Filled.Numbers, Text = "[NumberField] - Numeric inputs" },
-        new() { Icon = Icons.Material.Filled.DateRange, Text = "[DateField] - Date pickers" },
-        new() { Icon = Icons.Material.Filled.ArrowDropDown, Text = "[SelectField] - Dropdowns" },
-        new() { Icon = Icons.Material.Filled.CheckBox, Text = "[CheckboxField] - Checkboxes" },
-        new() { Icon = Icons.Material.Filled.Notes, Text = "[TextArea] - Multiline text" },
-        new() { Icon = Icons.Material.Filled.Check, Text = "Automatic validation" },
-        new() { Icon = Icons.Material.Filled.Speed, Text = "Zero configuration" }
-    ];
+    /// <summary>
+    /// Structured documentation for this demo page.
+    /// </summary>
+    public static DemoDocumentation Documentation { get; } = new()
+    {
+        DemoId = "attribute-based-forms",
+        Title = "Attribute-Based Form Generation",
+        Description = "Generate complete forms automatically from model attributes without writing any form configuration code. Simply decorate your model properties with field attributes and the form is generated at runtime.",
+        Icon = Icons.Material.Filled.Label,
+        FeatureHighlights =
+        [
+            new() { Icon = Icons.Material.Filled.TextFields, Color = Color.Primary, Text = "[TextField] - Text inputs" },
+            new() { Icon = Icons.Material.Filled.Email, Color = Color.Secondary, Text = "[EmailField] - Email validation" },
+            new() { Icon = Icons.Material.Filled.Numbers, Color = Color.Tertiary, Text = "[NumberField] - Numeric inputs" },
+            new() { Icon = Icons.Material.Filled.DateRange, Color = Color.Info, Text = "[DateField] - Date pickers" },
+            new() { Icon = Icons.Material.Filled.ArrowDropDown, Color = Color.Success, Text = "[SelectField] - Dropdowns" },
+            new() { Icon = Icons.Material.Filled.CheckBox, Color = Color.Warning, Text = "[CheckboxField] - Checkboxes" },
+            new() { Icon = Icons.Material.Filled.Notes, Color = Color.Primary, Text = "[TextArea] - Multiline text" },
+            new() { Icon = Icons.Material.Filled.Check, Color = Color.Success, Text = "Automatic validation" },
+            new() { Icon = Icons.Material.Filled.Speed, Color = Color.Error, Text = "Zero configuration" }
+        ],
+        ApiGuidelines =
+        [
+            new() { Feature = "TextField Attribute", Usage = "Basic text input fields", Example = "[TextField(\"First Name\", \"Enter name\")]" },
+            new() { Feature = "EmailField Attribute", Usage = "Email with format validation", Example = "[EmailField(\"Email Address\")]" },
+            new() { Feature = "NumberField Attribute", Usage = "Numeric inputs with min/max", Example = "[NumberField(\"Age\")] [Range(18, 120)]" },
+            new() { Feature = "DateField Attribute", Usage = "Date picker fields", Example = "[DateField(\"Birth Date\")]" },
+            new() { Feature = "SelectField Attribute", Usage = "Dropdown with options", Example = "[SelectField(\"Country\", \"USA\", \"Canada\", ...)]" },
+            new() { Feature = "CheckboxField Attribute", Usage = "Boolean checkbox fields", Example = "[CheckboxField(\"I agree\", \"Accept terms\")]" },
+            new() { Feature = "TextArea Attribute", Usage = "Multiline text input", Example = "[TextArea(\"Comments\", \"Your feedback\")]" },
+            new() { Feature = "Validation Attributes", Usage = "Standard DataAnnotations", Example = "[Required] [MinLength(2)] [MaxLength(50)]" }
+        ],
+        CodeExamples =
+        [
+            new() { Title = "Model with Attributes", Language = "csharp", CodeProvider = GetModelCodeStatic },
+            new() { Title = "Form Generation (Just One Line!)", Language = "csharp", CodeProvider = GetFormGenerationCodeStatic }
+        ],
+        WhenToUse = "Use attribute-based forms when you want the quickest path to a working form. It's ideal for simple CRUD forms where the model already has DataAnnotations for validation, or when you prefer keeping form configuration close to the model definition.",
+        CommonPitfalls =
+        [
+            "Attributes are read at runtime via reflection - ensure your model is accessible",
+            "Complex field dependencies cannot be expressed with attributes alone",
+            "Custom renderers require additional configuration beyond attributes",
+            "Order of fields follows property declaration order in the model"
+        ],
+        RelatedDemoIds = ["simplified", "fluent", "fluent-validation-demo"]
+    };
 
-    private readonly List<GuidelineItem> _apiGuidelineTableItems =
-    [
-        new()
-        {
-            Feature = "TextField Attribute",
-            Usage = "Basic text input fields",
-            Example = "[TextField(\"First Name\", \"Enter name\")]"
-        },
-        new()
-        {
-            Feature = "EmailField Attribute",
-            Usage = "Email with format validation",
-            Example = "[EmailField(\"Email Address\")]"
-        },
-        new()
-        {
-            Feature = "NumberField Attribute",
-            Usage = "Numeric inputs with min/max",
-            Example = "[NumberField(\"Age\")] [Range(18, 120)]"
-        },
-        new()
-        {
-            Feature = "DateField Attribute",
-            Usage = "Date picker fields",
-            Example = "[DateField(\"Birth Date\")]"
-        },
-        new()
-        {
-            Feature = "SelectField Attribute",
-            Usage = "Dropdown with options",
-            Example = "[SelectField(\"Country\", \"USA\", \"Canada\", ...)]"
-        },
-        new()
-        {
-            Feature = "CheckboxField Attribute",
-            Usage = "Boolean checkbox fields",
-            Example = "[CheckboxField(\"I agree\", \"Accept terms\")]"
-        },
-        new()
-        {
-            Feature = "TextArea Attribute",
-            Usage = "Multiline text input",
-            Example = "[TextArea(\"Comments\", \"Your feedback\")]"
-        },
-        new()
-        {
-            Feature = "Validation Attributes",
-            Usage = "Standard DataAnnotations",
-            Example = "[Required] [MinLength(2)] [MaxLength(50)]"
-        }
-    ];
+    // Legacy properties for backward compatibility with existing razor template
+    private List<FormGuidelines.GuidelineItem> _sidebarFeatures => Documentation.FeatureHighlights
+        .Select(f => new FormGuidelines.GuidelineItem { Icon = f.Icon, Color = f.Color, Text = f.Text })
+        .ToList();
+
+    private List<GuidelineItem> _apiGuidelineTableItems => Documentation.ApiGuidelines
+        .Select(g => new GuidelineItem { Feature = g.Feature, Usage = g.Usage, Example = g.Example })
+        .ToList();
 
     protected override void OnInitialized()
     {
+        // Validate documentation in DEBUG mode
+        new DemoDocumentationValidator().ValidateOrThrow(Documentation);
+
         // Generate the entire form configuration from attributes with just one line!
         _formConfiguration = FormBuilder<UserRegistrationModel>
             .Create()
@@ -132,7 +128,9 @@ public partial class AttributeBasedForms : ComponentBase
         ];
     }
 
-    private string GetModelCode()
+    private string GetModelCode() => GetModelCodeStatic();
+
+    private static string GetModelCodeStatic()
     {
         return @"public class UserRegistrationModel
 {
@@ -194,7 +192,9 @@ public partial class AttributeBasedForms : ComponentBase
 }";
     }
 
-    private string GetFormGenerationCode()
+    private string GetFormGenerationCode() => GetFormGenerationCodeStatic();
+
+    private static string GetFormGenerationCodeStatic()
     {
         return @"// That's it! Just one line to generate the entire form from attributes:
 var formConfiguration = FormBuilder<UserRegistrationModel>
@@ -203,8 +203,8 @@ var formConfiguration = FormBuilder<UserRegistrationModel>
     .Build();
 
 // Then use it in your Blazor component:
-<FormCraftComponent TModel=""UserRegistrationModel"" 
-                    Model=""@_model"" 
+<FormCraftComponent TModel=""UserRegistrationModel""
+                    Model=""@_model""
                     Configuration=""@_formConfiguration""
                     OnValidSubmit=""HandleValidSubmit"" />";
     }
