@@ -8,7 +8,7 @@
     T="TValue"
     Label="@Label"
     Value="@CurrentValue"
-    ValueChanged="@((TValue value) => CurrentValue = value)"
+    ValueChanged="@HandleValueChanged"
     Placeholder="@Placeholder"
     HelperText="@HelpText"
     ReadOnly="@IsReadOnly"

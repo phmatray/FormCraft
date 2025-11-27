@@ -28,4 +28,11 @@ public partial class MudBlazorNumericFieldComponent<TModel, TValue>
             return (TValue)(object)0.1;
         return (TValue)(object)1;
     }
+
+    private async Task HandleValueChanged(TValue value)
+    {
+        // Update local state FIRST to prevent race condition during parent re-render
+        SetValueWithoutNotification(value);
+        await Context.OnValueChanged.InvokeAsync(value);
+    }
 }

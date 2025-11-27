@@ -1,0 +1,35 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel
+@typeparam TValue
+@typeparam TItem
+@inherits FieldComponentBase<TModel, TValue>
+@inject IDialogService DialogService
+@inject IServiceProvider ServiceProvider
+
+<MudTextField
+    T="string"
+    Label="@Label"
+    Value="@DisplayText"
+    Placeholder="@(Placeholder ?? "Click to select...")"
+    HelperText="@HelpText"
+    ReadOnly="true"
+    Disabled="@IsDisabled"
+    Variant="Variant.Outlined"
+    Margin="Margin.Dense"
+    Adornment="Adornment.End"
+    AdornmentIcon="@AdornmentIcon"
+    AdornmentColor="Color.Primary"
+    OnAdornmentClick="@HandleAdornmentClick"
+    Class="@CssClass" />
+
+@if (IsMultiSelect && SelectedItems.Any())
+{
+    <MudChipSet T="TItem" Class="mt-2" AllClosable="true" OnClose="@HandleChipClose">
+        @foreach (var item in SelectedItems)
+        {
+            <MudChip T="TItem" Value="@item" Color="Color.Primary" Variant="Variant.Outlined">
+                @GetItemDisplayText(item)
+            </MudChip>
+        }
+    </MudChipSet>
+}

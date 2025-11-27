@@ -164,6 +164,15 @@ public class DemoRegistry : IDemoRegistry
             Category = "form-examples",
             Order = 17
         },
+        new()
+        {
+            Id = "lov-field",
+            Title = "LOV Field",
+            Description = "List of Values field for selecting from large datasets with a modal table picker.",
+            Icon = Icons.Material.Filled.TableChart,
+            Category = "form-examples",
+            Order = 18
+        },
 
         // Documentation
         new()

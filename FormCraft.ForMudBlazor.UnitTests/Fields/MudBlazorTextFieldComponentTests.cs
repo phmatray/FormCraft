@@ -285,6 +285,194 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
     }
 
     [Fact]
+    public async Task TextField_Should_Update_Model_On_ValueChanged()
+    {
+        // Arrange
+        var model = new TestModel { Name = "" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        var mudTextField = component.FindComponent<MudTextField<string>>();
+        mudTextField.ShouldNotBeNull();
+
+        // Act - Simulate the ValueChanged event directly
+        await mudTextField.InvokeAsync(() =>
+            mudTextField.Instance.ValueChanged.InvokeAsync("Test Value"));
+
+        // Assert
+        model.Name.ShouldBe("Test Value");
+    }
+
+    [Fact]
+    public async Task TextField_Should_Preserve_Value_After_Multiple_Inputs()
+    {
+        // Arrange
+        var model = new TestModel { Name = "" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        var mudTextField = component.FindComponent<MudTextField<string>>();
+
+        // Act - Simulate typing character by character
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("H"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("He"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("Hel"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("Hell"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("Hello"));
+
+        // Assert
+        model.Name.ShouldBe("Hello");
+        mudTextField.Instance.Value.ShouldBe("Hello");
+    }
+
+    [Fact]
+    public async Task PasswordField_Should_Update_Model_On_Input()
+    {
+        // Arrange
+        var model = new TestModel { Password = "" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Password, field => field
+                .WithLabel("Password")
+                .AsPassword(enableVisibilityToggle: true))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        var mudTextField = component.FindComponent<MudTextField<string>>();
+        mudTextField.ShouldNotBeNull();
+
+        // Act
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("secret123"));
+
+        // Assert
+        model.Password.ShouldBe("secret123");
+    }
+
+    [Fact]
+    public async Task PasswordField_Should_Preserve_Value_After_Multiple_Inputs()
+    {
+        // Arrange
+        var model = new TestModel { Password = "" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Password, field => field
+                .WithLabel("Password")
+                .AsPassword(enableVisibilityToggle: true))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        var mudTextField = component.FindComponent<MudTextField<string>>();
+
+        // Act - Simulate typing character by character
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("p"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("pa"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("pas"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("pass"));
+
+        // Assert
+        model.Password.ShouldBe("pass");
+        mudTextField.Instance.Value.ShouldBe("pass");
+    }
+
+    [Fact]
+    public async Task TextField_Value_Should_Reflect_In_Component_After_Update()
+    {
+        // Arrange
+        var model = new TestModel { Name = "" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        var mudTextField = component.FindComponent<MudTextField<string>>();
+
+        // Act
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("Updated"));
+
+        // Re-render to ensure component state is synced
+        component.Render();
+
+        // Assert - Both model and component should have the value
+        model.Name.ShouldBe("Updated");
+
+        // Re-find the component after render
+        mudTextField = component.FindComponent<MudTextField<string>>();
+        mudTextField.Instance.Value.ShouldBe("Updated");
+    }
+
+    [Fact]
+    public void TextField_Should_Not_Be_Disabled_Or_ReadOnly_By_Default()
+    {
+        // Arrange
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var mudTextField = component.FindComponent<MudTextField<string>>();
+        mudTextField.ShouldNotBeNull();
+        mudTextField.Instance.Disabled.ShouldBeFalse("TextField should not be disabled by default");
+        mudTextField.Instance.ReadOnly.ShouldBeFalse("TextField should not be read-only by default");
+    }
+
+    [Fact]
+    public void PasswordField_Should_Not_Be_Disabled_Or_ReadOnly_By_Default()
+    {
+        // Arrange
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Password, field => field
+                .WithLabel("Password")
+                .AsPassword(enableVisibilityToggle: true))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var mudTextField = component.FindComponent<MudTextField<string>>();
+        mudTextField.ShouldNotBeNull();
+        mudTextField.Instance.Disabled.ShouldBeFalse("PasswordField should not be disabled by default");
+        mudTextField.Instance.ReadOnly.ShouldBeFalse("PasswordField should not be read-only by default");
+    }
+
+    [Fact]
     public void TextField_Should_Display_Initial_Value()
     {
         // Arrange

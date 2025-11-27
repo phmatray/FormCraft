@@ -1,0 +1,75 @@
+@page "/lov-field"
+
+<DemoPageLayout
+    DemoId="lov-field"
+    Title="LOV Field (List of Values)"
+    Icon="@Icons.Material.Filled.TableChart"
+    Description="This demonstrates the List of Values (LOV) field component for selecting from large datasets with a modal table picker."
+    FormDemoIcon="@Icons.Material.Filled.ManageSearch">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="OrderFormModel"
+            Model="@_model"
+            Configuration="@_formConfiguration"
+            FormTitle="Order Form with Customer Lookup"
+            FormIcon="@Icons.Material.Filled.Receipt"
+            IsSubmitted="@_isSubmitted"
+            IsSubmitting="@_isSubmitting"
+            OnValidSubmit="@HandleValidSubmit"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()"
+            ShowSubmitButton="true"
+            SubmitButtonText="Create Order"
+            SubmittingText="Creating...">
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="LOV Field Features" />
+
+                <MudCard Elevation="2" Class="mt-4">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2" />
+                            How It Works
+                        </MudText>
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            Click the search icon on the Customer field to open a modal dialog with a searchable, paginated table.
+                            When you select a customer, the related fields are automatically populated.
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Search">
+                                Click search icon to open LOV dialog
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.TableView">
+                                Browse or search customers in the table
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                                Select a row to populate the form
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.AutoFixHigh">
+                                Related fields auto-fill via field mapping
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </SidebarContent>
+        </FormDemoSection>
+    </FormDemoContent>
+
+    <CodeExampleContent>
+        <CodeExample
+            Title="Basic LOV Configuration"
+            Language="csharp"
+            Code="@GetBasicExampleCode()" />
+
+        <CodeExample
+            Title="With Field Mapping"
+            Language="csharp"
+            Code="@GetFieldMappingExampleCode()"
+            Class="mt-4" />
+    </CodeExampleContent>
+
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="LOV Field Guidelines"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>

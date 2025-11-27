@@ -8,61 +8,60 @@ namespace FormCraft;
 /// </summary>
 public static class ContactFormTemplate
 {
-    /// <summary>
-    /// Configures the form builder as a contact form by adding common contact fields.
-    /// This method uses reflection to find properties named FirstName, LastName, Email, and Phone.
-    /// </summary>
-    /// <typeparam name="TModel">The model type that should contain the expected properties.</typeparam>
     /// <param name="builder">The FormBuilder instance to configure.</param>
-    /// <returns>The FormBuilder instance for method chaining.</returns>
-    /// <example>
-    /// <code>
-    /// var contactForm = FormBuilder&lt;ContactModel&gt;.Create()
-    ///     .AsContactForm()
-    ///     .Build();
-    /// </code>
-    /// </example>
-    /// <remarks>
-    /// Requires the model to have properties: FirstName (string), LastName (string), Email (string), Phone (string).
-    /// If properties don't exist, exceptions will be thrown at runtime.
-    /// </remarks>
-    public static FormBuilder<TModel> AsContactForm<TModel>(this FormBuilder<TModel> builder)
-        where TModel : new()
+    /// <typeparam name="TModel">The model type that should contain the expected properties.</typeparam>
+    extension<TModel>(FormBuilder<TModel> builder) where TModel : new()
     {
-        return builder
-            .AddRequiredTextField(GetPropertyExpression<TModel>("FirstName"), "First Name", "Enter your first name", 2)
-            .AddRequiredTextField(GetPropertyExpression<TModel>("LastName"), "Last Name", "Enter your last name", 2)
-            .AddEmailField(GetPropertyExpression<TModel>("Email"))
-            .AddPhoneField(GetPropertyExpression<TModel>("Phone"));
-    }
+        /// <summary>
+        /// Configures the form builder as a contact form by adding common contact fields.
+        /// This method uses reflection to find properties named FirstName, LastName, Email, and Phone.
+        /// </summary>
+        /// <returns>The FormBuilder instance for method chaining.</returns>
+        /// <example>
+        /// <code>
+        /// var contactForm = FormBuilder&lt;ContactModel&gt;.Create()
+        ///     .AsContactForm()
+        ///     .Build();
+        /// </code>
+        /// </example>
+        /// <remarks>
+        /// Requires the model to have properties: FirstName (string), LastName (string), Email (string), Phone (string).
+        /// If properties don't exist, exceptions will be thrown at runtime.
+        /// </remarks>
+        public FormBuilder<TModel> AsContactForm()
+        {
+            return builder
+                .AddRequiredTextField(GetPropertyExpression<TModel>("FirstName"), "First Name", "Enter your first name", 2)
+                .AddRequiredTextField(GetPropertyExpression<TModel>("LastName"), "Last Name", "Enter your last name", 2)
+                .AddEmailField(GetPropertyExpression<TModel>("Email"))
+                .AddPhoneField(GetPropertyExpression<TModel>("Phone"));
+        }
 
-    /// <summary>
-    /// Configures the form builder as a registration form by adding common registration fields.
-    /// This method uses reflection to find properties for user registration.
-    /// </summary>
-    /// <typeparam name="TModel">The model type that should contain the expected properties.</typeparam>
-    /// <param name="builder">The FormBuilder instance to configure.</param>
-    /// <returns>The FormBuilder instance for method chaining.</returns>
-    /// <example>
-    /// <code>
-    /// var registrationForm = FormBuilder&lt;RegistrationModel&gt;.Create()
-    ///     .AsRegistrationForm()
-    ///     .Build();
-    /// </code>
-    /// </example>
-    /// <remarks>
-    /// Requires the model to have properties: FirstName (string), LastName (string), Email (string), Password (string), AcceptTerms (bool).
-    /// If properties don't exist, exceptions will be thrown at runtime.
-    /// </remarks>
-    public static FormBuilder<TModel> AsRegistrationForm<TModel>(this FormBuilder<TModel> builder)
-        where TModel : new()
-    {
-        return builder
-            .AddRequiredTextField(GetPropertyExpression<TModel>("FirstName"), "First Name", minLength: 2)
-            .AddRequiredTextField(GetPropertyExpression<TModel>("LastName"), "Last Name", minLength: 2)
-            .AddEmailField(GetPropertyExpression<TModel>("Email"))
-            .AddPasswordField(GetPropertyExpression<TModel>("Password"))
-            .AddCheckboxField(GetBoolPropertyExpression<TModel>("AcceptTerms"), "I accept the terms and conditions");
+        /// <summary>
+        /// Configures the form builder as a registration form by adding common registration fields.
+        /// This method uses reflection to find properties for user registration.
+        /// </summary>
+        /// <returns>The FormBuilder instance for method chaining.</returns>
+        /// <example>
+        /// <code>
+        /// var registrationForm = FormBuilder&lt;RegistrationModel&gt;.Create()
+        ///     .AsRegistrationForm()
+        ///     .Build();
+        /// </code>
+        /// </example>
+        /// <remarks>
+        /// Requires the model to have properties: FirstName (string), LastName (string), Email (string), Password (string), AcceptTerms (bool).
+        /// If properties don't exist, exceptions will be thrown at runtime.
+        /// </remarks>
+        public FormBuilder<TModel> AsRegistrationForm()
+        {
+            return builder
+                .AddRequiredTextField(GetPropertyExpression<TModel>("FirstName"), "First Name", minLength: 2)
+                .AddRequiredTextField(GetPropertyExpression<TModel>("LastName"), "Last Name", minLength: 2)
+                .AddEmailField(GetPropertyExpression<TModel>("Email"))
+                .AddPasswordField(GetPropertyExpression<TModel>("Password"))
+                .AddCheckboxField(GetBoolPropertyExpression<TModel>("AcceptTerms"), "I accept the terms and conditions");
+        }
     }
 
     /// <summary>

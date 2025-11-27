@@ -1,0 +1,140 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TItem
+@typeparam TValue
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center">
+            <MudIcon Icon="@Icons.Material.Filled.Search" Class="mr-2" />
+            <MudText Typo="Typo.h6">@LovConfig.ModalOptions.Title</MudText>
+            @if (_isLoading)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="ml-2" />
+            }
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="3">
+            @* Search Bar *@
+            @if (LovConfig.SearchOptions.Enabled)
+            {
+                <MudTextField
+                    T="string"
+                    @bind-Value="_searchText"
+                    @bind-Value:after="OnSearchTextChanged"
+                    Placeholder="@LovConfig.SearchOptions.Placeholder"
+                    Adornment="Adornment.Start"
+                    AdornmentIcon="@Icons.Material.Filled.Search"
+                    Immediate="true"
+                    DebounceInterval="@LovConfig.SearchOptions.DebounceMs"
+                    Variant="Variant.Outlined"
+                    Margin="Margin.Dense"
+                    Class="mb-2" />
+            }
+
+            @* Data Grid with Virtualization *@
+            <MudDataGrid
+                @ref="_dataGrid"
+                T="TItem"
+                ServerData="@ServerDataFunc"
+                Virtualize="true"
+                FixedHeader="true"
+                Height="@LovConfig.ModalOptions.GridHeight"
+                OverscanCount="5"
+                MultiSelection="@IsMultiSelect"
+                SelectOnRowClick="true"
+                SelectedItems="@_selectedItemsSet"
+                SelectedItemsChanged="@OnSelectedItemsChanged"
+                Hover="true"
+                Dense="true"
+                Filterable="true"
+                SortMode="SortMode.Multiple"
+                Loading="@_isLoading"
+                LoadingProgressColor="Color.Primary">
+
+                <ToolBarContent>
+                    @if (_totalItems > 0)
+                    {
+                        <MudText Typo="Typo.caption" Class="mr-4">
+                            Total: @_totalItems.ToString("N0") items
+                        </MudText>
+                    }
+                    @if (IsMultiSelect && _selectedItemsSet.Any())
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Primary">
+                            @_selectedItemsSet.Count selected
+                        </MudText>
+                    }
+                </ToolBarContent>
+
+                <Columns>
+                    @if (IsMultiSelect)
+                    {
+                        <SelectColumn T="TItem" />
+                    }
+
+                    @foreach (var column in LovConfig.Columns)
+                    {
+                        <PropertyColumn
+                            T="TItem"
+                            TProperty="object"
+                            Title="@column.Header"
+                            Property="@(x => column.ValueSelector(x))"
+                            Sortable="@column.Sortable"
+                            Filterable="@column.Filterable"
+                            Style="@GetColumnStyle(column)" />
+                    }
+                </Columns>
+
+                <NoRecordsContent>
+                    <MudStack AlignItems="AlignItems.Center" Class="pa-4">
+                        <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Default" />
+                        <MudText Typo="Typo.body1" Color="Color.Default">No records found</MudText>
+                        @if (!string.IsNullOrEmpty(_searchText))
+                        {
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="ClearSearch">
+                                Clear search
+                            </MudButton>
+                        }
+                    </MudStack>
+                </NoRecordsContent>
+
+                <LoadingContent>
+                    <MudStack AlignItems="AlignItems.Center" Class="pa-4">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                        <MudText Typo="Typo.body2" Color="Color.Default">Loading data...</MudText>
+                    </MudStack>
+                </LoadingContent>
+
+            </MudDataGrid>
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudStack Row="true" Spacing="2" Class="w-100" Justify="Justify.SpaceBetween">
+            <div>
+                @if (IsMultiSelect && _selectedItemsSet.Any())
+                {
+                    <MudButton
+                        Variant="Variant.Text"
+                        Color="Color.Default"
+                        OnClick="ClearAllSelections">
+                        Clear All
+                    </MudButton>
+                }
+            </div>
+            <div>
+                <MudButton OnClick="Cancel">Cancel</MudButton>
+                <MudButton
+                    Variant="Variant.Filled"
+                    Color="Color.Primary"
+                    OnClick="Confirm"
+                    Disabled="@(!_selectedItemsSet.Any())">
+                    @GetConfirmButtonText()
+                </MudButton>
+            </div>
+        </MudStack>
+    </DialogActions>
+</MudDialog>

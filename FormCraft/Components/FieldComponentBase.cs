@@ -10,6 +10,7 @@ namespace FormCraft;
 public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IFieldComponent<TModel>
 {
     private TValue? _currentValue;
+    private TValue? _lastNotifiedValue;
     private bool _isInitialized;
 
     /// <summary>
@@ -32,6 +33,17 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
                 _ = NotifyValueChangedAsync(value);
             }
         }
+    }
+
+    /// <summary>
+    /// Sets the current value without triggering a notification.
+    /// Use this when you've already notified the parent of the change.
+    /// Also tracks this as the last notified value to prevent race conditions.
+    /// </summary>
+    protected void SetValueWithoutNotification(TValue? value)
+    {
+        _currentValue = value;
+        _lastNotifiedValue = value;
     }
 
     /// <summary>
@@ -73,11 +85,13 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
         {
             var value = property.GetValue(Context.Model);
             _currentValue = value is TValue typedValue ? typedValue : default;
+            _lastNotifiedValue = _currentValue;
         }
         else
         {
             // Fallback to context value
             _currentValue = Context.CurrentValue is TValue contextValue ? contextValue : default;
+            _lastNotifiedValue = _currentValue;
         }
     }
 
@@ -86,7 +100,15 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
     /// </summary>
     private bool ShouldReloadValue()
     {
-        // Check if the model value has changed externally
+        // If our current value matches what we last told the parent,
+        // we initiated this change - don't reload from model.
+        // This prevents race conditions where OnParametersSet fires during async operations.
+        if (EqualityComparer<TValue>.Default.Equals(_currentValue, _lastNotifiedValue))
+        {
+            return false;
+        }
+
+        // External change - check if model differs from our current value
         var property = Context.Model?.GetType().GetProperty(Context.Field.FieldName);
         if (property != null && Context.Model != null)
         {

@@ -92,13 +92,12 @@ public partial class MudBlazorTextFieldComponent<TModel>
 
     private async Task HandleValueChanged(string value)
     {
-        // Directly invoke the parent callback to update the model and await it
-        // This ensures the async operation completes before we continue
-        await Context.OnValueChanged.InvokeAsync(value);
+        // IMPORTANT: Update local state FIRST before notifying parent
+        // This prevents a race condition where OnParametersSet might see stale _currentValue
+        // during the parent's re-render triggered by OnValueChanged
+        SetValueWithoutNotification(value);
 
-        // Update the base class's CurrentValue to keep the local state in sync
-        // Note: This will trigger another async notification but since the
-        // value in the model is already updated, it's effectively a no-op
-        CurrentValue = value;
+        // Now notify the parent to update the model
+        await Context.OnValueChanged.InvokeAsync(value);
     }
 }

@@ -19,4 +19,11 @@ public partial class MudBlazorSelectFieldComponent<TModel, TValue>
             Options = options;
         }
     }
+
+    private async Task HandleValueChanged(TValue value)
+    {
+        // Update local state FIRST to prevent race condition during parent re-render
+        SetValueWithoutNotification(value);
+        await Context.OnValueChanged.InvokeAsync(value);
+    }
 }

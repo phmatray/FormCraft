@@ -10,133 +10,135 @@ namespace FormCraft;
 /// </summary>
 public static class AttributeFormBuilderExtensions
 {
-    /// <summary>
-    /// Scans <typeparamref name="TModel"/> for properties decorated with
-    /// form field attributes and adds corresponding fields to the builder.
-    /// Supports multiple field types including text, number, email, date,
-    /// select, checkbox, and textarea fields along with validation attributes.
-    /// </summary>
-    /// <typeparam name="TModel">The model type containing the annotated properties.</typeparam>
     /// <param name="builder">The form builder to configure.</param>
-    /// <returns>The builder instance for chaining.</returns>
-    public static FormBuilder<TModel> AddFieldsFromAttributes<TModel>(this FormBuilder<TModel> builder)
-        where TModel : new()
+    /// <typeparam name="TModel">The model type containing the annotated properties.</typeparam>
+    extension<TModel>(FormBuilder<TModel> builder) where TModel : new()
     {
-        foreach (var prop in typeof(TModel).GetProperties())
+        /// <summary>
+        /// Scans <typeparamref name="TModel"/> for properties decorated with
+        /// form field attributes and adds corresponding fields to the builder.
+        /// Supports multiple field types including text, number, email, date,
+        /// select, checkbox, and textarea fields along with validation attributes.
+        /// </summary>
+        /// <returns>The builder instance for chaining.</returns>
+        public FormBuilder<TModel> AddFieldsFromAttributes()
         {
-            // Handle TextFieldAttribute
-            var textAttr = prop.GetCustomAttribute<TextFieldAttribute>();
-            if (textAttr != null && prop.PropertyType == typeof(string))
+            foreach (var prop in typeof(TModel).GetProperties())
             {
-                AddStringField(builder, prop, textAttr.Label, textAttr.Placeholder, "text");
-                continue;
-            }
-
-            // Handle EmailFieldAttribute
-            var emailAttr = prop.GetCustomAttribute<EmailFieldAttribute>();
-            if (emailAttr != null && prop.PropertyType == typeof(string))
-            {
-                var parameter = Expression.Parameter(typeof(TModel), "x");
-                var property = Expression.Property(parameter, prop);
-                var lambda = Expression.Lambda<Func<TModel, string>>(property, parameter);
-
-                builder.AddField(lambda, field =>
+                // Handle TextFieldAttribute
+                var textAttr = prop.GetCustomAttribute<TextFieldAttribute>();
+                if (textAttr != null && prop.PropertyType == typeof(string))
                 {
-                    field.WithLabel(emailAttr.Label)
-                         .WithInputType("email");
+                    AddStringField(builder, prop, textAttr.Label, textAttr.Placeholder, "text");
+                    continue;
+                }
 
-                    if (!string.IsNullOrEmpty(emailAttr.Placeholder))
-                        field.WithPlaceholder(emailAttr.Placeholder);
+                // Handle EmailFieldAttribute
+                var emailAttr = prop.GetCustomAttribute<EmailFieldAttribute>();
+                if (emailAttr != null && prop.PropertyType == typeof(string))
+                {
+                    var parameter = Expression.Parameter(typeof(TModel), "x");
+                    var property = Expression.Property(parameter, prop);
+                    var lambda = Expression.Lambda<Func<TModel, string>>(property, parameter);
 
-                    if (emailAttr.ValidateFormat)
+                    builder.AddField(lambda, field =>
                     {
-                        field.WithValidator(value =>
-                            !string.IsNullOrEmpty(value) && value.Contains("@") && value.Contains("."),
-                            "Please enter a valid email address");
-                    }
+                        field.WithLabel(emailAttr.Label)
+                            .WithInputType("email");
 
-                    ApplyValidationAttributes(field, prop, emailAttr.Label);
-                });
-                continue;
-            }
+                        if (!string.IsNullOrEmpty(emailAttr.Placeholder))
+                            field.WithPlaceholder(emailAttr.Placeholder);
 
-            // Handle TextAreaAttribute
-            var textAreaAttr = prop.GetCustomAttribute<TextAreaAttribute>();
-            if (textAreaAttr != null && prop.PropertyType == typeof(string))
-            {
-                var parameter = Expression.Parameter(typeof(TModel), "x");
-                var property = Expression.Property(parameter, prop);
-                var lambda = Expression.Lambda<Func<TModel, string>>(property, parameter);
+                        if (emailAttr.ValidateFormat)
+                        {
+                            field.WithValidator(value =>
+                                    !string.IsNullOrEmpty(value) && value.Contains("@") && value.Contains("."),
+                                "Please enter a valid email address");
+                        }
 
-                builder.AddField(lambda, field =>
+                        ApplyValidationAttributes(field, prop, emailAttr.Label);
+                    });
+                    continue;
+                }
+
+                // Handle TextAreaAttribute
+                var textAreaAttr = prop.GetCustomAttribute<TextAreaAttribute>();
+                if (textAreaAttr != null && prop.PropertyType == typeof(string))
                 {
-                    field.WithLabel(textAreaAttr.Label);
+                    var parameter = Expression.Parameter(typeof(TModel), "x");
+                    var property = Expression.Property(parameter, prop);
+                    var lambda = Expression.Lambda<Func<TModel, string>>(property, parameter);
 
-                    if (!string.IsNullOrEmpty(textAreaAttr.Placeholder))
-                        field.WithPlaceholder(textAreaAttr.Placeholder);
-
-                    field.WithAttribute("rows", textAreaAttr.Rows);
-
-                    if (textAreaAttr.MaxLength.HasValue)
+                    builder.AddField(lambda, field =>
                     {
-                        field.WithMaxLength(textAreaAttr.MaxLength.Value,
-                            $"Must be no more than {textAreaAttr.MaxLength.Value} characters");
-                    }
+                        field.WithLabel(textAreaAttr.Label);
 
-                    if (textAreaAttr.AutoResize)
-                        field.WithAttribute("auto-resize", true);
+                        if (!string.IsNullOrEmpty(textAreaAttr.Placeholder))
+                            field.WithPlaceholder(textAreaAttr.Placeholder);
 
-                    ApplyValidationAttributes(field, prop, textAreaAttr.Label);
-                });
-                continue;
-            }
+                        field.WithAttribute("rows", textAreaAttr.Rows);
 
-            // Handle NumberFieldAttribute
-            var numberAttr = prop.GetCustomAttribute<NumberFieldAttribute>();
-            if (numberAttr != null && IsNumericType(prop.PropertyType))
-            {
-                AddNumericField(builder, prop, numberAttr);
-                continue;
-            }
+                        if (textAreaAttr.MaxLength.HasValue)
+                        {
+                            field.WithMaxLength(textAreaAttr.MaxLength.Value,
+                                $"Must be no more than {textAreaAttr.MaxLength.Value} characters");
+                        }
 
-            // Handle DateFieldAttribute
-            var dateAttr = prop.GetCustomAttribute<DateFieldAttribute>();
-            if (dateAttr != null && (prop.PropertyType == typeof(DateTime) || prop.PropertyType == typeof(DateTime?)))
-            {
-                AddDateField(builder, prop, dateAttr);
-                continue;
-            }
+                        if (textAreaAttr.AutoResize)
+                            field.WithAttribute("auto-resize", true);
 
-            // Handle CheckboxFieldAttribute
-            var checkboxAttr = prop.GetCustomAttribute<CheckboxFieldAttribute>();
-            if (checkboxAttr != null && prop.PropertyType == typeof(bool))
-            {
-                var parameter = Expression.Parameter(typeof(TModel), "x");
-                var property = Expression.Property(parameter, prop);
-                var lambda = Expression.Lambda<Func<TModel, bool>>(property, parameter);
+                        ApplyValidationAttributes(field, prop, textAreaAttr.Label);
+                    });
+                    continue;
+                }
 
-                builder.AddField(lambda, field =>
+                // Handle NumberFieldAttribute
+                var numberAttr = prop.GetCustomAttribute<NumberFieldAttribute>();
+                if (numberAttr != null && IsNumericType(prop.PropertyType))
                 {
-                    field.WithLabel(checkboxAttr.Label);
+                    AddNumericField(builder, prop, numberAttr);
+                    continue;
+                }
 
-                    if (!string.IsNullOrEmpty(checkboxAttr.Text))
-                        field.WithAttribute("text", checkboxAttr.Text);
+                // Handle DateFieldAttribute
+                var dateAttr = prop.GetCustomAttribute<DateFieldAttribute>();
+                if (dateAttr != null && (prop.PropertyType == typeof(DateTime) || prop.PropertyType == typeof(DateTime?)))
+                {
+                    AddDateField(builder, prop, dateAttr);
+                    continue;
+                }
 
-                    if (checkboxAttr.DefaultChecked)
-                        field.WithAttribute("default-checked", true);
-                });
-                continue;
+                // Handle CheckboxFieldAttribute
+                var checkboxAttr = prop.GetCustomAttribute<CheckboxFieldAttribute>();
+                if (checkboxAttr != null && prop.PropertyType == typeof(bool))
+                {
+                    var parameter = Expression.Parameter(typeof(TModel), "x");
+                    var property = Expression.Property(parameter, prop);
+                    var lambda = Expression.Lambda<Func<TModel, bool>>(property, parameter);
+
+                    builder.AddField(lambda, field =>
+                    {
+                        field.WithLabel(checkboxAttr.Label);
+
+                        if (!string.IsNullOrEmpty(checkboxAttr.Text))
+                            field.WithAttribute("text", checkboxAttr.Text);
+
+                        if (checkboxAttr.DefaultChecked)
+                            field.WithAttribute("default-checked", true);
+                    });
+                    continue;
+                }
+
+                // Handle SelectFieldAttribute
+                var selectAttr = prop.GetCustomAttribute<SelectFieldAttribute>();
+                if (selectAttr != null)
+                {
+                    AddSelectField(builder, prop, selectAttr);
+                }
             }
 
-            // Handle SelectFieldAttribute
-            var selectAttr = prop.GetCustomAttribute<SelectFieldAttribute>();
-            if (selectAttr != null)
-            {
-                AddSelectField(builder, prop, selectAttr);
-            }
+            return builder;
         }
-
-        return builder;
     }
 
     private static void AddStringField<TModel>(FormBuilder<TModel> builder, PropertyInfo prop,

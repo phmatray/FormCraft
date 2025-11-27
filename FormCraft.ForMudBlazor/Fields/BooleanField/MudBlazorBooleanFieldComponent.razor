@@ -6,7 +6,8 @@
 <MudSwitch
     T="bool"
     Label="@Label"
-    @bind-Value="@CurrentValue"
+    Value="@CurrentValue"
+    ValueChanged="@HandleValueChanged"
     ReadOnly="@IsReadOnly"
     Disabled="@IsDisabled"
     Color="Color.Primary" />

@@ -23,8 +23,11 @@ public partial class MudBlazorDateTimeFieldComponent<TModel>
         OpenOnFocus = GetAttribute("OpenOnFocus", true);
     }
 
-    private void HandleDateChanged(DateTime? date)
+    private async Task HandleDateChanged(DateTime? date)
     {
-        CurrentValue = date ?? default;
+        var value = date ?? default;
+        // Update local state FIRST to prevent race condition during parent re-render
+        SetValueWithoutNotification(value);
+        await Context.OnValueChanged.InvokeAsync(value);
     }
 }
