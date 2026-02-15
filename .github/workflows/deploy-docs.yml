@@ -50,7 +50,7 @@ jobs:
           echo "Optional: Add your custom domain here" > release/wwwroot/CNAME || true
         
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: release/wwwroot
 
