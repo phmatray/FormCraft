@@ -21,7 +21,7 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     
     <!-- Development tools -->
-    <PackageVersion Include="Nuke.Common" Version="9.0.4" />
+    <PackageVersion Include="Nuke.Common" Version="10.1.0" />
     <PackageVersion Include="Octokit" Version="14.0.0" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
     
