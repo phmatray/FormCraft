@@ -27,7 +27,7 @@
     
     <!-- Code quality -->
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
-    <PackageVersion Include="Markdig" Version="0.41.3" />
+    <PackageVersion Include="Markdig" Version="0.45.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Http" Version="2.3.9" />
     
     <!-- Versioning -->
