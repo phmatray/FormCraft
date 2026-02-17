@@ -32,7 +32,7 @@
     
     <!-- Versioning -->
     <PackageVersion Include="GitVersion.MsBuild" Version="6.6.0" />
-    <PackageVersion Include="MinVer" Version="6.1.0" />
+    <PackageVersion Include="MinVer" Version="7.0.0" />
   </ItemGroup>
   
   <!-- .NET 8.0 packages -->
