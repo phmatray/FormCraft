@@ -2,6 +2,8 @@
 @inject IVersionService VersionService
 @inject NavigationManager Navigation
 
+<FormCraft.DemoBlazorApp.Components.Shared.SeoHelper />
+
 <MudThemeProvider Theme="_theme" IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
@@ -92,6 +94,9 @@
                 </MudNavLink>
                 <MudNavLink Href="security-demo" Icon="@Icons.Material.Filled.Security">
                     Security Features
+                </MudNavLink>
+                <MudNavLink Href="screenshot-demo" Icon="@Icons.Material.Filled.CameraAlt">
+                    Screenshot Demo
                 </MudNavLink>
             </MudNavGroup>
             

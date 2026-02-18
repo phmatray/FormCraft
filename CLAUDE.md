@@ -13,6 +13,9 @@ dotnet build
 # Build in Release mode
 dotnet build --configuration Release
 
+# Build with warnings as errors (for CI quality checks)
+dotnet build /p:TreatWarningsAsErrors=true
+
 # Create local NuGet package
 ./pack-local.sh  # macOS/Linux
 ./pack-local.ps1 # Windows
@@ -32,6 +35,9 @@ dotnet test --collect:"XPlat Code Coverage"
 # Run specific test class or method
 dotnet test --filter "FullyQualifiedName~FormBuilderTests"
 dotnet test --filter "DisplayName~Should_Build_Valid_Configuration"
+
+# Run tests for a specific category
+dotnet test --filter "Category=Integration"
 ```
 
 ### Running the Demo Application
@@ -39,104 +45,128 @@ dotnet test --filter "DisplayName~Should_Build_Valid_Configuration"
 cd FormCraft.DemoBlazorApp
 dotnet run
 # Navigate to https://localhost:5001
-```
 
-### Linting and Code Quality
-The project uses .NET's built-in code analysis. Ensure code follows C# conventions and passes all analyzers:
-```bash
-dotnet build /p:TreatWarningsAsErrors=true
+# Run with hot reload
+dotnet watch run
 ```
 
 ### NUKE Build System
-The project includes a NUKE build automation system:
 ```bash
 # Run NUKE build (macOS/Linux)
 ./build.sh
 
 # Run NUKE build (Windows)
 ./build.ps1
+
+# Run specific NUKE targets
+./build.sh --target Clean
+./build.sh --target Compile
+./build.sh --target Test
 ```
+
+### Version Management
+The project uses GitVersion for automatic versioning based on git history:
+- Main branch: Release versions
+- Develop branch: Alpha versions with minor increments
+- Release branches: Beta versions
+- Feature branches: Use branch name as tag
 
 ## High-Level Architecture
 
 ### Project Structure
-- **FormCraft/** - Main library providing fluent API for dynamic form generation in Blazor
-- **FormCraft.DemoBlazorApp/** - Interactive demo showcasing library features
-- **FormCraft.UnitTests/** - Comprehensive test suite using xUnit, bUnit, FakeItEasy, and Shouldly
+- **FormCraft/** - Core library providing fluent API for dynamic form generation
+  - `/Forms` - Core form building logic and abstractions
+  - `/Components` - Base component classes
+- **FormCraft.ForMudBlazor/** - MudBlazor UI framework adapter
+  - `/Features` - Feature-based organization (each field type in its folder)
+  - `/Extensions` - DI registration and extension methods
+- **FormCraft.DemoBlazorApp/** - Interactive demo and documentation site
+- **FormCraft.UnitTests/** - Test suite using xUnit, bUnit, FakeItEasy, and Shouldly
 
 ### Core Design Patterns
 
-1. **Fluent Builder Pattern**: The entire API revolves around method chaining
-   - Entry point: `FormBuilder<TModel>.Create()`
-   - Field configuration: `.AddField(x => x.Property, field => field.WithLabel("Label"))`
-   - Group management: `.AddFieldGroup(group => group.AddField(...))`
+1. **Fluent Builder Pattern**: Method chaining for form configuration
+   ```csharp
+   FormBuilder<TModel>.Create()
+       .AddField(x => x.Property, field => field
+           .WithLabel("Label")
+           .Required()
+           .WithValidator(...))
+       .Build()
+   ```
 
-2. **Rendering Pipeline**: Type-based renderer selection
-   - `IFieldRendererService` manages renderer registry
-   - Renderers implement `IFieldRenderer` for each supported type
-   - Custom renderers can be registered via DI
+2. **Rendering Pipeline**: Modular, type-based renderer system
+   - `IFieldRendererService` - Central registry for field renderers
+   - `IFieldRenderer` - Interface for type-specific renderers
+   - `FieldComponentBase<TModel, TValue>` - Base class for field components
+   - Renderers check `CanRender()` to determine if they handle a field type
 
-3. **Validation Architecture**: Pluggable validation system
-   - Built-in validators: `RequiredValidator`, `CustomValidator`, `AsyncValidator`
-   - Integration with FluentValidation via `DynamicFormValidator`
-   - Validators implement `IFieldValidator`
+3. **UI Framework Abstraction**: Pluggable UI framework support
+   - `IUIFrameworkAdapter` - Abstraction for UI framework integration
+   - `MudBlazorUIFrameworkAdapter` - MudBlazor implementation
+   - `FormCraftComponent<TModel>` - Main form container component
 
-4. **Dependency System**: Reactive field updates
-   - Fields can depend on other fields via `DependsOn()`
-   - Dependencies trigger visibility/value updates
-   - Managed through `IFieldDependency<TModel>`
+4. **Validation Architecture**: Multi-layer validation system
+   - `IFieldValidator<TModel, TValue>` - Field-level validation interface
+   - `RequiredValidator`, `CustomValidator`, `AsyncValidator` - Built-in validators
+   - `DynamicFormValidator<TModel>` - Integrates with Blazor's EditContext
+   - Browser validation disabled via JavaScript `novalidate` attribute
 
-### Key Extension Points
-- Custom field renderers: Implement `IFieldRenderer` or extend `CustomFieldRendererBase<T>`
-- Custom validators: Implement `IFieldValidator<TModel, TValue>`
-- Form templates: Extend `FormTemplates` class
-- Field types: Add new renderers to `FieldRendererService`
+5. **Field Dependencies**: Reactive field relationships
+   - `IFieldDependency<TModel>` - Dependency interface
+   - `DependsOn()` - Creates field dependencies
+   - `VisibleWhen()` - Conditional visibility
+   - Dependencies stored in `IFormConfiguration.FieldDependencies`
 
-### Important Conventions
-- All public APIs use fluent interfaces returning `this` for chaining
-- Field configurations are immutable once built
-- Validation happens at both field and form levels
-- MudBlazor components are used for all UI elements
-- Follow Conventional Commits (feat:, fix:, docs:, etc.)
-- Changelog is auto-generated via git-cliff
+### Field Rendering Architecture
 
-### Validation Behavior
-- The `Required()` method adds validation but does NOT set HTML5 required attribute
-- Browser validation is disabled in favor of FluentValidation
-- The form has `novalidate` attribute added via JavaScript to prevent browser validation
-- All validation is handled through FluentValidation validators
-- Validation messages come from FluentValidation, not the browser
-- MudBlazor field components do not include the `Required` attribute
+The `FormCraftComponent` renders fields using a refactored approach:
+- `RenderField()` - Main dispatcher method
+- Type-specific render methods: `RenderTextField()`, `RenderNumericField<T>()`, etc.
+- `AddCommonFieldAttributes()` - Shared attribute logic
+- Fields with options render as select/dropdown (checked before type-based rendering)
+
+### Key Conventions
+
+- **API Design**: All fluent methods return builder instance for chaining
+- **Immutability**: Configurations are immutable after `.Build()`
+- **Component Structure**: Feature-based folders containing both `.razor` and `.cs` files
+- **Validation Messages**: Multiple validators can add separate messages (displayed with proper spacing)
+- **Field Selection**: Options check happens before type check to ensure dropdowns render correctly
+- **Null Safety**: Nullable reference types enabled project-wide
+
+### Important Technical Details
+
+- **AddField Syntax**: Always use lambda configuration: `.AddField(x => x.Prop, field => field.WithLabel(...))`
+- **Service Registration**: Call both `AddFormCraft()` and `AddFormCraftMudBlazor()` in DI
+- **Browser Validation**: Disabled via JavaScript to use FluentValidation exclusively
+- **Field Components**: Inherit from `FieldComponentBase<TModel, TValue>`
+- **Custom Renderers**: Implement `IFieldRenderer` or extend type-specific base classes
+- **Validation Messages**: Use `d-block` CSS class for proper spacing between messages
 
 ### Common Development Patterns
 
-#### Adding a Custom Field Renderer
+#### Adding a New Field Type
+1. Create feature folder: `/Features/MyFieldType/`
+2. Add component: `MudBlazorMyFieldComponent.razor`
+3. Add renderer: `MudBlazorMyFieldRenderer.cs`
+4. Register in `ServiceCollectionExtensions.cs`
+
+#### Creating Form Templates
 ```csharp
-public class MyCustomRenderer : CustomFieldRendererBase<MyType>
+public static class FormTemplates
 {
-    protected override RenderFragment RenderField(IFieldRenderContext<MyType> context)
+    public static IFormConfiguration<T> CreateTemplate<T>() where T : new()
     {
-        // Return RenderFragment with MudBlazor components
+        return FormBuilder<T>.Create()
+            // Add common fields
+            .Build();
     }
 }
-
-// Register in DI or use inline:
-.WithCustomRenderer(new MyCustomRenderer())
 ```
 
-#### Creating Reusable Field Configurations
+#### Custom Validation with Dependencies
 ```csharp
-public static class MyFormExtensions
-{
-    public static FormBuilder<TModel> AddCustomField<TModel>(
-        this FormBuilder<TModel> builder,
-        Expression<Func<TModel, string>> propertyExpression)
-        where TModel : new()
-    {
-        return builder.AddField(propertyExpression, field => field
-            .WithLabel("Custom Label")
-            .WithPlaceholder("Enter value...")
-            .Required());
-    }
-}
+.AddField(x => x.ConfirmPassword, field => field
+    .WithValidator((value, model) => value == model.Password, "Passwords must match"))
 ```
