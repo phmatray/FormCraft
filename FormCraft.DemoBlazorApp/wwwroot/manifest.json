@@ -1,0 +1,23 @@
+{
+  "name": "FormCraft - Dynamic Form Builder for Blazor",
+  "short_name": "FormCraft",
+  "description": "Build type-safe, dynamic forms in Blazor with fluent API design",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1976d2",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "categories": ["developer", "productivity", "utilities"]
+}

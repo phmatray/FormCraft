@@ -1,4 +1,24 @@
 User-agent: *
 Allow: /
+Disallow: /_framework/
+Disallow: /_content/
 
+# Sitemap
+Sitemap: https://phmatray.github.io/FormCraft/sitemap.xml
 Sitemap: https://phmatray.github.io/FormCraft/sitemap.txt
+
+# Crawl-delay
+Crawl-delay: 1
+
+# Additional search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /

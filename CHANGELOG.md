@@ -4,9 +4,38 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-01-06
+
+### ✨ Features
+
+- Add comprehensive security features including field-level encryption, CSRF protection, rate limiting, and audit logging
+- Implement modular architecture with separate UI framework packages
+- Create FormCraft.ForMudBlazor package for MudBlazor integration
+- Add support for security configuration via fluent API
+
+### 🚨 Breaking Changes
+
+- Move MudBlazor components to FormCraft.ForMudBlazor package
+- Update namespace from FormCraft.Components to FormCraft.ForMudBlazor
+- Add generic constraint requiring parameterless constructor for models
+
+### 🐛 Bug Fixes
+
+- Fix browser compatibility issues with AES encryption by implementing XOR cipher
+- Resolve dependency injection issues with custom renderers
+- Fix failing audit log tests with proper FakeItEasy assertions
+
+### 📚 Documentation
+
+- Add comprehensive security features documentation
+- Update README with v2.0.0 features and installation instructions
+- Add security demo page showcasing all security features
+
 ### 🔧 Miscellaneous Tasks
 
 - Update dependency octokit to v14 ([b0b42c7](https://github.com/phmatray/FormCraft/commit/b0b42c7adec99a9c769e0cd5decc91eac0a9380b))
+- Update build scripts to handle both FormCraft and FormCraft.ForMudBlazor packages
+- Add package metadata and best practices for NuGet publishing
 
 ## [1.3.1] - 2025-06-08
 

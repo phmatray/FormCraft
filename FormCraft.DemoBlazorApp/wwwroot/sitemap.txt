@@ -6,8 +6,10 @@ https://phmatray.github.io/FormCraft/fluent
 https://phmatray.github.io/FormCraft/field-groups
 https://phmatray.github.io/FormCraft/custom-renderers
 https://phmatray.github.io/FormCraft/file-upload
+https://phmatray.github.io/FormCraft/security
 https://phmatray.github.io/FormCraft/docs/getting-started
 https://phmatray.github.io/FormCraft/docs/api-reference
 https://phmatray.github.io/FormCraft/docs/examples
 https://phmatray.github.io/FormCraft/docs/customization
 https://phmatray.github.io/FormCraft/docs/troubleshooting
+https://phmatray.github.io/FormCraft/docs/security
