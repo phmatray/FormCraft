@@ -1,0 +1,72 @@
+@implements IDisposable
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+@code {
+    private Dictionary<string, (string Title, string Description)> pageMetadata = new()
+    {
+        { "/", ("FormCraft - Dynamic Form Builder for Blazor", "Build type-safe, dynamic forms in Blazor with fluent API design. Features MudBlazor integration, advanced validation, and field dependencies.") },
+        { "/home", ("Home - FormCraft Demo", "Interactive demo of FormCraft, a powerful form builder for Blazor applications. See live examples and explore features.") },
+        { "/simplified", ("Simplified Form Example - FormCraft", "See how FormCraft simplifies form creation in Blazor with minimal code and maximum functionality.") },
+        { "/improved", ("Improved Form Features - FormCraft", "Explore advanced FormCraft features including validation, field dependencies, and dynamic updates.") },
+        { "/fluent", ("Fluent API Demo - FormCraft", "Learn how to use FormCraft's fluent API to build complex forms with elegant, readable code.") },
+        { "/field-groups", ("Field Groups - FormCraft", "Organize your forms with field groups. Create structured layouts with cards and columns.") },
+        { "/custom-renderers", ("Custom Field Renderers - FormCraft", "Extend FormCraft with custom field renderers. Create specialized input controls for your specific needs.") },
+        { "/file-upload", ("File Upload Demo - FormCraft", "Handle file uploads in your Blazor forms with FormCraft's built-in file upload support.") },
+        { "/security", ("Security Features - FormCraft", "Protect your forms with encryption, CSRF protection, rate limiting, and audit logging.") },
+        { "/docs/getting-started", ("Getting Started - FormCraft Documentation", "Quick start guide for FormCraft. Learn how to install, configure, and create your first dynamic form in Blazor.") },
+        { "/docs/api-reference", ("API Reference - FormCraft Documentation", "Complete API reference for FormCraft. Explore all available methods, properties, and configuration options.") },
+        { "/docs/examples", ("Examples - FormCraft Documentation", "Real-world examples of FormCraft usage. From simple forms to complex scenarios with validation and dependencies.") },
+        { "/docs/customization", ("Customization Guide - FormCraft Documentation", "Learn how to customize FormCraft to fit your needs. Custom renderers, validators, and UI frameworks.") },
+        { "/docs/troubleshooting", ("Troubleshooting - FormCraft Documentation", "Common issues and solutions when using FormCraft. Debug tips and best practices.") },
+        { "/docs/security", ("Security Guide - FormCraft Documentation", "Comprehensive guide to FormCraft's security features including encryption, CSRF protection, and audit logging.") }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+        await UpdateMetaTags(Navigation.Uri);
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        try
+        {
+            await UpdateMetaTags(e.Location);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating meta tags: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateMetaTags(string url)
+    {
+        var uri = new Uri(url);
+        var path = uri.LocalPath.TrimEnd('/');
+        
+        // Handle GitHub Pages subdirectory
+        if (path.StartsWith("/FormCraft"))
+        {
+            path = path.Substring("/FormCraft".Length);
+        }
+        
+        if (string.IsNullOrEmpty(path))
+        {
+            path = "/";
+        }
+
+        if (pageMetadata.TryGetValue(path, out var metadata))
+        {
+            await JSRuntime.InvokeVoidAsync("seoHelper.updateMetaTags", 
+                metadata.Title, 
+                metadata.Description, 
+                url);
+        }
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}
