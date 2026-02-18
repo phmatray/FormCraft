@@ -8,28 +8,47 @@ Create your own field renderers for specialized input types.
 
 ### Creating a Custom Renderer
 
-Implement the `IFieldRenderer` interface:
+Extend the `CustomFieldRendererBase<TValue>` base class:
+
+```csharp
+public class ColorPickerRenderer : CustomFieldRendererBase<string>
+{
+    public override RenderFragment Render(IFieldRenderContext context)
+    {
+        return builder =>
+        {
+            var value = GetValue(context) ?? "#000000";
+
+            builder.OpenComponent<MudColorPicker>(0);
+            builder.AddAttribute(1, "Label", context.Field.Label);
+            builder.AddAttribute(2, "Value", value);
+            builder.AddAttribute(3, "ValueChanged", EventCallback.Factory.Create<string>(
+                this, async newValue => await SetValue(context, newValue)));
+            builder.CloseComponent();
+        };
+    }
+}
+```
+
+Or implement `IFieldRenderer` directly:
 
 ```csharp
 public class CustomFieldRenderer : IFieldRenderer
 {
-    public bool CanRender(Type fieldType, string? fieldSubType = null)
+    public bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
     {
         return fieldType == typeof(MyCustomType);
     }
 
-    public void RenderField(
-        RenderTreeBuilder builder, 
-        object model, 
-        IFieldConfiguration<object, object> field, 
-        EventCallback<object?> onValueChanged,
-        EventCallback onDependencyChanged)
+    public RenderFragment Render<TModel>(IFieldRenderContext<TModel> context)
     {
-        // Your custom rendering logic here
-        builder.OpenComponent<MyCustomComponent>(0);
-        builder.AddAttribute(1, "Value", field.GetValue(model));
-        builder.AddAttribute(2, "ValueChanged", onValueChanged);
-        builder.CloseComponent();
+        return builder =>
+        {
+            builder.OpenComponent<MyCustomComponent>(0);
+            builder.AddAttribute(1, "Value", context.CurrentValue);
+            builder.AddAttribute(2, "ValueChanged", context.OnValueChanged);
+            builder.CloseComponent();
+        };
     }
 }
 ```
@@ -73,8 +92,16 @@ public class BusinessRuleValidator<TModel> : IFieldValidator<TModel, string>
 ### Using Custom Validators
 
 ```csharp
+// Create validator instance (or get from DI)
+var validator = new BusinessRuleValidator<MyModel>();
+
 .AddField(x => x.BusinessCode, field => field
-    .WithValidator<BusinessRuleValidator<MyModel>>())
+    .WithValidator(validator))
+
+// Or inject via service provider
+var validator = serviceProvider.GetRequiredService<BusinessRuleValidator<MyModel>>();
+.AddField(x => x.BusinessCode, field => field
+    .WithValidator(validator))
 ```
 
 ## Custom Themes
@@ -148,13 +175,21 @@ public static string GetCustomLayoutClass(MyCustomLayout layout)
 
 ### Field Groups
 
-Organize fields into logical groups:
+Organize fields into logical groups using `AddFieldGroup`:
 
 ```csharp
-.AddField(x => x.PersonalInfo, field => field
-    .WithGroup("Personal Information"))
-.AddField(x => x.ContactInfo, field => field
-    .WithGroup("Contact Details"))
+.AddFieldGroup(group => group
+    .WithGroupName("Personal Information")
+    .WithColumns(2)
+    .ShowInCard()
+    .AddField(x => x.FirstName, f => f.WithLabel("First Name"))
+    .AddField(x => x.LastName, f => f.WithLabel("Last Name")))
+.AddFieldGroup(group => group
+    .WithGroupName("Contact Details")
+    .WithColumns(1)
+    .ShowInCard()
+    .AddField(x => x.Email, f => f.WithLabel("Email"))
+    .AddField(x => x.Phone, f => f.WithLabel("Phone")))
 ```
 
 ## Advanced Customization

@@ -1,0 +1,215 @@
+@page "/error-handling"
+
+<DemoPageLayout
+    DemoId="error-handling"
+    Title="Error Handling Patterns"
+    Icon="@Icons.Material.Filled.ErrorOutline"
+    Description="Learn how to handle validation errors, async failures, and form submission errors gracefully."
+    FormDemoIcon="@Icons.Material.Filled.Warning">
+    <FormDemoContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Typo="Typo.h5" GutterBottom="true" Class="d-flex align-items-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Science" Class="me-2" />
+                    Error Handling Scenarios
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                    Test different error scenarios to see how FormCraft handles them. Each scenario demonstrates a different error pattern.
+                </MudText>
+            </MudItem>
+
+            @* Validation Errors Section *@
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudAvatar Color="Color.Error">
+                                <MudIcon Icon="@Icons.Material.Filled.ReportProblem" />
+                            </MudAvatar>
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Validation Errors</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Field-level validation feedback</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText Typo="Typo.body2" Class="mb-3">
+                            Try submitting with invalid data to see validation messages.
+                        </MudText>
+                        <FormCraftComponent TModel="ValidationErrorModel"
+                                           Model="@_validationModel"
+                                           Configuration="@_validationConfig"
+                                           OnValidSubmit="@HandleValidationSubmit"
+                                           ShowSubmitButton="true"
+                                           SubmitButtonText="Submit" />
+
+                        @if (_validationSubmitted)
+                        {
+                            <MudAlert Severity="Severity.Success" Class="mt-3">
+                                Form submitted successfully!
+                            </MudAlert>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            @* Async Validation Errors Section *@
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudAvatar Color="Color.Warning">
+                                <MudIcon Icon="@Icons.Material.Filled.CloudOff" />
+                            </MudAvatar>
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Async Validation</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Server-side validation simulation</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText Typo="Typo.body2" Class="mb-3">
+                            Try "taken@email.com" or "admin" to see async validation errors.
+                        </MudText>
+                        <FormCraftComponent TModel="AsyncValidationModel"
+                                           Model="@_asyncModel"
+                                           Configuration="@_asyncConfig"
+                                           OnValidSubmit="@HandleAsyncSubmit"
+                                           ShowSubmitButton="true"
+                                           SubmitButtonText="Check Availability" />
+
+                        @if (_asyncSubmitted)
+                        {
+                            <MudAlert Severity="Severity.Success" Class="mt-3">
+                                Username and email are available!
+                            </MudAlert>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            @* Form Submission Error Section *@
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudAvatar Color="Color.Error">
+                                <MudIcon Icon="@Icons.Material.Filled.WifiOff" />
+                            </MudAvatar>
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Submission Errors</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Network and server error handling</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText Typo="Typo.body2" Class="mb-3">
+                            Toggle the switch to simulate a network error during submission.
+                        </MudText>
+
+                        <MudSwitch @bind-Value="_simulateNetworkError" Color="Color.Error" Class="mb-3">
+                            Simulate Network Error
+                        </MudSwitch>
+
+                        <FormCraftComponent TModel="SubmissionModel"
+                                           Model="@_submissionModel"
+                                           Configuration="@_submissionConfig"
+                                           OnValidSubmit="@HandleSubmissionWithError"
+                                           ShowSubmitButton="true"
+                                           IsSubmitting="@_isSubmitting"
+                                           SubmitButtonText="Submit Order"
+                                           SubmittingText="Processing..." />
+
+                        @if (_submissionError != null)
+                        {
+                            <MudAlert Severity="Severity.Error" Class="mt-3" ShowCloseIcon="true" CloseIconClicked="() => _submissionError = null">
+                                @_submissionError
+                            </MudAlert>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Refresh"
+                                       OnClick="RetrySubmission" Class="mt-2">
+                                Retry
+                            </MudButton>
+                        }
+
+                        @if (_submissionSuccess)
+                        {
+                            <MudAlert Severity="Severity.Success" Class="mt-3">
+                                Order submitted successfully!
+                            </MudAlert>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            @* Recovery Patterns Section *@
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudAvatar Color="Color.Success">
+                                <MudIcon Icon="@Icons.Material.Filled.HealthAndSafety" />
+                            </MudAvatar>
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Recovery Patterns</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Auto-retry and state persistence</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText Typo="Typo.body2" Class="mb-3">
+                            Demonstrates auto-retry on failure. First 2 attempts will fail.
+                        </MudText>
+
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            <strong>Retry count:</strong> @_retryCount / @_maxRetries
+                        </MudText>
+
+                        @if (_retryCount > 0)
+                        {
+                            <MudProgressLinear Value="@((double)_retryCount / _maxRetries * 100)" Color="Color.Warning" Class="mb-3" />
+                        }
+
+                        <FormCraftComponent TModel="RecoveryModel"
+                                           Model="@_recoveryModel"
+                                           Configuration="@_recoveryConfig"
+                                           OnValidSubmit="@HandleRecoverySubmit"
+                                           ShowSubmitButton="true"
+                                           IsSubmitting="@_isRecovering"
+                                           SubmitButtonText="Submit with Auto-Retry"
+                                           SubmittingText="@(_retryCount > 0 ? $"Retrying ({_retryCount}/{_maxRetries})..." : "Submitting...")" />
+
+                        @if (_recoverySuccess)
+                        {
+                            <MudAlert Severity="Severity.Success" Class="mt-3">
+                                <MudText>Operation succeeded after @_retryCount attempts!</MudText>
+                            </MudAlert>
+                        }
+
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ResetRecovery" Class="mt-2">
+                            Reset Demo
+                        </MudButton>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            @* Best Practices Section *@
+            <MudItem xs="12">
+                <WhenToUseCard Text="@Documentation.WhenToUse" />
+                <CommonPitfallsCard Pitfalls="@Documentation.CommonPitfalls" />
+            </MudItem>
+        </MudGrid>
+    </FormDemoContent>
+
+    <CodeExampleContent>
+        <CodeExample
+            Title="Error Handling Patterns"
+            Language="csharp"
+            Code="@GetErrorHandlingCode()" />
+    </CodeExampleContent>
+
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Error Handling Guidelines"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>

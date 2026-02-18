@@ -75,10 +75,10 @@ public partial class AsyncValueProviderDemo : ComponentBase
         ],
         ApiGuidelines =
         [
-            new() { Feature = "WithAsyncOptionsProvider()", Usage = "Load dropdown options asynchronously", Example = ".WithAsyncOptionsProvider(async (m, s) => await api.GetOptions())" },
-            new() { Feature = "WithAsyncValueProvider()", Usage = "Compute value from async source", Example = ".WithAsyncValueProvider(async (m, s) => await api.GetDefault())" },
-            new() { Feature = "WithAsyncValidator()", Usage = "Validate against external service", Example = ".WithAsyncValidator(async (v, s) => await api.Validate(v))" },
             new() { Feature = "DependsOn with Async", Usage = "Trigger async load on dependency change", Example = ".DependsOn(x => x.Country, async (m, c) => await LoadStates(c))" },
+            new() { Feature = "WithSelectOptions()", Usage = "Set dropdown options dynamically", Example = ".WithSelectOptions(await GetOptionsAsync())" },
+            new() { Feature = "WithAsyncValidator()", Usage = "Validate against external service", Example = ".WithAsyncValidator(async v => await api.IsValid(v), \"Error\")" },
+            new() { Feature = "StateHasChanged()", Usage = "Refresh UI after async operations", Example = "await LoadData(); StateHasChanged();" },
             new() { Feature = "Loading States", Usage = "Show loading indicators", Example = "Track IsLoading property in component" },
             new() { Feature = "Error Handling", Usage = "Handle API failures gracefully", Example = "try/catch with fallback options" }
         ],

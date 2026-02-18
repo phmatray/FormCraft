@@ -34,9 +34,9 @@ public partial class ComplexDependenciesDemo : ComponentBase
         ApiGuidelines =
         [
             new() { Feature = "DependsOn()", Usage = "React to another field's changes", Example = ".DependsOn(x => x.Category, (m, v) => UpdateProducts(m, v))" },
-            new() { Feature = "WithValueProvider()", Usage = "Compute field value from model", Example = ".WithValueProvider((m, _) => m.Quantity * m.UnitPrice)" },
-            new() { Feature = "WithVisibilityProvider()", Usage = "Show/hide based on conditions", Example = ".WithVisibilityProvider(m => m.Category != null)" },
-            new() { Feature = "WithOptionsProvider()", Usage = "Dynamic dropdown options", Example = ".WithOptionsProvider((m, _) => GetProductsForCategory(m))" },
+            new() { Feature = "VisibleWhen()", Usage = "Show/hide based on conditions", Example = ".VisibleWhen(m => m.Category != null)" },
+            new() { Feature = "WithSelectOptions()", Usage = "Dynamic dropdown options", Example = ".WithSelectOptions([new(\"opt1\", \"Option 1\")])" },
+            new() { Feature = "Callback Pattern", Usage = "Update model in callback", Example = ".DependsOn(x => x.A, (m, v) => { m.B = Calculate(v); })" },
             new() { Feature = "Chain Dependencies", Usage = "Multiple DependsOn calls", Example = ".DependsOn(x => x.A, ...).DependsOn(x => x.B, ...)" },
             new() { Feature = "ReadOnly()", Usage = "Prevent editing computed fields", Example = ".ReadOnly() // For calculated totals" }
         ],

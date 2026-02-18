@@ -1,0 +1,169 @@
+@page "/templates"
+
+<DemoPageLayout
+    DemoId="templates-gallery"
+    Title="Form Templates Gallery"
+    Icon="@Icons.Material.Filled.Dashboard"
+    Description="Ready-to-use form templates for common scenarios. Copy and customize these templates to accelerate your development."
+    FormDemoIcon="@Icons.Material.Filled.CollectionsBookmark">
+    <FormDemoContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Typo="Typo.h5" GutterBottom="true" Class="d-flex align-items-center">
+                    <MudIcon Icon="@Icons.Material.Filled.CollectionsBookmark" Class="me-2" />
+                    Select a Template
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                    Choose from pre-built templates below. Each template demonstrates best practices for common form patterns.
+                </MudText>
+            </MudItem>
+
+            @foreach (var template in _templates)
+            {
+                <MudItem xs="12" md="6" lg="4">
+                    <MudCard Class="@($"template-card h-100 {(_selectedTemplate == template.Id ? "selected" : "")}")"
+                             @onclick="() => SelectTemplate(template.Id)">
+                        <MudCardHeader>
+                            <CardHeaderAvatar>
+                                <MudAvatar Color="@template.Color" Size="Size.Large">
+                                    <MudIcon Icon="@template.Icon" />
+                                </MudAvatar>
+                            </CardHeaderAvatar>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">@template.Name</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@template.Category</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudText Typo="Typo.body2">@template.Description</MudText>
+                            <MudChipSet T="string" Class="mt-2">
+                                @foreach (var tag in template.Tags)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@tag</MudChip>
+                                }
+                            </MudChipSet>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton StartIcon="@Icons.Material.Filled.Visibility"
+                                       Color="Color.Primary"
+                                       Variant="Variant.Text"
+                                       OnClick="() => SelectTemplate(template.Id)">
+                                Preview
+                            </MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+
+            @if (!string.IsNullOrEmpty(_selectedTemplate))
+            {
+                <MudItem xs="12">
+                    <MudDivider Class="my-4" />
+                    <MudText Typo="Typo.h5" GutterBottom="true" Class="d-flex align-items-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Preview" Class="me-2" />
+                        Template Preview: @_templates.First(t => t.Id == _selectedTemplate).Name
+                    </MudText>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4" Elevation="2">
+                        @switch (_selectedTemplate)
+                        {
+                            case "login":
+                                <FormCraftComponent TModel="LoginModel"
+                                                   Model="@_loginModel"
+                                                   Configuration="@_loginConfig"
+                                                   OnValidSubmit="@HandleLoginSubmit"
+                                                   ShowSubmitButton="true"
+                                                   SubmitButtonText="Sign In" />
+                                break;
+                            case "registration":
+                                <FormCraftComponent TModel="RegistrationModel"
+                                                   Model="@_registrationModel"
+                                                   Configuration="@_registrationConfig"
+                                                   OnValidSubmit="@HandleRegistrationSubmit"
+                                                   ShowSubmitButton="true"
+                                                   SubmitButtonText="Create Account" />
+                                break;
+                            case "contact":
+                                <FormCraftComponent TModel="ContactFormModel"
+                                                   Model="@_contactModel"
+                                                   Configuration="@_contactConfig"
+                                                   OnValidSubmit="@HandleContactSubmit"
+                                                   ShowSubmitButton="true"
+                                                   SubmitButtonText="Send Message" />
+                                break;
+                            case "profile":
+                                <FormCraftComponent TModel="ProfileModel"
+                                                   Model="@_profileModel"
+                                                   Configuration="@_profileConfig"
+                                                   OnValidSubmit="@HandleProfileSubmit"
+                                                   ShowSubmitButton="true"
+                                                   SubmitButtonText="Save Profile" />
+                                break;
+                            case "checkout":
+                                <FormCraftComponent TModel="CheckoutModel"
+                                                   Model="@_checkoutModel"
+                                                   Configuration="@_checkoutConfig"
+                                                   OnValidSubmit="@HandleCheckoutSubmit"
+                                                   ShowSubmitButton="true"
+                                                   SubmitButtonText="Complete Order" />
+                                break;
+                            case "feedback":
+                                <FormCraftComponent TModel="FeedbackModel"
+                                                   Model="@_feedbackModel"
+                                                   Configuration="@_feedbackConfig"
+                                                   OnValidSubmit="@HandleFeedbackSubmit"
+                                                   ShowSubmitButton="true"
+                                                   SubmitButtonText="Submit Feedback" />
+                                break;
+                        }
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Code" Class="me-2" />
+                            Template Code
+                        </MudText>
+                        <MudElement HtmlTag="pre" Class="code-block pa-3 rounded" Style="overflow-x: auto; background: #1e1e1e;">
+                            <code style="color: #dcdcdc; font-size: 0.85rem;">@GetSelectedTemplateCode()</code>
+                        </MudElement>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    </FormDemoContent>
+
+    <CodeExampleContent>
+        <CodeExample
+            Title="Creating Reusable Templates"
+            Language="csharp"
+            Code="@GetTemplatePatternCode()" />
+    </CodeExampleContent>
+
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Template Best Practices"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>
+
+<style>
+    .template-card {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .template-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    .template-card.selected {
+        border: 2px solid var(--mud-palette-primary);
+    }
+    .code-block {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+</style>

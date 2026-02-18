@@ -134,9 +134,14 @@ public class UserRegistration
             .AddRequiredTextField(x => x.LastName, "Last Name")
             .AddEmailField(x => x.Email)
             .AddNumericField(x => x.Age, "Age", min: 18, max: 120)
-            .AddSelectField(x => x.Country, "Country", GetCountries())
-            .AddCheckboxField(x => x.AcceptTerms, "I accept the terms and conditions")
-                .IsRequired("You must accept the terms")
+            .AddDropdownField(x => x.Country, "Country",
+                ("us", "United States"),
+                ("uk", "United Kingdom"),
+                ("ca", "Canada"),
+                ("au", "Australia"))
+            .AddField(x => x.AcceptTerms, field => field
+                .WithLabel("I accept the terms and conditions")
+                .WithValidator(value => value, "You must accept the terms"))
             .Build();
     }
 
@@ -145,14 +150,6 @@ public class UserRegistration
         // Handle form submission
         await UserService.RegisterAsync(model);
     }
-
-    private List<SelectOption<string>> GetCountries() => new()
-    {
-        new("us", "United States"),
-        new("uk", "United Kingdom"),
-        new("ca", "Canada"),
-        new("au", "Australia")
-    };
 }
 ```
 
@@ -271,19 +268,25 @@ var config = FormBuilder<User>.Create()
 
 ### Dynamic Field Dependencies
 
-Create forms where fields react to each other:
+Create forms where fields react to each other using `DependsOn` and `VisibleWhen`:
 
 ```csharp
 var formConfig = FormBuilder<OrderForm>.Create()
-    .AddSelectField(x => x.ProductType, "Product Type", productOptions)
-    .AddSelectField(x => x.ProductModel, "Model", 
-        dependsOn: x => x.ProductType,
-        optionsProvider: (productType) => GetModelsForType(productType))
+    .AddDropdownField(x => x.ProductType, "Product Type",
+        ("electronics", "Electronics"),
+        ("clothing", "Clothing"),
+        ("furniture", "Furniture"))
+    .AddField(x => x.ProductModel, field => field
+        .WithLabel("Model")
+        .DependsOn(x => x.ProductType, (model, productType) => {
+            // Clear model when product type changes
+            model.ProductModel = "";
+        })
+        .VisibleWhen(model => !string.IsNullOrEmpty(model.ProductType)))
     .AddNumericField(x => x.Quantity, "Quantity", min: 1)
-    .AddField(x => x.TotalPrice, "Total Price")
-        .IsReadOnly()
-        .DependsOn(x => x.ProductModel, x => x.Quantity)
-        .WithValueProvider((model, _) => CalculatePrice(model))
+    .AddField(x => x.TotalPrice, field => field
+        .WithLabel("Total Price")
+        .ReadOnly())  // Use computed property in model for calculated values
     .Build();
 ```
 
@@ -292,15 +295,17 @@ var formConfig = FormBuilder<OrderForm>.Create()
 Add complex validation logic with ease:
 
 ```csharp
-.AddField(x => x.Username)
-    .WithValidator(new CustomValidator<User, string>(
-        username => !forbiddenUsernames.Contains(username.ToLower()),
-        "This username is not available"))
-    .WithAsyncValidator(async (username, services) =>
-    {
-        var userService = services.GetRequiredService<IUserService>();
-        return await userService.IsUsernameAvailableAsync(username);
-    }, "Username is already taken")
+.AddField(x => x.Username, field => field
+    .WithLabel("Username")
+    .Required()
+    // Sync validation with custom function
+    .WithValidator(
+        username => !forbiddenUsernames.Contains(username?.ToLower() ?? ""),
+        "This username is not available")
+    // Async validation (returns bool, error message is second parameter)
+    .WithAsyncValidator(
+        async username => await userService.IsUsernameAvailableAsync(username),
+        "Username is already taken"))
 ```
 
 ### Multiple Layouts
@@ -314,37 +319,47 @@ Choose the layout that fits your design:
 // Horizontal Layout
 .WithLayout(FormLayout.Horizontal)
 
-// Grid Layout
-.WithLayout(FormLayout.Grid, columns: 2)
+// Grid Layout (use field groups for columns)
+.WithLayout(FormLayout.Grid)
 
 // Inline Layout
 .WithLayout(FormLayout.Inline)
+
+// For multi-column layouts, use Field Groups:
+.AddFieldGroup(group => group
+    .WithColumns(2)  // Two-column grid
+    .AddField(x => x.FirstName)
+    .AddField(x => x.LastName))
 ```
 
 ### Advanced Field Types
 
 ```csharp
-// Password field with confirmation
-.AddPasswordField(x => x.Password, "Password")
-    .WithHelpText("Must be at least 8 characters")
-.AddPasswordField(x => x.ConfirmPassword, "Confirm Password")
-    .MustMatch(x => x.Password, "Passwords do not match")
+// Password field with validation
+.AddPasswordField(x => x.Password, "Password", minLength: 8, requireSpecialChars: true)
 
-// Date picker with constraints
-.AddDateField(x => x.BirthDate, "Date of Birth")
-    .WithMaxDate(DateTime.Today.AddYears(-18))
-    .WithHelpText("Must be 18 or older")
+// Password confirmation (use FluentValidation for cross-field validation)
+.AddField(x => x.ConfirmPassword, field => field
+    .WithLabel("Confirm Password")
+    .WithInputType("password")
+    .Required())
+
+// Date field with label
+.AddField(x => x.BirthDate, field => field
+    .WithLabel("Date of Birth")
+    .WithHelpText("Must be 18 or older"))
 
 // Multi-line text with character limit
-.AddTextAreaField(x => x.Description, "Description", rows: 5)
-    .WithMaxLength(500)
-    .WithHelpText("Maximum 500 characters")
+.AddTextArea(x => x.Description, "Description", rows: 5,
+    fieldConfig: field => field
+        .WithMaxLength(500)
+        .WithHelpText("Maximum 500 characters"))
 
 // File upload
 .AddFileUploadField(x => x.Resume, "Upload Resume",
     acceptedFileTypes: new[] { ".pdf", ".doc", ".docx" },
     maxFileSize: 5 * 1024 * 1024) // 5MB
-    
+
 // Multiple file upload
 .AddMultipleFileUploadField(x => x.Documents, "Upload Documents",
     maxFiles: 3,
@@ -356,14 +371,24 @@ Choose the layout that fits your design:
 
 ### Conditional Fields
 
-Show/hide fields based on conditions:
+Show/hide or disable fields based on conditions:
 
 ```csharp
-.AddField(x => x.CompanyName)
-    .VisibleWhen(model => model.UserType == UserType.Business)
-    
-.AddField(x => x.TaxId)
-    .RequiredWhen(model => model.Country == "US")
+// Show field only when condition is met
+.AddField(x => x.CompanyName, field => field
+    .WithLabel("Company Name")
+    .VisibleWhen(model => model.UserType == UserType.Business))
+
+// Disable field based on condition
+.AddField(x => x.TaxId, field => field
+    .WithLabel("Tax ID")
+    .DisabledWhen(model => model.Country != "US"))
+
+// Combine visibility with required validation
+.AddField(x => x.StateCode, field => field
+    .WithLabel("State")
+    .Required("State is required for US addresses")
+    .VisibleWhen(model => model.Country == "US"))
 ```
 
 ### Field Groups
@@ -404,14 +429,20 @@ var formConfig = FormBuilder<SecureForm>.Create()
         .EncryptField(x => x.SSN)           // Encrypt sensitive fields
         .EncryptField(x => x.CreditCard)
         .EnableCsrfProtection()             // Enable anti-forgery tokens
-        .WithRateLimit(5, TimeSpan.FromMinutes(1))  // Max 5 submissions per minute
-        .EnableAuditLogging())              // Log all form interactions
+        .WithRateLimit(5, TimeSpan.FromMinutes(1), "IP")  // Max 5 submissions per minute
+        .EnableAuditLogging(config => {     // Log form interactions
+            config.LogFieldChanges = true;
+            config.LogSubmissions = true;
+            config.ExcludedFields.Add("CreditCard");  // Don't log sensitive values
+        }))
     .AddField(x => x.SSN, field => field
         .WithLabel("Social Security Number")
-        .WithMask("000-00-0000"))
+        .WithPlaceholder("000-00-0000")
+        .Required())
     .AddField(x => x.CreditCard, field => field
         .WithLabel("Credit Card")
-        .WithMask("0000 0000 0000 0000"))
+        .WithPlaceholder("0000 0000 0000 0000")
+        .Required())
     .Build();
 ```
 
@@ -442,7 +473,7 @@ public class ColorPickerRenderer : CustomFieldRendererBase<string>
 // Use in your form configuration
 .AddField(x => x.Color, field => field
     .WithLabel("Product Color")
-    .WithCustomRenderer<ProductModel, string, ColorPickerRenderer>()
+    .WithCustomRenderer<ColorPickerRenderer>()  // Renderer type only
     .WithHelpText("Select the primary color"))
 
 // Register custom renderers (optional for DI)

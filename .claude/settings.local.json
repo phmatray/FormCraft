@@ -3,7 +3,13 @@
     "allow": [
       "Bash(dotnet test:*)",
       "Bash(cat:*)",
-      "Bash(dotnet run:*)"
+      "Bash(dotnet run:*)",
+      "Bash(dotnet build:*)",
+      "Bash(curl:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(tree:*)",
+      "Bash(dotnet clean:*)"
     ],
     "deny": []
   }

@@ -61,18 +61,25 @@ public class RegistrationModel
 
 var config = FormBuilder<RegistrationModel>
     .Create()
-    .AddRequiredTextField(x => x.Username, "Username", minLength: 3, maxLength: 20)
-        .WithValidator(value => !value.Contains(" "), "Username cannot contain spaces")
+    .AddField(x => x.Username, field => field
+        .WithLabel("Username")
+        .Required()
+        .WithMinLength(3)
+        .WithMaxLength(20)
+        .WithValidator(value => !value?.Contains(" ") ?? true, "Username cannot contain spaces"))
     .AddEmailField(x => x.Email)
     .AddPasswordField(x => x.Password, "Password", 8, true)
     .AddField(x => x.ConfirmPassword, field => field
         .WithLabel("Confirm Password")
-        .Required("Please confirm your password")
-        .WithValidator((value, model) => value == model.Password, "Passwords must match"))
-    .AddDateField(x => x.DateOfBirth, "Date of Birth")
-        .WithValidator(value => value < DateTime.Now.AddYears(-13), "Must be at least 13 years old")
-    .AddCheckboxField(x => x.AcceptTerms, "I accept the terms and conditions")
-        .Required("You must accept the terms")
+        .WithInputType("password")
+        .Required("Please confirm your password"))
+    // Note: For password matching, use FluentValidation
+    .AddField(x => x.DateOfBirth, field => field
+        .WithLabel("Date of Birth")
+        .Required())
+    .AddField(x => x.AcceptTerms, field => field
+        .WithLabel("I accept the terms and conditions")
+        .WithValidator(value => value, "You must accept the terms"))
     .Build();
 ```
 
@@ -98,10 +105,10 @@ var config = FormBuilder<SurveyModel>
     .AddField(x => x.Feedback, field => field
         .WithLabel("Additional Feedback")
         .WithPlaceholder("Tell us about your experience...")
-        .AsTextArea(rows: 4))
+        .AsTextArea(lines: 4))
     .AddField(x => x.ImprovementSuggestions, field => field
         .WithLabel("Suggestions for Improvement")
-        .AsTextArea(rows: 3)
+        .AsTextArea(lines: 3)
         .VisibleWhen(m => m.Satisfaction < 8))
     .Build();
 ```
@@ -140,12 +147,14 @@ public class UsernameAvailabilityValidator : IFieldValidator<AccountModel, strin
     }
 }
 
-// Usage
+// Usage - inject the validator via DI or create manually
+var usernameValidator = serviceProvider.GetRequiredService<UsernameAvailabilityValidator>();
+
 var config = FormBuilder<AccountModel>
     .Create()
     .AddField(x => x.Username, field => field
         .WithLabel("Username")
         .Required()
-        .WithAsyncValidator<UsernameAvailabilityValidator>())
+        .WithValidator(usernameValidator))
     .Build();
 ```

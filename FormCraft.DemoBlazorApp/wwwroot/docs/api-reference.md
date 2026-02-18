@@ -126,33 +126,24 @@ Adds a dropdown selection field.
 Adds a boolean checkbox field.
 
 ```csharp
-.AddCheckboxField(x => x.AcceptTerms, "I accept the terms and conditions", required: true)
-```
-
-#### AddRadioGroupField()
-Adds a radio button group.
-
-```csharp
-.AddRadioGroupField(x => x.Gender, "Gender",
-    ("M", "Male"),
-    ("F", "Female"),
-    ("O", "Other"))
+.AddCheckboxField(x => x.AcceptTerms, "I accept the terms and conditions", helpText: "Required")
 ```
 
 ### Date/Time Fields
 
-#### AddDateField()
-Adds a date picker field.
+For date fields, use the standard `AddField` method:
 
 ```csharp
-.AddDateField(x => x.BirthDate, "Birth Date", min: DateTime.Now.AddYears(-100), max: DateTime.Now)
-```
+// Date field
+.AddField(x => x.BirthDate, field => field
+    .WithLabel("Birth Date")
+    .Required()
+    .WithHelpText("Must be 18 or older"))
 
-#### AddDateTimeField()
-Adds a date and time picker.
-
-```csharp
-.AddDateTimeField(x => x.AppointmentTime, "Appointment", required: true)
+// DateTime field
+.AddField(x => x.AppointmentTime, field => field
+    .WithLabel("Appointment")
+    .Required())
 ```
 
 ### File Upload
@@ -161,7 +152,19 @@ Adds a date and time picker.
 Adds a file upload field.
 
 ```csharp
-.AddFileUploadField(x => x.Resume, "Upload Resume", accept: ".pdf,.doc,.docx", maxSize: 5242880)
+.AddFileUploadField(x => x.Resume, "Upload Resume",
+    acceptedFileTypes: new[] { ".pdf", ".doc", ".docx" },
+    maxFileSize: 5 * 1024 * 1024) // 5MB
+```
+
+#### AddMultipleFileUploadField()
+Adds a multiple file upload field.
+
+```csharp
+.AddMultipleFileUploadField(x => x.Documents, "Upload Documents",
+    maxFiles: 3,
+    acceptedFileTypes: new[] { ".pdf", ".jpg", ".png" },
+    maxFileSize: 10 * 1024 * 1024) // 10MB per file
 ```
 
 ## Field Configuration Options
@@ -257,12 +260,19 @@ Adds help text below the field.
 .WithHelpText("This will be displayed on your profile")
 ```
 
-#### IsReadOnly() / IsDisabled()
+#### ReadOnly() / Disabled()
 Controls field interactivity.
 
 ```csharp
-.IsReadOnly(true)
-.IsDisabled(model => model.IsLocked)
+.ReadOnly(true)
+.Disabled(true)
+```
+
+#### DisabledWhen()
+Conditionally disables field based on model state.
+
+```csharp
+.DisabledWhen(model => model.IsLocked)
 ```
 
 #### WithCssClass()
@@ -326,12 +336,21 @@ Creates field dependencies with actions.
     }))
 ```
 
-#### WithDefaultValue()
-Sets a default value for the field.
+#### Setting Default Values
+Default values should be set on your model directly:
 
 ```csharp
-.AddField(x => x.Status, field => field
-    .WithDefaultValue("active"))
+// In your model class
+public class MyModel
+{
+    public string Status { get; set; } = "active";  // Default value
+}
+
+// Or initialize in your component
+protected override void OnInitialized()
+{
+    model = new MyModel { Status = "active" };
+}
 ```
 
 ## Form Configuration Options
@@ -420,13 +439,28 @@ public static class FormTemplates
 
 ### Conditional Validation
 
-Validate based on other field values:
+For validation that depends on other field values, use FluentValidation:
 
 ```csharp
+// Create a FluentValidation validator
+public class MyModelValidator : AbstractValidator<MyModel>
+{
+    public MyModelValidator()
+    {
+        RuleFor(x => x.AlternateEmail)
+            .NotEmpty()
+            .When(x => !string.IsNullOrEmpty(x.Email))
+            .WithMessage("Alternate email is required when primary email is provided");
+    }
+}
+
+// Register in DI
+services.AddScoped<IValidator<MyModel>, MyModelValidator>();
+
+// Use with FormCraft
 .AddField(x => x.AlternateEmail, field => field
-    .WithValidator((value, model) => 
-        string.IsNullOrEmpty(model.Email) || !string.IsNullOrEmpty(value),
-        "Alternate email is required when primary email is provided"))
+    .WithLabel("Alternate Email")
+    .WithFluentValidation(x => x.AlternateEmail))
 ```
 
 ### Dynamic Field Generation
@@ -540,3 +574,202 @@ Multiple validators can add separate messages:
 ```
 
 Messages are displayed with proper spacing using the `d-block` CSS class.
+
+## FormBuilder Methods Reference
+
+### Form Configuration
+
+| Method | Description | Example |
+|--------|-------------|---------|
+| `Create()` | Static factory to create new builder | `FormBuilder<T>.Create()` |
+| `Build()` | Creates immutable configuration | `.Build()` |
+| `WithLayout()` | Sets form layout | `.WithLayout(FormLayout.Grid)` |
+| `WithCssClass()` | Sets form CSS class | `.WithCssClass("my-form")` |
+| `ShowValidationSummary()` | Shows/hides validation summary | `.ShowValidationSummary(true)` |
+| `ShowRequiredIndicator()` | Shows/hides required indicator | `.ShowRequiredIndicator(true, "*")` |
+
+### Field Addition Methods
+
+| Method | Description | Example |
+|--------|-------------|---------|
+| `AddField()` | Adds field with configuration | `.AddField(x => x.Name, f => f.WithLabel("Name"))` |
+| `AddFieldGroup()` | Adds a group of fields | `.AddFieldGroup(g => g.WithGroupName("Info"))` |
+
+## FieldBuilder Methods Reference
+
+### Core Configuration
+
+| Method | Description |
+|--------|-------------|
+| `WithLabel(string)` | Sets field display label |
+| `WithPlaceholder(string)` | Sets input placeholder text |
+| `WithHelpText(string)` | Sets helper text below field |
+| `WithCssClass(string)` | Adds CSS class to field |
+| `WithInputType(string)` | Sets HTML input type (text, email, password, tel) |
+| `WithOrder(int)` | Sets field display order |
+
+### Validation Methods
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `Required()` | `Required(string? message = null)` | Makes field required |
+| `WithMinLength()` | `WithMinLength(int min, string? message = null)` | Minimum string length |
+| `WithMaxLength()` | `WithMaxLength(int max, string? message = null)` | Maximum string length |
+| `WithRange()` | `WithRange(T min, T max, string? message = null)` | Numeric range validation |
+| `WithEmailValidation()` | `WithEmailValidation(string? message = null)` | Email format validation |
+| `WithValidator()` | `WithValidator(Func<TValue, bool> predicate, string message)` | Custom sync validator |
+| `WithAsyncValidator()` | `WithAsyncValidator(Func<TValue, Task<bool>> func, string message)` | Custom async validator |
+| `WithFluentValidation()` | `WithFluentValidation(Expression<Func<TModel, TValue>> prop)` | Uses FluentValidation from DI |
+| `WithFluentValidator()` | `WithFluentValidator(IValidator<TModel> validator, ...)` | Uses specific validator instance |
+
+### State & Behavior
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `ReadOnly()` | `ReadOnly(bool isReadOnly = true)` | Makes field read-only |
+| `Disabled()` | `Disabled(bool isDisabled = true)` | Disables field |
+| `DisabledWhen()` | `DisabledWhen(Func<TModel, bool> condition)` | Conditionally disabled |
+| `VisibleWhen()` | `VisibleWhen(Func<TModel, bool> condition)` | Conditionally visible |
+| `DependsOn()` | `DependsOn<TDep>(Expression<...>, Action<TModel, TDep>)` | Creates dependency |
+
+### Field Type Configuration
+
+| Method | Description |
+|--------|-------------|
+| `AsTextArea(int lines)` | Configures as multi-line textarea |
+| `AsPassword(bool enableVisibilityToggle)` | Configures as password field |
+| `AsSlider(T min, T max)` | Configures as slider input |
+| `AsFileUpload(...)` | Configures as file upload |
+| `AsMultipleFileUpload(...)` | Configures as multiple file upload |
+| `WithOptions(...)` | Adds dropdown options |
+| `WithSelectOptions(...)` | Adds select options from SelectOption list |
+| `AsMultiSelect(...)` | Configures as multi-select |
+
+### Attributes
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `WithAttribute()` | `WithAttribute(string key, object value)` | Sets single attribute |
+| `WithAttributes()` | `WithAttributes(Dictionary<string, object>)` | Sets multiple attributes |
+| `WithCustomRenderer()` | `WithCustomRenderer(ICustomFieldRenderer<TValue>)` | Uses custom renderer |
+| `WithCustomTemplate()` | `WithCustomTemplate(RenderFragment<...>)` | Uses custom template |
+
+### MudBlazor-Specific Extensions
+
+| Method | Description |
+|--------|-------------|
+| `WithAdornment(icon, position, color)` | Adds icon adornment to field |
+| `WithVariant(Variant)` | Sets MudBlazor variant style |
+| `WithMargin(Margin)` | Sets MudBlazor margin |
+
+## FieldGroupBuilder Methods Reference
+
+| Method | Description |
+|--------|-------------|
+| `AddField()` | Adds field to the group |
+| `WithGroupName(string)` | Sets group display name |
+| `WithColumns(int)` | Sets number of columns |
+| `WithCssClass(string)` | Sets group CSS class |
+| `ShowInCard()` | Renders group in a card |
+| `WithOrder(int)` | Sets group display order |
+| `WithHeaderRightContent(RenderFragment)` | Adds content to right of header |
+
+## FluentFormBuilderExtensions Reference
+
+Convenience methods for common field patterns:
+
+| Method | Parameters |
+|--------|------------|
+| `AddRequiredTextField()` | `expression, label, placeholder?, minLength?, maxLength?` |
+| `AddEmailField()` | `expression, label?, placeholder?` |
+| `AddPasswordField()` | `expression, label?, minLength?, requireSpecialChars?` |
+| `AddPhoneField()` | `expression, label?, required?` |
+| `AddNumericField()` | `expression, label, min?, max?, required?` |
+| `AddDecimalField()` | `expression, label, min?, max?, placeholder?` |
+| `AddCurrencyField()` | `expression, label, currencySymbol?` |
+| `AddPercentageField()` | `expression, label, min?, max?` |
+| `AddDropdownField()` | `expression, label, options...` |
+| `AddCheckboxField()` | `expression, label, helpText?` |
+| `AddTextArea()` | `expression, label, lines?, maxLength?` |
+| `AddFileUploadField()` | `expression, label, acceptedTypes?, maxSize?` |
+| `AddMultipleFileUploadField()` | `expression, label, maxFiles?, acceptedTypes?, maxSize?` |
+
+## Security Features
+
+### SecurityBuilder Methods
+
+```csharp
+.WithSecurity(security => security
+    .EncryptField(x => x.SSN)
+    .EnableCsrfProtection()
+    .WithRateLimit(maxRequests: 5, window: TimeSpan.FromMinutes(1))
+    .EnableAuditLogging())
+```
+
+| Method | Description |
+|--------|-------------|
+| `EncryptField()` | Enables encryption for sensitive field |
+| `EnableCsrfProtection()` | Enables CSRF token validation |
+| `WithRateLimit()` | Sets rate limiting for form submission |
+| `EnableAuditLogging()` | Enables audit logging for form actions |
+
+## Service Registration
+
+### Basic Setup
+
+```csharp
+// In Program.cs
+builder.Services.AddFormCraft();
+builder.Services.AddMudServices();
+```
+
+### With Custom Options
+
+```csharp
+builder.Services.AddFormCraft(options =>
+{
+    options.DefaultLayout = FormLayout.Vertical;
+    options.ShowRequiredIndicator = true;
+});
+```
+
+## Type Support
+
+FormCraft automatically renders appropriate inputs for these types:
+
+| .NET Type | Rendered Component |
+|-----------|-------------------|
+| `string` | MudTextField |
+| `int`, `long` | MudNumericField |
+| `decimal`, `double`, `float` | MudNumericField |
+| `bool` | MudCheckBox |
+| `DateTime`, `DateOnly` | MudDatePicker |
+| `TimeSpan`, `TimeOnly` | MudTimePicker |
+| `Enum` | MudSelect |
+| `IBrowserFile` | MudFileUpload |
+| `IReadOnlyList<IBrowserFile>` | MudFileUpload (multiple) |
+
+## Input Type Mapping
+
+When using `WithInputType()`, these HTML types map to MudBlazor InputType:
+
+| HTML Type | MudBlazor InputType |
+|-----------|---------------------|
+| `"text"` | InputType.Text |
+| `"email"` | InputType.Email |
+| `"password"` | InputType.Password |
+| `"tel"` | InputType.Telephone |
+| `"url"` | InputType.Url |
+| `"number"` | InputType.Number |
+
+## Common Attribute Keys
+
+When using `WithAttribute()`, these keys have special meaning:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `"Lines"` | int | Number of lines for textarea |
+| `"MaxLength"` | int | Maximum input length |
+| `"Counter"` | int | Shows character counter |
+| `"Immediate"` | bool | Updates on each keystroke |
+| `"Clearable"` | bool | Shows clear button |

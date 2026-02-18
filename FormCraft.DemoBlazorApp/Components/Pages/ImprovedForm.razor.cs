@@ -47,7 +47,7 @@ public partial class ImprovedForm
         [
             "Don't forget to call .Build() at the end of the fluent chain to get the immutable configuration",
             "Remember that Required() adds validation but not the HTML5 required attribute - this is intentional",
-            "Field dependencies should be declared with DependsOn() before using VisibleWhen() or WithValueProvider()",
+            "Field dependencies use DependsOn() callbacks to update model values - VisibleWhen() controls visibility separately",
             "When using WithRange() or WithMinLength(), always provide user-friendly error messages for better UX"
         ],
         RelatedDemoIds = ["fluent", "simplified", "fluent-validation-demo"]

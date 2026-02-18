@@ -151,18 +151,29 @@ public interface IFieldValidator<TModel, TValue>
 - FluentValidation integration via `DynamicFormValidator`
 
 #### 4. Observer Pattern (Field Dependencies)
-Reactive field updates based on dependencies:
+Reactive field updates based on dependencies using `DependsOn` with callbacks:
 ```csharp
-.AddField(x => x.TotalPrice)
-    .DependsOn(x => x.Quantity, x => x.Price)
-    .WithValueProvider((model, services) => model.Quantity * model.Price)
-    .WithVisibilityProvider(model => model.Quantity > 0)
+// Conditional visibility based on another field
+.AddField(x => x.State, field => field
+    .DependsOn(x => x.Country, (model, country) => {
+        // Reset state when country changes
+        if (string.IsNullOrEmpty(country))
+            model.State = "";
+    })
+    .VisibleWhen(model => !string.IsNullOrEmpty(model.Country)))
+
+// Cascading updates - clear dependent field when parent changes
+.AddField(x => x.City, field => field
+    .DependsOn(x => x.State, (model, state) => {
+        model.City = ""; // Clear city when state changes
+    })
+    .VisibleWhen(model => !string.IsNullOrEmpty(model.State)))
 ```
 
 **Dependency Types:**
-- Value dependencies - Auto-calculate field values
-- Visibility dependencies - Show/hide fields conditionally
-- Validation dependencies - Conditional validation rules
+- `DependsOn<TDependsOn>(expression, callback)` - Execute action when dependency changes
+- `VisibleWhen(predicate)` - Conditional visibility based on model state
+- `DisabledWhen(predicate)` - Conditional disabling based on model state
 
 #### 5. Adapter Pattern (UI Framework Integration)
 Framework-agnostic core with UI-specific adapters:
@@ -197,11 +208,20 @@ public interface IUIFrameworkAdapter
 #### Security Features (v2.0.0+)
 ```csharp
 .WithSecurity(security => security
-    .EncryptField(x => x.SSN, algorithm: "AES256")
+    // Field-level encryption for sensitive data
+    .EncryptField(x => x.SSN)
     .EncryptField(x => x.CreditCard)
+    // CSRF protection with custom token field name (default: "__RequestVerificationToken")
     .EnableCsrfProtection()
-    .WithRateLimit(maxRequests: 5, window: TimeSpan.FromMinutes(1))
-    .EnableAuditLogging(logger => logger.LogToDatabase()))
+    // Rate limiting by IP (default) or custom identifier
+    .WithRateLimit(maxAttempts: 5, timeWindow: TimeSpan.FromMinutes(1), identifierType: "IP")
+    // Audit logging with configurable options
+    .EnableAuditLogging(config => {
+        config.LogFieldChanges = true;
+        config.LogValidationErrors = true;
+        config.LogSubmissions = true;
+        config.ExcludedFields.Add("Password");  // Exclude sensitive fields from logs
+    }))
 ```
 
 ### Important Conventions
@@ -264,6 +284,65 @@ public class MyTests : MudBlazorTestBase  // Inherits from BunitContext
 }
 ```
 
+### Quick API Reference
+
+#### FieldBuilder<TModel, TValue> Methods
+| Method | Description |
+|--------|-------------|
+| `WithLabel(string)` | Sets the display label |
+| `WithPlaceholder(string)` | Sets placeholder text |
+| `WithHelpText(string)` | Adds help text below field |
+| `WithCssClass(string)` | Adds CSS class to field |
+| `WithInputType(string)` | Sets HTML5 input type (email, tel, password, date, number) |
+| `Required(string?)` | Marks field as required with optional error message |
+| `Disabled(bool)` | Disables field interaction |
+| `ReadOnly(bool)` | Makes field non-editable |
+| `VisibleWhen(Func<TModel, bool>)` | Conditional visibility |
+| `DisabledWhen(Func<TModel, bool>)` | Conditional disabling |
+| `WithAttribute(string, object)` | Adds custom HTML attribute |
+| `WithAttributes(Dictionary<string, object>)` | Adds multiple attributes |
+| `WithValidator(IFieldValidator)` | Adds custom validator instance |
+| `WithValidator(Func<TValue, bool>, string)` | Adds sync validation function |
+| `WithAsyncValidator(Func<TValue, Task<bool>>, string)` | Adds async validation function |
+| `DependsOn<TDep>(Expression, Action<TModel, TDep>)` | Creates field dependency with callback |
+| `WithCustomTemplate(RenderFragment)` | Custom Blazor template |
+| `WithCustomRenderer(IFieldRenderer)` | Custom renderer instance |
+| `WithOrder(int)` | Sets field display order |
+
+#### FieldBuilder Extension Methods
+| Method | Description |
+|--------|-------------|
+| `AsTextArea(int lines, int? maxLength)` | Multi-line text area |
+| `WithOptions(params (TValue, string)[])` | Dropdown options as tuples |
+| `WithSelectOptions(IEnumerable<SelectOption>)` | Dropdown options as SelectOption collection |
+| `AsMultiSelect(params (TValue, string)[])` | Multiple selection |
+| `AsSlider(TValue min, max, step, showValue)` | Slider control for numeric types |
+| `WithEmailValidation(string?)` | Email format validation |
+| `WithMinLength(int, string?)` | Minimum length validation |
+| `WithMaxLength(int, string?)` | Maximum length validation |
+| `WithRange(TValue min, max, string?)` | Range validation for comparable types |
+| `AsFileUpload(string[]?, long?, bool, bool)` | Single file upload |
+| `AsMultipleFileUpload(int, string[]?, long?, bool, bool)` | Multiple file upload |
+| `WithCustomRenderer<TRenderer>()` | Custom renderer by type |
+
+#### FluentFormBuilderExtensions (Convenience Methods)
+| Method | Description |
+|--------|-------------|
+| `AddRequiredTextField(expr, label, placeholder?, minLength, maxLength)` | Required text with validation |
+| `AddEmailField(expr, label?, placeholder?)` | Email with format validation |
+| `AddNumericField(expr, label, min, max, required)` | Integer with range |
+| `AddDecimalField(expr, label, min, max, required, placeholder?)` | Decimal with range |
+| `AddCurrencyField(expr, label, symbol, required)` | Currency field |
+| `AddPercentageField(expr, label, required)` | Percentage (0-100) |
+| `AddDropdownField(expr, label, params options)` | Dropdown with options |
+| `AddPhoneField(expr, label?, required)` | Phone with validation |
+| `AddPasswordField(expr, label?, minLength, requireSpecialChars)` | Password with strength |
+| `AddCheckboxField(expr, label, helpText?)` | Boolean checkbox |
+| `AddFileUploadField(expr, label, types?, maxSize, required)` | File upload |
+| `AddTextArea(expr, label, rows, config?)` | Multi-line text |
+| `AddRequiredField(expr, label, placeholder?, errorMessage?)` | Simple required field |
+| `AddOptionalField(expr, label, placeholder?)` | Optional field |
+
 ### Common Development Patterns
 
 #### Adding a Custom Field Renderer
@@ -312,33 +391,62 @@ public static class FormExtensions
 
 #### Implementing Field Dependencies
 ```csharp
-// Conditional visibility
-.AddField(x => x.State)
-    .DependsOn(x => x.Country)
-    .WithVisibilityProvider(model => model.Country == "USA")
+// Conditional visibility - show state field only when country is selected
+.AddField(x => x.State, field => field
+    .WithLabel("State")
+    .DependsOn(x => x.Country, (model, country) => {
+        // Clear state when country changes
+        model.State = "";
+    })
+    .VisibleWhen(model => model.Country == "USA"))
 
-// Calculated values
-.AddField(x => x.Total)
-    .DependsOn(x => x.Quantity, x => x.Price, x => x.TaxRate)
-    .WithValueProvider((model, _) => 
-        model.Quantity * model.Price * (1 + model.TaxRate))
-    .ReadOnly()
+// Cascading dropdowns with options based on parent
+.AddField(x => x.City, field => field
+    .WithLabel("City")
+    .DependsOn(x => x.State, (model, state) => {
+        // Clear city and update available options when state changes
+        model.City = "";
+    })
+    .VisibleWhen(model => !string.IsNullOrEmpty(model.State)))
+
+// Read-only calculated field (calculate in form submit or use computed property)
+.AddField(x => x.Total, field => field
+    .WithLabel("Total")
+    .ReadOnly())
 ```
 
-#### Form Templates
+#### Reusable Form Patterns
 ```csharp
-// Use predefined templates
-var form = FormTemplates.CreateLoginForm<LoginModel>();
-var form = FormTemplates.CreateRegistrationForm<UserModel>();
-
-// Create custom template
-public static class MyTemplates
+// Create reusable form configuration methods
+public static class FormPatterns
 {
-    public static FormBuilder<T> CreateWizardForm<T>() where T : new()
+    // Login form pattern
+    public static IFormConfiguration<LoginModel> CreateLoginForm()
     {
-        return FormBuilder<T>.Create()
-            .WithLayout(FormLayout.Wizard)
-            .WithNavigation(nav => nav.EnableStepIndicator());
+        return FormBuilder<LoginModel>.Create()
+            .AddEmailField(x => x.Email)
+            .AddPasswordField(x => x.Password)
+            .AddCheckboxField(x => x.RememberMe, "Remember me")
+            .Build();
+    }
+
+    // Contact form pattern with field groups
+    public static IFormConfiguration<ContactModel> CreateContactForm()
+    {
+        return FormBuilder<ContactModel>.Create()
+            .AddFieldGroup(group => group
+                .WithGroupName("Personal Information")
+                .WithColumns(2)
+                .ShowInCard()
+                .AddField(x => x.FirstName, f => f.WithLabel("First Name").Required())
+                .AddField(x => x.LastName, f => f.WithLabel("Last Name").Required()))
+            .AddFieldGroup(group => group
+                .WithGroupName("Contact Details")
+                .WithColumns(1)
+                .ShowInCard()
+                .AddField(x => x.Email, f => f.WithLabel("Email").Required().WithEmailValidation())
+                .AddField(x => x.Message, f => f.WithLabel("Message").AsTextArea(5)))
+            .Build();
     }
 }
 ```
@@ -348,20 +456,22 @@ public static class MyTemplates
 #### Security Configuration
 ```csharp
 .WithSecurity(security => security
-    // Field-level encryption
+    // Field-level encryption (uses IEncryptionService from DI)
     .EncryptField(x => x.SSN)
-    .EncryptField(x => x.CreditCard, algorithm: "AES256")
-    
-    // CSRF protection
-    .EnableCsrfProtection()
-    .WithCsrfTokenProvider(customProvider)
-    
-    // Rate limiting
-    .WithRateLimit(5, TimeSpan.FromMinutes(1))
-    
-    // Audit logging
-    .EnableAuditLogging()
-    .WithAuditLogger(customLogger))
+    .EncryptField(x => x.CreditCard)
+
+    // CSRF protection (token field name is configurable)
+    .EnableCsrfProtection("__RequestVerificationToken")
+
+    // Rate limiting (maxAttempts, timeWindow, identifierType)
+    .WithRateLimit(5, TimeSpan.FromMinutes(1), "IP")
+
+    // Audit logging with configuration
+    .EnableAuditLogging(config => {
+        config.LogFieldChanges = true;
+        config.LogSubmissions = true;
+        config.ExcludedFields.Add("Password");
+    }))
 ```
 
 #### Field Groups with Layouts
@@ -370,28 +480,55 @@ public static class MyTemplates
     .WithGroupName("Contact Information")
     .WithColumns(2)
     .ShowInCard(elevation: 2)
-    .Collapsible(defaultExpanded: true)
-    .AddField(x => x.Email)
-    .AddField(x => x.Phone)
-    .AddField(x => x.Address, field => field.FullWidth()))
+    .WithCssClass("contact-group")
+    .AddField(x => x.Email, field => field.WithLabel("Email"))
+    .AddField(x => x.Phone, field => field.WithLabel("Phone"))
+    .AddField(x => x.Address, field => field.WithLabel("Address")))
+
+// Available FieldGroupBuilder methods:
+// .WithGroupName(string) - Sets the display name for the group
+// .WithColumns(int) - Sets grid columns (1-6)
+// .WithCssClass(string) - Adds CSS class to group container
+// .ShowInCard(int elevation) - Renders group in card with elevation (0-24)
+// .WithOrder(int) - Sets rendering order
+// .WithHeaderRightContent(RenderFragment) - Custom header content
+// .AddField<TValue>(expression, config) - Adds field to group
 ```
 
 #### Async Operations
 ```csharp
-// Async validation
-.WithAsyncValidator(async (value, services) => {
-    var api = services.GetRequiredService<IApiService>();
-    var isUnique = await api.CheckUniqueAsync(value);
-    return isUnique 
-        ? ValidationResult.Success()
-        : ValidationResult.Error("Value must be unique");
-})
+// Async validation - checks if value is valid asynchronously
+// Signature: WithAsyncValidator(Func<TValue, Task<bool>> validation, string errorMessage)
+.AddField(x => x.Username, field => field
+    .WithLabel("Username")
+    .Required()
+    .WithAsyncValidator(
+        async value => await CheckUsernameAvailableAsync(value),
+        "Username is already taken"))
 
-// Async value provider
-.WithAsyncValueProvider(async (model, services) => {
-    var api = services.GetRequiredService<IApiService>();
-    return await api.GetDefaultValueAsync(model.Id);
-})
+// For complex async validation logic, create a custom validator class
+public class UniqueEmailValidator<TModel> : IFieldValidator<TModel, string>
+{
+    private readonly IApiService _api;
+
+    public UniqueEmailValidator(IApiService api) => _api = api;
+
+    public string? ErrorMessage { get; set; } = "Email is already registered";
+
+    public async Task<ValidationResult> ValidateAsync(TModel model, string value, IServiceProvider services)
+    {
+        if (string.IsNullOrEmpty(value)) return ValidationResult.Success();
+
+        var isUnique = await _api.CheckEmailUniqueAsync(value);
+        return isUnique
+            ? ValidationResult.Success()
+            : ValidationResult.Failure(ErrorMessage!);
+    }
+}
+
+// Use with dependency injection
+.AddField(x => x.Email, field => field
+    .WithValidator(serviceProvider.GetRequiredService<UniqueEmailValidator<MyModel>>()))
 ```
 
 ### Versioning and Release Process

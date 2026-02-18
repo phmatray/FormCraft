@@ -108,6 +108,20 @@ public class DemoRegistry : IDemoRegistry
             Concepts = ["Layout", "Columns", "Grid Organization"],
             EstimatedMinutes = 5
         },
+        new()
+        {
+            Id = "templates-gallery",
+            Title = "Templates Gallery",
+            Description = "Ready-to-use form templates for common scenarios like login, registration, and contact forms.",
+            Icon = Icons.Material.Filled.Dashboard,
+            Category = "form-examples",
+            Order = 7,
+            Level = Levels.Beginner,
+            LevelOrder = 7,
+            Prerequisites = ["fluent"],
+            Concepts = ["Templates", "Patterns", "Reusable Forms"],
+            EstimatedMinutes = 5
+        },
 
         // ===========================================
         // INTERMEDIATE LEVEL - "Building Better Forms" (7 demos)
@@ -119,7 +133,7 @@ public class DemoRegistry : IDemoRegistry
             Description = "Integration with FluentValidation for complex validation rules.",
             Icon = Icons.Material.Filled.CheckCircle,
             Category = "form-examples",
-            Order = 7,
+            Order = 8,
             Level = Levels.Intermediate,
             LevelOrder = 1,
             Prerequisites = ["improved"],
@@ -134,7 +148,7 @@ public class DemoRegistry : IDemoRegistry
             Description = "Validations that depend on multiple fields like date ranges and password confirmation.",
             Icon = Icons.Material.Filled.CompareArrows,
             Category = "form-examples",
-            Order = 8,
+            Order = 9,
             Level = Levels.Intermediate,
             LevelOrder = 2,
             Prerequisites = ["fluent-validation-demo"],
@@ -148,7 +162,7 @@ public class DemoRegistry : IDemoRegistry
             Description = "Custom content slots for headers, footers, and between fields.",
             Icon = Icons.Material.Filled.ViewCarousel,
             Category = "form-examples",
-            Order = 9,
+            Order = 10,
             Level = Levels.Intermediate,
             LevelOrder = 3,
             Prerequisites = ["field-groups"],
@@ -162,7 +176,7 @@ public class DemoRegistry : IDemoRegistry
             Description = "Forms inside MudBlazor dialogs.",
             Icon = Icons.Material.Filled.OpenInNew,
             Category = "form-examples",
-            Order = 10,
+            Order = 11,
             Level = Levels.Intermediate,
             LevelOrder = 4,
             Prerequisites = ["improved"],
@@ -176,7 +190,7 @@ public class DemoRegistry : IDemoRegistry
             Description = "Organize form sections into tabs.",
             Icon = Icons.Material.Filled.Tab,
             Category = "form-examples",
-            Order = 11,
+            Order = 12,
             Level = Levels.Intermediate,
             LevelOrder = 5,
             Prerequisites = ["field-groups"],
@@ -190,7 +204,7 @@ public class DemoRegistry : IDemoRegistry
             Description = "Multi-step forms with MudStepper integration.",
             Icon = Icons.Material.Filled.LinearScale,
             Category = "form-examples",
-            Order = 12,
+            Order = 13,
             Level = Levels.Intermediate,
             LevelOrder = 6,
             Prerequisites = ["tabbed-form"],
@@ -204,12 +218,26 @@ public class DemoRegistry : IDemoRegistry
             Description = "File upload handling with drag-and-drop support.",
             Icon = Icons.Material.Filled.CloudUpload,
             Category = "form-examples",
-            Order = 13,
+            Order = 14,
             Level = Levels.Intermediate,
             LevelOrder = 7,
             Prerequisites = ["improved"],
             Concepts = ["IBrowserFile", "Upload Handling", "Drag-and-Drop"],
             EstimatedMinutes = 7
+        },
+        new()
+        {
+            Id = "error-handling",
+            Title = "Error Handling",
+            Description = "Handle validation errors, async failures, and form submission errors gracefully.",
+            Icon = Icons.Material.Filled.ErrorOutline,
+            Category = "form-examples",
+            Order = 15,
+            Level = Levels.Intermediate,
+            LevelOrder = 8,
+            Prerequisites = ["fluent-validation-demo", "async-value-provider"],
+            Concepts = ["Error Recovery", "Retry Patterns", "User Feedback"],
+            EstimatedMinutes = 8
         },
 
         // ===========================================
@@ -222,7 +250,7 @@ public class DemoRegistry : IDemoRegistry
             Description = "Advanced field dependencies with cascading updates and conditional logic.",
             Icon = Icons.Material.Filled.AccountTree,
             Category = "form-examples",
-            Order = 14,
+            Order = 16,
             Level = Levels.Advanced,
             LevelOrder = 1,
             Prerequisites = ["cross-field-validation"],
@@ -237,7 +265,7 @@ public class DemoRegistry : IDemoRegistry
             Description = "Load field values asynchronously from APIs or databases.",
             Icon = Icons.Material.Filled.CloudSync,
             Category = "form-examples",
-            Order = 15,
+            Order = 17,
             Level = Levels.Advanced,
             LevelOrder = 2,
             Prerequisites = ["complex-dependencies"],
@@ -251,7 +279,7 @@ public class DemoRegistry : IDemoRegistry
             Description = "Create custom field renderers for specialized input types.",
             Icon = Icons.Material.Filled.Palette,
             Category = "form-examples",
-            Order = 16,
+            Order = 18,
             Level = Levels.Advanced,
             LevelOrder = 3,
             Prerequisites = ["improved"],
@@ -265,7 +293,7 @@ public class DemoRegistry : IDemoRegistry
             Description = "List of Values field for selecting from large datasets with a modal table picker.",
             Icon = Icons.Material.Filled.TableChart,
             Category = "form-examples",
-            Order = 17,
+            Order = 19,
             Level = Levels.Advanced,
             LevelOrder = 4,
             Prerequisites = ["custom-renderers", "dialog-demo"],
@@ -279,7 +307,7 @@ public class DemoRegistry : IDemoRegistry
             Description = "Field encryption, CSRF protection, rate limiting, and audit logging.",
             Icon = Icons.Material.Filled.Security,
             Category = "form-examples",
-            Order = 18,
+            Order = 20,
             Level = Levels.Advanced,
             LevelOrder = 5,
             Prerequisites = ["fluent-validation-demo"],
@@ -288,7 +316,7 @@ public class DemoRegistry : IDemoRegistry
         },
 
         // ===========================================
-        // DOCUMENTATION (unchanged)
+        // DOCUMENTATION
         // ===========================================
         new()
         {
@@ -352,6 +380,33 @@ public class DemoRegistry : IDemoRegistry
             Icon = Icons.Material.Filled.BugReport,
             Category = "documentation",
             Order = 7
+        },
+        new()
+        {
+            Id = "docs/testing",
+            Title = "Testing",
+            Description = "Guide to testing FormCraft forms and validators.",
+            Icon = Icons.Material.Filled.Science,
+            Category = "documentation",
+            Order = 8
+        },
+        new()
+        {
+            Id = "docs/migration",
+            Title = "Migration Guide",
+            Description = "Migrate from EditForm and DataAnnotations to FormCraft.",
+            Icon = Icons.Material.Filled.SwapHoriz,
+            Category = "documentation",
+            Order = 9
+        },
+        new()
+        {
+            Id = "docs/best-practices",
+            Title = "Best Practices",
+            Description = "Guidelines for maintainable and performant forms.",
+            Icon = Icons.Material.Filled.Stars,
+            Category = "documentation",
+            Order = 10
         }
     };
 
