@@ -1,8 +1,9 @@
+using Bunit;
 using MudBlazor.Services;
 
 namespace FormCraft.UnitTests.Components;
 
-public class FormCraftComponentTests : Bunit.TestContext
+public class FormCraftComponentTests : BunitContext
 {
     private readonly IFieldRendererService _fieldRendererService;
 
@@ -28,7 +29,7 @@ public class FormCraftComponentTests : Bunit.TestContext
             .Build();
 
         // Act
-        var component = RenderComponent<FormCraftComponent<TestModel>>(parameters => parameters
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
             .Add(p => p.Model, model)
             .Add(p => p.Configuration, config));
 
@@ -57,7 +58,7 @@ public class FormCraftComponentTests : Bunit.TestContext
             .Build();
 
         // Act
-        var component = RenderComponent<FormCraftComponent<TestModel>>(parameters => parameters
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
             .Add(p => p.Model, model)
             .Add(p => p.Configuration, config));
 
@@ -87,7 +88,7 @@ public class FormCraftComponentTests : Bunit.TestContext
             .Build();
 
         // Act
-        var component = RenderComponent<FormCraftComponent<TestModel>>(parameters => parameters
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
             .Add(p => p.Model, model)
             .Add(p => p.Configuration, config));
 
@@ -116,7 +117,7 @@ public class FormCraftComponentTests : Bunit.TestContext
         config.Fields.First(f => f.FieldName == "Email").IsVisible = false;
 
         // Act
-        var component = RenderComponent<FormCraftComponent<TestModel>>(parameters => parameters
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
             .Add(p => p.Model, model)
             .Add(p => p.Configuration, config));
 
@@ -142,7 +143,7 @@ public class FormCraftComponentTests : Bunit.TestContext
             .Build();
 
         // Act
-        var component = RenderComponent<FormCraftComponent<TestModel>>(parameters => parameters
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
             .Add(p => p.Model, model)
             .Add(p => p.Configuration, config));
 
@@ -163,7 +164,7 @@ public class FormCraftComponentTests : Bunit.TestContext
             .Build();
 
         // Act
-        var component = RenderComponent<FormCraftComponent<TestModel>>(parameters => parameters
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
             .Add(p => p.Model, model)
             .Add(p => p.Configuration, config)
             .Add(p => p.ShowSubmitButton, true)
@@ -190,7 +191,7 @@ public class FormCraftComponentTests : Bunit.TestContext
             .Build();
 
         // Act
-        var component = RenderComponent<FormCraftComponent<TestModel>>(parameters => parameters
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
             .Add(p => p.Model, model)
             .Add(p => p.Configuration, config));
 
@@ -210,7 +211,7 @@ public class FormCraftComponentTests : Bunit.TestContext
             .Build();
 
         // Act
-        var component = RenderComponent<FormCraftComponent<TestModel>>(parameters => parameters
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
             .Add(p => p.Model, model)
             .Add(p => p.Configuration, config));
 
