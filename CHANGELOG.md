@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- Updated MudBlazor to v9.3.0 for latest features and improvements
+- Updated coverlet.collector to v8.0.0 for improved test coverage reporting
+- Updated bUnit to v2.0.5 for enhanced Blazor component testing
+
 ## [2.5.0] - 2025-08-08
 
 ### ♻️ Refactor
