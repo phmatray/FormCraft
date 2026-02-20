@@ -3,7 +3,7 @@ using MudBlazor.Services;
 
 namespace FormCraft.UnitTests.Components;
 
-public class FormCraftComponentTests : TestContext
+public class FormCraftComponentTests : Bunit.TestContext
 {
     private readonly IFieldRendererService _fieldRendererService;
 
