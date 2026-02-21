@@ -6,19 +6,19 @@
   <!-- Framework-agnostic packages -->
   <ItemGroup>
     <!-- UI Framework packages -->
-    <PackageVersion Include="MudBlazor" Version="8.15.0" />
+    <PackageVersion Include="MudBlazor" Version="9.0.0" />
     
     <!-- Testing packages -->
-    <PackageVersion Include="bunit" Version="1.40.0" />
-    <PackageVersion Include="FakeItEasy" Version="8.3.0" />
+    <PackageVersion Include="bunit" Version="2.5.3" />
+    <PackageVersion Include="FakeItEasy" Version="9.0.1" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageVersion>
-    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="coverlet.collector" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     
     <!-- Development tools -->
     <PackageVersion Include="Nuke.Common" Version="10.1.0" />
@@ -31,8 +31,8 @@
     <PackageVersion Include="Microsoft.AspNetCore.Http" Version="2.3.9" />
     
     <!-- Versioning -->
-    <PackageVersion Include="GitVersion.MsBuild" Version="6.5.1" />
-    <PackageVersion Include="MinVer" Version="6.1.0" />
+    <PackageVersion Include="GitVersion.MsBuild" Version="6.6.0" />
+    <PackageVersion Include="MinVer" Version="7.0.0" />
   </ItemGroup>
   
   <!-- .NET 8.0 packages -->
