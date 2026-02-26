@@ -85,4 +85,57 @@ public static class MudBlazorFieldBuilderExtensions
             .WithAttribute("ShowValueLabel", showValueLabel);
     }
 
+    /// <summary>
+    /// Configures the field as a lookup table with a modal dialog for selecting items from large datasets.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <typeparam name="TValue">The type of the field value.</typeparam>
+    /// <typeparam name="TItem">The type of the lookup item displayed in the table.</typeparam>
+    /// <param name="builder">The FieldBuilder instance.</param>
+    /// <param name="dataProvider">An async function that returns paginated lookup results.</param>
+    /// <param name="valueSelector">A function that extracts the field value from a selected lookup item.</param>
+    /// <param name="displaySelector">A function that extracts the display text from a lookup item.</param>
+    /// <param name="configureColumns">An optional action to configure the columns displayed in the lookup table.</param>
+    /// <param name="onItemSelected">An optional callback invoked when an item is selected, allowing multi-field mapping.</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.CityId)
+    ///     .AsLookup&lt;MyModel, int, CityDto&gt;(
+    ///         dataProvider: async query => new LookupResult&lt;CityDto&gt; { Items = cities, TotalCount = cities.Count },
+    ///         valueSelector: city => city.Id,
+    ///         displaySelector: city => city.Name,
+    ///         configureColumns: cols =>
+    ///         {
+    ///             cols.Add(new LookupColumn&lt;CityDto&gt; { Title = "Name", ValueSelector = c => c.Name });
+    ///             cols.Add(new LookupColumn&lt;CityDto&gt; { Title = "Country", ValueSelector = c => c.Country });
+    ///         },
+    ///         onItemSelected: (model, city) => model.CityName = city.Name)
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, TValue> AsLookup<TModel, TValue, TItem>(
+        this FieldBuilder<TModel, TValue> builder,
+        Func<LookupQuery, Task<LookupResult<TItem>>> dataProvider,
+        Func<TItem, TValue> valueSelector,
+        Func<TItem, string> displaySelector,
+        Action<List<LookupColumn<TItem>>>? configureColumns = null,
+        Action<TModel, TItem>? onItemSelected = null)
+        where TModel : new()
+    {
+        builder.WithAttribute("LookupDataProvider", dataProvider);
+        builder.WithAttribute("LookupValueSelector", valueSelector);
+        builder.WithAttribute("LookupDisplaySelector", displaySelector);
+
+        if (configureColumns != null)
+        {
+            var columns = new List<LookupColumn<TItem>>();
+            configureColumns(columns);
+            builder.WithAttribute("LookupColumns", columns);
+        }
+
+        if (onItemSelected != null)
+            builder.WithAttribute("LookupOnItemSelected", onItemSelected);
+
+        return builder;
+    }
 }
