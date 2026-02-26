@@ -45,6 +45,7 @@ public partial class FormCraftComponent<TModel>
     
     private EditContext? _editContext;
     private IGroupedFormConfiguration<TModel>? GroupedConfiguration => Configuration as IGroupedFormConfiguration<TModel>;
+    private ICollectionFormConfiguration<TModel>? CollectionConfiguration => Configuration as ICollectionFormConfiguration<TModel>;
     
     protected override async Task OnInitializedAsync()
     {
@@ -411,6 +412,12 @@ public partial class FormCraftComponent<TModel>
         }
 
         return Task.CompletedTask;
+    }
+
+    private void HandleCollectionChanged()
+    {
+        _editContext?.NotifyValidationStateChanged();
+        StateHasChanged();
     }
 
     private bool ShouldShowField(IFieldConfiguration<TModel, object> field)

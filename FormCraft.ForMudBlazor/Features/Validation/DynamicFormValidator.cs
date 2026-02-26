@@ -59,7 +59,33 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             }
         }
 
+        // Validate collection fields
+        if (Configuration is ICollectionFormConfiguration<TModel> collectionConfig)
+        {
+            foreach (var collectionField in collectionConfig.CollectionFields)
+            {
+                var errors = await ValidateCollectionFieldAsync(model, collectionField);
+                foreach (var error in errors)
+                {
+                    _messageStore.Add(_editContext.Field(collectionField.FieldName), error);
+                }
+            }
+        }
+
         _editContext.NotifyValidationStateChanged();
+    }
+
+    private async Task<List<string>> ValidateCollectionFieldAsync(TModel model, ICollectionFieldConfigurationBase collectionField)
+    {
+        // Use reflection to create the typed validator and invoke it
+        var validatorType = typeof(CollectionFieldValidator<,>).MakeGenericType(typeof(TModel), collectionField.ItemType);
+        var validator = Activator.CreateInstance(validatorType, collectionField);
+
+        var validateMethod = validatorType.GetMethod("ValidateAsync");
+        if (validateMethod == null) return new List<string>();
+
+        var task = (Task<List<string>>)validateMethod.Invoke(validator, new object[] { model!, ServiceProvider })!;
+        return await task;
     }
 
     private async void HandleFieldChanged(object? sender, FieldChangedEventArgs e)

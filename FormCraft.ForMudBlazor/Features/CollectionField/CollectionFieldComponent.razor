@@ -1,0 +1,85 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel where TModel : new()
+@typeparam TItem where TItem : new()
+@inject IFieldRendererService FieldRendererService
+
+@if (Configuration.IsVisible)
+{
+    <MudPaper Class="pa-4 mb-4" Outlined="true">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6">@(Configuration.Label ?? Configuration.FieldName)</MudText>
+            @if (Configuration.CanAdd && !HasReachedMax)
+            {
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Size="Size.Small"
+                           OnClick="@AddItem">
+                    @Configuration.AddButtonText
+                </MudButton>
+            }
+        </div>
+
+        @if (Items.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mb-2">
+                @Configuration.EmptyText
+            </MudAlert>
+        }
+        else
+        {
+            @for (var i = 0; i < Items.Count; i++)
+            {
+                var index = i;
+                <MudCard Class="mb-3" Elevation="0" Outlined="true">
+                    <MudCardContent>
+                        <div class="d-flex justify-space-between align-center mb-2">
+                            <MudText Typo="Typo.subtitle2" Color="Color.Default">
+                                Item @(index + 1)
+                            </MudText>
+                            <div class="d-flex gap-1">
+                                @if (Configuration.CanReorder)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward"
+                                                   Size="Size.Small"
+                                                   Disabled="@(index == 0)"
+                                                   OnClick="@(() => MoveItemUp(index))"
+                                                   Title="Move up" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward"
+                                                   Size="Size.Small"
+                                                   Disabled="@(index == Items.Count - 1)"
+                                                   OnClick="@(() => MoveItemDown(index))"
+                                                   Title="Move down" />
+                                }
+                                @if (Configuration.CanRemove && !HasReachedMin)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   OnClick="@(() => RemoveItem(index))"
+                                                   Title="Remove item" />
+                                }
+                            </div>
+                        </div>
+                        @if (Configuration.ItemFormConfiguration != null)
+                        {
+                            @RenderItemFields(index)
+                        }
+                    </MudCardContent>
+                </MudCard>
+            }
+        }
+
+        @if (ValidationErrors.Any())
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Text" Dense="true" Class="mt-2">
+                <ul class="mb-0">
+                    @foreach (var error in ValidationErrors)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            </MudAlert>
+        }
+    </MudPaper>
+}

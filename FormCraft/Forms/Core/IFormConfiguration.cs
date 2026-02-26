@@ -74,6 +74,18 @@ public enum FormLayout
 }
 
 /// <summary>
+/// Interface for form configurations that support collection (one-to-many) fields.
+/// </summary>
+/// <typeparam name="TModel">The model type that the form will bind to.</typeparam>
+public interface ICollectionFormConfiguration<TModel> : IFormConfiguration<TModel> where TModel : new()
+{
+    /// <summary>
+    /// Gets the collection of collection field configurations.
+    /// </summary>
+    List<ICollectionFieldConfigurationBase> CollectionFields { get; }
+}
+
+/// <summary>
 /// Interface for form configurations that support field groups.
 /// </summary>
 /// <typeparam name="TModel">The model type that the form will bind to.</typeparam>
@@ -94,7 +106,7 @@ public interface IGroupedFormConfiguration<TModel> : IFormConfiguration<TModel> 
 /// Default implementation of IFormConfiguration that stores form settings and field collections.
 /// </summary>
 /// <typeparam name="TModel">The model type that the form will bind to.</typeparam>
-public class FormConfiguration<TModel> : IGroupedFormConfiguration<TModel> where TModel : new()
+public class FormConfiguration<TModel> : IGroupedFormConfiguration<TModel>, ICollectionFormConfiguration<TModel> where TModel : new()
 {
     /// <inheritdoc />
     public List<IFieldConfiguration<TModel, object>> Fields { get; } = new();
@@ -122,7 +134,10 @@ public class FormConfiguration<TModel> : IGroupedFormConfiguration<TModel> where
 
     /// <inheritdoc />
     public bool UseFieldGroups { get; set; } = false;
-    
+
     /// <inheritdoc />
     public IFormSecurity? Security { get; set; }
+
+    /// <inheritdoc />
+    public List<ICollectionFieldConfigurationBase> CollectionFields { get; } = new();
 }
