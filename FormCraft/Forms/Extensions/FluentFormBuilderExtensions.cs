@@ -312,9 +312,10 @@ public static class FluentFormBuilderExtensions
         int minLength = 8,
         bool requireSpecialChars = true) where TModel : new()
     {
-        return builder.AddField(expression, field => 
+        return builder.AddField(expression, field =>
         {
             field.WithLabel(label)
+                 .WithInputType("password")
                  .Required($"{label} is required")
                  .WithMinLength(minLength, $"Must be at least {minLength} characters");
 
