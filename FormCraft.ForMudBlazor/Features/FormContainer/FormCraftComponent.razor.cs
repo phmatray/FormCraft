@@ -124,26 +124,42 @@ public partial class FormCraftComponent<TModel>
 
     private void RenderSelectField(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, object? value, object optionsObj)
     {
-        builder.OpenComponent<MudSelect<string>>(0);
+        var property = typeof(TModel).GetProperty(field.FieldName);
+        var valueType = property?.PropertyType ?? typeof(string);
+        var underlyingType = Nullable.GetUnderlyingType(valueType) ?? valueType;
+
+        // Use reflection to call the generic helper method with the correct TValue type
+        var method = typeof(FormCraftComponent<TModel>)
+            .GetMethod(nameof(RenderSelectFieldGeneric), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .MakeGenericMethod(underlyingType);
+
+        method.Invoke(this, new object?[] { builder, field, value, optionsObj });
+    }
+
+    private void RenderSelectFieldGeneric<TValue>(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, object? value, object optionsObj)
+    {
+        var typedValue = value is TValue tv ? tv : default;
+
+        builder.OpenComponent<MudSelect<TValue>>(0);
         AddCommonFieldAttributes(builder, field, 1);
-        builder.AddAttribute(2, "Value", value?.ToString() ?? string.Empty);
+        builder.AddAttribute(2, "Value", typedValue);
         builder.AddAttribute(3, "ValueChanged",
-            EventCallback.Factory.Create<string>(this,
+            EventCallback.Factory.Create<TValue>(this,
                 newValue => UpdateFieldValue(field.FieldName, newValue)));
-        builder.AddAttribute(11, "ChildContent", RenderSelectOptions(optionsObj));
+        builder.AddAttribute(11, "ChildContent", RenderSelectOptions<TValue>(optionsObj));
         builder.CloseComponent();
     }
 
-    private RenderFragment RenderSelectOptions(object optionsObj)
+    private RenderFragment RenderSelectOptions<TValue>(object optionsObj)
     {
         return builder =>
         {
             var sequence = 0;
-            if (optionsObj is IEnumerable<SelectOption<string>> stringOptions)
+            if (optionsObj is IEnumerable<SelectOption<TValue>> typedOptions)
             {
-                foreach (var option in stringOptions)
+                foreach (var option in typedOptions)
                 {
-                    builder.OpenComponent<MudSelectItem<string>>(sequence++);
+                    builder.OpenComponent<MudSelectItem<TValue>>(sequence++);
                     builder.AddAttribute(sequence++, "Value", option.Value);
                     builder.AddAttribute(sequence++, "ChildContent",
                         (RenderFragment)(itemBuilder => itemBuilder.AddContent(0, option.Label)));
@@ -160,10 +176,11 @@ public partial class FormCraftComponent<TModel>
 
                     if (valueProperty != null && labelProperty != null)
                     {
-                        var optionValue = valueProperty.GetValue(option)?.ToString() ?? "";
+                        var rawValue = valueProperty.GetValue(option);
+                        var optionValue = rawValue is TValue tv ? tv : default;
                         var optionLabel = labelProperty.GetValue(option)?.ToString() ?? "";
 
-                        builder.OpenComponent<MudSelectItem<string>>(sequence++);
+                        builder.OpenComponent<MudSelectItem<TValue>>(sequence++);
                         builder.AddAttribute(sequence++, "Value", optionValue);
                         builder.AddAttribute(sequence++, "ChildContent",
                             (RenderFragment)(itemBuilder => itemBuilder.AddContent(0, optionLabel)));
@@ -305,11 +322,27 @@ public partial class FormCraftComponent<TModel>
         var property = typeof(TModel).GetProperty(fieldName);
         if (property != null)
         {
-            property.SetValue(Model, value);
+            var targetType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+            var convertedValue = value;
+
+            // Convert value to the target type if necessary
+            if (value != null && value.GetType() != targetType)
+            {
+                try
+                {
+                    convertedValue = Convert.ChangeType(value, targetType);
+                }
+                catch
+                {
+                    // If conversion fails, use the value as-is
+                }
+            }
+
+            property.SetValue(Model, convertedValue);
 
             if (OnFieldChanged.HasDelegate)
             {
-                await OnFieldChanged.InvokeAsync((fieldName, value));
+                await OnFieldChanged.InvokeAsync((fieldName, convertedValue));
             }
 
             // Handle dependencies

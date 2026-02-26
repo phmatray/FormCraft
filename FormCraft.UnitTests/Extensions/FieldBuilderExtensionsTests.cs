@@ -71,6 +71,55 @@ public class FieldBuilderExtensionsTests
     }
 
     [Fact]
+    public void WithOptions_Should_Set_Int_Options_Attribute()
+    {
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Rating, field => field
+                .WithOptions(
+                    (1, "Low"),
+                    (2, "Medium"),
+                    (3, "High")))
+            .Build();
+
+        // Assert
+        var field = config.Fields.First(f => f.FieldName == "Rating");
+        field.AdditionalAttributes.ShouldContainKey("Options");
+
+        var options = (field.AdditionalAttributes["Options"] as IEnumerable<SelectOption<int>>)?.ToList();
+        options.ShouldNotBeNull();
+        options.Count.ShouldBe(3);
+        options.ShouldContain(o => o.Value == 1 && o.Label == "Low");
+        options.ShouldContain(o => o.Value == 2 && o.Label == "Medium");
+        options.ShouldContain(o => o.Value == 3 && o.Label == "High");
+    }
+
+    [Fact]
+    public void WithOptions_Should_Preserve_Int_Value_Types()
+    {
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Age, field => field
+                .WithOptions(
+                    (18, "Eighteen"),
+                    (25, "Twenty-Five"),
+                    (65, "Sixty-Five")))
+            .Build();
+
+        // Assert
+        var field = config.Fields.First(f => f.FieldName == "Age");
+        field.AdditionalAttributes.ShouldContainKey("Options");
+
+        var options = (field.AdditionalAttributes["Options"] as IEnumerable<SelectOption<int>>)?.ToList();
+        options.ShouldNotBeNull();
+        options.Count.ShouldBe(3);
+
+        // Verify the values are actual ints, not strings
+        options[0].Value.ShouldBeOfType<int>();
+        options[0].Value.ShouldBe(18);
+    }
+
+    [Fact]
     public void AsMultiSelect_Should_Set_MultiSelectOptions_Attribute()
     {
         // Arrange & Act
