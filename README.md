@@ -71,6 +71,21 @@ FormCraft revolutionizes form building in Blazor applications by providing a **f
 - 🚀 **High Performance** - Optimized rendering with minimal overhead
 - 🧪 **Fully Tested** - 550+ unit tests ensuring reliability
 
+## 📊 How FormCraft Compares
+
+FormCraft stands out among Blazor form solutions with its **type-safe fluent API**, **automatic field rendering**, and **built-in field dependency management**. See how it compares to Blazor EditForm, Blazored.FluentValidation, and MudBlazor Forms:
+
+| Capability | EditForm | MudBlazor Forms | FormCraft |
+|------------|:--------:|:---------------:|:---------:|
+| Fluent API configuration | - | - | Yes |
+| Automatic field rendering | - | - | Yes |
+| Built-in field dependencies | Manual | Manual | Yes |
+| Conditional visibility | Manual | Manual | Built-in |
+| Field-level encryption | - | - | Yes |
+| Attribute-based generation | - | - | Yes |
+
+> **[View the full comparison](COMPARISON.md)** — includes detailed feature matrix, code examples, and guidance on when to use each solution.
+
 ## 📦 Installation
 
 ### FormCraft Core
