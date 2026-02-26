@@ -13,7 +13,8 @@
     ReadOnly="@IsReadOnly"
     Disabled="@IsDisabled"
     Variant="Variant.Outlined"
-    Margin="Margin.Dense">
+    Margin="Margin.Dense"
+    ShrinkLabel="true">
     @foreach (SelectOption<TValue> option in Options)
     {
         <MudSelectItem T="TValue" Value="@option.Value">
