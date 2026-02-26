@@ -297,7 +297,8 @@ public partial class FormCraftComponent<TModel>
         builder.AddAttribute(startIndex++, "ReadOnly", field.IsReadOnly);
         builder.AddAttribute(startIndex++, "Disabled", field.IsDisabled);
         builder.AddAttribute(startIndex++, "Variant", Variant.Outlined);
-        builder.AddAttribute(startIndex, "Margin", Margin.Dense);
+        builder.AddAttribute(startIndex++, "Margin", Margin.Dense);
+        builder.AddAttribute(startIndex, "ShrinkLabel", true);
     }
 
     private async Task UpdateFieldValue(string fieldName, object? value)
