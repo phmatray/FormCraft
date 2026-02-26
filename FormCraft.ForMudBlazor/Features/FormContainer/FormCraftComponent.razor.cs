@@ -199,21 +199,52 @@ public partial class FormCraftComponent<TModel>
         builder.AddAttribute(3, "ValueChanged",
             EventCallback.Factory.Create<string>(this,
                 newValue => UpdateFieldValue(field.FieldName, newValue)));
-        
+
         // Add Lines attribute for text area support
         if (field.AdditionalAttributes.TryGetValue("Lines", out var linesObj) && linesObj is int lines)
         {
             builder.AddAttribute(10, "Lines", lines);
         }
-        
+
         // Add MaxLength attribute if present
         if (field.AdditionalAttributes.TryGetValue("MaxLength", out var maxLengthObj) && maxLengthObj is int maxLength)
         {
             builder.AddAttribute(11, "MaxLength", maxLength);
         }
-        
+
         builder.AddAttribute(12, "Immediate", true);
+
+        // Add InputType attribute if present
+        if (field.InputType != null)
+        {
+            builder.AddAttribute(13, "InputType", GetInputType(field.InputType));
+        }
+
+        // Add Adornment attributes for password toggle support
+        if (field.AdditionalAttributes.TryGetValue("Adornment", out var adornmentObj) && adornmentObj is Adornment adornment)
+        {
+            builder.AddAttribute(14, "Adornment", adornment);
+        }
+
+        if (field.AdditionalAttributes.TryGetValue("AdornmentIcon", out var adornmentIconObj) && adornmentIconObj is string adornmentIcon)
+        {
+            builder.AddAttribute(15, "AdornmentIcon", adornmentIcon);
+        }
+
         builder.CloseComponent();
+    }
+
+    private static InputType GetInputType(string inputType)
+    {
+        return inputType.ToLowerInvariant() switch
+        {
+            "email" => InputType.Email,
+            "password" => InputType.Password,
+            "tel" or "telephone" => InputType.Telephone,
+            "url" => InputType.Url,
+            "search" => InputType.Search,
+            _ => InputType.Text
+        };
     }
 
     private void RenderNumericField<T>(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, T value) 

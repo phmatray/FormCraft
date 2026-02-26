@@ -227,6 +227,7 @@ public class FluentFormBuilderExtensionsTests
         var field = config.Fields.First(f => f.FieldName == "Password");
         field.Label.ShouldBe("Password");
         field.IsRequired.ShouldBeTrue();
+        field.InputType.ShouldBe("password");
         field.Validators.Count.ShouldBe(3); // Required + MinLength + Special chars
     }
 
