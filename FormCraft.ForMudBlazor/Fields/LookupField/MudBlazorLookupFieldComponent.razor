@@ -1,0 +1,20 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel
+@typeparam TValue
+@inherits FieldComponentBase<TModel, TValue>
+
+<MudTextField
+    T="string"
+    Label="@Label"
+    Value="@_displayText"
+    Placeholder="@Placeholder"
+    HelperText="@HelpText"
+    ReadOnly="true"
+    Disabled="@IsDisabled"
+    Variant="Variant.Outlined"
+    Margin="Margin.Dense"
+    ShrinkLabel="true"
+    Adornment="Adornment.End"
+    AdornmentIcon="@Icons.Material.Filled.Search"
+    OnAdornmentClick="@OpenLookupDialog"
+    AdornmentAriaLabel="Open lookup" />

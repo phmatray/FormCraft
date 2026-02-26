@@ -349,6 +349,80 @@ public static class FieldBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Configures the field as an autocomplete with async search using a search function.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <typeparam name="TValue">The type of the field value.</typeparam>
+    /// <param name="builder">The FieldBuilder instance.</param>
+    /// <param name="searchFunc">An async function that returns matching options for the given search text.</param>
+    /// <param name="debounceMs">Debounce delay in milliseconds before triggering search (default: 300).</param>
+    /// <param name="minCharacters">Minimum number of characters before triggering search (default: 1).</param>
+    /// <param name="toStringFunc">Optional function to convert a value to its display string.</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.City)
+    ///     .AsAutocomplete(
+    ///         searchFunc: async (text, ct) => cities
+    ///             .Where(c => c.Name.Contains(text, StringComparison.OrdinalIgnoreCase))
+    ///             .Select(c => new SelectOption&lt;string&gt;(c.Name, c.Name)),
+    ///         debounceMs: 300,
+    ///         minCharacters: 2)
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, TValue> AsAutocomplete<TModel, TValue>(
+        this FieldBuilder<TModel, TValue> builder,
+        Func<string, CancellationToken, Task<IEnumerable<SelectOption<TValue>>>> searchFunc,
+        int debounceMs = 300,
+        int minCharacters = 1,
+        Func<TValue, string>? toStringFunc = null)
+        where TModel : new()
+    {
+        builder.WithAttribute("AutocompleteSearchFunc", searchFunc);
+        builder.WithAttribute("AutocompleteDebounceMs", debounceMs);
+        builder.WithAttribute("AutocompleteMinCharacters", minCharacters);
+        if (toStringFunc != null)
+            builder.WithAttribute("AutocompleteToStringFunc", toStringFunc);
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the field as an autocomplete with async search using an IOptionProvider.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <typeparam name="TValue">The type of the field value.</typeparam>
+    /// <param name="builder">The FieldBuilder instance.</param>
+    /// <param name="optionProvider">An option provider that supplies search results based on model context.</param>
+    /// <param name="debounceMs">Debounce delay in milliseconds before triggering search (default: 300).</param>
+    /// <param name="minCharacters">Minimum number of characters before triggering search (default: 1).</param>
+    /// <param name="toStringFunc">Optional function to convert a value to its display string.</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.City)
+    ///     .AsAutocomplete(
+    ///         optionProvider: new CityOptionProvider(),
+    ///         debounceMs: 300,
+    ///         minCharacters: 2)
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, TValue> AsAutocomplete<TModel, TValue>(
+        this FieldBuilder<TModel, TValue> builder,
+        IOptionProvider<TModel, TValue> optionProvider,
+        int debounceMs = 300,
+        int minCharacters = 1,
+        Func<TValue, string>? toStringFunc = null)
+        where TModel : new()
+    {
+        builder.WithAttribute("AutocompleteOptionProvider", optionProvider);
+        builder.WithAttribute("AutocompleteDebounceMs", debounceMs);
+        builder.WithAttribute("AutocompleteMinCharacters", minCharacters);
+        if (toStringFunc != null)
+            builder.WithAttribute("AutocompleteToStringFunc", toStringFunc);
+        return builder;
+    }
+
     private static bool IsValidEmail(string email)
     {
         if (string.IsNullOrWhiteSpace(email))

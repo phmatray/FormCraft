@@ -1,0 +1,76 @@
+@namespace FormCraft.ForMudBlazor
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Search" Class="mr-2" />
+            @FieldLabel
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField
+            T="string"
+            @bind-Value="_searchText"
+            Placeholder="Search..."
+            Adornment="Adornment.Start"
+            AdornmentIcon="@Icons.Material.Filled.Search"
+            Immediate="true"
+            DebounceInterval="300"
+            Variant="Variant.Outlined"
+            Margin="Margin.Dense"
+            Class="mb-4"
+            TextChanged="OnSearchTextChanged" />
+
+        <MudTable
+            T="object"
+            ServerData="LoadServerData"
+            @ref="_table"
+            Dense="true"
+            Hover="true"
+            Striped="true"
+            RowClassFunc="@((item, _) => item == _selectedItem ? "selected" : "")"
+            OnRowClick="OnRowClicked"
+            Loading="@_loading"
+            LoadingProgressColor="Color.Primary">
+            <HeaderContent>
+                @if (_columnDefinitions.Any())
+                {
+                    @foreach (var col in _columnDefinitions)
+                    {
+                        <MudTh>@col.Title</MudTh>
+                    }
+                }
+                else
+                {
+                    <MudTh>Value</MudTh>
+                }
+            </HeaderContent>
+            <RowTemplate>
+                @if (_columnDefinitions.Any())
+                {
+                    @foreach (var col in _columnDefinitions)
+                    {
+                        <MudTd>@col.GetValue(context)</MudTd>
+                    }
+                }
+                else
+                {
+                    <MudTd>@GetDisplayText(context)</MudTd>
+                }
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Typo="Typo.body1">No matching records found.</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(_selectedItem == null)" OnClick="Submit">
+            Select
+        </MudButton>
+    </DialogActions>
+</MudDialog>

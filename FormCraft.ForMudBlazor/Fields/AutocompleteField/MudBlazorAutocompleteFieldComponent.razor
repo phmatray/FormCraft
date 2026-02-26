@@ -1,0 +1,23 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel
+@typeparam TValue
+@inherits FieldComponentBase<TModel, TValue>
+
+<MudAutocomplete
+    T="TValue"
+    Label="@Label"
+    @bind-Value="@CurrentValue"
+    SearchFunc="@SearchAsync"
+    ToStringFunc="@_toStringFunc"
+    Placeholder="@Placeholder"
+    HelperText="@HelpText"
+    ReadOnly="@IsReadOnly"
+    Disabled="@IsDisabled"
+    Variant="Variant.Outlined"
+    Margin="Margin.Dense"
+    ShrinkLabel="true"
+    DebounceInterval="@_debounceMs"
+    MinCharacters="@_minCharacters"
+    ResetValueOnEmptyText="true"
+    CoerceText="false"
+    Dense="true" />
