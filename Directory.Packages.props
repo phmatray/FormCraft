@@ -9,7 +9,7 @@
     <PackageVersion Include="MudBlazor" Version="9.0.0" />
     
     <!-- Testing packages -->
-    <PackageVersion Include="bunit" Version="2.5.3" />
+    <PackageVersion Include="bunit" Version="2.6.2" />
     <PackageVersion Include="FakeItEasy" Version="9.0.1" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
