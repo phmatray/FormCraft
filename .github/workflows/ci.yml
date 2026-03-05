@@ -4,14 +4,15 @@ on:
     branches: [develop]
   pull_request:
     branches: [develop]
+  workflow_dispatch:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10.0.x'
       - run: ./build.cmd Test
         env:
           DOTNET_CLI_TELEMETRY_OPTOUT: 1
