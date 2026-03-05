@@ -1,22 +1,23 @@
 @namespace FormCraft.ForMudBlazor
 @typeparam TModel
-@typeparam TValue where TValue : struct
+@typeparam TValue
 @inherits FieldComponentBase<TModel, TValue>
-@implements INumericFieldComponent<TModel, TValue>
 
-<MudNumericField
+<MudAutocomplete
     T="TValue"
     Label="@Label"
-    @bind-Value="@_localValue"
-    @bind-Value:after="OnLocalValueChanged"
+    @bind-Value="@CurrentValue"
+    SearchFunc="@SearchAsync"
+    ToStringFunc="@_toStringFunc"
     Placeholder="@Placeholder"
     HelperText="@HelpText"
     ReadOnly="@IsReadOnly"
     Disabled="@IsDisabled"
-    Min="@(Min ?? default(TValue))"
-    Max="@(Max ?? default(TValue))"
-    Step="@(Step ?? GetDefaultStep())"
     Variant="Variant.Outlined"
     Margin="Margin.Dense"
     ShrinkLabel="true"
-    Immediate="true" />
+    DebounceInterval="@_debounceMs"
+    MinCharacters="@_minCharacters"
+    ResetValueOnEmptyText="true"
+    CoerceText="false"
+    Dense="true" />

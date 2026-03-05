@@ -80,6 +80,19 @@
             }
         }
     }
+
+    @* Render collection fields *@
+    @if (CollectionConfiguration != null)
+    {
+        @foreach (var collectionField in CollectionConfiguration.CollectionFields.OrderBy(f => f.Order))
+        {
+            if (collectionField.IsVisible)
+            {
+                @(CollectionFieldRenderer.Render(Model, collectionField,
+                    EventCallback.Factory.Create(this, HandleCollectionChanged)))
+            }
+        }
+    }
     
     @if (ShowSubmitButton)
     {
