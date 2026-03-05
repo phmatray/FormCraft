@@ -13,15 +13,14 @@
                Accept="@Accept"
                MaximumFileCount="@MaxFiles"
                Hidden="@false"
-               InputClass="absolute mud-width-full mud-height-full overflow-hidden z-10"
-               InputStyle="opacity:0"
+               InputClass="absolute mud-width-full mud-height-full overflow-hidden z-10 opacity-0"
                ErrorText="@string.Empty"
                tabindex="-1"
                @ondrop="@ClearDragClass"
                @ondragenter="@SetDragClass"
                @ondragleave="@ClearDragClass"
                @ondragend="@ClearDragClass">
-    <ActivatorContent>
+    <CustomContent>
         <MudPaper Height="@GetHeight()"
                   Outlined="true"
                   Class="@_dragClass">
@@ -61,7 +60,7 @@
                 }
             </MudStack>
         </MudPaper>
-    </ActivatorContent>
+    </CustomContent>
 </MudFileUpload>
 
 <MudToolBar Gutters="@false" Class="relative d-flex justify-end gap-4 mt-2">
