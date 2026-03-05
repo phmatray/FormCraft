@@ -265,7 +265,7 @@ public partial class FormCraftComponent<TModel>
         builder.AddAttribute(2, "Accept",
             field.AdditionalAttributes.GetValueOrDefault("Accept", "*/*"));
         builder.AddAttribute(3, "Disabled", field.IsDisabled);
-        builder.AddAttribute(4, "ActivatorContent", RenderFileUploadButton(field));
+        builder.AddAttribute(4, "CustomContent", RenderFileUploadButton(field));
         builder.CloseComponent();
     }
 

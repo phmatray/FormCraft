@@ -26,9 +26,10 @@
                     Elevation="2" 
                     Rounded="true" 
                     ApplyEffectsToContainer="true" 
-                    PanelClass="pa-4">
+                    >
                     <MudTabPanel
-                        Text="Personal Info" 
+                        PanelClass="pa-4"
+                        Text="Personal Info"
                         Icon="@Icons.Material.Filled.Person"
                         BadgeData="@GetPersonalInfoBadge()"
                         BadgeColor="@GetTabBadgeColor(IsPersonalInfoComplete(), HasPersonalInfoData())"
@@ -46,7 +47,8 @@
                     </MudTabPanel>
                     
                     <MudTabPanel
-                        Text="Contact Details" 
+                        PanelClass="pa-4"
+                        Text="Contact Details"
                         Icon="@Icons.Material.Filled.ContactMail"
                         BadgeData="@GetContactInfoBadge()"
                         BadgeColor="@GetTabBadgeColor(IsContactInfoComplete(), HasContactInfoData())"
@@ -67,7 +69,8 @@
                     </MudTabPanel>
                     
                     <MudTabPanel
-                        Text="Professional Info" 
+                        PanelClass="pa-4"
+                        Text="Professional Info"
                         Icon="@Icons.Material.Filled.Work"
                         BadgeData="@GetProfessionalInfoBadge()"
                         BadgeColor="@GetTabBadgeColor(IsProfessionalInfoComplete(), HasProfessionalInfoData())"
@@ -84,8 +87,9 @@
                                 ShowSubmitButton="false" />
                     </MudTabPanel>
                     
-                    <MudTabPanel 
-                        Text="Review & Submit" 
+                    <MudTabPanel
+                        PanelClass="pa-4"
+                        Text="Review & Submit"
                         Icon="@Icons.Material.Filled.CheckCircle" 
                         BadgeData="@GetValidationBadge()" 
                         BadgeColor="@GetBadgeColor()"

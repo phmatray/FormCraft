@@ -67,7 +67,7 @@ public partial class LovSelectionDialog<TItem, TValue> : IDisposable
     /// <summary>
     /// Server data callback for MudDataGrid virtualization.
     /// </summary>
-    private async Task<GridData<TItem>> ServerDataFunc(GridState<TItem> gridState)
+    private async Task<GridData<TItem>> ServerDataFunc(GridState<TItem> gridState, CancellationToken cancellationToken)
     {
         if (DataProvider == null)
         {

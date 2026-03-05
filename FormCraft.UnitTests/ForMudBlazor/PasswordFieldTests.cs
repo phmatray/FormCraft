@@ -188,7 +188,7 @@ public class PasswordFieldTests : BunitContext
 
         // Act - Simulate user typing in the password field by invoking ValueChanged
         mudTextField.Instance.Value.ShouldBe(""); // Initially empty
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("MySecretPassword123"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("MySecretPassword123"));
 
         // Assert - Model should be updated with the new value
         model.Password.ShouldBe("MySecretPassword123");
@@ -215,7 +215,7 @@ public class PasswordFieldTests : BunitContext
 
         // Act - Simulate user typing in the email field
         mudTextField.Instance.Value.ShouldBe(""); // Initially empty
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("user@example.com"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("user@example.com"));
 
         // Assert - Model should be updated with the new value
         model.Email.ShouldBe("user@example.com");
@@ -241,7 +241,7 @@ public class PasswordFieldTests : BunitContext
 
         // Act - Simulate user typing
         mudTextField.Instance.Value.ShouldBe(""); // Initially empty
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("john_doe"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("john_doe"));
 
         // Assert - Model should be updated
         model.Username.ShouldBe("john_doe");

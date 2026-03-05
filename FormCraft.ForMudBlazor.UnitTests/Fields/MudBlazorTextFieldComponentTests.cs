@@ -278,7 +278,7 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
         mudTextField.ShouldNotBeNull();
 
         // Act
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("John Doe"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("John Doe"));
 
         // Assert
         model.Name.ShouldBe("John Doe");
@@ -328,11 +328,11 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
         var mudTextField = component.FindComponent<MudTextField<string>>();
 
         // Act - Simulate typing character by character
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("H"));
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("He"));
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("Hel"));
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("Hell"));
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("Hello"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("H"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("He"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("Hel"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("Hell"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("Hello"));
 
         // Assert
         model.Name.ShouldBe("Hello");
@@ -359,7 +359,7 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
         mudTextField.ShouldNotBeNull();
 
         // Act
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("secret123"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("secret123"));
 
         // Assert
         model.Password.ShouldBe("secret123");
@@ -384,10 +384,10 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
         var mudTextField = component.FindComponent<MudTextField<string>>();
 
         // Act - Simulate typing character by character
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("p"));
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("pa"));
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("pas"));
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("pass"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("p"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("pa"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("pas"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("pass"));
 
         // Assert
         model.Password.ShouldBe("pass");
@@ -412,7 +412,7 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
         var mudTextField = component.FindComponent<MudTextField<string>>();
 
         // Act
-        await mudTextField.InvokeAsync(() => mudTextField.Instance.SetText("Updated"));
+        await mudTextField.InvokeAsync(() => mudTextField.Instance.ValueChanged.InvokeAsync("Updated"));
 
         // Re-render to ensure component state is synced
         component.Render();
