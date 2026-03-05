@@ -63,6 +63,46 @@ public class FormBuilder<TModel> where TModel : new()
     }
 
     /// <summary>
+    /// Adds a collection (one-to-many) field to the form configuration with fluent configuration.
+    /// Collection fields allow users to manage a list of sub-items within the form.
+    /// </summary>
+    /// <typeparam name="TItem">The type of items in the collection. Must have a parameterless constructor.</typeparam>
+    /// <param name="expression">A lambda expression that identifies the collection property on the model (e.g., x => x.Items).</param>
+    /// <param name="collectionConfig">A lambda expression to configure the collection field's behavior and item form.</param>
+    /// <returns>The FormBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// builder.AddCollectionField(x => x.Items, collection => collection
+    ///     .AllowAdd()
+    ///     .AllowRemove()
+    ///     .WithMinItems(1)
+    ///     .WithItemForm(item => item
+    ///         .AddField(x => x.ProductName, field => field.Required())
+    ///         .AddField(x => x.Quantity, field => field.WithRange(1, 100))));
+    /// </code>
+    /// </example>
+    public FormBuilder<TModel> AddCollectionField<TItem>(
+        Expression<Func<TModel, List<TItem>>> expression,
+        Action<CollectionFieldBuilder<TModel, TItem>>? collectionConfig = null)
+        where TItem : new()
+    {
+        var fieldConfiguration = new CollectionFieldConfiguration<TModel, TItem>(expression)
+        {
+            Order = _fieldOrder++
+        };
+
+        _configuration.CollectionFields.Add(fieldConfiguration);
+
+        if (collectionConfig != null)
+        {
+            var builder = new CollectionFieldBuilder<TModel, TItem>(fieldConfiguration);
+            collectionConfig(builder);
+        }
+
+        return this;
+    }
+
+    /// <summary>
     /// Adds a field group to the form using a lambda expression for configuration.
     /// </summary>
     /// <param name="groupBuilder">A lambda expression that configures the group and its fields.</param>

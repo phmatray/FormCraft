@@ -347,6 +347,34 @@ public class FieldBuilderTests
     }
 
     [Fact]
+    public void WithInputType_Should_Set_InputType_To_Password()
+    {
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithInputType("password"))
+            .Build();
+
+        // Assert
+        var field = config.Fields.First(f => f.FieldName == "Name");
+        field.InputType.ShouldBe("password");
+    }
+
+    [Fact]
+    public void WithInputType_Should_Set_InputType_To_Email()
+    {
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Email, field => field
+                .WithInputType("email"))
+            .Build();
+
+        // Assert
+        var field = config.Fields.First(f => f.FieldName == "Email");
+        field.InputType.ShouldBe("email");
+    }
+
+    [Fact]
     public void Multiple_Fluent_Calls_Should_Chain_Correctly()
     {
         // Arrange & Act
