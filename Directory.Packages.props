@@ -5,7 +5,7 @@
   <!-- Framework-agnostic packages -->
   <ItemGroup>
     <!-- UI Framework packages -->
-    <PackageVersion Include="MudBlazor" Version="8.15.0" />
+    <PackageVersion Include="MudBlazor" Version="9.1.0" />
     <!-- Testing packages -->
     <PackageVersion Include="bunit" Version="2.1.1" />
     <PackageVersion Include="FakeItEasy" Version="8.3.0" />
