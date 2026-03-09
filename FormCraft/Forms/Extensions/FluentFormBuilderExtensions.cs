@@ -283,6 +283,7 @@ public static class FluentFormBuilderExtensions
             return builder.AddField(expression, field =>
             {
                 field.WithLabel(label)
+                    .WithInputType("password")
                     .Required($"{label} is required")
                     .WithMinLength(minLength, $"Must be at least {minLength} characters");
 
