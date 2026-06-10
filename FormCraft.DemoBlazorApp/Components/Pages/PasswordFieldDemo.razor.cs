@@ -112,6 +112,7 @@ public partial class PasswordFieldDemo
                 .WithLabel("Password")
                 .WithPlaceholder("Enter your password")
                 .WithInputType("password")  // Basic password masking
+                .WithAutocomplete("current-password")
                 .Required("Password is required"))
             .AddField(x => x.RememberMe, field => field
                 .WithLabel("Remember Me")
@@ -136,6 +137,7 @@ public partial class PasswordFieldDemo
                 .WithLabel("Password")
                 .WithPlaceholder("Create a strong password")
                 .AsPassword(enableVisibilityToggle: true)  // Password with visibility toggle!
+                .WithAutocomplete("new-password")
                 .Required("Password is required")
                 .WithMinLength(8, "Password must be at least 8 characters")
                 .WithHelpText("Use at least 8 characters with letters, numbers, and symbols"))
@@ -143,6 +145,7 @@ public partial class PasswordFieldDemo
                 .WithLabel("Confirm Password")
                 .WithPlaceholder("Re-enter your password")
                 .AsPassword(enableVisibilityToggle: true)
+                .WithAutocomplete("new-password")
                 .Required("Please confirm your password")
                 .WithHelpText("Must match the password above"))
             .AddField(x => x.AcceptTerms, field => field
