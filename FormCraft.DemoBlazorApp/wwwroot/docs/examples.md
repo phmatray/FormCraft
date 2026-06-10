@@ -59,20 +59,40 @@ public class RegistrationModel
     public bool AcceptTerms { get; set; }
 }
 
+// Passwords-match validation needs the full model, so implement IFieldValidator
+public class PasswordsMatchValidator : IFieldValidator<RegistrationModel, string>
+{
+    public string? ErrorMessage { get; set; } = "Passwords must match";
+
+    public Task<ValidationResult> ValidateAsync(
+        RegistrationModel model, string value, IServiceProvider services)
+        => Task.FromResult(value == model.Password
+            ? ValidationResult.Success()
+            : ValidationResult.Failure("Passwords must match"));
+}
+
 var config = FormBuilder<RegistrationModel>
     .Create()
-    .AddRequiredTextField(x => x.Username, "Username", minLength: 3, maxLength: 20)
-        .WithValidator(value => !value.Contains(" "), "Username cannot contain spaces")
+    .AddField(x => x.Username, field => field
+        .WithLabel("Username")
+        .Required("Username is required")
+        .WithMinLength(3)
+        .WithMaxLength(20)
+        .WithValidator(value => !value.Contains(" "), "Username cannot contain spaces"))
     .AddEmailField(x => x.Email)
-    .AddPasswordField(x => x.Password, "Password", 8, true)
+    .AddPasswordField(x => x.Password, "Password", minLength: 8, requireSpecialChars: true)
     .AddField(x => x.ConfirmPassword, field => field
         .WithLabel("Confirm Password")
+        .WithInputType("password")
         .Required("Please confirm your password")
-        .WithValidator((value, model) => value == model.Password, "Passwords must match"))
-    .AddDateField(x => x.DateOfBirth, "Date of Birth")
-        .WithValidator(value => value < DateTime.Now.AddYears(-13), "Must be at least 13 years old")
-    .AddCheckboxField(x => x.AcceptTerms, "I accept the terms and conditions")
-        .Required("You must accept the terms")
+        .WithValidator(new PasswordsMatchValidator()))
+    .AddField(x => x.DateOfBirth, field => field
+        .WithLabel("Date of Birth")
+        .WithValidator(value => value < DateTime.Now.AddYears(-13),
+            "Must be at least 13 years old"))
+    .AddField(x => x.AcceptTerms, field => field
+        .WithLabel("I accept the terms and conditions")
+        .Required("You must accept the terms"))
     .Build();
 ```
 
@@ -98,10 +118,10 @@ var config = FormBuilder<SurveyModel>
     .AddField(x => x.Feedback, field => field
         .WithLabel("Additional Feedback")
         .WithPlaceholder("Tell us about your experience...")
-        .AsTextArea(rows: 4))
+        .AsTextArea(lines: 4))
     .AddField(x => x.ImprovementSuggestions, field => field
         .WithLabel("Suggestions for Improvement")
-        .AsTextArea(rows: 3)
+        .AsTextArea(lines: 3)
         .VisibleWhen(m => m.Satisfaction < 8))
     .Build();
 ```
@@ -117,26 +137,22 @@ public class AccountModel
     public string Email { get; set; } = "";
 }
 
-// Custom async validator
+// Custom async validator - resolve services from the IServiceProvider argument
 public class UsernameAvailabilityValidator : IFieldValidator<AccountModel, string>
 {
-    private readonly IUserService _userService;
-    
-    public UsernameAvailabilityValidator(IUserService userService)
-    {
-        _userService = userService;
-    }
+    public string? ErrorMessage { get; set; } = "Username is already taken";
     
     public async Task<ValidationResult> ValidateAsync(AccountModel model, string value, IServiceProvider services)
     {
         if (string.IsNullOrEmpty(value))
             return ValidationResult.Success();
             
-        var isAvailable = await _userService.IsUsernameAvailableAsync(value);
+        var userService = services.GetRequiredService<IUserService>();
+        var isAvailable = await userService.IsUsernameAvailableAsync(value);
         
         return isAvailable 
             ? ValidationResult.Success() 
-            : ValidationResult.Error("Username is already taken");
+            : ValidationResult.Failure("Username is already taken");
     }
 }
 
@@ -146,6 +162,15 @@ var config = FormBuilder<AccountModel>
     .AddField(x => x.Username, field => field
         .WithLabel("Username")
         .Required()
-        .WithAsyncValidator<UsernameAvailabilityValidator>())
+        .WithValidator(new UsernameAvailabilityValidator()))
     .Build();
+```
+
+For simple async checks that do not need DI, `WithAsyncValidator` takes a delegate:
+
+```csharp
+.AddField(x => x.Email, field => field
+    .WithLabel("Email")
+    .WithAsyncValidator(async email => await CheckEmailAvailabilityAsync(email),
+        "Email is already registered"))
 ```

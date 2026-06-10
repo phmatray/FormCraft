@@ -215,7 +215,7 @@ Use FluentValidation for complex business rules and FormCraft's built-in validat
 ```csharp
 .AddField(x => x.Email, field => field
     .Required() // Simple presence validation
-    .WithEmailFormat() // Basic format validation
+    .WithEmailValidation() // Basic format validation
     .WithFluentValidation(x => x.Email)) // Complex business rules
 ```
 

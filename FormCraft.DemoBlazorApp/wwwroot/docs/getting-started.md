@@ -146,9 +146,13 @@ FormCraft provides convenience methods for common field types:
 - `AddDropdownField()` - Select dropdown with options
 - `AddPasswordField()` - Password input with strength validation
 - `AddPhoneField()` - Phone number input with format validation
-- `AddDateField()` - Date picker
 - `AddCheckboxField()` - Boolean checkbox
+- `AddTextArea()` - Multi-line text input
 - `AddFileUploadField()` - File upload control
+
+`DateTime` properties don't need a dedicated extension method — add them with
+`AddField(x => x.BirthDate, field => field.WithLabel("Birth Date"))` and they
+render as date pickers automatically.
 
 ## Form Features
 
@@ -182,9 +186,10 @@ Create reactive forms where fields depend on each other:
 Create custom field types for specialized inputs:
 
 ```csharp
+// Type arguments: model, value, renderer
 .AddField(x => x.Color, field => field
     .WithLabel("Favorite Color")
-    .WithCustomRenderer(new ColorPickerRenderer()))
+    .WithCustomRenderer<ContactModel, string, ColorPickerRenderer>())
 ```
 
 ## Next Steps

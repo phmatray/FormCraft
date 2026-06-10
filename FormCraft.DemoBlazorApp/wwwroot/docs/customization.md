@@ -8,28 +8,47 @@ Create your own field renderers for specialized input types.
 
 ### Creating a Custom Renderer
 
-Implement the `IFieldRenderer` interface:
+For most cases, derive from `CustomFieldRendererBase<TValue>`:
 
 ```csharp
-public class CustomFieldRenderer : IFieldRenderer
+public class ColorPickerRenderer : CustomFieldRendererBase<string>
 {
-    public bool CanRender(Type fieldType, string? fieldSubType = null)
+    public override RenderFragment Render(IFieldRenderContext context)
+    {
+        return builder =>
+        {
+            builder.OpenElement(0, "input");
+            builder.AddAttribute(1, "type", "color");
+            builder.AddAttribute(2, "value", GetValue(context) ?? "#000000");
+            builder.CloseElement();
+        };
+    }
+}
+
+// Attach it to a field (type arguments: model, value, renderer)
+.AddField(x => x.Color, field => field
+    .WithCustomRenderer<MyModel, string, ColorPickerRenderer>())
+```
+
+To replace rendering for a whole field *type*, implement the `IFieldRenderer` interface:
+
+```csharp
+public class MyTypeFieldRenderer : IFieldRenderer
+{
+    public bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
     {
         return fieldType == typeof(MyCustomType);
     }
 
-    public void RenderField(
-        RenderTreeBuilder builder, 
-        object model, 
-        IFieldConfiguration<object, object> field, 
-        EventCallback<object?> onValueChanged,
-        EventCallback onDependencyChanged)
+    public RenderFragment Render<TModel>(IFieldRenderContext<TModel> context)
     {
-        // Your custom rendering logic here
-        builder.OpenComponent<MyCustomComponent>(0);
-        builder.AddAttribute(1, "Value", field.GetValue(model));
-        builder.AddAttribute(2, "ValueChanged", onValueChanged);
-        builder.CloseComponent();
+        return builder =>
+        {
+            builder.OpenComponent<MyCustomComponent>(0);
+            builder.AddAttribute(1, "Value", context.CurrentValue);
+            builder.AddAttribute(2, "ValueChanged", context.OnValueChanged);
+            builder.CloseComponent();
+        };
     }
 }
 ```
@@ -39,7 +58,7 @@ public class CustomFieldRenderer : IFieldRenderer
 Add your renderer to the service collection:
 
 ```csharp
-builder.Services.AddScoped<IFieldRenderer, CustomFieldRenderer>();
+builder.Services.AddScoped<IFieldRenderer, MyTypeFieldRenderer>();
 ```
 
 ## Custom Validators
@@ -51,6 +70,8 @@ Create reusable validation logic for your specific business rules.
 ```csharp
 public class BusinessRuleValidator<TModel> : IFieldValidator<TModel, string>
 {
+    public string? ErrorMessage { get; set; } = "Value violates business rule";
+
     public async Task<ValidationResult> ValidateAsync(TModel model, string value, IServiceProvider services)
     {
         // Your validation logic
@@ -59,7 +80,7 @@ public class BusinessRuleValidator<TModel> : IFieldValidator<TModel, string>
             return ValidationResult.Success();
         }
         
-        return ValidationResult.Error("Value violates business rule");
+        return ValidationResult.Failure("Value violates business rule");
     }
     
     private async Task<bool> IsValidBusinessRule(string value)
@@ -74,7 +95,7 @@ public class BusinessRuleValidator<TModel> : IFieldValidator<TModel, string>
 
 ```csharp
 .AddField(x => x.BusinessCode, field => field
-    .WithValidator<BusinessRuleValidator<MyModel>>())
+    .WithValidator(new BusinessRuleValidator<MyModel>()))
 ```
 
 ## Custom Themes
@@ -148,13 +169,19 @@ public static string GetCustomLayoutClass(MyCustomLayout layout)
 
 ### Field Groups
 
-Organize fields into logical groups:
+Organize fields into logical groups with `AddFieldGroup`:
 
 ```csharp
-.AddField(x => x.PersonalInfo, field => field
-    .WithGroup("Personal Information"))
-.AddField(x => x.ContactInfo, field => field
-    .WithGroup("Contact Details"))
+.AddFieldGroup(group => group
+    .WithGroupName("Personal Information")
+    .WithColumns(2)
+    .ShowInCard()
+    .AddField(x => x.FirstName, field => field.WithLabel("First Name"))
+    .AddField(x => x.LastName, field => field.WithLabel("Last Name")))
+.AddFieldGroup(group => group
+    .WithGroupName("Contact Details")
+    .AddField(x => x.Email, field => field.WithLabel("Email"))
+    .AddField(x => x.Phone, field => field.WithLabel("Phone")))
 ```
 
 ## Advanced Customization
@@ -197,18 +224,17 @@ Override default rendering with custom Blazor components:
 
 ## Configuration Options
 
-### Global Settings
+### Form-Level Settings
 
-Configure default behaviors:
+Configure layout and indicators per form on the builder:
 
 ```csharp
-builder.Services.Configure<FormCraftOptions>(options =>
-{
-    options.DefaultLayout = FormLayout.Horizontal;
-    options.ShowRequiredIndicator = true;
-    options.RequiredIndicator = "*";
-    options.ValidateOnFieldChanged = true;
-});
+FormBuilder<MyModel>.Create()
+    .WithLayout(FormLayout.Horizontal)
+    .ShowRequiredIndicator(true, "*")
+    .ShowValidationSummary()
+    // ... fields
+    .Build();
 ```
 
 ### Localization
