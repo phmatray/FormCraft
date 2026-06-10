@@ -54,7 +54,7 @@ public partial class ComplexDependenciesDemo : ComponentBase
             "Over-complicating dependency chains - keep them simple and unidirectional when possible",
             "Missing null checks in value providers - can cause runtime errors when fields are cleared"
         ],
-        RelatedDemoIds = ["async-value-provider", "field-dependencies", "fluent-validation", "dynamic-forms"]
+        RelatedDemoIds = ["async-value-provider", "fluent-validation-demo", "attribute-based-forms"]
     };
 
     // Product catalog

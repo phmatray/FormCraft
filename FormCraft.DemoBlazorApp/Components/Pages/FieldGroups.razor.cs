@@ -51,7 +51,7 @@ public partial class FieldGroups
             "ShowInCard() adds visual separation - use it sparingly to avoid cluttered UI",
             "Custom header content must be a component - simple strings should use WithGroupName()"
         ],
-        RelatedDemoIds = ["fluent", "improved", "complex-dependencies", "custom-layout"]
+        RelatedDemoIds = ["fluent", "improved", "complex-dependencies", "form-slots"]
     };
 
     // Legacy properties for backward compatibility with existing razor template

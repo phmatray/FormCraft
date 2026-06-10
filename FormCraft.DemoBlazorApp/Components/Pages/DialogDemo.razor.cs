@@ -59,7 +59,7 @@ public partial class DialogDemo
             "Not configuring ShowSubmitButton=\"false\" and adding custom DialogActions instead",
             "Forgetting to validate the form before closing the dialog with success"
         ],
-        RelatedDemoIds = ["fluent", "validation", "field-groups"]
+        RelatedDemoIds = ["fluent", "fluent-validation-demo", "field-groups"]
     };
 
     // Legacy properties for backward compatibility with existing razor template

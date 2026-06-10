@@ -97,7 +97,7 @@ public partial class AsyncValueProviderDemo : ComponentBase
             "Missing StateHasChanged() calls after async operations - UI may not update properly",
             "Not debouncing expensive async validators - can cause performance issues with frequent calls"
         ],
-        RelatedDemoIds = ["field-dependencies", "fluent", "cross-field-validation", "async-validation"]
+        RelatedDemoIds = ["complex-dependencies", "fluent", "cross-field-validation"]
     };
 
     // Legacy properties for backward compatibility with existing razor template

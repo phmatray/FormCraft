@@ -67,7 +67,7 @@ public partial class StepperForm
             "Not resetting the stepper when resetting the form - leaves UI in inconsistent state",
             "Creating too many steps (5+) - consider grouping or using a different pattern"
         ],
-        RelatedDemoIds = ["fluent", "field-groups", "validation", "dialog-demo"]
+        RelatedDemoIds = ["fluent", "field-groups", "fluent-validation-demo", "dialog-demo"]
     };
 
     // Legacy properties for backward compatibility with existing razor template

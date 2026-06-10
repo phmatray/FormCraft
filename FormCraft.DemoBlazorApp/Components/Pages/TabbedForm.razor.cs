@@ -67,7 +67,7 @@ public partial class TabbedForm
             "Provide clear visual indicators (badges, progress bars) to show which sections are complete",
             "Set ShowSubmitButton=\"false\" on individual tab FormCraftComponents to avoid multiple submit buttons"
         ],
-        RelatedDemoIds = ["wizard-form", "field-groups", "conditional-fields"]
+        RelatedDemoIds = ["stepper-form", "field-groups", "complex-dependencies"]
     };
 
     // Legacy properties for backward compatibility with existing razor template

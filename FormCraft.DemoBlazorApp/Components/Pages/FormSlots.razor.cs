@@ -58,7 +58,7 @@ public partial class FormSlots : IDisposable
             "BeforeForm and AfterForm are optional - only use them when they add value to the user experience",
             "Avoid placing form fields directly in slots - they won't be part of the form configuration"
         ],
-        RelatedDemoIds = ["fluent", "field-groups", "improved", "custom-layout"]
+        RelatedDemoIds = ["fluent", "field-groups", "improved"]
     };
 
     // Legacy properties for backward compatibility with existing razor template
