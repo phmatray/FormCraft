@@ -19,6 +19,11 @@ public class ValidatorWrapper<TModel, TValue> : IFieldValidator<TModel, object>
         _inner = inner;
     }
 
+    /// <summary>
+    /// Gets the strongly-typed validator wrapped by this instance.
+    /// </summary>
+    internal IFieldValidator<TModel, TValue> Inner => _inner;
+
     /// <inheritdoc />
     public string? ErrorMessage
     {

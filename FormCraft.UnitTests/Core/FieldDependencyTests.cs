@@ -154,6 +154,107 @@ public class FieldDependencyTests
         dependency.DependentFieldName.ShouldBe("PostalCode");
     }
 
+    [Fact]
+    public void Async_Constructor_Should_Extract_DependsOnFieldName()
+    {
+        // Arrange
+        Expression<Func<TestModel, string?>> expression = x => x.Country;
+        Func<TestModel, string?, Task> onChangedAsync = (_, _) => Task.CompletedTask;
+
+        // Act
+        var dependency = new FieldDependency<TestModel, string?>(expression, onChangedAsync);
+
+        // Assert
+        dependency.DependentFieldName.ShouldBe("Country");
+    }
+
+    [Fact]
+    public async Task OnDependencyChangedAsync_Should_Invoke_Async_Callback_With_Correct_Value()
+    {
+        // Arrange
+        var model = new TestModel { Country = "USA" };
+        string? capturedCountry = null;
+        TestModel? capturedModel = null;
+
+        var dependency = new FieldDependency<TestModel, string?>(
+            x => x.Country,
+            async (m, v) =>
+            {
+                await Task.Delay(10);
+                capturedModel = m;
+                capturedCountry = v;
+            });
+
+        // Act
+        await dependency.OnDependencyChangedAsync(model);
+
+        // Assert
+        capturedModel.ShouldBeSameAs(model);
+        capturedCountry.ShouldBe("USA");
+    }
+
+    [Fact]
+    public async Task OnDependencyChangedAsync_Should_Invoke_Sync_Callback_When_Constructed_Synchronously()
+    {
+        // Arrange
+        var model = new TestModel { Country = "Belgium" };
+        string? capturedCountry = null;
+
+        var dependency = new FieldDependency<TestModel, string?>(
+            x => x.Country,
+            (_, v) => capturedCountry = v);
+
+        // Act
+        await dependency.OnDependencyChangedAsync(model);
+
+        // Assert
+        capturedCountry.ShouldBe("Belgium");
+    }
+
+    [Fact]
+    public void OnDependencyChanged_Should_Run_Async_Callback_To_Completion()
+    {
+        // Arrange - the legacy sync entry point must still execute async callbacks
+        var model = new TestModel { Country = "France" };
+        string? capturedCountry = null;
+
+        var dependency = new FieldDependency<TestModel, string?>(
+            x => x.Country,
+            (_, v) =>
+            {
+                capturedCountry = v;
+                return Task.CompletedTask;
+            });
+
+        // Act
+        dependency.OnDependencyChanged(model);
+
+        // Assert
+        capturedCountry.ShouldBe("France");
+    }
+
+    [Fact]
+    public async Task Default_Interface_Implementation_Should_Wrap_Sync_OnDependencyChanged()
+    {
+        // Arrange - an external implementor that only knows the sync member must
+        // keep working through the new async dispatch path (non-breaking contract)
+        var model = new TestModel { Country = "USA" };
+        IFieldDependency<TestModel> dependency = new SyncOnlyDependency();
+
+        // Act
+        await dependency.OnDependencyChangedAsync(model);
+
+        // Assert
+        ((SyncOnlyDependency)dependency).Invocations.ShouldBe(1);
+    }
+
+    private class SyncOnlyDependency : IFieldDependency<TestModel>
+    {
+        public int Invocations { get; private set; }
+        public string DependentFieldName => "Country";
+        public void OnDependencyChanged(TestModel model) => Invocations++;
+    }
+
     public class TestModel
     {
         public string? Country { get; set; }

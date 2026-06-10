@@ -269,6 +269,141 @@ public class FieldConfigurationWrapperTests
     }
 
     [Fact]
+    public void Validators_Should_Return_Same_Cached_Instance_On_Repeated_Reads()
+    {
+        // Arrange
+        var validators = new List<IFieldValidator<TestModel, string>> { A.Fake<IFieldValidator<TestModel, string>>() };
+        var innerConfig = A.Fake<IFieldConfiguration<TestModel, string>>();
+        A.CallTo(() => innerConfig.Validators).Returns(validators);
+        var wrapper = new FieldConfigurationWrapper<TestModel, string>(innerConfig);
+
+        // Act
+        var first = wrapper.Validators;
+        var second = wrapper.Validators;
+
+        // Assert - repeated reads must not hand out throwaway copies (issue #151)
+        second.ShouldBeSameAs(first);
+    }
+
+    [Fact]
+    public void Validators_Mutations_Should_Be_Retained_Across_Reads()
+    {
+        // Arrange - the natural mutation `config.Fields[i].Validators.Add(...)`
+        // used to mutate a fresh copy and silently drop the validator (issue #151)
+        var innerConfig = A.Fake<IFieldConfiguration<TestModel, string>>();
+        A.CallTo(() => innerConfig.Validators).Returns(new List<IFieldValidator<TestModel, string>>());
+        var wrapper = new FieldConfigurationWrapper<TestModel, string>(innerConfig);
+        var addedValidator = A.Fake<IFieldValidator<TestModel, object>>();
+
+        // Act
+        wrapper.Validators.Add(addedValidator);
+
+        // Assert
+        wrapper.Validators.ShouldContain(addedValidator);
+    }
+
+    [Fact]
+    public void Validators_Should_Surface_Typed_Validators_Added_After_First_Read()
+    {
+        // Arrange
+        var typedValidators = new List<IFieldValidator<TestModel, string>>();
+        var innerConfig = A.Fake<IFieldConfiguration<TestModel, string>>();
+        A.CallTo(() => innerConfig.Validators).Returns(typedValidators);
+        var wrapper = new FieldConfigurationWrapper<TestModel, string>(innerConfig);
+
+        var cached = wrapper.Validators;
+        cached.ShouldBeEmpty();
+
+        // Act - a typed validator added through the builder API after the first read
+        typedValidators.Add(A.Fake<IFieldValidator<TestModel, string>>());
+
+        // Assert - the cached view picks it up on the next read
+        wrapper.Validators.Count.ShouldBe(1);
+        wrapper.Validators[0].ShouldBeOfType<ValidatorWrapper<TestModel, string>>();
+    }
+
+    [Fact]
+    public void AddValidator_Should_Forward_To_Inner_Typed_List()
+    {
+        // Arrange
+        var typedValidators = new List<IFieldValidator<TestModel, string>>();
+        var innerConfig = A.Fake<IFieldConfiguration<TestModel, string>>();
+        A.CallTo(() => innerConfig.Validators).Returns(typedValidators);
+        var wrapper = new FieldConfigurationWrapper<TestModel, string>(innerConfig);
+        var objectValidator = A.Fake<IFieldValidator<TestModel, object>>();
+
+        // Act
+        wrapper.AddValidator(objectValidator);
+
+        // Assert - registered against the underlying typed configuration AND visible
+        // through the object-typed view
+        typedValidators.Count.ShouldBe(1);
+        wrapper.Validators.ShouldContain(objectValidator);
+    }
+
+    [Fact]
+    public void AddValidator_Should_Unwrap_ValidatorWrapper_Into_Inner_Typed_List()
+    {
+        // Arrange
+        var typedValidators = new List<IFieldValidator<TestModel, string>>();
+        var innerConfig = A.Fake<IFieldConfiguration<TestModel, string>>();
+        A.CallTo(() => innerConfig.Validators).Returns(typedValidators);
+        var wrapper = new FieldConfigurationWrapper<TestModel, string>(innerConfig);
+
+        var typedValidator = A.Fake<IFieldValidator<TestModel, string>>();
+        var wrappedValidator = new ValidatorWrapper<TestModel, string>(typedValidator);
+
+        // Act
+        wrapper.AddValidator(wrappedValidator);
+
+        // Assert - the original typed validator lands in the inner list, not a double wrapper
+        typedValidators.ShouldContain(typedValidator);
+    }
+
+    [Fact]
+    public async Task AddValidator_Adapter_Should_Delegate_Validation_To_Object_Validator()
+    {
+        // Arrange
+        var typedValidators = new List<IFieldValidator<TestModel, string>>();
+        var innerConfig = A.Fake<IFieldConfiguration<TestModel, string>>();
+        A.CallTo(() => innerConfig.Validators).Returns(typedValidators);
+        var wrapper = new FieldConfigurationWrapper<TestModel, string>(innerConfig);
+
+        var objectValidator = A.Fake<IFieldValidator<TestModel, object>>();
+        A.CallTo(() => objectValidator.ValidateAsync(A<TestModel>._, A<object>._, A<IServiceProvider>._))
+            .Returns(Task.FromResult(ValidationResult.Failure("nope")));
+
+        var model = new TestModel();
+        var services = A.Fake<IServiceProvider>();
+
+        // Act
+        wrapper.AddValidator(objectValidator);
+        var result = await typedValidators.Single().ValidateAsync(model, "value", services);
+
+        // Assert - the typed adapter forwards to the original object-typed validator
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("nope");
+        A.CallTo(() => objectValidator.ValidateAsync(model, "value", services)).MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public void Validators_Added_Through_Built_Configuration_Should_Be_Retained()
+    {
+        // Arrange - end-to-end shape of the bug report: mutate validators on a
+        // built configuration's object-typed field view
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field.WithLabel("Name"))
+            .Build();
+        var addedValidator = A.Fake<IFieldValidator<TestModel, object>>();
+
+        // Act
+        config.Fields[0].Validators.Add(addedValidator);
+
+        // Assert - the validator is still there on subsequent reads (it will run during validation)
+        config.Fields[0].Validators.ShouldContain(addedValidator);
+    }
+
+    [Fact]
     public void Dependencies_Should_Return_Inner_Dependencies()
     {
         // Arrange
