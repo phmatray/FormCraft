@@ -45,7 +45,12 @@ public class FluentValidationAdapter<TModel, TProperty> : IFieldValidator<TModel
         var validator = serviceProvider.GetService<IValidator<TModel>>();
         if (validator == null)
         {
-            return ValidationResult.Success();
+            // Silently passing would disable every rule the developer explicitly
+            // asked for with WithFluentValidation - fail loudly instead.
+            return ValidationResult.Failure(
+                $"No IValidator<{typeof(TModel).Name}> is registered. " +
+                $"Register your FluentValidation validator (services.AddScoped<IValidator<{typeof(TModel).Name}>, YourValidator>()) " +
+                "or use WithFluentValidator(instance, ...) instead.");
         }
 
         var context = new ValidationContext<TModel>(model);

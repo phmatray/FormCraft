@@ -54,10 +54,13 @@ public partial class ComplexDependenciesDemo : ComponentBase
             "Over-complicating dependency chains - keep them simple and unidirectional when possible",
             "Missing null checks in value providers - can cause runtime errors when fields are cleared"
         ],
-        RelatedDemoIds = ["async-value-provider", "field-dependencies", "fluent-validation", "dynamic-forms"]
+        RelatedDemoIds = ["async-value-provider", "fluent-validation-demo", "attribute-based-forms"]
     };
 
     // Product catalog
+    // Live list bound to the Product select; repopulated when Category changes
+    private readonly List<SelectOption<string>> _productOptions = [];
+
     private static readonly Dictionary<string, List<(string Name, decimal Price)>> ProductsByCategory = new()
     {
         ["Electronics"] =
@@ -127,11 +130,17 @@ public partial class ComplexDependenciesDemo : ComponentBase
                 .Required("Please select a category"))
             .AddField(x => x.Product, field => field
                 .WithLabel("Product")
-                .WithPlaceholder("Select a product")
+                .WithPlaceholder("Select a category first")
+                .WithAttribute("Options", _productOptions)
                 .DependsOn(x => x.Category, (model, category) =>
                 {
                     model.Product = "";
                     model.UnitPrice = 0;
+                    _productOptions.Clear();
+                    foreach (var (name, price) in ProductsByCategory.GetValueOrDefault(category ?? "") ?? [])
+                    {
+                        _productOptions.Add(new SelectOption<string> { Value = name, Label = $"{name} ({Usd(price)})" });
+                    }
                     RecalculateTotals();
                 })
                 .Required("Please select a product"))
@@ -217,6 +226,11 @@ public partial class ComplexDependenciesDemo : ComponentBase
         StateHasChanged();
     }
 
+    // Demo prices are in USD; format explicitly so the panel matches the
+    // "$" labels regardless of the runtime culture
+    private static string Usd(decimal value) =>
+        value.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-US"));
+
     private List<FormSuccessDisplay.DataDisplayItem> GetDataDisplayItems()
     {
         return
@@ -224,11 +238,11 @@ public partial class ComplexDependenciesDemo : ComponentBase
             new() { Label = "Category", Value = _model.Category },
             new() { Label = "Product", Value = _model.Product },
             new() { Label = "Quantity", Value = _model.Quantity.ToString() },
-            new() { Label = "Unit Price", Value = _model.UnitPrice.ToString("C") },
-            new() { Label = "Subtotal", Value = _model.Subtotal.ToString("C") },
+            new() { Label = "Unit Price", Value = Usd(_model.UnitPrice) },
+            new() { Label = "Subtotal", Value = Usd(_model.Subtotal) },
             new() { Label = "Discount", Value = $"{_model.DiscountPercent}%" },
-            new() { Label = "Shipping", Value = $"{_model.ShippingMethod} ({_model.ShippingCost:C})" },
-            new() { Label = "Total", Value = _model.Total.ToString("C") }
+            new() { Label = "Shipping", Value = $"{_model.ShippingMethod} ({Usd(_model.ShippingCost)})" },
+            new() { Label = "Total", Value = Usd(_model.Total) }
         ];
     }
 

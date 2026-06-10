@@ -52,6 +52,9 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
     protected virtual async Task NotifyValueChangedAsync(TValue? value)
     {
         await Context.OnValueChanged.InvokeAsync(value);
+        // The parent has now written the value to the model; record it so
+        // ShouldReloadValue can tell our own edits apart from external changes.
+        _lastNotifiedValue = value;
         StateHasChanged(); // Force re-render after value change
     }
 
@@ -100,15 +103,17 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
     /// </summary>
     private bool ShouldReloadValue()
     {
-        // If our current value matches what we last told the parent,
-        // we initiated this change - don't reload from model.
-        // This prevents race conditions where OnParametersSet fires during async operations.
-        if (EqualityComparer<TValue>.Default.Equals(_currentValue, _lastNotifiedValue))
+        // While a notification is in flight (we changed the value but the parent
+        // hasn't written it to the model yet), the model still holds the previous
+        // value - reloading now would wipe the user's input.
+        if (!EqualityComparer<TValue>.Default.Equals(_currentValue, _lastNotifiedValue))
         {
             return false;
         }
 
-        // External change - check if model differs from our current value
+        // Settled state: reload whenever the model diverged from what we display.
+        // This is how external mutations (dependency callbacks, programmatic
+        // model changes) reach the UI.
         var property = Context.Model?.GetType().GetProperty(Context.Field.FieldName);
         if (property != null && Context.Model != null)
         {

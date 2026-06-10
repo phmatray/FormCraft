@@ -24,36 +24,7 @@ public abstract class FieldRendererBase : IFieldRenderer
         {
             var sequence = 0;
 
-            // If ComponentType is a generic type definition, make it concrete
-            var componentType = ComponentType;
-            if (componentType.IsGenericTypeDefinition)
-            {
-                var genericArgs = componentType.GetGenericArguments();
-                if (genericArgs.Length == 1)
-                {
-                    // Single generic argument - just TModel
-                    componentType = componentType.MakeGenericType(typeof(TModel));
-                }
-                else if (genericArgs.Length == 2)
-                {
-                    // Two generic arguments - TModel and TValue
-                    // Get the actual field type from the context
-                    var valueType = context.ActualFieldType;
-
-                    // For nullable types, we need to use the underlying type for components with struct constraints
-                    var underlyingType = Nullable.GetUnderlyingType(valueType);
-                    if (underlyingType != null && HasStructConstraint(componentType, 1))
-                    {
-                        valueType = underlyingType;
-                    }
-
-                    componentType = componentType.MakeGenericType(typeof(TModel), valueType);
-                }
-                else
-                {
-                    throw new NotSupportedException($"Component type {ComponentType} has {genericArgs.Length} generic arguments, which is not supported.");
-                }
-            }
+            var componentType = ResolveComponentType(context);
 
             builder.OpenComponent(sequence++, componentType);
             builder.AddAttribute(sequence++, "Context", context);
@@ -63,6 +34,47 @@ public abstract class FieldRendererBase : IFieldRenderer
 
             builder.CloseComponent();
         };
+    }
+
+    /// <summary>
+    /// Resolves the concrete component type to render. The default implementation
+    /// closes generic definitions over TModel (1 argument) or TModel + the actual
+    /// field type (2 arguments). Override for components with additional generic
+    /// arguments that must be derived from the field configuration.
+    /// </summary>
+    protected virtual Type ResolveComponentType<TModel>(IFieldRenderContext<TModel> context)
+    {
+        var componentType = ComponentType;
+        if (componentType.IsGenericTypeDefinition)
+        {
+            var genericArgs = componentType.GetGenericArguments();
+            if (genericArgs.Length == 1)
+            {
+                // Single generic argument - just TModel
+                componentType = componentType.MakeGenericType(typeof(TModel));
+            }
+            else if (genericArgs.Length == 2)
+            {
+                // Two generic arguments - TModel and TValue
+                // Get the actual field type from the context
+                var valueType = context.ActualFieldType;
+
+                // For nullable types, we need to use the underlying type for components with struct constraints
+                var underlyingType = Nullable.GetUnderlyingType(valueType);
+                if (underlyingType != null && HasStructConstraint(componentType, 1))
+                {
+                    valueType = underlyingType;
+                }
+
+                componentType = componentType.MakeGenericType(typeof(TModel), valueType);
+            }
+            else
+            {
+                throw new NotSupportedException($"Component type {ComponentType} has {genericArgs.Length} generic arguments. Override {nameof(ResolveComponentType)} to close the additional arguments.");
+            }
+        }
+
+        return componentType;
     }
 
     /// <summary>

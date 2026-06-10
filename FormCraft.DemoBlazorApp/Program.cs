@@ -27,6 +27,7 @@ builder.Services.AddSingleton<IDemoDocumentationValidator, DemoDocumentationVali
 
 // Register FluentValidation validators
 builder.Services.AddScoped<IValidator<FluentValidationDemo.CustomerModel>, FluentValidationDemo.CustomerValidator>();
+builder.Services.AddScoped<IValidator<CrossFieldValidationDemo.BookingModel>, CrossFieldValidationDemo.BookingValidator>();
 
 // Custom field renderers are now registered by AddFormCraftMudBlazor
 

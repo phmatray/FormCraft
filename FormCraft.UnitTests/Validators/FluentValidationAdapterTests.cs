@@ -18,9 +18,10 @@ public class FluentValidationAdapterTests
     }
 
     [Fact]
-    public async Task ValidateAsync_WhenNoValidatorRegistered_ReturnsSuccess()
+    public async Task ValidateAsync_WhenNoValidatorRegistered_FailsWithGuidance()
     {
-        // Arrange
+        // Arrange - silently passing would disable every rule the developer
+        // explicitly requested with WithFluentValidation
         var emptyServiceProvider = new ServiceCollection().BuildServiceProvider();
         var adapter = new FluentValidationAdapter<TestModel, string>(x => x.Name);
         var model = new TestModel { Name = "Test" };
@@ -29,7 +30,9 @@ public class FluentValidationAdapterTests
         var result = await adapter.ValidateAsync(model, "Test", emptyServiceProvider);
 
         // Assert
-        result.IsValid.ShouldBeTrue();
+        result.IsValid.ShouldBeFalse();
+        result.ErrorMessage.ShouldNotBeNull();
+        result.ErrorMessage.ShouldContain("No IValidator<TestModel> is registered");
     }
 
     [Fact]

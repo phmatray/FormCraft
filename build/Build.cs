@@ -21,9 +21,9 @@ using static Nuke.Common.Tools.DotNet.DotNetTasks;
     "continuous",
     GitHubActionsImage.UbuntuLatest,
     AutoGenerate = false,
-    OnPushBranches = ["main", "develop"],
+    OnPushBranches = ["main", "dev"],
     OnPushTags = ["v*"],
-    OnPullRequestBranches = ["main", "develop"],
+    OnPullRequestBranches = ["main", "dev"],
     InvokedTargets = [nameof(Continuous)],
     EnableGitHubToken = true,
     FetchDepth = 0,
@@ -83,13 +83,14 @@ class Build : NukeBuild
         .DependsOn(Restore)
         .Executes(() =>
         {
+            // Versioning (Version, AssemblyVersion, FileVersion, InformationalVersion,
+            // PackageVersion) is handled by MinVer (see Directory.Build.props), which is
+            // prerelease-safe: passing a raw tag like "3.0.0-rc.1" as AssemblyVersion or
+            // FileVersion would fail compilation (CS7034/CS7035).
             DotNetBuild(s => s
                 .SetProjectFile(Solution)
                 .SetConfiguration(Configuration)
-                .EnableNoRestore()
-                .SetAssemblyVersion(CurrentVersion)
-                .SetFileVersion(CurrentVersion)
-                .SetInformationalVersion(CurrentVersion));
+                .EnableNoRestore());
         });
 
     Target Test => _ => _
@@ -186,6 +187,8 @@ class Build : NukeBuild
                 }
             }
 
+            // Package versions are computed by MinVer from git tags (MinVer's targets
+            // override any /p:Version passed on the command line, so we don't set one here).
             // Pack FormCraft main package
             DotNetPack(s => s
                 .SetProject(SourceDirectory)
@@ -193,7 +196,6 @@ class Build : NukeBuild
                 .EnableNoRestore()
                 .EnableNoBuild()
                 .SetOutputDirectory(ArtifactsDirectory)
-                .SetVersion(CurrentVersion)
                 .EnableIncludeSymbols()
                 .SetSymbolPackageFormat(DotNetSymbolPackageFormat.snupkg));
 
@@ -204,7 +206,6 @@ class Build : NukeBuild
                 .EnableNoRestore()
                 .EnableNoBuild()
                 .SetOutputDirectory(ArtifactsDirectory)
-                .SetVersion(CurrentVersion)
                 .EnableIncludeSymbols()
                 .SetSymbolPackageFormat(DotNetSymbolPackageFormat.snupkg));
         });
@@ -239,6 +240,7 @@ class Build : NukeBuild
         });
 
     Target CreateGitHubRelease => _ => _
+        .Description("Manual fallback only - GitHub releases are normally created by .github/workflows/release.yml")
         .DependsOn(Pack)
         .Requires(() => GitHubToken)
         .Requires(() => IsOnVersionTag())
@@ -311,8 +313,10 @@ class Build : NukeBuild
             Serilog.Log.Information("  - Current tag: {CurrentTag}", currentTag ?? "none");
             Serilog.Log.Information("  - Current version: {Version}", CurrentVersion);
         })
-        .DependsOn(Publish)
-        .Triggers(CreateGitHubRelease);
+        .DependsOn(Publish);
+        // Note: GitHub releases are created exclusively by .github/workflows/release.yml
+        // (softprops/action-gh-release). Do NOT chain CreateGitHubRelease here, or two
+        // workflows would race to create a release for the same tag (already_exists errors).
 
     Target Release => _ => _
         .Description("Creates a new release (NuGet + GitHub)")

@@ -11,6 +11,23 @@ public class FieldGroupBuilderTests
         public string? Department { get; set; }
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(7)]
+    public void WithColumns_Should_Reject_Out_Of_Range_Values(int columns)
+    {
+        // Columns = 0 used to crash rendering with DivideByZeroException
+        Should.Throw<ArgumentOutOfRangeException>(() =>
+            FormBuilder<TestModel>
+                .Create()
+                .AddFieldGroup(group => group
+                    .WithGroupName("Test Group")
+                    .WithColumns(columns)
+                    .AddField(x => x.FirstName))
+                .Build());
+    }
+
     [Fact]
     public void AddFieldGroup_WithColumns_SetsColumnsCorrectly()
     {

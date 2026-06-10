@@ -1,0 +1,20 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel
+@inherits FieldComponentBase<TModel, DateOnly>
+
+<MudDatePicker
+    Label="@Label"
+    @bind-Date="@_localValue"
+    @bind-Date:after="OnLocalValueChanged"
+    Placeholder="@Placeholder"
+    HelperText="@HelpText"
+    ReadOnly="@IsReadOnly"
+    Disabled="@IsDisabled"
+    Variant="Variant.Outlined"
+    Margin="Margin.Dense"
+    ShrinkLabel="true"
+    DateFormat="@Format"
+    Editable="true"
+    MinDate="@MinDate"
+    MaxDate="@MaxDate"
+    Clearable="@ShowClearButton" />

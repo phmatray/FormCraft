@@ -99,7 +99,7 @@ build/                          # NUKE build automation
 ```
 
 ### Target Frameworks
-- **net9.0** and **net10.0** - Multi-targeting for .NET 9 and .NET 10
+- **net8.0**, **net9.0** and **net10.0** - Multi-targeting for .NET 8, .NET 9 and .NET 10
 
 ### Core Design Patterns
 

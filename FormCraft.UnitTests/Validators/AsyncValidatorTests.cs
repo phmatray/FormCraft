@@ -139,9 +139,10 @@ public class AsyncValidatorTests
         // Act
         var result = await validator.ValidateAsync(model, "test", _services);
 
-        // Assert
+        // Assert - validator crashes must surface the cause, not the configured
+        // message (which would blame the user's input for a broken validator)
         result.IsValid.ShouldBeFalse();
-        result.ErrorMessage.ShouldBe("Validation failed due to service error");
+        result.ErrorMessage.ShouldBe("Validation could not be completed: Simulated service error");
     }
 
     [Fact]
@@ -219,7 +220,7 @@ public class AsyncValidatorTests
 
         // Assert
         result.IsValid.ShouldBeFalse();
-        result.ErrorMessage.ShouldBe("Validation timed out");
+        result.ErrorMessage.ShouldBe("Validation could not be completed: A task was canceled.");
     }
 
     [Fact]

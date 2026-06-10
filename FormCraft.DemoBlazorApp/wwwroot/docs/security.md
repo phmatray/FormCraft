@@ -1,14 +1,22 @@
 # Security Features
 
-FormCraft provides comprehensive security features to protect your forms and sensitive data. This guide covers field-level encryption, CSRF protection, rate limiting, and audit logging.
+FormCraft provides security building blocks to protect your forms and sensitive data. This guide covers field-level encryption, CSRF protection, rate limiting, and audit logging.
 
 ## Overview
 
 FormCraft's security features help you:
 - **Encrypt sensitive fields** - Protect PII and sensitive data at rest
-- **Prevent CSRF attacks** - Built-in token validation
+- **Prevent CSRF attacks** - Token generation and validation services
 - **Limit form submissions** - Rate limiting to prevent spam
 - **Track user actions** - Comprehensive audit logging
+
+> **Important — how enforcement works today**: `WithSecurity()` records the security
+> settings on the form configuration (accessible via `config.Security`), and
+> `AddFormCraft()` registers the supporting services (`IEncryptionService`,
+> `ICsrfTokenService`, `IRateLimitService`, `IAuditLogService`). The standard
+> `FormCraftComponent` does **not** yet enforce CSRF validation, rate limiting, or
+> encryption automatically. You inject these services and apply them in your own
+> submit handler, as shown in the examples below.
 
 ## Quick Start
 
@@ -60,9 +68,28 @@ Configure encryption in `appsettings.json`:
 
 ### How It Works
 
-1. When a form is submitted, encrypted fields are automatically encrypted before processing
-2. When displaying a form, encrypted values are decrypted for editing
-3. The encryption uses AES-256 for strong security
+1. `EncryptField()` marks fields as sensitive in `config.Security.EncryptedFields`
+2. You encrypt/decrypt the marked fields with `IEncryptionService` when persisting or loading data:
+
+```csharp
+@inject IEncryptionService EncryptionService
+
+private async Task HandleSubmit(SecureFormModel model)
+{
+    // Encrypt marked fields before storing
+    var encryptedSsn = EncryptionService.Encrypt(model.SSN);
+    await SaveAsync(model with { SSN = encryptedSsn });
+}
+```
+
+> **Choosing an implementation**: `AddFormCraft()` registers `BlazorEncryptionService`
+> by default, which uses a simple XOR cipher so it can run in the browser
+> (WebAssembly). It is suitable for demos only. For production data, register the
+> server-side AES-256 implementation or your own:
+>
+> ```csharp
+> services.AddScoped<IEncryptionService, DefaultEncryptionService>(); // AES, server-side
+> ```
 
 ### Custom Encryption Service
 
@@ -106,10 +133,28 @@ Prevent Cross-Site Request Forgery attacks with built-in token validation.
 
 ### How It Works
 
-1. A unique token is generated when the form loads
-2. The token is included as a hidden field in the form
-3. On submission, the token is validated
-4. Invalid tokens result in form rejection
+`EnableCsrfProtection()` sets `IsCsrfProtectionEnabled` and `CsrfTokenFieldName` on
+`config.Security`. Token generation and validation are provided by
+`ICsrfTokenService`, which you call from your own code:
+
+```csharp
+@inject ICsrfTokenService CsrfTokenService
+
+protected override async Task OnInitializedAsync()
+{
+    _csrfToken = await CsrfTokenService.GenerateTokenAsync();
+}
+
+private async Task HandleSubmit(SecureFormModel model)
+{
+    if (!await CsrfTokenService.ValidateTokenAsync(_csrfToken))
+    {
+        _error = "Invalid request token.";
+        return;
+    }
+    // process the submission
+}
+```
 
 ### Custom CSRF Service
 
@@ -134,7 +179,28 @@ Prevent spam and abuse by limiting form submissions.
     .WithRateLimit(5, TimeSpan.FromMinutes(1)))
 ```
 
-This allows 5 submissions per minute per IP address.
+This configures a limit of 5 submissions per minute per identifier. Enforce it in
+your submit handler via `IRateLimitService`:
+
+```csharp
+@inject IRateLimitService RateLimitService
+
+private async Task HandleSubmit(SecureFormModel model)
+{
+    var limit = _config.Security!.RateLimit!;
+    var result = await RateLimitService.CheckRateLimitAsync(
+        clientIdentifier, limit.MaxAttempts, limit.TimeWindow);
+
+    if (!result.IsAllowed)
+    {
+        _error = "Too many submissions. Please try again later.";
+        return;
+    }
+
+    await RateLimitService.RecordAttemptAsync(clientIdentifier);
+    // process the submission
+}
+```
 
 ### Custom Identifier
 
@@ -197,9 +263,11 @@ Track all form interactions for compliance and security monitoring.
 
 ### Audit Events
 
-FormCraft logs these events:
+`EnableAuditLogging()` stores the audit configuration (what to log, excluded fields)
+on `config.Security.AuditLog`. Write entries from your own handlers via
+`IAuditLogService.LogAsync()`. Recommended event types:
 - **FormLoaded** - When a form is displayed
-- **FieldChanged** - When a field value changes
+- **FieldChanged** - When a field value changes (use the `OnFieldChanged` callback)
 - **ValidationError** - When validation fails
 - **FormSubmitted** - When a form is successfully submitted
 - **RateLimitExceeded** - When rate limit is hit
@@ -283,22 +351,47 @@ var config = FormBuilder<SecureFormModel>.Create()
     .Build();
 ```
 
-## Using SecureFormCraftComponent
+## Applying Security in Your Submit Handler
 
-For forms with security features, use the `SecureFormCraftComponent`:
+Render the form with the standard `FormCraftComponent` and apply the configured
+security settings in your submit handler:
 
 ```razor
-<SecureFormCraftComponent TModel="SecureFormModel" 
-                         Model="@model" 
-                         Configuration="@config"
-                         OnValidSubmit="@HandleSecureSubmit"
-                         ShowSubmitButton="true" />
+<FormCraftComponent TModel="SecureFormModel" 
+                    Model="@model" 
+                    Configuration="@config"
+                    OnValidSubmit="@HandleSecureSubmit"
+                    ShowSubmitButton="true" />
 
 @code {
+    [Inject] private IEncryptionService EncryptionService { get; set; } = default!;
+    [Inject] private IRateLimitService RateLimitService { get; set; } = default!;
+    [Inject] private IAuditLogService AuditLogService { get; set; } = default!;
+
     private async Task HandleSecureSubmit(SecureFormModel model)
     {
-        // Model will have decrypted values here
-        // Process the submission
+        // 1. Enforce the configured rate limit
+        var rateLimit = config.Security?.RateLimit;
+        if (rateLimit is not null)
+        {
+            var result = await RateLimitService.CheckRateLimitAsync(
+                clientId, rateLimit.MaxAttempts, rateLimit.TimeWindow);
+            if (!result.IsAllowed) return;
+            await RateLimitService.RecordAttemptAsync(clientId);
+        }
+
+        // 2. Encrypt fields marked with EncryptField() before persisting
+        var ssnToStore = EncryptionService.Encrypt(model.SSN);
+        var cardToStore = EncryptionService.Encrypt(model.CreditCard);
+
+        // 3. Write an audit entry
+        await AuditLogService.LogAsync(new AuditLogEntry
+        {
+            EventType = "FormSubmitted",
+            FormId = "secure-form"
+        });
+
+        // 4. Process the submission
     }
 }
 ```

@@ -90,13 +90,53 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
     /// <inheritdoc />
     public RenderFragment<IFieldContext<TModel, object>>? CustomTemplate
     {
-        get => _customTemplate;
-        set
+        get
         {
-            _customTemplate = value;
-            // For now, we can't easily convert between typed and object templates
-            // This would require a more complex adapter pattern
+            if (_customTemplate != null)
+            {
+                return _customTemplate;
+            }
+
+            // Surface templates configured through the typed builder API by adapting
+            // the object-typed render context to the typed one the template expects.
+            var typedTemplate = _inner.CustomTemplate;
+            if (typedTemplate == null)
+            {
+                return null;
+            }
+
+            return objectContext => typedTemplate(new TypedFieldContextAdapter(objectContext, _inner));
         }
+        set => _customTemplate = value;
+    }
+
+    private sealed class TypedFieldContextAdapter : IFieldContext<TModel, TValue>
+    {
+        private readonly IFieldContext<TModel, object> _objectContext;
+
+        public TypedFieldContextAdapter(IFieldContext<TModel, object> objectContext, IFieldConfiguration<TModel, TValue> configuration)
+        {
+            _objectContext = objectContext;
+            Configuration = configuration;
+        }
+
+        public TModel Model => _objectContext.Model;
+        public IFieldConfiguration<TModel, TValue> Configuration { get; }
+        public Microsoft.AspNetCore.Components.Forms.EditContext EditContext => _objectContext.EditContext;
+
+        public TValue Value
+        {
+            get => _objectContext.Value is TValue typed ? typed : default!;
+            set => _objectContext.Value = value!;
+        }
+
+        public EventCallback<TValue> ValueChanged =>
+            EventCallback.Factory.Create<TValue>(this, value => _objectContext.ValueChanged.InvokeAsync(value));
+
+        public Microsoft.AspNetCore.Components.Forms.FieldIdentifier FieldIdentifier => _objectContext.FieldIdentifier;
+        public IEnumerable<string> ValidationMessages => _objectContext.ValidationMessages;
+        public bool IsValid => _objectContext.IsValid;
+        public string FieldCssClass => _objectContext.FieldCssClass;
     }
 
     /// <inheritdoc />

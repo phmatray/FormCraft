@@ -193,11 +193,10 @@ public partial class CollectionFieldComponent<TModel, TItem>
             EventCallback.Factory.Create<T>(this,
                 newValue => UpdateItemFieldValue(itemIndex, field.FieldName, newValue)));
         builder.AddAttribute(4, "Immediate", true);
+        // MudBlazor appends '*' to Pattern before emitting the HTML attribute, so a
+        // fully-anchored regex here becomes invalid (e.g. "...?*"). The component's
+        // default pattern already handles decimal input; only Culture is needed.
         builder.AddAttribute(5, "Culture", System.Globalization.CultureInfo.InvariantCulture);
-        if (typeof(T) == typeof(decimal))
-        {
-            builder.AddAttribute(6, "Pattern", "[0-9]+([.,][0-9]+)?");
-        }
         builder.CloseComponent();
     }
 

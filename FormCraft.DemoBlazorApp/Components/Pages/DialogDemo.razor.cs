@@ -59,7 +59,7 @@ public partial class DialogDemo
             "Not configuring ShowSubmitButton=\"false\" and adding custom DialogActions instead",
             "Forgetting to validate the form before closing the dialog with success"
         ],
-        RelatedDemoIds = ["fluent", "validation", "field-groups"]
+        RelatedDemoIds = ["fluent", "fluent-validation-demo", "field-groups"]
     };
 
     // Legacy properties for backward compatibility with existing razor template
@@ -130,6 +130,7 @@ public partial class DialogDemo
                 </TitleContent>
                 <DialogContent>
                     <FormCraftComponent
+                        @ref="_form"
                         TModel="ContactModel"
                         Model="@Model"
                         Configuration="@_formConfig"
@@ -148,6 +149,7 @@ public partial class DialogDemo
                 [Parameter] public ContactModel Model { get; set; } = new();
 
                 private IFormConfiguration<ContactModel> _formConfig = null!;
+                private FormCraftComponent<ContactModel>? _form;
 
                 protected override void OnInitialized()
                 {
@@ -165,7 +167,15 @@ public partial class DialogDemo
                         .Build();
                 }
 
-                private void Submit() => MudDialog.Close(DialogResult.Ok(Model));
+                private async Task Submit()
+                {
+                    // Validate (awaiting async validators) before closing
+                    if (_form is null || !await _form.ValidateAsync())
+                        return;
+
+                    MudDialog.Close(DialogResult.Ok(Model));
+                }
+
                 private void Cancel() => MudDialog.Cancel();
             }
             """;

@@ -44,6 +44,7 @@ public partial class FormCraftComponent<TModel>
     public EventCallback<EditContext> OnEditContextCreated { get; set; }
 
     private EditContext? _editContext;
+    private DynamicFormValidator<TModel>? _validator;
     private IGroupedFormConfiguration<TModel>? GroupedConfiguration => Configuration as IGroupedFormConfiguration<TModel>;
     private ICollectionFormConfiguration<TModel>? CollectionConfiguration => Configuration as ICollectionFormConfiguration<TModel>;
 
@@ -65,6 +66,20 @@ public partial class FormCraftComponent<TModel>
         return _editContext?.Validate() ?? false;
     }
 
+    /// <summary>
+    /// Validates the form, awaiting any asynchronous validators before returning.
+    /// Prefer this over <see cref="Validate"/> when async validators are configured.
+    /// </summary>
+    public async Task<bool> ValidateAsync()
+    {
+        if (_validator != null)
+        {
+            return await _validator.ValidateModelAsync();
+        }
+
+        return _editContext?.Validate() ?? false;
+    }
+
     public EditContext? GetEditContext()
     {
         return _editContext;
@@ -81,13 +96,34 @@ public partial class FormCraftComponent<TModel>
             var underlyingType = Nullable.GetUnderlyingType(fieldType) ?? fieldType;
             var value = property.GetValue(Model);
 
+            // Custom templates take precedence over every built-in renderer
+            if (field.CustomTemplate != null && _editContext != null)
+            {
+                var templateContext = new FieldContext<TModel, object>(
+                    Model,
+                    field,
+                    _editContext,
+                    () => property.GetValue(Model)!,
+                    newValue => _ = UpdateFieldValue(field.FieldName, newValue),
+                    EventCallback.Factory.Create<object>(this, newValue => UpdateFieldValue(field.FieldName, newValue)));
+                builder.AddContent(0, field.CustomTemplate(templateContext));
+            }
             // Check for fields with options (select/dropdown)
-            if (field.AdditionalAttributes.TryGetValue("Options", out var optionsObj))
+            else if (field.AdditionalAttributes.TryGetValue("Options", out var optionsObj))
             {
                 RenderSelectField(builder, field, value, optionsObj);
             }
             // Check for custom renderer
             else if (field.CustomRendererType != null)
+            {
+                RenderCustomField(builder, field, fieldType, value);
+            }
+            // Fields configured with a specialized renderer (LOV, lookup, autocomplete)
+            // must not fall through to the generic type-based branches below
+            else if (field.AdditionalAttributes.ContainsKey("LovConfiguration") ||
+                     field.AdditionalAttributes.ContainsKey("LookupDataProvider") ||
+                     field.AdditionalAttributes.ContainsKey("AutocompleteSearchFunc") ||
+                     field.AdditionalAttributes.ContainsKey("AutocompleteOptionProvider"))
             {
                 RenderCustomField(builder, field, fieldType, value);
             }
@@ -108,6 +144,22 @@ public partial class FormCraftComponent<TModel>
             {
                 RenderNumericField(builder, field, (double)(value ?? 0.0));
             }
+            else if (underlyingType == typeof(float))
+            {
+                RenderNumericField(builder, field, (float)(value ?? 0f));
+            }
+            else if (underlyingType == typeof(long))
+            {
+                RenderNumericField(builder, field, (long)(value ?? 0L));
+            }
+            else if (underlyingType == typeof(short))
+            {
+                RenderNumericField(builder, field, (short)(value ?? (short)0));
+            }
+            else if (underlyingType == typeof(byte))
+            {
+                RenderNumericField(builder, field, (byte)(value ?? (byte)0));
+            }
             else if (underlyingType == typeof(bool))
             {
                 RenderBooleanField(builder, field, value ?? false);
@@ -116,9 +168,16 @@ public partial class FormCraftComponent<TModel>
             {
                 RenderDateTimeField(builder, field, value as DateTime?);
             }
+            else if (underlyingType == typeof(DateOnly) || underlyingType == typeof(TimeOnly))
+            {
+                RenderCustomField(builder, field, fieldType, value);
+            }
             else if (fieldType == typeof(IBrowserFile) || fieldType == typeof(IReadOnlyList<IBrowserFile>))
             {
-                RenderFileUploadField(builder, field);
+                // Delegate to the renderer-service file upload components; the previous
+                // hand-rolled MudFileUpload passed a plain RenderFragment to
+                // CustomContent (typed RenderFragment<MudFileUpload<T>>) and crashed.
+                RenderCustomField(builder, field, fieldType, value);
             }
         };
     }
@@ -222,12 +281,10 @@ public partial class FormCraftComponent<TModel>
                 newValue => UpdateFieldValue(field.FieldName, newValue)));
         builder.AddAttribute(4, "Immediate", true);
 
-        // Add culture and pattern to ensure proper decimal display
+        // MudBlazor appends '*' to Pattern before emitting the HTML attribute, so a
+        // fully-anchored regex here becomes invalid (e.g. "...?*"). The component's
+        // default pattern already handles decimal input; only Culture is needed.
         builder.AddAttribute(5, "Culture", System.Globalization.CultureInfo.InvariantCulture);
-        if (typeof(T) == typeof(decimal))
-        {
-            builder.AddAttribute(6, "Pattern", "[0-9]+([.,][0-9]+)?");
-        }
 
         builder.CloseComponent();
     }
@@ -253,36 +310,15 @@ public partial class FormCraftComponent<TModel>
         builder.AddAttribute(3, "DateChanged",
             EventCallback.Factory.Create<DateTime?>(this,
                 newValue => UpdateFieldValue(field.FieldName, newValue)));
-        builder.CloseComponent();
-    }
-
-    private void RenderFileUploadField(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field)
-    {
-        builder.OpenComponent<MudFileUpload<IBrowserFile>>(0);
-        builder.AddAttribute(1, "OnFilesChanged",
-            EventCallback.Factory.Create<InputFileChangeEventArgs>(this,
-                args => HandleFileUpload(field.FieldName, args)));
-        builder.AddAttribute(2, "Accept",
-            field.AdditionalAttributes.GetValueOrDefault("Accept", "*/*"));
-        builder.AddAttribute(3, "Disabled", field.IsDisabled);
-        builder.AddAttribute(4, "CustomContent", RenderFileUploadButton(field));
-        builder.CloseComponent();
-    }
-
-    private RenderFragment RenderFileUploadButton(IFieldConfiguration<TModel, object> field)
-    {
-        return builder =>
+        if (field.AdditionalAttributes.TryGetValue("MinDate", out var minDate) && minDate is DateTime min)
         {
-            builder.OpenComponent<MudButton>(0);
-            builder.AddAttribute(1, "HtmlTag", "label");
-            builder.AddAttribute(2, "Variant", Variant.Filled);
-            builder.AddAttribute(3, "Color", Color.Primary);
-            builder.AddAttribute(4, "StartIcon", Icons.Material.Filled.CloudUpload);
-            builder.AddAttribute(5, "for", field.FieldName);
-            builder.AddAttribute(6, "ChildContent",
-                (RenderFragment)(buttonBuilder => buttonBuilder.AddContent(0, field.Label ?? "Upload File")));
-            builder.CloseComponent();
-        };
+            builder.AddAttribute(4, "MinDate", (DateTime?)min);
+        }
+        if (field.AdditionalAttributes.TryGetValue("MaxDate", out var maxDate) && maxDate is DateTime max)
+        {
+            builder.AddAttribute(5, "MaxDate", (DateTime?)max);
+        }
+        builder.CloseComponent();
     }
 
     private void RenderCustomField(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, Type fieldType, object? value)
@@ -335,6 +371,10 @@ public partial class FormCraftComponent<TModel>
             }
 
             property.SetValue(Model, convertedValue);
+
+            // Notify the EditContext so field-level validation runs and stale
+            // error messages clear as soon as the user corrects the value.
+            _editContext?.NotifyFieldChanged(_editContext.Field(fieldName));
 
             if (OnFieldChanged.HasDelegate)
             {
@@ -393,13 +433,18 @@ public partial class FormCraftComponent<TModel>
         return field.IsVisible;
     }
 
-    private Task OnSubmit()
+    private async Task HandleSubmit()
     {
-        if (OnValidSubmit.HasDelegate)
-        {
-            return OnValidSubmit.InvokeAsync(Model);
-        }
+        // EditForm's OnValidSubmit relies on the synchronous EditContext.Validate(),
+        // which returns before async validators finish. Await the full validation
+        // pass explicitly so async validators can block submission.
+        var isValid = _validator != null
+            ? await _validator.ValidateModelAsync()
+            : _editContext?.Validate() ?? false;
 
-        return Task.CompletedTask;
+        if (isValid && OnValidSubmit.HasDelegate)
+        {
+            await OnValidSubmit.InvokeAsync(Model);
+        }
     }
 }

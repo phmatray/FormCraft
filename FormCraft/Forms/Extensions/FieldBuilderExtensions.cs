@@ -167,6 +167,7 @@ public static class FieldBuilderExtensions
     {
         /// <summary>
         /// Adds email format validation to a string field (supports both nullable and non-nullable strings).
+        /// Null or empty values pass this validator; combine with <c>Required()</c> to make the field mandatory.
         /// </summary>
         /// <param name="errorMessage">Custom error message (default: "Please enter a valid email address").</param>
         /// <returns>The FieldBuilder instance for method chaining.</returns>
@@ -179,7 +180,7 @@ public static class FieldBuilderExtensions
         public FieldBuilder<TModel, TValue> WithEmailValidation(string? errorMessage = null)
         {
             return builder.WithValidator(
-                value => value == null || IsValidEmail(value?.ToString() ?? ""),
+                value => string.IsNullOrEmpty(value?.ToString()) || IsValidEmail(value.ToString()!),
                 errorMessage ?? "Please enter a valid email address");
         }
     }
@@ -292,8 +293,9 @@ public static class FieldBuilderExtensions
                 EnableDragDrop = enableDragDrop
             };
 
+            // No renderer override: the field type dispatches to the UI framework's
+            // file upload component, which reads this configuration attribute.
             builder.WithAttribute("FileUploadConfiguration", config);
-            builder.WithCustomRenderer(new FileUploadFieldRenderer());
 
             return builder;
         }
@@ -337,8 +339,9 @@ public static class FieldBuilderExtensions
                 EnableDragDrop = enableDragDrop
             };
 
+            // No renderer override: the field type dispatches to the UI framework's
+            // file upload component, which reads this configuration attribute.
             builder.WithAttribute("FileUploadConfiguration", config);
-            builder.WithCustomRenderer(new FileUploadFieldRenderer());
 
             return builder;
         }

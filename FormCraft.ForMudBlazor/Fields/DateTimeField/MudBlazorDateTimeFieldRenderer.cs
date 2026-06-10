@@ -11,9 +11,8 @@ public class MudBlazorDateTimeFieldRenderer : FieldRendererBase
     /// <inheritdoc />
     public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
     {
+        // DateOnly/TimeOnly have dedicated renderers; this component binds DateTime.
         var underlyingType = Nullable.GetUnderlyingType(fieldType) ?? fieldType;
-        return underlyingType == typeof(DateTime) ||
-               underlyingType == typeof(DateOnly) ||
-               underlyingType == typeof(TimeOnly);
+        return underlyingType == typeof(DateTime);
     }
 }

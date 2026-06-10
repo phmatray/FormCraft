@@ -36,19 +36,19 @@
                             <MudListItem T="string">
                                 <div class="d-flex justify-space-between">
                                     <span>Subtotal:</span>
-                                    <strong>@_model.Subtotal.ToString("C")</strong>
+                                    <strong>@_model.Subtotal.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-US"))</strong>
                                 </div>
                             </MudListItem>
                             <MudListItem T="string">
                                 <div class="d-flex justify-space-between">
                                     <span>Discount (@_model.DiscountPercent%):</span>
-                                    <strong class="text-success">-@((_model.Subtotal * _model.DiscountPercent / 100).ToString("C"))</strong>
+                                    <strong class="text-success">-@((_model.Subtotal * _model.DiscountPercent / 100).ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-US")))</strong>
                                 </div>
                             </MudListItem>
                             <MudListItem T="string">
                                 <div class="d-flex justify-space-between">
                                     <span>Shipping:</span>
-                                    <strong>@_model.ShippingCost.ToString("C")</strong>
+                                    <strong>@_model.ShippingCost.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-US"))</strong>
                                 </div>
                             </MudListItem>
                             <MudDivider Class="my-2" />
@@ -56,7 +56,7 @@
                                 <div class="d-flex justify-space-between">
                                     <MudText Typo="Typo.subtitle1">Total:</MudText>
                                     <MudText Typo="Typo.subtitle1" Color="Color.Primary">
-                                        <strong>@_model.Total.ToString("C")</strong>
+                                        <strong>@_model.Total.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-US"))</strong>
                                     </MudText>
                                 </div>
                             </MudListItem>

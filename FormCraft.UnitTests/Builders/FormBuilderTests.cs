@@ -212,10 +212,11 @@ public class FormBuilderTests
                 .DependsOn(x => x.Country, (m, v) => m.City = string.Empty))
             .Build();
 
-        // Assert
-        configuration.FieldDependencies.ShouldContainKey("City");
-        configuration.FieldDependencies["City"].Count.ShouldBe(1);
-        configuration.FieldDependencies["City"].First().DependentFieldName.ShouldBe("Country");
+        // Assert - dependencies are keyed by the WATCHED field so the runtime
+        // can find callbacks when that field changes
+        configuration.FieldDependencies.ShouldContainKey("Country");
+        configuration.FieldDependencies["Country"].Count.ShouldBe(1);
+        configuration.FieldDependencies["Country"].First().DependentFieldName.ShouldBe("Country");
     }
 
     [Fact]
@@ -269,8 +270,8 @@ public class FormBuilderTests
         var cityField = configuration.Fields.First(f => f.FieldName == "City");
         cityField.VisibilityCondition.ShouldNotBeNull();
 
-        configuration.FieldDependencies.ShouldContainKey("City");
-        configuration.FieldDependencies["City"].Count.ShouldBe(1);
+        configuration.FieldDependencies.ShouldContainKey("Country");
+        configuration.FieldDependencies["Country"].Count.ShouldBe(1);
     }
 
     [Fact]

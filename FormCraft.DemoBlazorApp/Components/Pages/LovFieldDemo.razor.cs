@@ -54,7 +54,7 @@ public partial class LovFieldDemo
             "Field mapping requires writable properties - read-only properties won't update",
             "The WithKey property must return a unique identifier for each item"
         ],
-        RelatedDemoIds = ["async-value-provider", "field-dependencies", "fluent"]
+        RelatedDemoIds = ["async-value-provider", "complex-dependencies", "fluent"]
     };
 
     // Legacy properties for backward compatibility with existing razor template

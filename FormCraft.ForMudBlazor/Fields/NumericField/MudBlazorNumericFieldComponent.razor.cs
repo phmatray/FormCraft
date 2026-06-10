@@ -36,15 +36,30 @@ public partial class MudBlazorNumericFieldComponent<TModel, TValue>
         }
     }
 
-    private TValue GetDefaultStep()
+    private static TValue GetDefaultStep()
     {
-        // Default step values based on type
-        if (typeof(TValue) == typeof(decimal) || typeof(TValue) == typeof(decimal?))
+        // Unbox-then-cast only succeeds when the boxed type matches TValue exactly,
+        // so each floating type needs its own literal (0.1 boxed as double cannot be
+        // unboxed as float, and 1 boxed as int cannot be unboxed as long/short/byte).
+        if (typeof(TValue) == typeof(decimal))
             return (TValue)(object)0.01m;
-        if (typeof(TValue) == typeof(double) || typeof(TValue) == typeof(double?) ||
-            typeof(TValue) == typeof(float) || typeof(TValue) == typeof(float?))
-            return (TValue)(object)0.1;
-        return (TValue)(object)1;
+        if (typeof(TValue) == typeof(double))
+            return (TValue)(object)0.1d;
+        if (typeof(TValue) == typeof(float))
+            return (TValue)(object)0.1f;
+        return (TValue)Convert.ChangeType(1, typeof(TValue));
+    }
+
+    private static TValue GetTypeMinValue()
+    {
+        var field = typeof(TValue).GetField("MinValue");
+        return field != null ? (TValue)field.GetValue(null)! : default;
+    }
+
+    private static TValue GetTypeMaxValue()
+    {
+        var field = typeof(TValue).GetField("MaxValue");
+        return field != null ? (TValue)field.GetValue(null)! : default;
     }
 
     private async Task OnLocalValueChanged()

@@ -56,7 +56,7 @@ public partial class CrossFieldValidationDemo : ComponentBase
             "Overly complex validation logic that's hard to debug - keep rules simple and focused",
             "Not providing clear error messages that indicate which fields are being compared"
         ],
-        RelatedDemoIds = ["fluent", "validation", "field-dependencies", "async-validation"]
+        RelatedDemoIds = ["fluent", "fluent-validation-demo", "complex-dependencies", "async-value-provider"]
     };
 
     // Legacy properties for backward compatibility with existing razor template

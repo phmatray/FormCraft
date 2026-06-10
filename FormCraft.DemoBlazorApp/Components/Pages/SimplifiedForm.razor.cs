@@ -125,6 +125,15 @@ public partial class SimplifiedForm
         StateHasChanged();
     }
 
+    private static readonly Dictionary<string, string> CountryLabels = new()
+    {
+        ["US"] = "United States",
+        ["CA"] = "Canada",
+        ["UK"] = "United Kingdom",
+        ["DE"] = "Germany",
+        ["FR"] = "France",
+    };
+
     private List<FormSuccessDisplay.DataDisplayItem> GetDataDisplayItems()
     {
         var items = new List<FormSuccessDisplay.DataDisplayItem>
@@ -132,7 +141,7 @@ public partial class SimplifiedForm
             new() { Label = "Full Name", Value = $"{_model.FirstName} {_model.LastName}" },
             new() { Label = "Email", Value = _model.Email },
             new() { Label = "Age", Value = _model.Age.ToString() },
-            new() { Label = "Country", Value = _model.Country }
+            new() { Label = "Country", Value = CountryLabels.GetValueOrDefault(_model.Country ?? "", _model.Country ?? "") }
         };
 
         if (!string.IsNullOrEmpty(_model.City))

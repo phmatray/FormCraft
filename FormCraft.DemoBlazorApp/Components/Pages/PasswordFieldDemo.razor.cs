@@ -66,7 +66,7 @@ public partial class PasswordFieldDemo
             "Avoid overly strict password requirements that frustrate users",
             "Always mask sensitive credentials in success displays and logs"
         ],
-        RelatedDemoIds = ["fluent", "validation", "field-dependencies"]
+        RelatedDemoIds = ["fluent", "fluent-validation-demo", "complex-dependencies"]
     };
 
     // Legacy properties for backward compatibility with existing razor template

@@ -7,8 +7,9 @@
     </TitleContent>
     <DialogContent>
         <FormCraftComponent
-            TModel="ContactModel" 
-            Model="@Model" 
+            @ref="_form"
+            TModel="ContactModel"
+            Model="@Model"
             Configuration="@_formConfig"
             ShowSubmitButton="false" />
     </DialogContent>

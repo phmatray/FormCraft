@@ -22,6 +22,7 @@ public class FormBuilder<TModel> where TModel : new()
 {
     private readonly FormConfiguration<TModel> _configuration = new();
     private int _fieldOrder;
+    private bool _isBuilt;
 
     /// <summary>
     /// Creates a new instance of the form builder.
@@ -48,6 +49,7 @@ public class FormBuilder<TModel> where TModel : new()
         Expression<Func<TModel, TValue>> expression,
         Action<FieldBuilder<TModel, TValue>>? fieldConfig = null)
     {
+        EnsureNotBuilt();
         var fieldConfiguration = new FieldConfiguration<TModel, TValue>(expression)
         {
             Order = _fieldOrder++
@@ -86,6 +88,7 @@ public class FormBuilder<TModel> where TModel : new()
         Action<CollectionFieldBuilder<TModel, TItem>>? collectionConfig = null)
         where TItem : new()
     {
+        EnsureNotBuilt();
         var fieldConfiguration = new CollectionFieldConfiguration<TModel, TItem>(expression)
         {
             Order = _fieldOrder++
@@ -122,6 +125,7 @@ public class FormBuilder<TModel> where TModel : new()
     /// </example>
     public FormBuilder<TModel> AddFieldGroup(Action<FieldGroupBuilder<TModel>> groupBuilder)
     {
+        EnsureNotBuilt();
         var group = new FieldGroup<TModel>
         {
             Order = _configuration.FieldGroups.Count,
@@ -166,6 +170,7 @@ public class FormBuilder<TModel> where TModel : new()
     /// </example>
     public FormBuilder<TModel> WithLayout(FormLayout layout)
     {
+        EnsureNotBuilt();
         _configuration.Layout = layout;
         return this;
     }
@@ -182,6 +187,7 @@ public class FormBuilder<TModel> where TModel : new()
     /// </example>
     public FormBuilder<TModel> WithCssClass(string cssClass)
     {
+        EnsureNotBuilt();
         _configuration.CssClass = cssClass;
         return this;
     }
@@ -198,6 +204,7 @@ public class FormBuilder<TModel> where TModel : new()
     /// </example>
     public FormBuilder<TModel> ShowValidationSummary(bool show = true)
     {
+        EnsureNotBuilt();
         _configuration.ShowValidationSummary = show;
         return this;
     }
@@ -215,6 +222,7 @@ public class FormBuilder<TModel> where TModel : new()
     /// </example>
     public FormBuilder<TModel> ShowRequiredIndicator(bool show = true, string indicator = "*")
     {
+        EnsureNotBuilt();
         _configuration.ShowRequiredIndicator = show;
         _configuration.RequiredIndicator = indicator;
         return this;
@@ -235,6 +243,7 @@ public class FormBuilder<TModel> where TModel : new()
     /// </example>
     public FormBuilder<TModel> WithSecurity(Action<SecurityBuilder<TModel>> securityConfig)
     {
+        EnsureNotBuilt();
         var securityBuilder = new SecurityBuilder<TModel>(this);
         securityConfig(securityBuilder);
         return securityBuilder.And();
@@ -257,7 +266,21 @@ public class FormBuilder<TModel> where TModel : new()
     /// var config = builder.Build();
     /// </code>
     /// </example>
-    public IFormConfiguration<TModel> Build() => _configuration;
+    public IFormConfiguration<TModel> Build()
+    {
+        _isBuilt = true;
+        return _configuration;
+    }
+
+    private void EnsureNotBuilt()
+    {
+        if (_isBuilt)
+        {
+            throw new InvalidOperationException(
+                "This FormBuilder has already produced a configuration via Build(). " +
+                "Configurations are immutable after Build(); create a new builder instead.");
+        }
+    }
 
     internal void AddFieldDependency(string fieldName, IFieldDependency<TModel> dependency)
     {

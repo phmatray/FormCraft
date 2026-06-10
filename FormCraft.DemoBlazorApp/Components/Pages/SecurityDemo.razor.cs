@@ -60,7 +60,7 @@ public partial class SecurityDemo
             "CSRF tokens need to be validated on the server side",
             "Audit logs can become large - implement retention policies"
         ],
-        RelatedDemoIds = ["fluent", "validation", "async-value-provider"]
+        RelatedDemoIds = ["fluent", "fluent-validation-demo", "async-value-provider"]
     };
 
     // Legacy properties for backward compatibility with existing razor template

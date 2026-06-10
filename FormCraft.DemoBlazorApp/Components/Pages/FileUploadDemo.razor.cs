@@ -51,7 +51,7 @@ public partial class FileUploadDemo
             "Avoid allowing unlimited file uploads - always set a reasonable maxFiles limit",
             "Don't expose actual file paths or system information in error messages"
         ],
-        RelatedDemoIds = ["fluent", "validation", "field-dependencies"]
+        RelatedDemoIds = ["fluent", "fluent-validation-demo", "complex-dependencies"]
     };
 
     // Legacy properties for backward compatibility with existing razor template
