@@ -40,6 +40,22 @@ public class FieldRendererService : IFieldRendererService
             OnDependencyChanged = onDependencyChanged,
         };
 
+        // A renderer instance supplied via WithCustomRenderer(IFieldRenderer) takes
+        // absolute precedence - the caller handed us the exact object to use.
+        if (field.AdditionalAttributes.TryGetValue("CustomRendererInstance", out var rendererInstance))
+        {
+            if (rendererInstance is IFieldRenderer suppliedFieldRenderer)
+            {
+                return suppliedFieldRenderer.Render(context);
+            }
+
+            if (rendererInstance is ICustomFieldRenderer suppliedCustomRenderer &&
+                IsValidForFieldType(suppliedCustomRenderer, fieldType))
+            {
+                return suppliedCustomRenderer.Render(context);
+            }
+        }
+
         // Check for custom renderer first
         if (field.CustomRendererType != null)
         {
@@ -98,7 +114,11 @@ public class FieldRendererService : IFieldRendererService
 
     private static bool IsValidForFieldType(ICustomFieldRenderer renderer, Type fieldType)
     {
-        return renderer.ValueType.IsAssignableFrom(fieldType);
+        // A renderer declared for a value type must also serve the nullable
+        // variant of that type (int? fields with an int renderer).
+        return renderer.ValueType.IsAssignableFrom(fieldType) ||
+               (Nullable.GetUnderlyingType(fieldType) is { } underlyingType &&
+                renderer.ValueType.IsAssignableFrom(underlyingType));
     }
 
     private static Type GetActualFieldType<TModel>(IFieldConfiguration<TModel, object> field)
