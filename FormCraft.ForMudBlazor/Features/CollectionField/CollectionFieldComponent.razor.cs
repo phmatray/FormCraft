@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Rendering;
 using MudBlazor;
 
@@ -31,6 +32,15 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// </summary>
     [Parameter]
     public EventCallback OnCollectionChanged { get; set; }
+
+    /// <summary>
+    /// Gets or sets the parent form's EditContext, cascaded from the surrounding EditForm.
+    /// When present, item field changes raise <see cref="EditContext.NotifyFieldChanged(in FieldIdentifier)"/>
+    /// with a nested field identifier (e.g. <c>Items[0].ProductName</c>) on the root model, so
+    /// modification tracking and Blazor's validation infrastructure see collection item edits.
+    /// </summary>
+    [CascadingParameter]
+    private EditContext? EditContext { get; set; }
 
     private List<TItem> Items => Configuration.CollectionAccessor(Model);
 
@@ -107,10 +117,22 @@ public partial class CollectionFieldComponent<TModel, TItem>
             }
 
             property.SetValue(item, convertedValue);
+
+            // Notify the parent EditContext with a nested field identifier
+            // (Blazor convention: model stays the root model, the field name
+            // encodes the collection path, e.g. "Items[0].ProductName") so
+            // IsModified tracking and validation messages work natively.
+            if (EditContext != null && Model is not null)
+            {
+                EditContext.NotifyFieldChanged(GetItemFieldIdentifier(itemIndex, fieldName));
+            }
         }
 
         await NotifyCollectionChanged();
     }
+
+    private FieldIdentifier GetItemFieldIdentifier(int itemIndex, string fieldName)
+        => new(Model!, $"{Configuration.FieldName}[{itemIndex}].{fieldName}");
 
     private RenderFragment RenderItemFields(int itemIndex)
     {
@@ -128,6 +150,11 @@ public partial class CollectionFieldComponent<TModel, TItem>
                 builder.OpenElement(0, "div");
                 builder.AddAttribute(1, "class", "mb-3");
                 builder.AddContent(2, RenderItemField(item, field, capturedIndex));
+                // Surface validation messages attached to the nested field identifier
+                // (e.g. Items[0].ProductName) next to the item field input.
+                builder.OpenComponent<FieldValidationMessage>(3);
+                builder.AddAttribute(4, "FieldName", $"{Configuration.FieldName}[{capturedIndex}].{capturedFieldName}");
+                builder.CloseComponent();
                 builder.CloseElement();
             }
         };
