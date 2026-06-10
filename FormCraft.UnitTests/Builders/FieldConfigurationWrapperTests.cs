@@ -333,20 +333,38 @@ public class FieldConfigurationWrapperTests
     {
         // Arrange
         var innerConfig = A.Fake<IFieldConfiguration<TestModel, string>>();
+        A.CallTo(() => innerConfig.CustomTemplate).Returns(null);
         var wrapper = new FieldConfigurationWrapper<TestModel, string>(innerConfig);
-        RenderFragment<IFieldContext<TestModel, object>>? template = null;
 
-        // Act - Get (should be null initially)
+        // Act - Get (should be null when neither wrapper nor inner has a template)
         var result = wrapper.CustomTemplate;
 
         // Assert - Get
         result.ShouldBeNull();
 
         // Act - Set
+        RenderFragment<IFieldContext<TestModel, object>> template = _ => builder => { };
         wrapper.CustomTemplate = template;
 
         // Assert - Set
         wrapper.CustomTemplate.ShouldBe(template);
+    }
+
+    [Fact]
+    public void CustomTemplate_Should_Adapt_Typed_Template_From_Inner_Configuration()
+    {
+        // Arrange - a template configured through the typed builder API must
+        // surface through the object-typed wrapper instead of being dropped
+        var innerConfig = A.Fake<IFieldConfiguration<TestModel, string>>();
+        RenderFragment<IFieldContext<TestModel, string>> typedTemplate = _ => builder => { };
+        A.CallTo(() => innerConfig.CustomTemplate).Returns(typedTemplate);
+        var wrapper = new FieldConfigurationWrapper<TestModel, string>(innerConfig);
+
+        // Act
+        var result = wrapper.CustomTemplate;
+
+        // Assert
+        result.ShouldNotBeNull();
     }
 
     [Fact]

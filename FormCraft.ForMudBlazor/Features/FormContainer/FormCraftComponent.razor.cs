@@ -96,8 +96,20 @@ public partial class FormCraftComponent<TModel>
             var underlyingType = Nullable.GetUnderlyingType(fieldType) ?? fieldType;
             var value = property.GetValue(Model);
 
+            // Custom templates take precedence over every built-in renderer
+            if (field.CustomTemplate != null && _editContext != null)
+            {
+                var templateContext = new FieldContext<TModel, object>(
+                    Model,
+                    field,
+                    _editContext,
+                    () => property.GetValue(Model)!,
+                    newValue => _ = UpdateFieldValue(field.FieldName, newValue),
+                    EventCallback.Factory.Create<object>(this, newValue => UpdateFieldValue(field.FieldName, newValue)));
+                builder.AddContent(0, field.CustomTemplate(templateContext));
+            }
             // Check for fields with options (select/dropdown)
-            if (field.AdditionalAttributes.TryGetValue("Options", out var optionsObj))
+            else if (field.AdditionalAttributes.TryGetValue("Options", out var optionsObj))
             {
                 RenderSelectField(builder, field, value, optionsObj);
             }
