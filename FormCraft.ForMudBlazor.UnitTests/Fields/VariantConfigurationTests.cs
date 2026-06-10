@@ -202,6 +202,28 @@ public class VariantConfigurationTests : MudBlazorTestBase
         component.FindComponent<MudSelect<string>>().Instance.Variant.ShouldBe(Variant.Text);
     }
 
+    [Fact]
+    public void WithVariant_Should_Apply_To_NullableNumericField()
+    {
+        // Arrange
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.OptionalAge, field => field
+                .WithLabel("Optional Age")
+                .WithVariant(Variant.Filled))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var mudNumericField = component.FindComponent<MudNumericField<int?>>();
+        mudNumericField.Instance.Variant.ShouldBe(Variant.Filled);
+    }
+
     private class TestModel
     {
         public string Name { get; set; } = string.Empty;

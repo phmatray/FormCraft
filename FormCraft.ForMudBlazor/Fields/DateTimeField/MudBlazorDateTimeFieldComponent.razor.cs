@@ -39,10 +39,17 @@ public partial class MudBlazorDateTimeFieldComponent<TModel>
         }
     }
 
+
+    /// <summary>
+    /// Whether the bound model property is a nullable value type. Nullable fields
+    /// round-trip a cleared picker as null instead of default (#150).
+    /// </summary>
+    private bool IsNullableField => Nullable.GetUnderlyingType(Context.ActualFieldType) != null;
+
     private async Task OnLocalValueChanged()
     {
         var value = _localValue ?? default;
         SetValueWithoutNotification(value);
-        await Context.OnValueChanged.InvokeAsync(value);
+        await Context.OnValueChanged.InvokeAsync(IsNullableField ? _localValue : value);
     }
 }
