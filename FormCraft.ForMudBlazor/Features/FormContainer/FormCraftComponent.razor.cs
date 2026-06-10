@@ -106,6 +106,15 @@ public partial class FormCraftComponent<TModel>
             {
                 RenderCustomField(builder, field, fieldType, value);
             }
+            // Fields configured with a specialized renderer (LOV, lookup, autocomplete)
+            // must not fall through to the generic type-based branches below
+            else if (field.AdditionalAttributes.ContainsKey("LovConfiguration") ||
+                     field.AdditionalAttributes.ContainsKey("LookupDataProvider") ||
+                     field.AdditionalAttributes.ContainsKey("AutocompleteSearchFunc") ||
+                     field.AdditionalAttributes.ContainsKey("AutocompleteOptionProvider"))
+            {
+                RenderCustomField(builder, field, fieldType, value);
+            }
             // Render based on field type
             else if (fieldType == typeof(string))
             {
@@ -149,7 +158,10 @@ public partial class FormCraftComponent<TModel>
             }
             else if (fieldType == typeof(IBrowserFile) || fieldType == typeof(IReadOnlyList<IBrowserFile>))
             {
-                RenderFileUploadField(builder, field);
+                // Delegate to the renderer-service file upload components; the previous
+                // hand-rolled MudFileUpload passed a plain RenderFragment to
+                // CustomContent (typed RenderFragment<MudFileUpload<T>>) and crashed.
+                RenderCustomField(builder, field, fieldType, value);
             }
         };
     }
@@ -283,35 +295,6 @@ public partial class FormCraftComponent<TModel>
             EventCallback.Factory.Create<DateTime?>(this,
                 newValue => UpdateFieldValue(field.FieldName, newValue)));
         builder.CloseComponent();
-    }
-
-    private void RenderFileUploadField(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field)
-    {
-        builder.OpenComponent<MudFileUpload<IBrowserFile>>(0);
-        builder.AddAttribute(1, "OnFilesChanged",
-            EventCallback.Factory.Create<InputFileChangeEventArgs>(this,
-                args => HandleFileUpload(field.FieldName, args)));
-        builder.AddAttribute(2, "Accept",
-            field.AdditionalAttributes.GetValueOrDefault("Accept", "*/*"));
-        builder.AddAttribute(3, "Disabled", field.IsDisabled);
-        builder.AddAttribute(4, "CustomContent", RenderFileUploadButton(field));
-        builder.CloseComponent();
-    }
-
-    private RenderFragment RenderFileUploadButton(IFieldConfiguration<TModel, object> field)
-    {
-        return builder =>
-        {
-            builder.OpenComponent<MudButton>(0);
-            builder.AddAttribute(1, "HtmlTag", "label");
-            builder.AddAttribute(2, "Variant", Variant.Filled);
-            builder.AddAttribute(3, "Color", Color.Primary);
-            builder.AddAttribute(4, "StartIcon", Icons.Material.Filled.CloudUpload);
-            builder.AddAttribute(5, "for", field.FieldName);
-            builder.AddAttribute(6, "ChildContent",
-                (RenderFragment)(buttonBuilder => buttonBuilder.AddContent(0, field.Label ?? "Upload File")));
-            builder.CloseComponent();
-        };
     }
 
     private void RenderCustomField(RenderTreeBuilder builder, IFieldConfiguration<TModel, object> field, Type fieldType, object? value)
