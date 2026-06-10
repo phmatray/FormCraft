@@ -4,7 +4,7 @@ public partial class MudBlazorBooleanFieldComponent<TModel>
 {
     private bool _localValue;
 
-    public BooleanDisplayStyle DisplayStyle { get; set; } = BooleanDisplayStyle.Switch;
+    public BooleanDisplayStyle DisplayStyle { get; set; } = BooleanDisplayStyle.Checkbox;
     public string? TrueText { get; set; }
     public string? FalseText { get; set; }
     public bool AllowIndeterminate { get; set; }
@@ -15,6 +15,12 @@ public partial class MudBlazorBooleanFieldComponent<TModel>
 
         // Initialize local value (CurrentValue is bool, not bool? due to TValue? behavior)
         _localValue = CurrentValue is bool val ? val : false;
+
+        // Checkbox is the default (parity with the legacy render path); a
+        // switch can be requested explicitly via the DisplayStyle attribute.
+        DisplayStyle = GetAttribute("DisplayStyle", BooleanDisplayStyle.Checkbox);
+        TrueText = GetAttribute<string?>("TrueText");
+        FalseText = GetAttribute<string?>("FalseText");
     }
 
     protected override void OnParametersSet()

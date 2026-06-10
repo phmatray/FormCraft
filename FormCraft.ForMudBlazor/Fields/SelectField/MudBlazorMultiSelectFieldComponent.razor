@@ -1,0 +1,25 @@
+@namespace FormCraft.ForMudBlazor
+@typeparam TModel
+@typeparam TItem
+@inherits FieldComponentBase<TModel, IEnumerable<TItem>>
+
+<MudSelect
+    T="TItem"
+    Label="@Label"
+    MultiSelection="true"
+    SelectedValues="@_selectedValues"
+    SelectedValuesChanged="@OnSelectedValuesChanged"
+    Placeholder="@Placeholder"
+    HelperText="@HelpText"
+    ReadOnly="@IsReadOnly"
+    Disabled="@IsDisabled"
+    Variant="Variant.Outlined"
+    Margin="Margin.Dense"
+    ShrinkLabel="true">
+    @foreach (SelectOption<TItem> option in Options)
+    {
+        <MudSelectItem T="TItem" Value="@option.Value">
+            @option.Label
+        </MudSelectItem>
+    }
+</MudSelect>
