@@ -168,6 +168,10 @@ public partial class FormCraftComponent<TModel>
             {
                 RenderDateTimeField(builder, field, value as DateTime?);
             }
+            else if (underlyingType == typeof(DateOnly) || underlyingType == typeof(TimeOnly))
+            {
+                RenderCustomField(builder, field, fieldType, value);
+            }
             else if (fieldType == typeof(IBrowserFile) || fieldType == typeof(IReadOnlyList<IBrowserFile>))
             {
                 // Delegate to the renderer-service file upload components; the previous

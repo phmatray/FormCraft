@@ -51,6 +51,8 @@ public static class ServiceCollectionExtensions
             services.AddScoped<IFieldRenderer, MudBlazorMultipleFileUploadRenderer>();
             services.AddScoped<IFieldRenderer, MudBlazorFileUploadFieldRenderer>();
             services.AddScoped<IFieldRenderer, MudBlazorDateTimeFieldRenderer>();
+            services.AddScoped<IFieldRenderer, MudBlazorDateOnlyFieldRenderer>();
+            services.AddScoped<IFieldRenderer, MudBlazorTimeOnlyFieldRenderer>();
             services.AddScoped<IFieldRenderer, MudBlazorBooleanFieldRenderer>();
             services.AddScoped<IFieldRenderer, MudBlazorNumericFieldRenderer>();
             services.AddScoped<IFieldRenderer, MudBlazorTextFieldRenderer>();
