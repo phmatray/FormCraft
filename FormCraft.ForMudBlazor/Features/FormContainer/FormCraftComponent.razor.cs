@@ -404,17 +404,19 @@ public partial class FormCraftComponent<TModel>
         }
     }
 
-    private Task HandleFieldDependencyChanged(string fieldName)
+    private async Task HandleFieldDependencyChanged(string fieldName)
     {
         if (Configuration.FieldDependencies.TryGetValue(fieldName, out var dependencies))
         {
             foreach (IFieldDependency<TModel> dependency in dependencies)
             {
-                dependency.OnDependencyChanged(Model);
+                await dependency.OnDependencyChangedAsync(Model);
             }
-        }
 
-        return Task.CompletedTask;
+            // Re-render after async callbacks settle so cascaded model mutations
+            // reach the UI without requiring a manual StateHasChanged call.
+            StateHasChanged();
+        }
     }
 
     private void HandleCollectionChanged()
