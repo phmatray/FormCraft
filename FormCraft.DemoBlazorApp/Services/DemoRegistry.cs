@@ -108,6 +108,20 @@ public class DemoRegistry : IDemoRegistry
             Concepts = ["Layout", "Columns", "Grid Organization"],
             EstimatedMinutes = 5
         },
+        new()
+        {
+            Id = "auto-form",
+            Title = "Auto-Generated Forms",
+            Description = "Generate complete forms from any POCO with a single method call - no attributes required.",
+            Icon = Icons.Material.Filled.AutoAwesome,
+            Category = "form-examples",
+            Order = 19,
+            Level = Levels.Beginner,
+            LevelOrder = 7,
+            Prerequisites = ["attribute-based-forms"],
+            Concepts = ["Zero Configuration", "Reflection", "Data Annotations"],
+            EstimatedMinutes = 4
+        },
 
         // ===========================================
         // INTERMEDIATE LEVEL - "Building Better Forms" (7 demos)
@@ -285,6 +299,20 @@ public class DemoRegistry : IDemoRegistry
             Prerequisites = ["fluent-validation-demo"],
             Concepts = ["Encryption", "CSRF", "Rate Limiting", "Audit Logging"],
             EstimatedMinutes = 10
+        },
+        new()
+        {
+            Id = "master-detail",
+            Title = "Master-Detail Form",
+            Description = "Invoice form with a customer LOV lookup, editable line items, and live computed totals.",
+            Icon = Icons.Material.Filled.TableView,
+            Category = "form-examples",
+            Order = 20,
+            Level = Levels.Advanced,
+            LevelOrder = 6,
+            Prerequisites = ["lov-field", "complex-dependencies"],
+            Concepts = ["Master-Detail", "Collection Fields", "Computed Totals"],
+            EstimatedMinutes = 15
         },
 
         // ===========================================
