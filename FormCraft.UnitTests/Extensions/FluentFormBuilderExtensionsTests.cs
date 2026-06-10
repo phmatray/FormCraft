@@ -18,7 +18,7 @@ public class FluentFormBuilderExtensionsTests
         field.Label.ShouldBe("First Name");
         field.Placeholder.ShouldBe("Enter first name");
         field.IsRequired.ShouldBeTrue();
-        field.Validators.Count.ShouldBe(1); // Required validator
+        field.Validators.Count.ShouldBe(2); // Required + default MaxLength (255)
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public class FluentFormBuilderExtensionsTests
 
         // Assert
         var field = config.Fields.First(f => f.FieldName == "FirstName");
-        field.Validators.Count.ShouldBe(2); // Required + MinLength
+        field.Validators.Count.ShouldBe(3); // Required + MinLength + default MaxLength (255)
     }
 
     [Fact]
@@ -294,11 +294,164 @@ public class FluentFormBuilderExtensionsTests
     }
 
 
+    [Fact]
+    public async Task AddRequiredTextField_Should_Enforce_Default_MaxLength_Of_255()
+    {
+        // Arrange
+        var services = A.Fake<IServiceProvider>();
+        var builder = FormBuilder<TestModel>.Create();
+
+        // Act
+        var config = builder.AddRequiredTextField(x => x.FirstName, "First Name").Build();
+
+        // Assert
+        var field = config.Fields
+            .OfType<FieldConfigurationWrapper<TestModel, string>>()
+            .First(f => f.FieldName == "FirstName");
+        var model = new TestModel();
+        var results = await Task.WhenAll(field.TypedConfiguration.Validators
+            .Select(v => v.ValidateAsync(model, new string('a', 256), services)));
+
+        results.ShouldContain(r => !r.IsValid && r.ErrorMessage == "Must be no more than 255 characters");
+    }
+
+    [Fact]
+    public async Task AddRequiredTextField_Should_Apply_MaxLength_When_Greater_Than_Or_Equal_To_255()
+    {
+        // Arrange
+        var services = A.Fake<IServiceProvider>();
+        var builder = FormBuilder<TestModel>.Create();
+
+        // Act
+        var config = builder.AddRequiredTextField(x => x.FirstName, "First Name", maxLength: 300).Build();
+
+        // Assert
+        var field = config.Fields
+            .OfType<FieldConfigurationWrapper<TestModel, string>>()
+            .First(f => f.FieldName == "FirstName");
+        field.TypedConfiguration.Validators.Count.ShouldBe(2); // Required + MaxLength
+
+        var model = new TestModel();
+        var longValueResults = await Task.WhenAll(field.TypedConfiguration.Validators
+            .Select(v => v.ValidateAsync(model, new string('a', 400), services)));
+        longValueResults.ShouldContain(r => !r.IsValid && r.ErrorMessage == "Must be no more than 300 characters");
+
+        var validValueResults = await Task.WhenAll(field.TypedConfiguration.Validators
+            .Select(v => v.ValidateAsync(model, new string('a', 300), services)));
+        validValueResults.ShouldAllBe(r => r.IsValid);
+    }
+
+    [Fact]
+    public async Task AddNumericField_Should_Use_AtMost_Message_When_Only_Max_Specified()
+    {
+        // Arrange
+        var services = A.Fake<IServiceProvider>();
+        var builder = FormBuilder<TestModel>.Create();
+
+        // Act
+        var config = builder.AddNumericField(x => x.Age, "Age", max: 100, required: false).Build();
+
+        // Assert
+        var field = config.Fields
+            .OfType<FieldConfigurationWrapper<TestModel, int>>()
+            .First(f => f.FieldName == "Age");
+        var validator = field.TypedConfiguration.Validators.ShouldHaveSingleItem();
+
+        var invalidResult = await validator.ValidateAsync(new TestModel(), 101, services);
+        invalidResult.IsValid.ShouldBeFalse();
+        invalidResult.ErrorMessage.ShouldBe("Must be at most 100");
+    }
+
+    [Fact]
+    public async Task AddNumericField_Should_Use_AtLeast_Message_When_Only_Min_Specified()
+    {
+        // Arrange
+        var services = A.Fake<IServiceProvider>();
+        var builder = FormBuilder<TestModel>.Create();
+
+        // Act
+        var config = builder.AddNumericField(x => x.Age, "Age", min: 5, required: false).Build();
+
+        // Assert
+        var field = config.Fields
+            .OfType<FieldConfigurationWrapper<TestModel, int>>()
+            .First(f => f.FieldName == "Age");
+        var validator = field.TypedConfiguration.Validators.ShouldHaveSingleItem();
+
+        var invalidResult = await validator.ValidateAsync(new TestModel(), 4, services);
+        invalidResult.IsValid.ShouldBeFalse();
+        invalidResult.ErrorMessage.ShouldBe("Must be at least 5");
+    }
+
+    [Fact]
+    public async Task AddNumericField_Should_Use_Between_Message_When_Both_Bounds_Specified()
+    {
+        // Arrange
+        var services = A.Fake<IServiceProvider>();
+        var builder = FormBuilder<TestModel>.Create();
+
+        // Act
+        var config = builder.AddNumericField(x => x.Age, "Age", min: 18, max: 65, required: false).Build();
+
+        // Assert
+        var field = config.Fields
+            .OfType<FieldConfigurationWrapper<TestModel, int>>()
+            .First(f => f.FieldName == "Age");
+        var validator = field.TypedConfiguration.Validators.ShouldHaveSingleItem();
+
+        var invalidResult = await validator.ValidateAsync(new TestModel(), 17, services);
+        invalidResult.IsValid.ShouldBeFalse();
+        invalidResult.ErrorMessage.ShouldBe("Must be between 18 and 65");
+    }
+
+    [Fact]
+    public async Task AddDecimalField_Should_Use_AtLeast_Message_When_Only_Min_Specified()
+    {
+        // Arrange
+        var services = A.Fake<IServiceProvider>();
+        var builder = FormBuilder<TestModel>.Create();
+
+        // Act
+        var config = builder.AddDecimalField(x => x.Price, "Price", min: 0, required: false).Build();
+
+        // Assert
+        var field = config.Fields
+            .OfType<FieldConfigurationWrapper<TestModel, decimal>>()
+            .First(f => f.FieldName == "Price");
+        var validator = field.TypedConfiguration.Validators.ShouldHaveSingleItem();
+
+        var invalidResult = await validator.ValidateAsync(new TestModel(), -1m, services);
+        invalidResult.IsValid.ShouldBeFalse();
+        invalidResult.ErrorMessage.ShouldBe("Must be at least 0");
+    }
+
+    [Fact]
+    public async Task AddDecimalField_Should_Use_AtMost_Message_When_Only_Max_Specified()
+    {
+        // Arrange
+        var services = A.Fake<IServiceProvider>();
+        var builder = FormBuilder<TestModel>.Create();
+
+        // Act
+        var config = builder.AddDecimalField(x => x.Price, "Price", max: 1000, required: false).Build();
+
+        // Assert
+        var field = config.Fields
+            .OfType<FieldConfigurationWrapper<TestModel, decimal>>()
+            .First(f => f.FieldName == "Price");
+        var validator = field.TypedConfiguration.Validators.ShouldHaveSingleItem();
+
+        var invalidResult = await validator.ValidateAsync(new TestModel(), 1001m, services);
+        invalidResult.IsValid.ShouldBeFalse();
+        invalidResult.ErrorMessage.ShouldBe("Must be at most 1000");
+    }
+
     public class TestModel
     {
         public string FirstName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public int Age { get; set; }
+        public decimal Price { get; set; }
         public string Country { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
