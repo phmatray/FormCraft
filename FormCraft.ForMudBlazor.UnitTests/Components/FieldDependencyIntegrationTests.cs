@@ -30,6 +30,12 @@ public class FieldDependencyIntegrationTests : MudBlazorTestBase
         // Assert - the dependency callback must have cleared City
         model.Country.ShouldBe("France");
         model.City.ShouldBe(string.Empty);
+
+        // ...and the UI must reflect the externally-changed model value, not a
+        // stale cached one (FieldComponentBase used to never reload after
+        // external mutations)
+        component.WaitForAssertion(() =>
+            component.FindAll("input")[1].GetAttribute("value").ShouldBe(string.Empty));
     }
 
     [Fact]
