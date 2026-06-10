@@ -27,32 +27,34 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 - 📤 File upload capabilities
 - 🎨 Real-time form generation
 
-## 🎉 What's New in v2.5.0
+## 🎉 What's New in v3.0.0
 
-FormCraft v2.5.0 introduces powerful attribute-based form generation and more:
+v3.0.0 is a major quality release: after a full audit of every subsystem, 60+ bugs were fixed, several long-broken features now actually work, and the whole demo site was verified end-to-end in a real browser. [Full changelog →](https://github.com/phmatray/FormCraft/releases/tag/v3.0.0)
 
-### 🏷️ Attribute-Based Form Generation (NEW!)
-- **Zero-configuration forms** - Generate complete forms from model attributes
-- **Rich attribute library** - TextField, EmailField, NumberField, DateField, SelectField, CheckboxField, TextArea
-- **Automatic validation** - Integrates with DataAnnotations attributes
-- **One-line setup** - Just call `.AddFieldsFromAttributes()`
+### ✅ Now working as documented
+- **Field dependencies** — `DependsOn(x => x.Country, ...)` callbacks now fire when the *watched* field changes, dependent fields refresh in the UI, and async callbacks drive cascading loads (country → state → city)
+- **Async validation blocks submission** — `OnValidSubmit` waits for async validators; errors clear as soon as the user corrects a value; hidden fields are no longer validated
+- **Custom rendering** — `WithCustomTemplate()` renders, `WithCustomRenderer(instance)` is honored, and LOV/lookup/autocomplete/select renderers are no longer shadowed by the generic text/numeric ones
+- **More field types** — `DateOnly`, `TimeOnly`, `float`, `long`, `short`, and `byte` fields render correctly
+- **Form templates** — `FormTemplates.ContactForm/RegistrationForm/LoginForm/AddressForm<T>()` generate real convention-based forms
+- **New API** — `FormCraftComponent.ValidateAsync()` for explicit validation (e.g. in dialogs)
 
-### 🔒 Security Features (v2.0.0)
-- **Field-level encryption** for sensitive data protection
-- **CSRF protection** with built-in anti-forgery tokens
-- **Rate limiting** to prevent form spam
-- **Audit logging** to track all form interactions
+### 🔒 Security hardening
+- Default `IEncryptionService` is now **AES-256** (`DefaultEncryptionService`) with a random IV per operation; decryption failures throw `FormCraftDecryptionException` instead of returning ciphertext
+- Thread-safe rate limiting, CSRF tokens that survive prerendering, and audit logs that honor `ExcludedFields` redaction
 
-### 📦 Modular Architecture
-- **Separate UI framework packages** - Use only what you need
-- **FormCraft.ForMudBlazor** - MudBlazor implementation package
-- **Improved extensibility** - Easier to add custom UI frameworks
-
-### 🚀 Other Improvements
-- **Enhanced performance** with optimized rendering
-- **Better type safety** with improved generic constraints
-- **Comprehensive documentation** with live examples
-- **550+ unit tests** ensuring reliability
+### ⚠️ Breaking changes (migration notes)
+| Change | What to do |
+|---|---|
+| `FieldDependencies` is keyed by the **watched** field's name | Only affects code inspecting the configuration dictionary directly |
+| `DependsOn` callbacks now fire on watched-field changes | Remove any workarounds written for the old inverted behavior |
+| `FormBuilder` throws if mutated after `Build()` | Create a new builder instead of reusing one |
+| `WithFluentValidation` fails when no `IValidator<TModel>` is registered | Register your validator in DI (it silently passed before) |
+| Validator exceptions surface as "Validation could not be completed: …" | Don't rely on crashes producing the configured error message |
+| `AsFileUpload`/`AsMultipleFileUpload` no longer force a renderer | No action — the proper upload components are picked by field type |
+| Default encryption switched from XOR to AES-256 | Configure a 32-byte key (Base64 or UTF-8); without one an ephemeral per-process key is used |
+| `FieldGroupBuilder.WithColumns` validates its range (1–6) | Fix any out-of-range values (0 used to crash rendering) |
+| `FormCraft.ForMudBlazor` now versions with the core package | Reference `3.0.0` for both packages |
 
 ## 🚀 Why FormCraft?
 
@@ -69,7 +71,7 @@ FormCraft revolutionizes form building in Blazor applications by providing a **f
 - 🔗 **Field Dependencies** - Link fields together with reactive updates
 - 📐 **Flexible Layouts** - Multiple layout options to fit your design
 - 🚀 **High Performance** - Optimized rendering with minimal overhead
-- 🧪 **Fully Tested** - 600+ unit tests ensuring reliability
+- 🧪 **Fully Tested** - 760+ unit tests ensuring reliability
 
 ## 📊 How FormCraft Compares
 
@@ -99,6 +101,8 @@ dotnet add package FormCraft.ForMudBlazor
 ```
 
 > **Note**: FormCraft.ForMudBlazor includes FormCraft as a dependency, so you only need to install the MudBlazor package if you're using MudBlazor components.
+
+**Supported frameworks:** .NET 8, .NET 9, and .NET 10.
 
 ## 🎯 Quick Start
 
@@ -522,9 +526,11 @@ var formConfig = FormBuilder<SecureForm>.Create()
 > `FormCraftComponent` does **not** yet enforce CSRF validation or rate limiting
 > automatically — inject these services and apply them in your submit handler.
 > Likewise, encrypt/decrypt marked fields with `IEncryptionService` when persisting data.
-> The default Blazor-compatible encryption service uses a simple XOR cipher; for
-> production data use server-side AES (`DefaultEncryptionService`) or your own
-> `IEncryptionService` implementation. See the
+> Since v3.0.0 the default registration is AES-256 (`DefaultEncryptionService`) with a
+> random IV per operation — configure a 32-byte key for values that must survive a
+> process restart (an ephemeral per-process key is generated otherwise). On WebAssembly
+> a browser-compatible fallback (`BlazorEncryptionService`, XOR-based obfuscation) is
+> registered instead — treat it as obfuscation, not encryption. See the
 > [security documentation](https://phmatray.github.io/FormCraft/docs/security) for details.
 
 ### Custom Field Renderers
@@ -577,7 +583,7 @@ FormCraft is designed for optimal performance:
 
 ## 🧪 Testing
 
-FormCraft is extensively tested with over 600 unit tests covering:
+FormCraft is extensively tested with over 760 unit tests covering:
 
 - ✅ All field types and renderers
 - ✅ Validation scenarios
@@ -621,15 +627,18 @@ dotnet test
 - [x] File upload field type
 - [x] Security features (encryption, CSRF, rate limiting, audit logging)
 - [x] Modular UI framework architecture
+- [x] Wizard/stepper forms
+- [x] Form templates library (`FormTemplates`)
+- [x] DateOnly/TimeOnly field support
+- [x] List-of-Values (LOV) modal selection fields
 
 ### 🚧 In Progress
+- [ ] Automatic CSRF/rate-limit enforcement in `FormCraftComponent`
 - [ ] Import/Export forms as JSON
 - [ ] Rich text editor field
 
 ### 📋 Planned
-- [x] Wizard/stepper forms
 - [ ] Drag-and-drop form builder UI
-- [ ] Form templates library
 - [ ] Localization support
 - [ ] More layout options
 - [ ] Integration with popular CSS frameworks
