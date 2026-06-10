@@ -44,6 +44,7 @@ public partial class FormCraftComponent<TModel>
     public EventCallback<EditContext> OnEditContextCreated { get; set; }
 
     private EditContext? _editContext;
+    private DynamicFormValidator<TModel>? _validator;
     private IGroupedFormConfiguration<TModel>? GroupedConfiguration => Configuration as IGroupedFormConfiguration<TModel>;
     private ICollectionFormConfiguration<TModel>? CollectionConfiguration => Configuration as ICollectionFormConfiguration<TModel>;
 
@@ -62,6 +63,20 @@ public partial class FormCraftComponent<TModel>
 
     public bool Validate()
     {
+        return _editContext?.Validate() ?? false;
+    }
+
+    /// <summary>
+    /// Validates the form, awaiting any asynchronous validators before returning.
+    /// Prefer this over <see cref="Validate"/> when async validators are configured.
+    /// </summary>
+    public async Task<bool> ValidateAsync()
+    {
+        if (_validator != null)
+        {
+            return await _validator.ValidateModelAsync();
+        }
+
         return _editContext?.Validate() ?? false;
     }
 
@@ -336,6 +351,10 @@ public partial class FormCraftComponent<TModel>
 
             property.SetValue(Model, convertedValue);
 
+            // Notify the EditContext so field-level validation runs and stale
+            // error messages clear as soon as the user corrects the value.
+            _editContext?.NotifyFieldChanged(_editContext.Field(fieldName));
+
             if (OnFieldChanged.HasDelegate)
             {
                 await OnFieldChanged.InvokeAsync((fieldName, convertedValue));
@@ -393,13 +412,18 @@ public partial class FormCraftComponent<TModel>
         return field.IsVisible;
     }
 
-    private Task OnSubmit()
+    private async Task HandleSubmit()
     {
-        if (OnValidSubmit.HasDelegate)
-        {
-            return OnValidSubmit.InvokeAsync(Model);
-        }
+        // EditForm's OnValidSubmit relies on the synchronous EditContext.Validate(),
+        // which returns before async validators finish. Await the full validation
+        // pass explicitly so async validators can block submission.
+        var isValid = _validator != null
+            ? await _validator.ValidateModelAsync()
+            : _editContext?.Validate() ?? false;
 
-        return Task.CompletedTask;
+        if (isValid && OnValidSubmit.HasDelegate)
+        {
+            await OnValidSubmit.InvokeAsync(Model);
+        }
     }
 }

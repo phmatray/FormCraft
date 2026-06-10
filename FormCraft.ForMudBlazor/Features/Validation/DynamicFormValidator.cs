@@ -39,6 +39,29 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
     private async void HandleValidationRequested(object? sender, ValidationRequestedEventArgs e)
     {
+        // EditContext.Validate() is synchronous and returns before this handler's
+        // first await completes, so it cannot reliably gate submission when async
+        // validators are configured. FormCraftComponent awaits ValidateModelAsync()
+        // directly on submit; this handler only keeps EditContext.Validate() callers
+        // working for synchronously-completing validators.
+        try
+        {
+            await ValidateModelAsync();
+        }
+        catch
+        {
+            // Exceptions escaping an async void handler would crash the circuit.
+        }
+    }
+
+    /// <summary>
+    /// Runs all configured validators for visible fields and collection fields,
+    /// updates the validation message store, and returns whether the model is valid.
+    /// Unlike <see cref="EditContext.Validate"/>, this method awaits asynchronous
+    /// validators before reporting the result.
+    /// </summary>
+    public async Task<bool> ValidateModelAsync()
+    {
         var model = (TModel)_editContext!.Model;
 
         // Clear all existing custom validation messages
@@ -46,6 +69,12 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
         foreach (var field in Configuration.Fields)
         {
+            // Hidden fields must not block submission with invisible errors
+            if (!IsFieldVisible(field, model))
+            {
+                continue;
+            }
+
             var getter = field.ValueExpression.Compile();
             var value = getter(model);
 
@@ -73,6 +102,17 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         }
 
         _editContext.NotifyValidationStateChanged();
+        return !_editContext.GetValidationMessages().Any();
+    }
+
+    private static bool IsFieldVisible(IFieldConfiguration<TModel, object> field, TModel model)
+    {
+        if (field.VisibilityCondition != null)
+        {
+            return field.VisibilityCondition(model);
+        }
+
+        return field.IsVisible;
     }
 
     private async Task<List<string>> ValidateCollectionFieldAsync(TModel model, ICollectionFieldConfigurationBase collectionField)
@@ -90,28 +130,35 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
     private async void HandleFieldChanged(object? sender, FieldChangedEventArgs e)
     {
-        // Find the field configuration for the changed field
-        var fieldConfig = Configuration.Fields.FirstOrDefault(f => f.FieldName == e.FieldIdentifier.FieldName);
-        if (fieldConfig == null) return;
-
-        var model = (TModel)_editContext!.Model;
-        var getter = fieldConfig.ValueExpression.Compile();
-        var value = getter(model);
-
-        // Clear existing messages for this field only
-        _messageStore!.Clear(e.FieldIdentifier);
-
-        // Validate the specific field
-        foreach (var validator in fieldConfig.Validators)
+        try
         {
-            var result = await validator.ValidateAsync(model, value, ServiceProvider);
-            if (!result.IsValid)
-            {
-                _messageStore.Add(e.FieldIdentifier, result.ErrorMessage!);
-            }
-        }
+            // Find the field configuration for the changed field
+            var fieldConfig = Configuration.Fields.FirstOrDefault(f => f.FieldName == e.FieldIdentifier.FieldName);
+            if (fieldConfig == null) return;
 
-        _editContext.NotifyValidationStateChanged();
+            var model = (TModel)_editContext!.Model;
+            var getter = fieldConfig.ValueExpression.Compile();
+            var value = getter(model);
+
+            // Clear existing messages for this field only
+            _messageStore!.Clear(e.FieldIdentifier);
+
+            // Validate the specific field
+            foreach (var validator in fieldConfig.Validators)
+            {
+                var result = await validator.ValidateAsync(model, value, ServiceProvider);
+                if (!result.IsValid)
+                {
+                    _messageStore.Add(e.FieldIdentifier, result.ErrorMessage!);
+                }
+            }
+
+            _editContext.NotifyValidationStateChanged();
+        }
+        catch
+        {
+            // Exceptions escaping an async void handler would crash the circuit.
+        }
     }
 
     public void Dispose()

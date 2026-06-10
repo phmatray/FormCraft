@@ -9,8 +9,8 @@
     @BeforeForm
 }
 
-<EditForm EditContext="@_editContext" OnValidSubmit="@OnSubmit">
-    <DynamicFormValidator TModel="TModel" Configuration="@Configuration" />
+<EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit">
+    <DynamicFormValidator TModel="TModel" Configuration="@Configuration" @ref="_validator" />
     
     @if (GroupedConfiguration != null && GroupedConfiguration.UseFieldGroups && GroupedConfiguration.FieldGroups.Any())
     {
