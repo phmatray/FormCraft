@@ -55,9 +55,12 @@ public class AsyncValidator<TModel, TValue> : IFieldValidator<TModel, TValue>
                 ? ValidationResult.Success()
                 : ValidationResult.Failure(ErrorMessage!);
         }
-        catch
+        catch (Exception ex)
         {
-            return ValidationResult.Failure(ErrorMessage!);
+            // Don't mask validator crashes as a normal validation failure - the
+            // configured message would tell the user their input is wrong when
+            // the validator itself is broken.
+            return ValidationResult.Failure($"Validation could not be completed: {ex.Message}");
         }
     }
 }

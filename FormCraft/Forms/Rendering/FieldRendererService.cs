@@ -66,11 +66,23 @@ public class FieldRendererService : IFieldRendererService
             }
         }
 
-        // Fall back to standard renderers
-        // Create a minimal field configuration for the renderer check
+        // Fall back to standard renderers. CanRender receives an object-typed
+        // projection of the real configuration so renderers can dispatch on
+        // metadata (InputType, IsRequired, ...) and not just AdditionalAttributes.
         var minimalFieldConfig = new MinimalFieldConfiguration
         {
             FieldName = field.FieldName,
+            Label = field.Label,
+            Placeholder = field.Placeholder,
+            HelpText = field.HelpText,
+            InputType = field.InputType,
+            IsRequired = field.IsRequired,
+            IsReadOnly = field.IsReadOnly,
+            IsDisabled = field.IsDisabled,
+            IsVisible = field.IsVisible,
+            CssClass = field.CssClass,
+            Order = field.Order,
+            CustomRendererType = field.CustomRendererType,
             AdditionalAttributes = field.AdditionalAttributes
         };
 

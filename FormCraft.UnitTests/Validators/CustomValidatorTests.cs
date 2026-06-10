@@ -162,9 +162,10 @@ public class CustomValidatorTests
         // Act
         var result = await validator.ValidateAsync(model, "test", _services);
 
-        // Assert
+        // Assert - validator crashes must surface the cause, not the configured
+        // message (which would blame the user's input for a broken validator)
         result.IsValid.ShouldBeFalse();
-        result.ErrorMessage.ShouldBe("Validation error");
+        result.ErrorMessage.ShouldBe("Validation could not be completed: Test exception");
     }
 
     [Fact]
