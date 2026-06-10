@@ -64,9 +64,88 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
     /// <inheritdoc />
     public string? InputType { get => _inner.InputType; set => _inner.InputType = value; }
 
-    /// <inheritdoc />
-    public List<IFieldValidator<TModel, object>> Validators =>
-        _inner.Validators.Select<IFieldValidator<TModel, TValue>, IFieldValidator<TModel, object>>(v => new ValidatorWrapper<TModel, TValue>(v)).ToList();
+    private List<IFieldValidator<TModel, object>>? _validators;
+    private int _wrappedInnerValidatorCount;
+
+    /// <summary>
+    /// Gets the object-typed view of the field's validators.
+    /// The list instance is cached: repeated reads return the same instance, so validators
+    /// added to it (e.g. <c>config.Fields[0].Validators.Add(...)</c>) are retained and execute
+    /// during validation instead of being silently dropped. Validators added through the typed
+    /// builder API after the first read are appended to the cached view on the next read.
+    /// Prefer <see cref="AddValidator"/> to keep the underlying typed configuration in sync.
+    /// </summary>
+    public List<IFieldValidator<TModel, object>> Validators
+    {
+        get
+        {
+            if (_validators == null)
+            {
+                _validators = _inner.Validators
+                    .Select<IFieldValidator<TModel, TValue>, IFieldValidator<TModel, object>>(v => new ValidatorWrapper<TModel, TValue>(v))
+                    .ToList();
+                _wrappedInnerValidatorCount = _inner.Validators.Count;
+            }
+            else
+            {
+                SyncNewInnerValidators();
+            }
+
+            return _validators;
+        }
+    }
+
+    /// <summary>
+    /// Adds a validator to the field, registering it against the underlying typed configuration
+    /// so it is visible through both the typed and the object-typed validator views.
+    /// </summary>
+    /// <param name="validator">The validator to add.</param>
+    public void AddValidator(IFieldValidator<TModel, object> validator)
+    {
+        // Materialize the cached object-typed view (and pull in any typed validators
+        // added since the last read) so the original instance — not a re-wrapped
+        // copy — is what callers observe through Validators afterwards.
+        var objectView = Validators;
+
+        // Unwrap validators that already wrap a typed validator; adapt arbitrary
+        // object-typed validators so the inner typed list remains the source of truth.
+        var typedValidator = validator is ValidatorWrapper<TModel, TValue> wrapper
+            ? wrapper.Inner
+            : new ObjectValidatorAdapter(validator);
+        _inner.Validators.Add(typedValidator);
+
+        objectView.Add(validator);
+        _wrappedInnerValidatorCount = _inner.Validators.Count;
+    }
+
+    private void SyncNewInnerValidators()
+    {
+        for (var i = _wrappedInnerValidatorCount; i < _inner.Validators.Count; i++)
+        {
+            _validators!.Add(new ValidatorWrapper<TModel, TValue>(_inner.Validators[i]));
+        }
+
+        _wrappedInnerValidatorCount = _inner.Validators.Count;
+    }
+
+    private sealed class ObjectValidatorAdapter : IFieldValidator<TModel, TValue>
+    {
+        private readonly IFieldValidator<TModel, object> _objectValidator;
+
+        public ObjectValidatorAdapter(IFieldValidator<TModel, object> objectValidator)
+        {
+            _objectValidator = objectValidator;
+        }
+
+        public string? ErrorMessage
+        {
+            get => _objectValidator.ErrorMessage;
+            set => _objectValidator.ErrorMessage = value;
+        }
+
+        public Task<ValidationResult> ValidateAsync(TModel model, TValue value, IServiceProvider services)
+            => _objectValidator.ValidateAsync(model, value!, services);
+    }
 
     /// <inheritdoc />
     public List<IFieldDependency<TModel>> Dependencies => _inner.Dependencies;
