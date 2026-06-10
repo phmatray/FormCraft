@@ -207,6 +207,11 @@ public partial class MasterDetailDemo
         StateHasChanged();
     }
 
+    // Demo prices are in USD; format explicitly so the summary matches regardless
+    // of the runtime culture
+    private static string Usd(decimal value) =>
+        value.ToString("C2", System.Globalization.CultureInfo.GetCultureInfo("en-US"));
+
     private List<FormSuccessDisplay.DataDisplayItem> GetDataDisplayItems()
     {
         var items = new List<FormSuccessDisplay.DataDisplayItem>
@@ -222,14 +227,14 @@ public partial class MasterDetailDemo
             items.Add(new()
             {
                 Label = $"  Line {i + 1}",
-                Value = $"{line.Description} - {line.Quantity} × {line.UnitPrice:C2} = {line.Quantity * line.UnitPrice:C2}"
+                Value = $"{line.Description} - {line.Quantity} × {Usd(line.UnitPrice)} = {Usd(line.Quantity * line.UnitPrice)}"
             });
         }
 
-        items.Add(new() { Label = "Subtotal", Value = _model.Subtotal.ToString("C2") });
-        items.Add(new() { Label = $"Tax ({_model.TaxRatePercent}%)", Value = _model.TaxAmount.ToString("C2") });
-        items.Add(new() { Label = "Total", Value = _model.Total.ToString("C2") });
-        items.Add(new() { Label = $"Deposit Due ({_model.DepositPercent}%)", Value = _model.DepositDue.ToString("C2") });
+        items.Add(new() { Label = "Subtotal", Value = Usd(_model.Subtotal) });
+        items.Add(new() { Label = $"Tax ({_model.TaxRatePercent}%)", Value = Usd(_model.TaxAmount) });
+        items.Add(new() { Label = "Total", Value = Usd(_model.Total) });
+        items.Add(new() { Label = $"Deposit Due ({_model.DepositPercent}%)", Value = Usd(_model.DepositDue) });
 
         return items;
     }
