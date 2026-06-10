@@ -76,6 +76,13 @@ public static class AuditEventTypes
     public const string FieldChanged = "FieldChanged";
     public const string ValidationError = "ValidationError";
     public const string FormSubmitted = "FormSubmitted";
+
+    /// <summary>
+    /// A form submission was rejected before reaching the submit handler
+    /// (e.g. rate limit exceeded or CSRF validation failed).
+    /// </summary>
+    public const string FormRejected = "FormRejected";
+
     public const string FormLoaded = "FormLoaded";
     public const string RateLimitExceeded = "RateLimitExceeded";
     public const string CsrfValidationFailed = "CsrfValidationFailed";

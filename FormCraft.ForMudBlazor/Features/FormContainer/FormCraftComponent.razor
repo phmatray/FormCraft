@@ -94,6 +94,12 @@
         }
     }
     
+    @* Security enforcement feedback (rate limiting, CSRF, misconfiguration) *@
+    @if (!string.IsNullOrEmpty(_securityError))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" data-testid="formcraft-security-error">@_securityError</MudAlert>
+    }
+
     @if (ShowSubmitButton)
     {
         <MudButton ButtonType="ButtonType.Submit"
