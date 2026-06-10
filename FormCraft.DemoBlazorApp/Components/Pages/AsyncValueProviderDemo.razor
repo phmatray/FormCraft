@@ -145,22 +145,7 @@
                     </MudCardContent>
                 </MudCard>
 
-                <MudCard Class="mt-4" Elevation="1">
-                    <MudCardContent>
-                        <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
-                            <MudIcon Icon="@Icons.Material.Filled.Link" Class="me-2 text-primary" />
-                            Related Demos
-                        </MudText>
-                        <MudList T="string" Dense="true">
-                            @foreach (var demoId in AsyncValueProviderDemo.Documentation.RelatedDemoIds ?? [])
-                            {
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.ArrowForward" IconColor="Color.Primary">
-                                    <MudLink Href="@($"/{demoId}")" Typo="Typo.body2">@demoId</MudLink>
-                                </MudListItem>
-                            }
-                        </MudList>
-                    </MudCardContent>
-                </MudCard>
+                <RelatedDemosCard DemoIds="@AsyncValueProviderDemo.Documentation.RelatedDemoIds" />
             </AdditionalContent>
         </FormDemoSection>
     </FormDemoContent>

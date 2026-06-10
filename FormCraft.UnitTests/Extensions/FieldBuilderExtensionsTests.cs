@@ -365,6 +365,37 @@ public class FieldBuilderExtensionsTests
         invalidResult.ErrorMessage.ShouldBe("Must be between 1 and 10");
     }
 
+    [Fact]
+    public void WithAutocomplete_Should_Set_Lowercase_Autocomplete_Attribute()
+    {
+        // Arrange & Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Username, field => field
+                .WithAutocomplete("username"))
+            .Build();
+
+        // Assert
+        var field = config.Fields.First(f => f.FieldName == "Username");
+        field.AdditionalAttributes.ShouldContainKey("autocomplete");
+        field.AdditionalAttributes["autocomplete"].ShouldBe("username");
+    }
+
+    [Fact]
+    public void WithAutocomplete_Should_Return_Builder_For_Chaining()
+    {
+        // Arrange & Act - chaining keeps working after WithAutocomplete
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Email, field => field
+                .WithAutocomplete("email")
+                .WithLabel("Email"))
+            .Build();
+
+        // Assert
+        var field = config.Fields.First(f => f.FieldName == "Email");
+        field.Label.ShouldBe("Email");
+        field.AdditionalAttributes["autocomplete"].ShouldBe("email");
+    }
+
     public class TestModel
     {
         public string Description { get; set; } = string.Empty;

@@ -10,6 +10,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
     public int Lines { get; set; } = 1;
     public int? MaxLength { get; set; }
     public string InputType { get; set; } = "text";
+    public string? Autocomplete { get; set; }
     public string? Mask { get; set; }
     public Adornment? Adornment { get; set; }
     public string? AdornmentIcon { get; set; }
@@ -27,6 +28,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
         Lines = GetAttribute("Lines", 1);
         MaxLength = GetAttribute<int?>("MaxLength");
         InputType = Context.Field.InputType ?? GetAttribute("InputType", "text") ?? "text";
+        Autocomplete = GetAttribute<string?>("autocomplete");
         Mask = GetAttribute<string?>("Mask");
 
         // Load adornment configuration

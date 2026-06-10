@@ -16,6 +16,7 @@
                InputClass="absolute mud-width-full mud-height-full overflow-hidden z-10 opacity-0"
                ErrorText="@string.Empty"
                tabindex="-1"
+               aria-label="@(Label ?? "File upload")"
                @ondrop="@ClearDragClass"
                @ondragenter="@SetDragClass"
                @ondragleave="@ClearDragClass"

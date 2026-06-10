@@ -15,6 +15,7 @@
     Lines="@Lines"
     MaxLength="@(MaxLength.HasValue && MaxLength.Value > 0 ? MaxLength.Value : int.MaxValue)"
     InputType="@GetInputType()"
+    autocomplete="@Autocomplete"
     Adornment="@(Adornment ?? MudBlazor.Adornment.None)"
     AdornmentIcon="@AdornmentIcon"
     AdornmentColor="@AdornmentColor"
