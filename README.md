@@ -520,12 +520,20 @@ var formConfig = FormBuilder<SecureForm>.Create()
     .Build();
 ```
 
-> **How enforcement works today**: `WithSecurity()` stores the security settings on the
-> form configuration, and `AddFormCraft()` registers the supporting services
-> (`IEncryptionService`, `ICsrfTokenService`, `IRateLimitService`, `IAuditLogService`).
-> `FormCraftComponent` does **not** yet enforce CSRF validation or rate limiting
-> automatically — inject these services and apply them in your submit handler.
-> Likewise, encrypt/decrypt marked fields with `IEncryptionService` when persisting data.
+> **How enforcement works (v3.1+)**: `WithSecurity()` stores the security settings on the
+> form configuration, `AddFormCraft()` registers the supporting services
+> (`IEncryptionService`, `ICsrfTokenService`, `IRateLimitService`, `IAuditLogService`),
+> and `FormCraftComponent` enforces them automatically: a CSRF token is generated on
+> initialization and validated before `OnValidSubmit` fires, rate limits are checked
+> (and attempts recorded) before validation, and audit entries (`FormSubmitted` /
+> `FormRejected`) are written with excluded and encrypted fields redacted. Blocked
+> submissions show an error alert above the submit button and never reach your handler.
+> Set the `SecurityContextId` parameter to a per-user value (user id, session id, IP)
+> so rate limits aren't shared across users; it defaults to the model type name.
+> Encryption remains an application concern: call
+> `encryptionService.EncryptConfiguredFields(model, config.Security)` (or the
+> component's `GetEncryptedFieldValues()`) to obtain the encrypted values of the
+> marked fields in one call before persisting.
 > Since v3.0.0 the default registration is AES-256 (`DefaultEncryptionService`) with a
 > random IV per operation — configure a 32-byte key for values that must survive a
 > process restart (an ephemeral per-process key is generated otherwise). On WebAssembly
@@ -631,9 +639,9 @@ dotnet test
 - [x] Form templates library (`FormTemplates`)
 - [x] DateOnly/TimeOnly field support
 - [x] List-of-Values (LOV) modal selection fields
+- [x] Automatic CSRF/rate-limit enforcement in `FormCraftComponent`
 
 ### 🚧 In Progress
-- [ ] Automatic CSRF/rate-limit enforcement in `FormCraftComponent`
 - [ ] Import/Export forms as JSON
 - [ ] Rich text editor field
 
