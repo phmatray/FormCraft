@@ -123,37 +123,44 @@ Adds a dropdown selection field.
 ```
 
 #### AddCheckboxField()
-Adds a boolean checkbox field.
+Adds a boolean checkbox field with optional help text.
 
 ```csharp
-.AddCheckboxField(x => x.AcceptTerms, "I accept the terms and conditions", required: true)
+.AddCheckboxField(x => x.AcceptTerms, "I accept the terms and conditions",
+    helpText: "You must accept to continue")
 ```
 
-#### AddRadioGroupField()
-Adds a radio button group.
+To make the checkbox required, use `AddField` with `Required()`:
 
 ```csharp
-.AddRadioGroupField(x => x.Gender, "Gender",
-    ("M", "Male"),
-    ("F", "Female"),
-    ("O", "Other"))
+.AddField(x => x.AcceptTerms, field => field
+    .WithLabel("I accept the terms and conditions")
+    .Required("You must accept the terms"))
+```
+
+For a single-choice group, use `AddDropdownField()` or `WithOptions()`:
+
+```csharp
+.AddField(x => x.Gender, field => field
+    .WithLabel("Gender")
+    .WithOptions(
+        ("M", "Male"),
+        ("F", "Female"),
+        ("O", "Other")))
 ```
 
 ### Date/Time Fields
 
-#### AddDateField()
-Adds a date picker field.
+`DateTime` properties are rendered as date pickers automatically — just add them with `AddField`:
 
 ```csharp
-.AddDateField(x => x.BirthDate, "Birth Date", min: DateTime.Now.AddYears(-100), max: DateTime.Now)
+.AddField(x => x.BirthDate, field => field
+    .WithLabel("Birth Date")
+    .Required("Birth date is required")
+    .WithValidator(date => date <= DateTime.Today, "Date cannot be in the future"))
 ```
 
-#### AddDateTimeField()
-Adds a date and time picker.
-
-```csharp
-.AddDateTimeField(x => x.AppointmentTime, "Appointment", required: true)
-```
+For attribute-based forms, `[DateField]` supports `MinDate`/`MaxDate` constraints.
 
 ### File Upload
 
@@ -161,7 +168,9 @@ Adds a date and time picker.
 Adds a file upload field.
 
 ```csharp
-.AddFileUploadField(x => x.Resume, "Upload Resume", accept: ".pdf,.doc,.docx", maxSize: 5242880)
+.AddFileUploadField(x => x.Resume, "Upload Resume",
+    acceptedFileTypes: new[] { ".pdf", ".doc", ".docx" },
+    maxFileSize: 5 * 1024 * 1024) // 5MB
 ```
 
 ## Field Configuration Options
@@ -257,12 +266,13 @@ Adds help text below the field.
 .WithHelpText("This will be displayed on your profile")
 ```
 
-#### IsReadOnly() / IsDisabled()
+#### ReadOnly() / Disabled() / DisabledWhen()
 Controls field interactivity.
 
 ```csharp
-.IsReadOnly(true)
-.IsDisabled(model => model.IsLocked)
+.ReadOnly()                                  // Always read-only
+.Disabled()                                  // Always disabled
+.DisabledWhen(model => model.IsLocked)       // Conditionally disabled
 ```
 
 #### WithCssClass()
@@ -326,12 +336,14 @@ Creates field dependencies with actions.
     }))
 ```
 
-#### WithDefaultValue()
-Sets a default value for the field.
+#### Default Values
+Set default values directly on the model — the form binds to the model instance you provide:
 
 ```csharp
-.AddField(x => x.Status, field => field
-    .WithDefaultValue("active"))
+public class MyModel
+{
+    public string Status { get; set; } = "active";
+}
 ```
 
 ## Form Configuration Options
@@ -351,7 +363,11 @@ FormBuilder<MyModel>.Create()
 Available layouts:
 - `FormLayout.Vertical` (default)
 - `FormLayout.Horizontal`
+- `FormLayout.Inline`
 - `FormLayout.Grid`
+
+`WithLayout()` takes only the layout value — column counts are configured per
+field group via `WithColumns()` (see Field Groups below).
 
 ### Field Groups
 
@@ -371,31 +387,33 @@ Groups related fields together.
 
 ### Creating a Custom Renderer
 
-Implement `IFieldRenderer`:
+Derive from `CustomFieldRendererBase<TValue>`:
 
 ```csharp
 public class ColorPickerRenderer : CustomFieldRendererBase<string>
 {
-    protected override RenderFragment RenderField(IFieldRenderContext<string> context)
+    public override RenderFragment Render(IFieldRenderContext context)
     {
         return builder =>
         {
             builder.OpenComponent<MudColorPicker>(0);
-            builder.AddAttribute(1, "Label", context.Field.Label);
-            builder.AddAttribute(2, "Value", context.CurrentValue);
-            builder.AddAttribute(3, "ValueChanged", context.OnValueChanged);
+            builder.AddAttribute(1, "Value", GetValue(context) ?? "#000000");
             builder.CloseComponent();
         };
     }
 }
 ```
 
+Use the inherited `GetValue(context)` and `SetValue(context, value)` helpers to
+read and write the field value.
+
 ### Using Custom Renderers
 
 ```csharp
+// Type arguments: model, value, renderer
 .AddField(x => x.FavoriteColor, field => field
     .WithLabel("Favorite Color")
-    .WithCustomRenderer(new ColorPickerRenderer()))
+    .WithCustomRenderer<MyModel, string, ColorPickerRenderer>())
 ```
 
 ## Advanced Features
@@ -420,13 +438,26 @@ public static class FormTemplates
 
 ### Conditional Validation
 
-Validate based on other field values:
+To validate based on other field values, implement `IFieldValidator<TModel, TValue>` —
+its `ValidateAsync` method receives the full model:
 
 ```csharp
+public class AlternateEmailValidator : IFieldValidator<MyModel, string>
+{
+    public string? ErrorMessage { get; set; } =
+        "Alternate email is required when primary email is provided";
+
+    public Task<ValidationResult> ValidateAsync(
+        MyModel model, string value, IServiceProvider services)
+        => Task.FromResult(
+            string.IsNullOrEmpty(model.Email) || !string.IsNullOrEmpty(value)
+                ? ValidationResult.Success()
+                : ValidationResult.Failure(ErrorMessage!));
+}
+
+// Usage
 .AddField(x => x.AlternateEmail, field => field
-    .WithValidator((value, model) => 
-        string.IsNullOrEmpty(model.Email) || !string.IsNullOrEmpty(value),
-        "Alternate email is required when primary email is provided"))
+    .WithValidator(new AlternateEmailValidator()))
 ```
 
 ### Dynamic Field Generation
@@ -440,9 +471,12 @@ foreach (var fieldDef in dynamicFields)
 {
     builder.AddField(
         fieldDef.PropertyExpression,
-        field => field
-            .WithLabel(fieldDef.Label)
-            .Required(fieldDef.IsRequired));
+        field =>
+        {
+            field.WithLabel(fieldDef.Label);
+            if (fieldDef.IsRequired)
+                field.Required($"{fieldDef.Label} is required");
+        });
 }
 
 var config = builder.Build();
@@ -486,14 +520,14 @@ private async Task HandleValidSubmit(MyModel model)
 ### Built-in Validators
 
 FormCraft includes these validators:
-- `RequiredValidator` - Ensures field has a value
-- `EmailValidator` - Validates email format
-- `MinLengthValidator` - Minimum string length
-- `MaxLengthValidator` - Maximum string length
-- `RangeValidator` - Numeric range validation
-- `RegexValidator` - Pattern matching
-- `CustomValidator` - Custom validation logic
-- `AsyncValidator` - Asynchronous validation
+- `RequiredValidator` - Ensures field has a value (added by `Required()`)
+- `CustomValidator` - Custom validation logic (added by `WithValidator(func, message)`)
+- `AsyncValidator` - Asynchronous validation (added by `WithAsyncValidator(func, message)`)
+- `CollectionFieldValidator` - Validates collection field items
+- `FluentValidationAdapter` - Bridges FluentValidation rules (added by `WithFluentValidation()`)
+
+Helpers such as `WithEmailValidation()`, `WithMinLength()`, `WithMaxLength()`, and
+`WithRange()` are built on top of `CustomValidator`.
 
 ### Creating Custom Validators
 
@@ -509,6 +543,8 @@ public class UniqueUsernameValidator : IFieldValidator<UserModel, string>
         _userService = userService;
     }
     
+    public string? ErrorMessage { get; set; } = "Username is already taken";
+    
     public async Task<ValidationResult> ValidateAsync(
         UserModel model, 
         string value, 
@@ -520,7 +556,7 @@ public class UniqueUsernameValidator : IFieldValidator<UserModel, string>
         var exists = await _userService.UsernameExistsAsync(value);
         
         return exists 
-            ? ValidationResult.Error("Username is already taken")
+            ? ValidationResult.Failure("Username is already taken")
             : ValidationResult.Success();
     }
 }

@@ -132,11 +132,10 @@ public class ExpensiveValidator : IFieldValidator<MyModel, string>
 }
 ```
 
-3. **Consider virtualization for large forms**:
+3. **Consider sectioning large forms**:
 ```csharp
-// Group fields and render only visible sections
+// Render only visible sections
 .AddField(x => x.Section1Field, field => field
-    .WithGroup("Section 1")
     .VisibleWhen(model => model.CurrentSection == 1))
 ```
 
@@ -176,7 +175,7 @@ protected override void OnParametersSet()
 
 | Error Message | Cause | Solution |
 |---------------|-------|----------|
-| `Cannot resolve symbol 'WithX'` | Missing using directive | Add `@using FormCraft.Forms.Extensions` |
+| `Cannot resolve symbol 'WithX'` | Missing using directive | Add `@using FormCraft` |
 | `Object reference not set` | Null model or configuration | Initialize model: `Model = new MyModel()` |
 | `InvalidOperationException: Sequence contains no elements` | Empty field collection | Ensure `Build()` is called after adding fields |
 | `ArgumentException: Expression must be a member access` | Invalid field expression | Use `x => x.PropertyName` format |
@@ -215,10 +214,13 @@ var config = FormBuilder<MyModel>
     .AddRequiredTextField(x => x.FirstName, "First Name")
     .AddRequiredTextField(x => x.LastName, "Last Name")
     // Add clear labels and help text
-    .AddEmailField(x => x.Email)
-        .WithHelpText("We'll never share your email")
+    .AddField(x => x.Email, field => field
+        .WithLabel("Email")
+        .WithEmailValidation()
+        .WithHelpText("We'll never share your email"))
     // Use meaningful validation messages
     .AddField(x => x.Password, field => field
+        .WithLabel("Password")
         .Required("Password is required for security")
         .WithMinLength(8, "Password must be at least 8 characters"))
     .Build();

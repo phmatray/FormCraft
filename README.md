@@ -69,7 +69,7 @@ FormCraft revolutionizes form building in Blazor applications by providing a **f
 - 🔗 **Field Dependencies** - Link fields together with reactive updates
 - 📐 **Flexible Layouts** - Multiple layout options to fit your design
 - 🚀 **High Performance** - Optimized rendering with minimal overhead
-- 🧪 **Fully Tested** - 550+ unit tests ensuring reliability
+- 🧪 **Fully Tested** - 600+ unit tests ensuring reliability
 
 ## 📊 How FormCraft Compares
 
@@ -106,7 +106,9 @@ dotnet add package FormCraft.ForMudBlazor
 
 ```csharp
 // Program.cs
-builder.Services.AddFormCraft();
+builder.Services.AddMudServices();          // MudBlazor services
+builder.Services.AddFormCraft();            // FormCraft core services
+builder.Services.AddFormCraftMudBlazor();   // MudBlazor renderers for FormCraft
 ```
 
 ### 2. Create Your Model
@@ -149,9 +151,14 @@ public class UserRegistration
             .AddRequiredTextField(x => x.LastName, "Last Name")
             .AddEmailField(x => x.Email)
             .AddNumericField(x => x.Age, "Age", min: 18, max: 120)
-            .AddSelectField(x => x.Country, "Country", GetCountries())
-            .AddCheckboxField(x => x.AcceptTerms, "I accept the terms and conditions")
-                .IsRequired("You must accept the terms")
+            .AddDropdownField(x => x.Country, "Country",
+                ("us", "United States"),
+                ("uk", "United Kingdom"),
+                ("ca", "Canada"),
+                ("au", "Australia"))
+            .AddField(x => x.AcceptTerms, field => field
+                .WithLabel("I accept the terms and conditions")
+                .Required("You must accept the terms"))
             .Build();
     }
 
@@ -160,14 +167,6 @@ public class UserRegistration
         // Handle form submission
         await UserService.RegisterAsync(model);
     }
-
-    private List<SelectOption<string>> GetCountries() => new()
-    {
-        new("us", "United States"),
-        new("uk", "United Kingdom"),
-        new("ca", "Canada"),
-        new("au", "Australia")
-    };
 }
 ```
 
@@ -286,19 +285,29 @@ var config = FormBuilder<User>.Create()
 
 ### Dynamic Field Dependencies
 
-Create forms where fields react to each other:
+Create forms where fields react to each other. `DependsOn(watchedField, callback)` runs the
+callback whenever the watched field changes, letting you reset or recalculate dependent values:
 
 ```csharp
 var formConfig = FormBuilder<OrderForm>.Create()
-    .AddSelectField(x => x.ProductType, "Product Type", productOptions)
-    .AddSelectField(x => x.ProductModel, "Model", 
-        dependsOn: x => x.ProductType,
-        optionsProvider: (productType) => GetModelsForType(productType))
+    .AddDropdownField(x => x.ProductType, "Product Type",
+        ("standard", "Standard"),
+        ("premium", "Premium"))
+    .AddField(x => x.ProductModel, field => field
+        .WithLabel("Model")
+        .WithOptions(
+            ("basic", "Basic Model"),
+            ("pro", "Pro Model"))
+        // Reset the model whenever Product Type changes
+        .DependsOn(x => x.ProductType, (model, productType) =>
+            model.ProductModel = string.Empty))
     .AddNumericField(x => x.Quantity, "Quantity", min: 1)
-    .AddField(x => x.TotalPrice, "Total Price")
-        .IsReadOnly()
-        .DependsOn(x => x.ProductModel, x => x.Quantity)
-        .WithValueProvider((model, _) => CalculatePrice(model))
+    .AddField(x => x.TotalPrice, field => field
+        .WithLabel("Total Price")
+        .ReadOnly()
+        // Recalculate the total whenever Quantity changes
+        .DependsOn(x => x.Quantity, (model, quantity) =>
+            model.TotalPrice = quantity * GetUnitPrice(model.ProductModel)))
     .Build();
 ```
 
@@ -307,15 +316,37 @@ var formConfig = FormBuilder<OrderForm>.Create()
 Add complex validation logic with ease:
 
 ```csharp
-.AddField(x => x.Username)
-    .WithValidator(new CustomValidator<User, string>(
+.AddField(x => x.Username, field => field
+    .WithValidator(
         username => !forbiddenUsernames.Contains(username.ToLower()),
-        "This username is not available"))
-    .WithAsyncValidator(async (username, services) =>
+        "This username is not available")
+    .WithAsyncValidator(
+        async username => await UserService.IsUsernameAvailableAsync(username),
+        "Username is already taken"))
+```
+
+If a validator needs access to other model values or DI services, implement
+`IFieldValidator<TModel, TValue>` — its `ValidateAsync(model, value, services)`
+method receives the full model and the `IServiceProvider`:
+
+```csharp
+public class UniqueUsernameValidator : IFieldValidator<User, string>
+{
+    public string? ErrorMessage { get; set; } = "Username is already taken";
+
+    public async Task<ValidationResult> ValidateAsync(
+        User model, string value, IServiceProvider services)
     {
         var userService = services.GetRequiredService<IUserService>();
-        return await userService.IsUsernameAvailableAsync(username);
-    }, "Username is already taken")
+        return await userService.IsUsernameAvailableAsync(value)
+            ? ValidationResult.Success()
+            : ValidationResult.Failure("Username is already taken");
+    }
+}
+
+// Usage
+.AddField(x => x.Username, field => field
+    .WithValidator(new UniqueUsernameValidator()))
 ```
 
 ### Multiple Layouts
@@ -330,30 +361,47 @@ Choose the layout that fits your design:
 .WithLayout(FormLayout.Horizontal)
 
 // Grid Layout
-.WithLayout(FormLayout.Grid, columns: 2)
+.WithLayout(FormLayout.Grid)
 
 // Inline Layout
 .WithLayout(FormLayout.Inline)
 ```
 
+Column counts are configured per field group rather than at the form level:
+
+```csharp
+.AddFieldGroup(group => group
+    .WithGroupName("Address")
+    .WithColumns(2)  // Two-column layout for this group
+    .AddField(x => x.City)
+    .AddField(x => x.PostalCode))
+```
+
 ### Advanced Field Types
 
 ```csharp
-// Password field with confirmation
-.AddPasswordField(x => x.Password, "Password")
-    .WithHelpText("Must be at least 8 characters")
-.AddPasswordField(x => x.ConfirmPassword, "Confirm Password")
-    .MustMatch(x => x.Password, "Passwords do not match")
+// Password field with strength requirements
+.AddPasswordField(x => x.Password, "Password", minLength: 8, requireSpecialChars: true)
 
-// Date picker with constraints
-.AddDateField(x => x.BirthDate, "Date of Birth")
-    .WithMaxDate(DateTime.Today.AddYears(-18))
-    .WithHelpText("Must be 18 or older")
+// Password confirmation via a model-aware validator
+.AddField(x => x.ConfirmPassword, field => field
+    .WithLabel("Confirm Password")
+    .WithInputType("password")
+    .Required("Please confirm your password")
+    .WithValidator(new PasswordsMatchValidator()))
+
+// Date picker with validation (DateTime properties render as date pickers automatically)
+.AddField(x => x.BirthDate, field => field
+    .WithLabel("Date of Birth")
+    .WithValidator(date => date <= DateTime.Today.AddYears(-18), "Must be 18 or older")
+    .WithHelpText("Must be 18 or older"))
 
 // Multi-line text with character limit
-.AddTextAreaField(x => x.Description, "Description", rows: 5)
-    .WithMaxLength(500)
-    .WithHelpText("Maximum 500 characters")
+.AddField(x => x.Description, field => field
+    .WithLabel("Description")
+    .AsTextArea(lines: 5, maxLength: 500)
+    .WithMaxLength(500, "Maximum 500 characters")
+    .WithHelpText("Maximum 500 characters"))
 
 // File upload
 .AddFileUploadField(x => x.Resume, "Upload Resume",
@@ -367,18 +415,56 @@ Choose the layout that fits your design:
     maxFileSize: 10 * 1024 * 1024) // 10MB per file
 ```
 
+The password confirmation validator compares against the rest of the model:
+
+```csharp
+public class PasswordsMatchValidator : IFieldValidator<RegistrationModel, string>
+{
+    public string? ErrorMessage { get; set; } = "Passwords do not match";
+
+    public Task<ValidationResult> ValidateAsync(
+        RegistrationModel model, string value, IServiceProvider services)
+        => Task.FromResult(value == model.Password
+            ? ValidationResult.Success()
+            : ValidationResult.Failure("Passwords do not match"));
+}
+```
+
 ## 🛠️ Advanced Features
 
 ### Conditional Fields
 
-Show/hide fields based on conditions:
+Show/hide or disable fields based on conditions:
 
 ```csharp
-.AddField(x => x.CompanyName)
-    .VisibleWhen(model => model.UserType == UserType.Business)
-    
-.AddField(x => x.TaxId)
-    .RequiredWhen(model => model.Country == "US")
+.AddField(x => x.CompanyName, field => field
+    .WithLabel("Company Name")
+    .VisibleWhen(model => model.UserType == UserType.Business))
+
+.AddField(x => x.TaxId, field => field
+    .WithLabel("Tax ID")
+    .VisibleWhen(model => model.Country == "US")
+    .DisabledWhen(model => model.IsLocked))
+```
+
+For conditional *requiredness*, use a model-aware validator that only fails
+when the condition applies:
+
+```csharp
+.AddField(x => x.TaxId, field => field
+    .WithLabel("Tax ID")
+    .WithValidator(new RequiredWhenUsValidator()))
+
+public class RequiredWhenUsValidator : IFieldValidator<BusinessModel, string>
+{
+    public string? ErrorMessage { get; set; } = "Tax ID is required for US companies";
+
+    public Task<ValidationResult> ValidateAsync(
+        BusinessModel model, string value, IServiceProvider services)
+        => Task.FromResult(model.Country == "US" && string.IsNullOrWhiteSpace(value)
+            ? ValidationResult.Failure("Tax ID is required for US companies")
+            : ValidationResult.Success());
+}
 ```
 
 ### Field Groups
@@ -411,24 +497,35 @@ var formConfig = FormBuilder<UserModel>
 
 ### Security Features (v2.0.0+)
 
-Protect your forms with built-in security features:
+Configure security settings for your forms:
 
 ```csharp
 var formConfig = FormBuilder<SecureForm>.Create()
-    .WithSecurity(security => security
-        .EncryptField(x => x.SSN)           // Encrypt sensitive fields
-        .EncryptField(x => x.CreditCard)
-        .EnableCsrfProtection()             // Enable anti-forgery tokens
-        .WithRateLimit(5, TimeSpan.FromMinutes(1))  // Max 5 submissions per minute
-        .EnableAuditLogging())              // Log all form interactions
     .AddField(x => x.SSN, field => field
         .WithLabel("Social Security Number")
-        .WithMask("000-00-0000"))
+        .WithPlaceholder("XXX-XX-XXXX"))
     .AddField(x => x.CreditCard, field => field
         .WithLabel("Credit Card")
-        .WithMask("0000 0000 0000 0000"))
+        .WithPlaceholder("XXXX XXXX XXXX XXXX"))
+    .WithSecurity(security => security
+        .EncryptField(x => x.SSN)           // Mark sensitive fields for encryption
+        .EncryptField(x => x.CreditCard)
+        .EnableCsrfProtection()             // Configure anti-forgery tokens
+        .WithRateLimit(5, TimeSpan.FromMinutes(1))  // Max 5 submissions per minute
+        .EnableAuditLogging())              // Configure audit logging
     .Build();
 ```
+
+> **How enforcement works today**: `WithSecurity()` stores the security settings on the
+> form configuration, and `AddFormCraft()` registers the supporting services
+> (`IEncryptionService`, `ICsrfTokenService`, `IRateLimitService`, `IAuditLogService`).
+> `FormCraftComponent` does **not** yet enforce CSRF validation or rate limiting
+> automatically — inject these services and apply them in your submit handler.
+> Likewise, encrypt/decrypt marked fields with `IEncryptionService` when persisting data.
+> The default Blazor-compatible encryption service uses a simple XOR cipher; for
+> production data use server-side AES (`DefaultEncryptionService`) or your own
+> `IEncryptionService` implementation. See the
+> [security documentation](https://phmatray.github.io/FormCraft/docs/security) for details.
 
 ### Custom Field Renderers
 
@@ -454,7 +551,7 @@ public class ColorPickerRenderer : CustomFieldRendererBase<string>
     }
 }
 
-// Use in your form configuration
+// Use in your form configuration (type arguments: model, value, renderer)
 .AddField(x => x.Color, field => field
     .WithLabel("Product Color")
     .WithCustomRenderer<ProductModel, string, ColorPickerRenderer>()
@@ -480,7 +577,7 @@ FormCraft is designed for optimal performance:
 
 ## 🧪 Testing
 
-FormCraft is extensively tested with over 400 unit tests covering:
+FormCraft is extensively tested with over 600 unit tests covering:
 
 - ✅ All field types and renderers
 - ✅ Validation scenarios
