@@ -33,8 +33,11 @@ if (-not $SkipTests) {
 }
 
 # Pack FormCraft
-Write-Host "Creating NuGet package..." -ForegroundColor Yellow
+Write-Host "Creating NuGet packages..." -ForegroundColor Yellow
 dotnet pack ./FormCraft/FormCraft.csproj --configuration $Configuration --no-build --output $OutputPath
+
+# Pack FormCraft.ForMudBlazor
+dotnet pack ./FormCraft.ForMudBlazor/FormCraft.ForMudBlazor.csproj --configuration $Configuration --no-build --output $OutputPath
 
 # Display package info
 $packages = Get-ChildItem -Path $OutputPath -Filter "*.nupkg"
