@@ -67,7 +67,7 @@
 <MudToolBar Gutters="@false" Class="relative d-flex justify-end gap-4 mt-2">
     <MudButton Color="Color.Primary"
                OnClick="@OpenFilePickerAsync"
-               Variant="Variant.Filled"
+               Variant="@ButtonVariant"
                StartIcon="@Icons.Material.Filled.FolderOpen"
                Size="Size.Small">
         Browse
@@ -76,7 +76,7 @@
     {
         <MudButton Color="Color.Error"
                    OnClick="@ClearAsync"
-                   Variant="Variant.Filled"
+                   Variant="@ButtonVariant"
                    StartIcon="@Icons.Material.Filled.Clear"
                    Size="Size.Small">
             Clear All

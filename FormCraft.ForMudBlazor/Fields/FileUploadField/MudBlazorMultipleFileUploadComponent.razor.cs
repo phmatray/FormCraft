@@ -10,6 +10,14 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
 
     private const string DefaultDragClass = "relative rounded-lg border-2 border-dashed pa-4 mud-width-full mud-height-full d-flex justify-center align-center";
 
+    /// <summary>
+    /// Variant applied to the Browse/Clear buttons. Honors the field-level "Variant"
+    /// attribute (set via .WithVariant(...)); defaults to Filled to preserve the
+    /// historical button styling. The form-level default variant targets input
+    /// fields and intentionally does not restyle these buttons.
+    /// </summary>
+    protected Variant ButtonVariant => GetAttribute<Variant?>("Variant") ?? Variant.Filled;
+
     public string? Accept { get; set; }
     public int MaxFiles { get; set; } = 10;
     public long? MaxFileSize { get; set; }

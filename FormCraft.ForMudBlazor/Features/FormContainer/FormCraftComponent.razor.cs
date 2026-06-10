@@ -45,6 +45,14 @@ public partial class FormCraftComponent<TModel>
     public EventCallback<EditContext> OnEditContextCreated { get; set; }
 
     /// <summary>
+    /// Default MudBlazor <see cref="Variant"/> applied to every rendered input field.
+    /// Individual fields override it via the <c>.WithVariant(...)</c> builder extension.
+    /// Defaults to <see cref="Variant.Outlined"/>.
+    /// </summary>
+    [Parameter]
+    public Variant DefaultVariant { get; set; } = Variant.Outlined;
+
+    /// <summary>
     /// Stable identifier used for security enforcement (rate limiting and audit log
     /// entries) configured via <c>WithSecurity()</c>. Set this to a per-user or
     /// per-session value (e.g. user id, circuit id, IP address) so limits are not

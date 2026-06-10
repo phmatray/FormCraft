@@ -9,6 +9,7 @@
     @BeforeForm
 }
 
+<CascadingValue TValue="Variant?" Name="@FormCraftCascadingValues.DefaultVariant" Value="@DefaultVariant">
 <EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit">
     <DynamicFormValidator TModel="TModel" Configuration="@Configuration" @ref="_validator" />
     
@@ -111,6 +112,7 @@
         </MudButton>
     }
 </EditForm>
+</CascadingValue>
 
 @if (AfterForm != null)
 {

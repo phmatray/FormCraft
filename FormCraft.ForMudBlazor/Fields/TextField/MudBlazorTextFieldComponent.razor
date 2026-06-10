@@ -1,6 +1,6 @@
 @namespace FormCraft.ForMudBlazor
 @typeparam TModel
-@inherits FieldComponentBase<TModel, string>
+@inherits MudBlazorFieldComponentBase<TModel, string>
 @implements ITextFieldComponent<TModel>
 
 <MudTextField
@@ -20,7 +20,7 @@
     AdornmentIcon="@AdornmentIcon"
     AdornmentColor="@AdornmentColor"
     OnAdornmentClick="@HandleAdornmentClick"
-    Variant="Variant.Outlined"
+    Variant="@EffectiveVariant"
     Margin="Margin.Dense"
     ShrinkLabel="true"
     Immediate="true" />

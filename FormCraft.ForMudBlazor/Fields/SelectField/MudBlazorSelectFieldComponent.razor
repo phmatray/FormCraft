@@ -1,7 +1,7 @@
 @namespace FormCraft.ForMudBlazor
 @typeparam TModel
 @typeparam TValue
-@inherits FieldComponentBase<TModel, TValue>
+@inherits MudBlazorFieldComponentBase<TModel, TValue>
 @implements ISelectFieldComponent<TModel, TValue>
 
 <MudSelect
@@ -13,7 +13,7 @@
     HelperText="@HelpText"
     ReadOnly="@IsReadOnly"
     Disabled="@IsDisabled"
-    Variant="Variant.Outlined"
+    Variant="@EffectiveVariant"
     Margin="Margin.Dense"
     ShrinkLabel="true">
     @foreach (SelectOption<TValue> option in Options)

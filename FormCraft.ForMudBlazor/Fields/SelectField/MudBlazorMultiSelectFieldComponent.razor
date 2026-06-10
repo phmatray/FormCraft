@@ -1,7 +1,7 @@
 @namespace FormCraft.ForMudBlazor
 @typeparam TModel
 @typeparam TItem
-@inherits FieldComponentBase<TModel, IEnumerable<TItem>>
+@inherits MudBlazorFieldComponentBase<TModel, IEnumerable<TItem>>
 
 <MudSelect
     T="TItem"
@@ -13,7 +13,7 @@
     HelperText="@HelpText"
     ReadOnly="@IsReadOnly"
     Disabled="@IsDisabled"
-    Variant="Variant.Outlined"
+    Variant="@EffectiveVariant"
     Margin="Margin.Dense"
     ShrinkLabel="true">
     @foreach (SelectOption<TItem> option in Options)

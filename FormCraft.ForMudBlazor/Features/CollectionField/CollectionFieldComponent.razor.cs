@@ -34,6 +34,13 @@ public partial class CollectionFieldComponent<TModel, TItem>
     public EventCallback OnCollectionChanged { get; set; }
 
     /// <summary>
+    /// Gets or sets the form-level default variant cascaded by <see cref="FormCraftComponent{TModel}"/>.
+    /// Used as a fallback for item fields that do not configure their own "Variant" attribute.
+    /// </summary>
+    [CascadingParameter(Name = FormCraftCascadingValues.DefaultVariant)]
+    public Variant? FormDefaultVariant { get; set; }
+
+    /// <summary>
     /// Gets or sets the parent form's EditContext, cascaded from the surrounding EditForm.
     /// When present, item field changes raise <see cref="EditContext.NotifyFieldChanged(in FieldIdentifier)"/>
     /// with a nested field identifier (e.g. <c>Items[0].ProductName</c>) on the root model, so
@@ -259,8 +266,22 @@ public partial class CollectionFieldComponent<TModel, TItem>
         builder.AddAttribute(startIndex++, "Required", field.IsRequired);
         builder.AddAttribute(startIndex++, "ReadOnly", field.IsReadOnly);
         builder.AddAttribute(startIndex++, "Disabled", field.IsDisabled);
-        builder.AddAttribute(startIndex++, "Variant", Variant.Outlined);
+        builder.AddAttribute(startIndex++, "Variant", GetItemFieldVariant(field));
         builder.AddAttribute(startIndex++, "Margin", Margin.Dense);
         builder.AddAttribute(startIndex, "ShrinkLabel", true);
+    }
+
+    /// <summary>
+    /// Resolves the variant for an item field: the field-level "Variant" attribute when
+    /// present, otherwise the cascaded form-level default, otherwise Outlined.
+    /// </summary>
+    private Variant GetItemFieldVariant(IFieldConfiguration<TItem, object> field)
+    {
+        if (field.AdditionalAttributes.TryGetValue("Variant", out var value) && value is Variant variant)
+        {
+            return variant;
+        }
+
+        return FormDefaultVariant ?? Variant.Outlined;
     }
 }

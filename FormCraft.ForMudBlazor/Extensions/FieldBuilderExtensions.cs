@@ -114,6 +114,31 @@ public static class MudBlazorFieldBuilderExtensions
     }
 
     /// <summary>
+    /// Sets the MudBlazor <see cref="MudBlazor.Variant"/> used to render the field's input,
+    /// overriding the form-level default (see <c>FormCraftComponent&lt;TModel&gt;.DefaultVariant</c>).
+    /// When neither is configured, fields render with <c>Variant.Outlined</c>.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <typeparam name="TValue">The type of the field value.</typeparam>
+    /// <param name="builder">The FieldBuilder instance.</param>
+    /// <param name="variant">The MudBlazor variant to apply (Text, Filled, or Outlined).</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Name, field => field
+    ///     .WithLabel("Name")
+    ///     .WithVariant(Variant.Filled))
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, TValue> WithVariant<TModel, TValue>(
+        this FieldBuilder<TModel, TValue> builder,
+        MudBlazor.Variant variant)
+        where TModel : new()
+    {
+        return builder.WithAttribute("Variant", variant);
+    }
+
+    /// <summary>
     /// Adds an adornment (icon or text) to a text field.
     /// </summary>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
