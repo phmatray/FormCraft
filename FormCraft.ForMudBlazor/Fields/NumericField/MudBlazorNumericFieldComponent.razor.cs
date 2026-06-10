@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace FormCraft.ForMudBlazor;
 
 public partial class MudBlazorNumericFieldComponent<TModel, TValue>
@@ -9,6 +11,7 @@ public partial class MudBlazorNumericFieldComponent<TModel, TValue>
     public TValue? Step { get; set; }
     public string? Format { get; set; }
     public bool ShowSpinButtons { get; set; } = true;
+    public CultureInfo Culture { get; set; } = CultureInfo.InvariantCulture;
 
     protected override void OnInitialized()
     {
@@ -22,6 +25,10 @@ public partial class MudBlazorNumericFieldComponent<TModel, TValue>
         Step = GetAttribute<TValue?>("Step") ?? GetDefaultStep();
         Format = GetAttribute<string>("Format");
         ShowSpinButtons = GetAttribute("ShowSpinButtons", true);
+
+        // Parity with the legacy render path: numeric input parsing is
+        // culture-invariant unless an explicit Culture attribute is supplied.
+        Culture = GetAttribute<CultureInfo>("Culture") ?? CultureInfo.InvariantCulture;
     }
 
     protected override void OnParametersSet()
