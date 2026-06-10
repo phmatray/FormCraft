@@ -174,3 +174,83 @@ For simple async checks that do not need DI, `WithAsyncValidator` takes a delega
     .WithAsyncValidator(async email => await CheckEmailAvailabilityAsync(email),
         "Email is already registered"))
 ```
+## Auto-Generated Forms (Zero Configuration)
+
+`AddFieldsAuto()` reflects over your model's public read-write properties and generates a complete form - no attributes or per-field configuration required. See it live in the [Auto-Generated Forms demo](/auto-form).
+
+```csharp
+public class AccountSignupModel
+{
+    public string FirstName { get; set; } = "";     // text, label "First Name"
+    public string Email { get; set; } = "";         // email input + validation
+    public string Password { get; set; } = "";      // password input
+    public int Age { get; set; }                    // numeric input
+    public ExperienceLevel ExperienceLevel { get; set; } // select with enum values
+    public DateTime StartDate { get; set; }         // date picker
+    public bool AcceptUpdates { get; set; }         // checkbox
+}
+
+var config = FormBuilder<AccountSignupModel>
+    .Create()
+    .AddFieldsAuto()
+    .Build();
+```
+
+DataAnnotations (`[Required]`, `[Range]`, `[MaxLength]`, `[EmailAddress]`, `[Display(Name = ...)]`) are honored when present, and `[ExcludeField]` skips a property. The options callback customizes the output without touching the model:
+
+```csharp
+var config = FormBuilder<AccountSignupModel>
+    .Create()
+    .AddFieldsAuto(options => options
+        .Exclude(x => x.Password)
+        .ConfigureField(x => x.FirstName, field => field
+            .WithLabel("Given Name")
+            .Required()))
+    .Build();
+```
+
+## Master-Detail Form (Invoice with Line Items)
+
+Combine a LOV lookup for the parent reference, `AddCollectionField()` for the child rows, and computed model properties for live totals. See it live in the [Master-Detail demo](/master-detail).
+
+```csharp
+public class InvoiceFormModel
+{
+    public int? CustomerId { get; set; }
+    public string? CustomerName { get; set; }
+    public string? InvoiceNumber { get; set; }
+    public List<InvoiceLineModel> Items { get; set; } = [new InvoiceLineModel()];
+    public decimal TaxRatePercent { get; set; } = 21m;
+
+    // Computed totals stay live: the form re-renders on every line item change.
+    public decimal Subtotal => Items.Sum(i => i.Quantity * i.UnitPrice);
+    public decimal Total => Subtotal + Math.Round(Subtotal * TaxRatePercent / 100m, 2);
+}
+
+public class InvoiceLineModel
+{
+    public string Description { get; set; } = "";
+    public int Quantity { get; set; } = 1;
+    public decimal UnitPrice { get; set; }
+}
+
+var config = FormBuilder<InvoiceFormModel>
+    .Create()
+    .AddField(x => x.InvoiceNumber, field => field
+        .WithLabel("Invoice Number")
+        .Required())
+    .AddCollectionField(x => x.Items, collection => collection
+        .WithLabel("Line Items")
+        .AllowAdd("Add Line")
+        .AllowRemove()
+        .WithMinItems(1)
+        .WithItemForm(item => item
+            .AddField(x => x.Description, field => field.Required())
+            .AddField(x => x.Quantity, field => field.WithLabel("Quantity"))
+            .AddField(x => x.UnitPrice, field => field.WithLabel("Unit Price"))))
+    .AddField(x => x.Subtotal, field => field.WithLabel("Subtotal").ReadOnly())
+    .AddField(x => x.Total, field => field.WithLabel("Total").ReadOnly())
+    .Build();
+```
+
+> Tip: `DependsOn()` reacts to scalar field changes (e.g. recalculate a deposit when the percentage changes), while values derived from collection items are best expressed as computed get-only properties.
