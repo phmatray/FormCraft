@@ -123,6 +123,22 @@ public partial class FormCraftComponent<TModel>
             {
                 RenderNumericField(builder, field, (double)(value ?? 0.0));
             }
+            else if (underlyingType == typeof(float))
+            {
+                RenderNumericField(builder, field, (float)(value ?? 0f));
+            }
+            else if (underlyingType == typeof(long))
+            {
+                RenderNumericField(builder, field, (long)(value ?? 0L));
+            }
+            else if (underlyingType == typeof(short))
+            {
+                RenderNumericField(builder, field, (short)(value ?? (short)0));
+            }
+            else if (underlyingType == typeof(byte))
+            {
+                RenderNumericField(builder, field, (byte)(value ?? (byte)0));
+            }
             else if (underlyingType == typeof(bool))
             {
                 RenderBooleanField(builder, field, value ?? false);
@@ -237,12 +253,10 @@ public partial class FormCraftComponent<TModel>
                 newValue => UpdateFieldValue(field.FieldName, newValue)));
         builder.AddAttribute(4, "Immediate", true);
 
-        // Add culture and pattern to ensure proper decimal display
+        // MudBlazor appends '*' to Pattern before emitting the HTML attribute, so a
+        // fully-anchored regex here becomes invalid (e.g. "...?*"). The component's
+        // default pattern already handles decimal input; only Culture is needed.
         builder.AddAttribute(5, "Culture", System.Globalization.CultureInfo.InvariantCulture);
-        if (typeof(T) == typeof(decimal))
-        {
-            builder.AddAttribute(6, "Pattern", "[0-9]+([.,][0-9]+)?");
-        }
 
         builder.CloseComponent();
     }
