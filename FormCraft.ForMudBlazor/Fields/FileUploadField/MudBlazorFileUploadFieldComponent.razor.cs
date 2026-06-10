@@ -5,22 +5,7 @@ namespace FormCraft.ForMudBlazor;
 
 public partial class MudBlazorFileUploadFieldComponent<TModel>
 {
-    private MudFileUpload<IReadOnlyList<IBrowserFile>>? _fileUpload;
-    private IReadOnlyList<IBrowserFile>? _singleFileList;
-
-    public IReadOnlyList<IBrowserFile>? SingleFileList
-    {
-        get => _singleFileList;
-        set
-        {
-            if (!Equals(_singleFileList, value))
-            {
-                _singleFileList = value;
-                CurrentValue = value?.FirstOrDefault();
-                StateHasChanged();
-            }
-        }
-    }
+    private MudFileUpload<IBrowserFile>? _fileUpload;
     private string _dragClass = DefaultDragClass;
 
     private const string DefaultDragClass = "relative rounded-lg border-2 border-dashed pa-4 mud-width-full mud-height-full d-flex justify-center align-center";
@@ -43,33 +28,11 @@ public partial class MudBlazorFileUploadFieldComponent<TModel>
         ShowPreview = GetAttribute<bool>("ShowPreview");
         EnableDragDrop = GetAttribute("EnableDragDrop", true);
         UploadMode = GetAttribute("UploadMode", FileUploadMode.Immediate);
-
-        // Initialize the single file list to sync with CurrentValue
-        UpdateSingleFileList();
     }
 
-    protected override void OnParametersSet()
+    private Task OnFileChanged(IBrowserFile? file)
     {
-        base.OnParametersSet();
-        UpdateSingleFileList();
-    }
-
-    private void UpdateSingleFileList()
-    {
-        if (CurrentValue != null)
-        {
-            _singleFileList = new List<IBrowserFile> { CurrentValue };
-        }
-        else
-        {
-            _singleFileList = new List<IBrowserFile>();
-        }
-    }
-
-    private Task OnFilesChanged(IReadOnlyList<IBrowserFile>? files)
-    {
-        _singleFileList = files;
-        CurrentValue = files?.FirstOrDefault();
+        CurrentValue = file;
         ClearDragClass();
         StateHasChanged();
         return Task.CompletedTask;
@@ -91,7 +54,6 @@ public partial class MudBlazorFileUploadFieldComponent<TModel>
     private Task ClearAsync()
     {
         CurrentValue = null;
-        _singleFileList = new List<IBrowserFile>();
         return _fileUpload?.ClearAsync() ?? Task.CompletedTask;
     }
 
