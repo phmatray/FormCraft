@@ -62,8 +62,14 @@ public class FieldGroupBuilder<TModel> where TModel : new()
     /// </summary>
     /// <param name="columns">The number of columns (1-6).</param>
     /// <returns>The FieldGroupBuilder instance for method chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="columns"/> is outside the 1-6 range.</exception>
     public FieldGroupBuilder<TModel> WithColumns(int columns)
     {
+        if (columns is < 1 or > 6)
+        {
+            throw new ArgumentOutOfRangeException(nameof(columns), columns, "Column count must be between 1 and 6.");
+        }
+
         _fieldGroup.Columns = columns;
         return this;
     }
