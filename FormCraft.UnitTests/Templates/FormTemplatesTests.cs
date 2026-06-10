@@ -2,158 +2,227 @@ namespace FormCraft.UnitTests.Templates;
 
 public class FormTemplatesTests
 {
+    #region ContactForm
+
     [Fact]
-    public void ContactForm_Should_Return_Valid_Configuration()
+    public void ContactForm_Should_Add_Fields_For_Matching_Properties()
     {
         // Act
-        var config = FormTemplates.ContactForm<TestModel>();
+        var config = FormTemplates.ContactForm<ContactModel>();
 
         // Assert
         config.ShouldNotBeNull();
-        config.ShouldBeAssignableTo<IFormConfiguration<TestModel>>();
+        config.Fields.Count.ShouldBe(5);
+        config.Fields.ShouldContain(f => f.FieldName == "FirstName");
+        config.Fields.ShouldContain(f => f.FieldName == "LastName");
+        config.Fields.ShouldContain(f => f.FieldName == "Email");
+        config.Fields.ShouldContain(f => f.FieldName == "Phone");
+        config.Fields.ShouldContain(f => f.FieldName == "Message");
     }
 
     [Fact]
-    public void ContactForm_Should_Create_Empty_Configuration()
+    public void ContactForm_Should_Use_Single_Name_Field_When_No_FirstName_LastName()
     {
         // Act
-        var config = FormTemplates.ContactForm<TestModel>();
+        var config = FormTemplates.ContactForm<SimpleContactModel>();
 
         // Assert
-        config.Fields.ShouldNotBeNull();
-        config.Fields.Count().ShouldBe(0); // Template returns empty configuration
+        config.Fields.Count.ShouldBe(2);
+        config.Fields.ShouldContain(f => f.FieldName == "Name");
+        config.Fields.ShouldContain(f => f.FieldName == "Email");
     }
 
     [Fact]
-    public void RegistrationForm_Should_Return_Valid_Configuration()
+    public void ContactForm_Should_Configure_Required_Email_Field()
     {
         // Act
-        var config = FormTemplates.RegistrationForm<TestModel>();
+        var config = FormTemplates.ContactForm<ContactModel>();
 
         // Assert
-        config.ShouldNotBeNull();
-        config.ShouldBeAssignableTo<IFormConfiguration<TestModel>>();
+        var emailField = config.Fields.First(f => f.FieldName == "Email");
+        emailField.Label.ShouldBe("Email Address");
+        emailField.IsRequired.ShouldBeTrue();
+        emailField.Validators.Count.ShouldBeGreaterThan(0);
     }
 
     [Fact]
-    public void RegistrationForm_Should_Create_Empty_Configuration()
+    public void ContactForm_Should_Throw_When_No_Matching_Properties()
+    {
+        // Act & Assert
+        var exception = Should.Throw<InvalidOperationException>(
+            () => FormTemplates.ContactForm<UnrelatedModel>());
+
+        exception.Message.ShouldContain("ContactForm");
+        exception.Message.ShouldContain("UnrelatedModel");
+        exception.Message.ShouldContain("Email");
+    }
+
+    #endregion
+
+    #region RegistrationForm
+
+    [Fact]
+    public void RegistrationForm_Should_Add_Fields_For_Matching_Properties()
     {
         // Act
-        var config = FormTemplates.RegistrationForm<TestModel>();
+        var config = FormTemplates.RegistrationForm<RegistrationModel>();
 
         // Assert
-        config.Fields.ShouldNotBeNull();
-        config.Fields.Count().ShouldBe(0); // Template returns empty configuration
+        config.Fields.Count.ShouldBe(6);
+        config.Fields.ShouldContain(f => f.FieldName == "FirstName");
+        config.Fields.ShouldContain(f => f.FieldName == "LastName");
+        config.Fields.ShouldContain(f => f.FieldName == "Email");
+        config.Fields.ShouldContain(f => f.FieldName == "Password");
+        config.Fields.ShouldContain(f => f.FieldName == "ConfirmPassword");
+        config.Fields.ShouldContain(f => f.FieldName == "AcceptTerms");
     }
 
     [Fact]
-    public void LoginForm_Should_Return_Valid_Configuration()
+    public void RegistrationForm_Should_Configure_Password_Fields_As_Password_Inputs()
     {
         // Act
-        var config = FormTemplates.LoginForm<TestModel>();
+        var config = FormTemplates.RegistrationForm<RegistrationModel>();
 
         // Assert
-        config.ShouldNotBeNull();
-        config.ShouldBeAssignableTo<IFormConfiguration<TestModel>>();
+        var passwordField = config.Fields.First(f => f.FieldName == "Password");
+        passwordField.InputType.ShouldBe("password");
+        passwordField.IsRequired.ShouldBeTrue();
+
+        var confirmPasswordField = config.Fields.First(f => f.FieldName == "ConfirmPassword");
+        confirmPasswordField.InputType.ShouldBe("password");
+        confirmPasswordField.IsRequired.ShouldBeTrue();
     }
 
     [Fact]
-    public void LoginForm_Should_Create_Empty_Configuration()
+    public void RegistrationForm_Should_Skip_Properties_Missing_From_Model()
     {
-        // Act
-        var config = FormTemplates.LoginForm<TestModel>();
+        // Act - model only has Email and Password
+        var config = FormTemplates.RegistrationForm<MinimalRegistrationModel>();
 
         // Assert
-        config.Fields.ShouldNotBeNull();
-        config.Fields.Count().ShouldBe(0); // Template returns empty configuration
+        config.Fields.Count.ShouldBe(2);
+        config.Fields.ShouldContain(f => f.FieldName == "Email");
+        config.Fields.ShouldContain(f => f.FieldName == "Password");
     }
 
     [Fact]
-    public void AddressForm_Should_Return_Valid_Configuration()
+    public void RegistrationForm_Should_Throw_When_No_Matching_Properties()
+    {
+        // Act & Assert
+        var exception = Should.Throw<InvalidOperationException>(
+            () => FormTemplates.RegistrationForm<UnrelatedModel>());
+
+        exception.Message.ShouldContain("RegistrationForm");
+        exception.Message.ShouldContain("Password");
+    }
+
+    #endregion
+
+    #region LoginForm
+
+    [Fact]
+    public void LoginForm_Should_Add_Email_Password_And_RememberMe_Fields()
     {
         // Act
-        var config = FormTemplates.AddressForm<TestModel>();
+        var config = FormTemplates.LoginForm<EmailLoginModel>();
 
         // Assert
-        config.ShouldNotBeNull();
-        config.ShouldBeAssignableTo<IFormConfiguration<TestModel>>();
+        config.Fields.Count.ShouldBe(3);
+        config.Fields.ShouldContain(f => f.FieldName == "Email");
+        config.Fields.ShouldContain(f => f.FieldName == "Password");
+        config.Fields.ShouldContain(f => f.FieldName == "RememberMe");
     }
 
     [Fact]
-    public void AddressForm_Should_Create_Empty_Configuration()
+    public void LoginForm_Should_Use_Username_When_Email_Is_Missing()
     {
         // Act
-        var config = FormTemplates.AddressForm<TestModel>();
+        var config = FormTemplates.LoginForm<UsernameLoginModel>();
 
         // Assert
-        config.Fields.ShouldNotBeNull();
-        config.Fields.Count().ShouldBe(0); // Template returns empty configuration
+        config.Fields.Count.ShouldBe(2);
+        config.Fields.ShouldContain(f => f.FieldName == "Username");
+        config.Fields.ShouldContain(f => f.FieldName == "Password");
     }
 
     [Fact]
-    public void ContactForm_Should_Work_With_Different_Model_Types()
+    public void LoginForm_Should_Configure_Password_As_Required_Password_Input()
     {
         // Act
-        var config1 = FormTemplates.ContactForm<TestModel>();
-        var config2 = FormTemplates.ContactForm<AnotherTestModel>();
+        var config = FormTemplates.LoginForm<EmailLoginModel>();
 
         // Assert
-        config1.ShouldNotBeNull();
-        config2.ShouldNotBeNull();
-        config1.ShouldBeAssignableTo<IFormConfiguration<TestModel>>();
-        config2.ShouldBeAssignableTo<IFormConfiguration<AnotherTestModel>>();
+        var passwordField = config.Fields.First(f => f.FieldName == "Password");
+        passwordField.Label.ShouldBe("Password");
+        passwordField.InputType.ShouldBe("password");
+        passwordField.IsRequired.ShouldBeTrue();
     }
 
     [Fact]
-    public void RegistrationForm_Should_Work_With_Different_Model_Types()
+    public void LoginForm_Should_Throw_When_No_Matching_Properties()
+    {
+        // Act & Assert
+        var exception = Should.Throw<InvalidOperationException>(
+            () => FormTemplates.LoginForm<UnrelatedModel>());
+
+        exception.Message.ShouldContain("LoginForm");
+        exception.Message.ShouldContain("Username");
+    }
+
+    #endregion
+
+    #region AddressForm
+
+    [Fact]
+    public void AddressForm_Should_Add_Fields_For_Matching_Properties()
     {
         // Act
-        var config1 = FormTemplates.RegistrationForm<TestModel>();
-        var config2 = FormTemplates.RegistrationForm<AnotherTestModel>();
+        var config = FormTemplates.AddressForm<AddressModel>();
 
         // Assert
-        config1.ShouldNotBeNull();
-        config2.ShouldNotBeNull();
-        config1.ShouldBeAssignableTo<IFormConfiguration<TestModel>>();
-        config2.ShouldBeAssignableTo<IFormConfiguration<AnotherTestModel>>();
+        config.Fields.Count.ShouldBe(5);
+        config.Fields.ShouldContain(f => f.FieldName == "Street");
+        config.Fields.ShouldContain(f => f.FieldName == "City");
+        config.Fields.ShouldContain(f => f.FieldName == "State");
+        config.Fields.ShouldContain(f => f.FieldName == "PostalCode");
+        config.Fields.ShouldContain(f => f.FieldName == "Country");
     }
 
     [Fact]
-    public void LoginForm_Should_Work_With_Different_Model_Types()
+    public void AddressForm_Should_Support_Alternative_Property_Names()
     {
-        // Act
-        var config1 = FormTemplates.LoginForm<TestModel>();
-        var config2 = FormTemplates.LoginForm<AnotherTestModel>();
+        // Act - model uses AddressLine1/AddressLine2/ZipCode naming
+        var config = FormTemplates.AddressForm<AlternativeAddressModel>();
 
         // Assert
-        config1.ShouldNotBeNull();
-        config2.ShouldNotBeNull();
-        config1.ShouldBeAssignableTo<IFormConfiguration<TestModel>>();
-        config2.ShouldBeAssignableTo<IFormConfiguration<AnotherTestModel>>();
+        config.Fields.Count.ShouldBe(4);
+        config.Fields.ShouldContain(f => f.FieldName == "AddressLine1");
+        config.Fields.ShouldContain(f => f.FieldName == "AddressLine2");
+        config.Fields.ShouldContain(f => f.FieldName == "City");
+        config.Fields.ShouldContain(f => f.FieldName == "ZipCode");
     }
 
     [Fact]
-    public void AddressForm_Should_Work_With_Different_Model_Types()
+    public void AddressForm_Should_Throw_When_No_Matching_Properties()
     {
-        // Act
-        var config1 = FormTemplates.AddressForm<TestModel>();
-        var config2 = FormTemplates.AddressForm<AnotherTestModel>();
+        // Act & Assert
+        var exception = Should.Throw<InvalidOperationException>(
+            () => FormTemplates.AddressForm<UnrelatedModel>());
 
-        // Assert
-        config1.ShouldNotBeNull();
-        config2.ShouldNotBeNull();
-        config1.ShouldBeAssignableTo<IFormConfiguration<TestModel>>();
-        config2.ShouldBeAssignableTo<IFormConfiguration<AnotherTestModel>>();
+        exception.Message.ShouldContain("AddressForm");
+        exception.Message.ShouldContain("City");
     }
+
+    #endregion
 
     [Fact]
     public void All_Templates_Should_Have_Default_Layout()
     {
         // Act
-        var contactConfig = FormTemplates.ContactForm<TestModel>();
-        var registrationConfig = FormTemplates.RegistrationForm<TestModel>();
-        var loginConfig = FormTemplates.LoginForm<TestModel>();
-        var addressConfig = FormTemplates.AddressForm<TestModel>();
+        var contactConfig = FormTemplates.ContactForm<ContactModel>();
+        var registrationConfig = FormTemplates.RegistrationForm<RegistrationModel>();
+        var loginConfig = FormTemplates.LoginForm<EmailLoginModel>();
+        var addressConfig = FormTemplates.AddressForm<AddressModel>();
 
         // Assert
         contactConfig.Layout.ShouldBe(FormLayout.Vertical); // Default layout
@@ -162,61 +231,74 @@ public class FormTemplatesTests
         addressConfig.Layout.ShouldBe(FormLayout.Vertical);
     }
 
-    [Fact]
-    public void All_Templates_Should_Support_Method_Chaining()
-    {
-        // Act
-        var contactConfig = FormTemplates.ContactForm<TestModel>();
-        var registrationConfig = FormTemplates.RegistrationForm<TestModel>();
-        var loginConfig = FormTemplates.LoginForm<TestModel>();
-        var addressConfig = FormTemplates.AddressForm<TestModel>();
+    #region Test Models
 
-        // Assert
-        // Since these return IFormConfiguration, they can be used directly
-        contactConfig.ShouldNotBeNull();
-        registrationConfig.ShouldNotBeNull();
-        loginConfig.ShouldNotBeNull();
-        addressConfig.ShouldNotBeNull();
+    public class ContactModel
+    {
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
     }
 
-    [Fact]
-    public void Templates_Should_Have_Empty_Field_Dependencies()
-    {
-        // Act
-        var config = FormTemplates.ContactForm<TestModel>();
-
-        // Assert
-        config.FieldDependencies.ShouldNotBeNull();
-        config.FieldDependencies.Count().ShouldBe(0);
-    }
-
-    [Fact]
-    public void Templates_Should_Support_Generic_Constraints()
-    {
-        // These should all compile successfully due to the 'new()' constraint
-
-        // Act & Assert - compilation test
-        var config1 = FormTemplates.ContactForm<TestModel>();
-        var config2 = FormTemplates.RegistrationForm<TestModel>();
-        var config3 = FormTemplates.LoginForm<TestModel>();
-        var config4 = FormTemplates.AddressForm<TestModel>();
-
-        config1.ShouldNotBeNull();
-        config2.ShouldNotBeNull();
-        config3.ShouldNotBeNull();
-        config4.ShouldNotBeNull();
-    }
-
-    public class TestModel
+    public class SimpleContactModel
     {
         public string Name { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public int Age { get; set; }
     }
 
-    public class AnotherTestModel
+    public class RegistrationModel
     {
-        public string Title { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+        public bool AcceptTerms { get; set; }
+    }
+
+    public class MinimalRegistrationModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public class EmailLoginModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public bool RememberMe { get; set; }
+    }
+
+    public class UsernameLoginModel
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public class AddressModel
+    {
+        public string Street { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string State { get; set; } = string.Empty;
+        public string PostalCode { get; set; } = string.Empty;
+        public string Country { get; set; } = string.Empty;
+    }
+
+    public class AlternativeAddressModel
+    {
+        public string AddressLine1 { get; set; } = string.Empty;
+        public string AddressLine2 { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string ZipCode { get; set; } = string.Empty;
+    }
+
+    public class UnrelatedModel
+    {
+        public int Id { get; set; }
         public bool IsActive { get; set; }
     }
+
+    #endregion
 }

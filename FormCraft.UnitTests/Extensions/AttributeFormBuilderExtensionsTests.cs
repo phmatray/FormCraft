@@ -316,6 +316,63 @@ public class AttributeFormBuilderExtensionsTests
     }
 
     [Fact]
+    public async Task EmailField_Format_Validator_Should_Allow_Empty_When_Not_Required()
+    {
+        // Arrange
+        var services = A.Fake<IServiceProvider>();
+        var config = FormBuilder<EmailTestModel>.Create()
+            .AddFieldsFromAttributes()
+            .Build();
+
+        var emailField = config.Fields
+            .OfType<FieldConfigurationWrapper<EmailTestModel, string>>()
+            .First(f => f.TypedConfiguration.FieldName == "WorkEmail");
+        var validator = emailField.TypedConfiguration.Validators.ShouldHaveSingleItem();
+        var model = new EmailTestModel();
+
+        // Act & Assert - empty values pass format validation; requiredness belongs to [Required]
+        var nullResult = await validator.ValidateAsync(model, null!, services);
+        nullResult.IsValid.ShouldBeTrue();
+
+        var emptyResult = await validator.ValidateAsync(model, "", services);
+        emptyResult.IsValid.ShouldBeTrue();
+
+        var invalidResult = await validator.ValidateAsync(model, "abc", services);
+        invalidResult.IsValid.ShouldBeFalse();
+        invalidResult.ErrorMessage.ShouldBe("Please enter a valid email address");
+
+        var validResult = await validator.ValidateAsync(model, "user@example.com", services);
+        validResult.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task AddFieldsFromAttributes_Should_Add_Server_Side_Validator_For_Range()
+    {
+        // Arrange
+        var services = A.Fake<IServiceProvider>();
+        var config = FormBuilder<TestModel>.Create()
+            .AddFieldsFromAttributes()
+            .Build();
+
+        var ageField = config.Fields
+            .OfType<FieldConfigurationWrapper<TestModel, int>>()
+            .First(f => f.TypedConfiguration.FieldName == "Age");
+        var validator = ageField.TypedConfiguration.Validators.ShouldHaveSingleItem();
+        var model = new TestModel();
+
+        // Act & Assert
+        var tooYoungResult = await validator.ValidateAsync(model, 17, services);
+        tooYoungResult.IsValid.ShouldBeFalse();
+        tooYoungResult.ErrorMessage.ShouldBe("Must be between 18 and 120");
+
+        var tooOldResult = await validator.ValidateAsync(model, 121, services);
+        tooOldResult.IsValid.ShouldBeFalse();
+
+        var validResult = await validator.ValidateAsync(model, 30, services);
+        validResult.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
     public void Multiple_Attributes_Should_All_Be_Processed()
     {
         var config = FormBuilder<TestModel>.Create()

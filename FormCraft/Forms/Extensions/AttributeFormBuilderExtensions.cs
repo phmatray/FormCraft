@@ -51,8 +51,9 @@ public static class AttributeFormBuilderExtensions
 
                         if (emailAttr.ValidateFormat)
                         {
+                            // Empty values pass the format check; requiredness is controlled by [Required]
                             field.WithValidator(value =>
-                                    !string.IsNullOrEmpty(value) && value.Contains("@") && value.Contains("."),
+                                    string.IsNullOrEmpty(value) || (value.Contains("@") && value.Contains(".")),
                                 "Please enter a valid email address");
                         }
 
@@ -322,6 +323,8 @@ public static class AttributeFormBuilderExtensions
         {
             field.WithAttribute("min", range.Minimum);
             field.WithAttribute("max", range.Maximum);
+            field.WithValidator(value => value == null || range.IsValid(value),
+                range.ErrorMessage ?? $"Must be between {range.Minimum} and {range.Maximum}");
         }
 
         var pattern = prop.GetCustomAttribute<RegularExpressionAttribute>();

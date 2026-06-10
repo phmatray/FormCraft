@@ -192,6 +192,30 @@ public class FieldBuilderExtensionsTests
     }
 
     [Fact]
+    public async Task WithEmailValidation_Should_Allow_Null_Or_Empty()
+    {
+        // Arrange
+        var services = A.Fake<IServiceProvider>();
+
+        // Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Email, field => field
+                .WithEmailValidation())
+            .Build();
+
+        // Assert - format validation only; requiredness is Required()'s job
+        var field = config.Fields.First(f => f.FieldName == "Email");
+        var validator = field.Validators.First();
+        var model = new TestModel();
+
+        var nullResult = await validator.ValidateAsync(model, null!, services);
+        nullResult.IsValid.ShouldBeTrue();
+
+        var emptyResult = await validator.ValidateAsync(model, "", services);
+        emptyResult.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task WithEmailValidation_Should_Use_Default_Message()
     {
         // Arrange
