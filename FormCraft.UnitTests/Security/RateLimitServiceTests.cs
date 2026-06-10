@@ -121,4 +121,64 @@ public class RateLimitServiceTests
         result.IsAllowed.ShouldBeFalse();
         result.RemainingAttempts.ShouldBe(0);
     }
+
+    [Fact]
+    public async Task Should_Not_Lose_Attempts_Under_Concurrency()
+    {
+        // Arrange
+        const string identifier = "exact-count-test";
+        const int recordedAttempts = 200;
+        var timeWindow = TimeSpan.FromMinutes(5);
+
+        // Act - record attempts from many threads in parallel
+        await Task.WhenAll(Enumerable.Range(0, recordedAttempts)
+            .Select(_ => Task.Run(() => _rateLimitService.RecordAttemptAsync(identifier))));
+
+        var result = await _rateLimitService.CheckRateLimitAsync(identifier, recordedAttempts + 1, timeWindow);
+
+        // Assert - exactly all attempts were counted (lost attempts would inflate RemainingAttempts)
+        result.IsAllowed.ShouldBeTrue();
+        result.RemainingAttempts.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Should_Not_Throw_When_Checking_And_Recording_Concurrently()
+    {
+        // Arrange
+        const string identifier = "check-record-race-test";
+        var timeWindow = TimeSpan.FromMinutes(1);
+
+        // Act & Assert - interleaved checks and records must not corrupt state or throw
+        var tasks = Enumerable.Range(0, 100).SelectMany(_ => new[]
+        {
+            Task.Run(() => _rateLimitService.RecordAttemptAsync(identifier)),
+            Task.Run(async () => { await _rateLimitService.CheckRateLimitAsync(identifier, 50, timeWindow); })
+        });
+
+        await Should.NotThrowAsync(Task.WhenAll(tasks));
+    }
+
+    [Fact]
+    public void Should_Implement_IDisposable_So_The_Container_Disposes_The_Cleanup_Timer()
+    {
+        // Arrange & Act
+        using var service = new InMemoryRateLimitService();
+
+        // Assert - without IDisposable, the DI container never disposes the cleanup Timer
+        service.ShouldBeAssignableTo<IDisposable>();
+    }
+
+    [Fact]
+    public void Should_Allow_Multiple_Dispose_Calls()
+    {
+        // Arrange
+        var service = new InMemoryRateLimitService();
+
+        // Act & Assert
+        Should.NotThrow(() =>
+        {
+            service.Dispose();
+            service.Dispose();
+        });
+    }
 }

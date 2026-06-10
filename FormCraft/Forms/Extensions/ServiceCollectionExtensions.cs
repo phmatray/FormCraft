@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace FormCraft;
 
@@ -49,11 +50,21 @@ public static class ServiceCollectionExtensions
                 services.AddScoped<IFieldRenderer, FileUploadFieldRenderer>();
             }
 
-            // Register security services
-            services.AddScoped<IEncryptionService, BlazorEncryptionService>();
-            services.AddScoped<ICsrfTokenService, BlazorCsrfTokenService>();
-            services.AddSingleton<IRateLimitService, InMemoryRateLimitService>();
-            services.AddScoped<IAuditLogService, ConsoleAuditLogService>();
+            // Register security services (TryAdd so hosts can override with their own implementations).
+            // AES-based DefaultEncryptionService is the default; the XOR-based BlazorEncryptionService
+            // is only used on browser/WebAssembly where the AES APIs are unavailable.
+            if (OperatingSystem.IsBrowser())
+            {
+                services.TryAddScoped<IEncryptionService, BlazorEncryptionService>();
+            }
+            else
+            {
+                services.TryAddScoped<IEncryptionService, DefaultEncryptionService>();
+            }
+
+            services.TryAddScoped<ICsrfTokenService, BlazorCsrfTokenService>();
+            services.TryAddSingleton<IRateLimitService, InMemoryRateLimitService>();
+            services.TryAddScoped<IAuditLogService, ConsoleAuditLogService>();
 
             return services;
         }
