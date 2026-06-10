@@ -32,8 +32,11 @@ if [ "$SkipTests" != "true" ]; then
 fi
 
 # Pack FormCraft
-echo -e "\033[33mCreating NuGet package...\033[0m"
+echo -e "\033[33mCreating NuGet packages...\033[0m"
 dotnet pack ./FormCraft/FormCraft.csproj --configuration "$Configuration" --no-build --output "$OutputPath"
+
+# Pack FormCraft.ForMudBlazor
+dotnet pack ./FormCraft.ForMudBlazor/FormCraft.ForMudBlazor.csproj --configuration "$Configuration" --no-build --output "$OutputPath"
 
 # Display package info
 echo -e "\n\033[32mCreated packages:\033[0m"

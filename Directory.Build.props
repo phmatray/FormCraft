@@ -13,5 +13,12 @@
     
     <!-- MinVer will automatically set these properties -->
     <!-- Version, AssemblyVersion, FileVersion, PackageVersion -->
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerDefaultPreReleaseIdentifiers>preview</MinVerDefaultPreReleaseIdentifiers>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Git-tag-based versioning for every project so all packages share the same version -->
+    <PackageReference Include="MinVer" PrivateAssets="all" />
+  </ItemGroup>
 </Project>
