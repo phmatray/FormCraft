@@ -74,13 +74,23 @@
                                     <MudIcon Icon="@Icons.Material.Filled.VpnKey" Class="me-2 text-info" />
                                     Live Encryption Demo
                                 </MudText>
-                                <MudTextField 
-                                    @bind-Value="_encryptionDemo" 
-                                    Label="Enter text to encrypt" 
+                                <MudTextField
+                                    @bind-Value="_encryptionDemo"
+                                    Label="Enter text to encrypt"
                                     Variant="Variant.Outlined"
+                                    Immediate="true"
+                                    HelperText="Type some text, then click Encrypt"
                                     Adornment="Adornment.End"
                                     AdornmentIcon="@Icons.Material.Filled.Lock"
                                     OnAdornmentClick="EncryptDemo" />
+                                <MudButton Color="Color.Info"
+                                           Variant="Variant.Filled"
+                                           Class="mt-2"
+                                           StartIcon="@Icons.Material.Filled.Lock"
+                                           OnClick="EncryptDemo"
+                                           Disabled="@string.IsNullOrEmpty(_encryptionDemo)">
+                                    Encrypt
+                                </MudButton>
                                 
                                 @if (!string.IsNullOrEmpty(_encryptedResult))
                                 {

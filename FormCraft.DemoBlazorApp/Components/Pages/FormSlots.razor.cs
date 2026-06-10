@@ -16,6 +16,8 @@ public partial class FormSlots : IDisposable
     private bool _showCountdown = true;
     private string _countdownText = "";
     private System.Timers.Timer? _countdownTimer;
+    // Fictional event always set in the future so the demo content never goes stale
+    private readonly int _eventYear = DateTime.Now.Month >= 7 ? DateTime.Now.Year + 1 : DateTime.Now.Year;
 
     /// <summary>
     /// Structured documentation for this demo page.
@@ -132,7 +134,9 @@ public partial class FormSlots : IDisposable
 
     private void UpdateCountdown(object? sender, ElapsedEventArgs? e)
     {
-        var endDate = new DateTime(2024, 7, 1);
+        // Early-bird pricing always ends July 1st of the event year so the
+        // demo content never goes stale
+        var endDate = new DateTime(_eventYear, 7, 1);
         var timeRemaining = endDate - DateTime.Now;
 
         if (timeRemaining.TotalSeconds > 0)

@@ -95,7 +95,10 @@ public partial class StepperForm
                     .WithPlaceholder("Enter your last name")))
             .AddField(x => x.DateOfBirth, field => field
                 .WithLabel("Date of Birth")
-                .Required("Date of birth is required"))
+                .Required("Date of birth is required")
+                .WithAttribute("MaxDate", DateTime.Today)
+                .WithValidator(value => value is null || value <= DateTime.Today,
+                    "Date of birth cannot be in the future"))
             .Build();
 
         // Step 2: Contact Information
@@ -218,6 +221,15 @@ public partial class StepperForm
         StateHasChanged();
     }
 
+    private static readonly Dictionary<string, string> DepartmentLabels = new()
+    {
+        ["engineering"] = "Engineering",
+        ["sales"] = "Sales",
+        ["marketing"] = "Marketing",
+        ["hr"] = "Human Resources",
+        ["finance"] = "Finance",
+    };
+
     private List<FormSuccessDisplay.DataDisplayItem> GetDataDisplayItems()
     {
         return
@@ -227,7 +239,7 @@ public partial class StepperForm
             new() { Label = "Email", Value = _model.Email ?? "N/A" },
             new() { Label = "Phone", Value = _model.Phone ?? "N/A" },
             new() { Label = "Address", Value = _model.Address ?? "N/A" },
-            new() { Label = "Department", Value = _model.Department ?? "N/A" },
+            new() { Label = "Department", Value = DepartmentLabels.GetValueOrDefault(_model.Department ?? "", "N/A") },
             new() { Label = "Position", Value = _model.Position ?? "N/A" },
             new() { Label = "Start Date", Value = _model.StartDate?.ToShortDateString() ?? "N/A" },
             new() { Label = "Remote Work", Value = _model.IsRemote ? "Yes" : "No" }

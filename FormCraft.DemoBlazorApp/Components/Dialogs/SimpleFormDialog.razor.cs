@@ -1,4 +1,5 @@
 using FormCraft.DemoBlazorApp.Models;
+using FormCraft.ForMudBlazor;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -7,6 +8,7 @@ namespace FormCraft.DemoBlazorApp.Components.Dialogs;
 public partial class SimpleFormDialog
 {
     private IFormConfiguration<ContactModel> _formConfig = null!;
+    private FormCraftComponent<ContactModel>? _form;
 
     [CascadingParameter]
     public IMudDialogInstance MudDialog { get; set; } = null!;
@@ -40,9 +42,14 @@ public partial class SimpleFormDialog
             .Build();
     }
 
-    private void Submit()
+    private async Task Submit()
     {
-        // In a real application, you would validate the form here
+        // Validate (awaiting async validators) before closing with success
+        if (_form is null || !await _form.ValidateAsync())
+        {
+            return;
+        }
+
         MudDialog.Close(DialogResult.Ok(Model));
     }
 

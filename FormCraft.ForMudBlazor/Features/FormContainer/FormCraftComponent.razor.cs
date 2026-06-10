@@ -310,6 +310,14 @@ public partial class FormCraftComponent<TModel>
         builder.AddAttribute(3, "DateChanged",
             EventCallback.Factory.Create<DateTime?>(this,
                 newValue => UpdateFieldValue(field.FieldName, newValue)));
+        if (field.AdditionalAttributes.TryGetValue("MinDate", out var minDate) && minDate is DateTime min)
+        {
+            builder.AddAttribute(4, "MinDate", (DateTime?)min);
+        }
+        if (field.AdditionalAttributes.TryGetValue("MaxDate", out var maxDate) && maxDate is DateTime max)
+        {
+            builder.AddAttribute(5, "MaxDate", (DateTime?)max);
+        }
         builder.CloseComponent();
     }
 

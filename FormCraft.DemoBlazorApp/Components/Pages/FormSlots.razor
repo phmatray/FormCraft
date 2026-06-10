@@ -20,13 +20,13 @@
             DataDisplayItems="@GetDataDisplayItems()">
             <BeforeFormContent>
                 <MudAlert Severity="Severity.Info" Class="mb-4">
-                    <MudText Typo="Typo.h6" Class="mb-2">Welcome to TechCon 2024!</MudText>
+                    <MudText Typo="Typo.h6" Class="mb-2">Welcome to TechCon @_eventYear!</MudText>
                     <MudText Typo="Typo.body2">
                         Join us for three days of cutting-edge technology presentations, workshops, and networking opportunities.
                     </MudText>
                     <MudText Typo="Typo.body2" Class="mt-2">
                         <strong>Event Details:</strong><br />
-                        Date: July 15-17, 2024<br />
+                        Date: July 15-17, @_eventYear<br />
                         Location: San Francisco Convention Center<br />
                         Early Bird Price: $299 (Regular: $499)
                     </MudText>
@@ -85,7 +85,7 @@
                                     If you have any questions about the registration process or the event, please contact us:
                                 </MudText>
                                 <MudText Typo="Typo.body2">
-                                    <strong>Email:</strong> support@techcon2024.com<br />
+                                    <strong>Email:</strong> support@techcon.example.com<br />
                                     <strong>Phone:</strong> (555) 123-4567<br />
                                     <strong>Hours:</strong> Mon-Fri, 9AM-5PM PST
                                 </MudText>
