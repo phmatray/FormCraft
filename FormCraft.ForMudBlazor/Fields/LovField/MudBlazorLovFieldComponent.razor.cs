@@ -204,7 +204,9 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
             // This is a simplified implementation
             var values = items.Select(_lovConfig.ValueSelector).ToList();
             // Note: This cast may need adjustment based on actual TValue type
-            await NotifyValueChangedAsync((TValue)(object)values);
+            var typedValues = (TValue)(object)values;
+            SetValueWithoutNotification(typedValues);
+            await NotifyValueChangedAsync(typedValues);
         }
         else
         {
@@ -212,6 +214,9 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
             if (item != null)
             {
                 var value = _lovConfig.ValueSelector(item);
+                // Update our own state first so the display text and the
+                // adornment reflect the selection immediately
+                SetValueWithoutNotification(value);
                 await NotifyValueChangedAsync(value);
 
                 // Apply field mappings
@@ -219,6 +224,7 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
             }
             else
             {
+                SetValueWithoutNotification(default);
                 await NotifyValueChangedAsync(default);
             }
         }
@@ -257,6 +263,7 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     {
         _selectedItems.Clear();
         _displayText = null;
+        SetValueWithoutNotification(default);
         await NotifyValueChangedAsync(default);
 
         // Clear mapped fields by setting them to default values
