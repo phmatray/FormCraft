@@ -269,9 +269,9 @@ public class FieldBuilderTests
         field.Dependencies.Count.ShouldBe(1);
         field.Dependencies.First().DependentFieldName.ShouldBe("Country");
 
-        config.FieldDependencies.ShouldContainKey("City");
-        config.FieldDependencies["City"].Count.ShouldBe(1);
-        config.FieldDependencies["City"].First().DependentFieldName.ShouldBe("Country");
+        config.FieldDependencies.ShouldContainKey("Country");
+        config.FieldDependencies["Country"].Count.ShouldBe(1);
+        config.FieldDependencies["Country"].First().DependentFieldName.ShouldBe("Country");
     }
 
     [Fact]

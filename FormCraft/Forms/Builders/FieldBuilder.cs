@@ -307,7 +307,9 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     {
         var dependency = new FieldDependency<TModel, TDependsOn>(dependsOnExpression, onChanged);
         _fieldConfiguration.Dependencies.Add(dependency);
-        _formBuilder.AddFieldDependency(_fieldConfiguration.FieldName, dependency);
+        // Key by the WATCHED field's name: the runtime looks the dictionary up with
+        // the name of the field that just changed to find the callbacks to fire.
+        _formBuilder.AddFieldDependency(dependency.DependentFieldName, dependency);
         return this;
     }
 
