@@ -1,6 +1,6 @@
 @namespace FormCraft.ForMudBlazor
 @typeparam TModel
-@inherits FieldComponentBase<TModel, string>
+@inherits MudBlazorFieldComponentBase<TModel, string>
 
 <MudColorPicker
     Label="@Label"
@@ -10,7 +10,7 @@
     HelperText="@HelpText"
     ReadOnly="@IsReadOnly"
     Disabled="@IsDisabled"
-    Variant="Variant.Outlined"
+    Variant="@EffectiveVariant"
     Margin="Margin.Dense"
     ShrinkLabel="true"
     ColorPickerMode="ColorPickerMode.RGB"

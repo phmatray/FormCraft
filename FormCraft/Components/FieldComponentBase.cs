@@ -87,6 +87,9 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
         if (property != null && Context.Model != null)
         {
             var value = property.GetValue(Context.Model);
+            // Note: when TValue is a nullable value type (e.g. int?), a null model
+            // value falls through to default(TValue), which IS null - null is
+            // preserved rather than coerced to zero (#150).
             _currentValue = value is TValue typedValue ? typedValue : default;
             _lastNotifiedValue = _currentValue;
         }

@@ -1,15 +1,17 @@
+using FormCraft.ForMudBlazor.Extensions;
 using MudBlazor.Services;
 
 namespace FormCraft.UnitTests.Components;
 
 public class FormCraftComponentTests : BunitContext
 {
-    private readonly IFieldRendererService _fieldRendererService;
-
     public FormCraftComponentTests()
     {
-        _fieldRendererService = A.Fake<IFieldRendererService>();
-        Services.AddSingleton(_fieldRendererService);
+        // Register the real render pipeline: since the dual render path was
+        // consolidated (#148), FormCraftComponent dispatches every field through
+        // IFieldRendererService, so the MudBlazor renderers must be registered.
+        Services.AddFormCraft();
+        ((IServiceCollection)Services).AddFormCraftMudBlazor();
         // Add MudBlazor services required by FormCraftComponent
         Services.AddMudServices();
 

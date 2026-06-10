@@ -32,4 +32,17 @@ public interface IFieldDependency<TModel>
     /// </summary>
     /// <param name="model">The complete model instance containing both fields.</param>
     void OnDependencyChanged(TModel model);
+
+    /// <summary>
+    /// Called when the dependent field's value changes, allowing this field to react asynchronously
+    /// (e.g. fetching cascading options from an API). The default implementation wraps the synchronous
+    /// <see cref="OnDependencyChanged"/> so existing implementations keep working unchanged.
+    /// </summary>
+    /// <param name="model">The complete model instance containing both fields.</param>
+    /// <returns>A task that completes when the dependency reaction has finished.</returns>
+    Task OnDependencyChangedAsync(TModel model)
+    {
+        OnDependencyChanged(model);
+        return Task.CompletedTask;
+    }
 }

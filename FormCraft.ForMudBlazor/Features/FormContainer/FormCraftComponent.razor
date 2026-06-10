@@ -9,6 +9,7 @@
     @BeforeForm
 }
 
+<CascadingValue TValue="Variant?" Name="@FormCraftCascadingValues.DefaultVariant" Value="@DefaultVariant">
 <EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit">
     <DynamicFormValidator TModel="TModel" Configuration="@Configuration" @ref="_validator" />
     
@@ -94,6 +95,12 @@
         }
     }
     
+    @* Security enforcement feedback (rate limiting, CSRF, misconfiguration) *@
+    @if (!string.IsNullOrEmpty(_securityError))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" data-testid="formcraft-security-error">@_securityError</MudAlert>
+    }
+
     @if (ShowSubmitButton)
     {
         <MudButton ButtonType="ButtonType.Submit"
@@ -105,6 +112,7 @@
         </MudButton>
     }
 </EditForm>
+</CascadingValue>
 
 @if (AfterForm != null)
 {

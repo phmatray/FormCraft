@@ -59,8 +59,8 @@ public class SpecializedRendererDispatchTests : MudBlazorTestBase
             .Add(p => p.Model, model)
             .Add(p => p.Configuration, config));
 
-        // Assert - the upload field renders
-        component.FindComponents<MudFileUpload<IReadOnlyList<Microsoft.AspNetCore.Components.Forms.IBrowserFile>>>()
+        // Assert - the upload field renders with a single-value binding (no 'multiple' attribute)
+        component.FindComponents<MudFileUpload<Microsoft.AspNetCore.Components.Forms.IBrowserFile>>()
             .ShouldNotBeEmpty();
     }
 

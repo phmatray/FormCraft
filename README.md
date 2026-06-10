@@ -27,6 +27,20 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 - 📤 File upload capabilities
 - 🎨 Real-time form generation
 
+## 🎉 What's New in v3.1.0
+
+v3.1.0 implements every issue that was open after v3.0 — all features, no breaking changes. [Full changelog →](https://github.com/phmatray/FormCraft/releases/tag/v3.1.0)
+
+- **Zero-config forms** — `AddFieldsAuto()` generates a complete form from any POCO by reflection: humanized labels, sensible field types per property type, DataAnnotations honored when present, none required (#124)
+- **Security enforcement** — `WithSecurity()` is now enforced automatically by `FormCraftComponent`: rate limiting (with `SecurityContextId` parameter), CSRF validation, and `FormSubmitted`/`FormRejected` audit entries with redaction; plus `EncryptConfiguredFields()` for one-call persistence encryption (#147)
+- **Configurable MudBlazor Variant** — `.WithVariant(Variant.Filled)` per field and a `DefaultVariant` parameter on `FormCraftComponent`, honored by every input component (#146)
+- **Async field dependencies** — `DependsOn(x => x.Country, async (model, country) => ...)` is a first-class overload; cascades re-render automatically when the async work settles (#93)
+- **Nullable value types round-trip** — `int?`/`decimal?`/`DateTime?`/`DateOnly?`/`TimeOnly?` fields display empty when null and write `null` back when cleared, instead of being coerced to 0/MinValue (#150)
+- **Native nested validation for collections** — collection item edits raise `Items[0].ProductName` field identifiers on the EditContext, so `ValidationSummary`/`IsModified` work for child rows (#91)
+- **Single render pipeline** — the legacy type-switch is gone; every field flows through `FieldRendererService`, and `AsMultiSelect` fields (previously skipped silently) now render a real multi-selection select (#148)
+- **Master-detail & auto-form demos** — new `/master-detail` (invoice + LOV customer + line items + computed totals) and `/auto-form` pages (#130)
+- **Polish** — single-file uploads no longer emit a stray `multiple` attribute (#149), Related Demos show real titles (#152), `WithAutocomplete()` + correct password autocomplete tokens (#153), validator mutations through the object-typed wrapper now take effect via `AddValidator` (#151)
+
 ## 🎉 What's New in v3.0.0
 
 v3.0.0 is a major quality release: after a full audit of every subsystem, 60+ bugs were fixed, several long-broken features now actually work, and the whole demo site was verified end-to-end in a real browser. [Full changelog →](https://github.com/phmatray/FormCraft/releases/tag/v3.0.0)
@@ -71,7 +85,7 @@ FormCraft revolutionizes form building in Blazor applications by providing a **f
 - 🔗 **Field Dependencies** - Link fields together with reactive updates
 - 📐 **Flexible Layouts** - Multiple layout options to fit your design
 - 🚀 **High Performance** - Optimized rendering with minimal overhead
-- 🧪 **Fully Tested** - 760+ unit tests ensuring reliability
+- 🧪 **Fully Tested** - 880+ unit tests ensuring reliability
 
 ## 📊 How FormCraft Compares
 
@@ -520,12 +534,20 @@ var formConfig = FormBuilder<SecureForm>.Create()
     .Build();
 ```
 
-> **How enforcement works today**: `WithSecurity()` stores the security settings on the
-> form configuration, and `AddFormCraft()` registers the supporting services
-> (`IEncryptionService`, `ICsrfTokenService`, `IRateLimitService`, `IAuditLogService`).
-> `FormCraftComponent` does **not** yet enforce CSRF validation or rate limiting
-> automatically — inject these services and apply them in your submit handler.
-> Likewise, encrypt/decrypt marked fields with `IEncryptionService` when persisting data.
+> **How enforcement works (v3.1+)**: `WithSecurity()` stores the security settings on the
+> form configuration, `AddFormCraft()` registers the supporting services
+> (`IEncryptionService`, `ICsrfTokenService`, `IRateLimitService`, `IAuditLogService`),
+> and `FormCraftComponent` enforces them automatically: a CSRF token is generated on
+> initialization and validated before `OnValidSubmit` fires, rate limits are checked
+> (and attempts recorded) before validation, and audit entries (`FormSubmitted` /
+> `FormRejected`) are written with excluded and encrypted fields redacted. Blocked
+> submissions show an error alert above the submit button and never reach your handler.
+> Set the `SecurityContextId` parameter to a per-user value (user id, session id, IP)
+> so rate limits aren't shared across users; it defaults to the model type name.
+> Encryption remains an application concern: call
+> `encryptionService.EncryptConfiguredFields(model, config.Security)` (or the
+> component's `GetEncryptedFieldValues()`) to obtain the encrypted values of the
+> marked fields in one call before persisting.
 > Since v3.0.0 the default registration is AES-256 (`DefaultEncryptionService`) with a
 > random IV per operation — configure a 32-byte key for values that must survive a
 > process restart (an ephemeral per-process key is generated otherwise). On WebAssembly
@@ -583,7 +605,7 @@ FormCraft is designed for optimal performance:
 
 ## 🧪 Testing
 
-FormCraft is extensively tested with over 760 unit tests covering:
+FormCraft is extensively tested with over 880 unit tests covering:
 
 - ✅ All field types and renderers
 - ✅ Validation scenarios
@@ -631,9 +653,11 @@ dotnet test
 - [x] Form templates library (`FormTemplates`)
 - [x] DateOnly/TimeOnly field support
 - [x] List-of-Values (LOV) modal selection fields
+- [x] Automatic CSRF/rate-limit enforcement in `FormCraftComponent` (v3.1)
+- [x] Zero-config form generation — `AddFieldsAuto()` (v3.1)
+- [x] Async field dependencies and nullable value-type round-trip (v3.1)
 
 ### 🚧 In Progress
-- [ ] Automatic CSRF/rate-limit enforcement in `FormCraftComponent`
 - [ ] Import/Export forms as JSON
 - [ ] Rich text editor field
 

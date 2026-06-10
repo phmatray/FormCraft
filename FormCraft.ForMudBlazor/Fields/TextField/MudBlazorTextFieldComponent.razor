@@ -1,6 +1,6 @@
 @namespace FormCraft.ForMudBlazor
 @typeparam TModel
-@inherits FieldComponentBase<TModel, string>
+@inherits MudBlazorFieldComponentBase<TModel, string>
 @implements ITextFieldComponent<TModel>
 
 <MudTextField
@@ -15,11 +15,12 @@
     Lines="@Lines"
     MaxLength="@(MaxLength.HasValue && MaxLength.Value > 0 ? MaxLength.Value : int.MaxValue)"
     InputType="@GetInputType()"
+    autocomplete="@Autocomplete"
     Adornment="@(Adornment ?? MudBlazor.Adornment.None)"
     AdornmentIcon="@AdornmentIcon"
     AdornmentColor="@AdornmentColor"
     OnAdornmentClick="@HandleAdornmentClick"
-    Variant="Variant.Outlined"
+    Variant="@EffectiveVariant"
     Margin="Margin.Dense"
     ShrinkLabel="true"
     Immediate="true" />

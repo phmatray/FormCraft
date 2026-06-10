@@ -50,6 +50,23 @@ Core method for adding fields with lambda configuration.
     .WithPlaceholder("Enter value..."))
 ```
 
+#### AddFieldsAuto()
+Generates fields automatically from the model's public read-write properties. No attributes are required; labels are humanized from the property names and standard DataAnnotations are honored when present. Properties named `*Email*` get email validation, `*Password*` gets a password input, enums become selects, and `IBrowserFile` properties become uploads. Use `[ExcludeField]` to skip a property.
+
+```csharp
+// Zero configuration
+.AddFieldsAuto()
+
+// With options
+.AddFieldsAuto(options => options
+    .Exclude(x => x.Id)
+    .Include("Name", "Email") // when set, only these are generated
+    .ConfigureField(x => x.Name, field => field.Required()))
+```
+
+**Parameters:**
+- `configure` - Optional callback receiving `AutoFieldsOptions<TModel>` with `Include()`, `Exclude()` and `ConfigureField()` methods
+
 ### Extension Methods for Common Fields
 
 #### AddRequiredTextField()

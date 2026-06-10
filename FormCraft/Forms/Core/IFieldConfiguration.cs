@@ -115,6 +115,16 @@ public interface IFieldConfiguration<TModel, TValue>
     List<IFieldValidator<TModel, TValue>> Validators { get; }
 
     /// <summary>
+    /// Adds a validator to this field configuration. Prefer this over mutating <see cref="Validators"/>
+    /// directly: some configuration views (such as the object-typed wrapper exposed through
+    /// <c>IFormConfiguration.Fields</c>) project their validators from an underlying typed list,
+    /// and this method guarantees the validator is registered against the underlying configuration.
+    /// The default implementation appends to <see cref="Validators"/>.
+    /// </summary>
+    /// <param name="validator">The validator to add.</param>
+    void AddValidator(IFieldValidator<TModel, TValue> validator) => Validators.Add(validator);
+
+    /// <summary>
     /// Gets the list of dependencies that define how this field reacts to changes in other fields.
     /// These dependencies enable conditional behavior and field interactions.
     /// </summary>

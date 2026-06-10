@@ -19,11 +19,57 @@ public partial class MudBlazorSelectFieldComponent<TModel, TValue>
         // Initialize local value
         _localValue = CurrentValue;
 
-        var options = GetAttribute<IEnumerable<SelectOption<TValue>>>("Options");
-        if (options != null)
+        Placeholder = Context.Field.Placeholder;
+        Options = ResolveOptions();
+    }
+
+    /// <summary>
+    /// Resolves the configured options into <see cref="SelectOption{TValue}"/> instances.
+    /// Accepts an exactly-typed IEnumerable&lt;SelectOption&lt;TValue&gt;&gt; as well as any
+    /// other enumerable whose elements expose Value/Label properties (e.g. options typed
+    /// with the underlying value type for a nullable TValue), matching the conversion the
+    /// legacy render path performed via reflection.
+    /// </summary>
+    private IEnumerable<SelectOption<TValue>> ResolveOptions()
+    {
+        if (!Context.Field.AdditionalAttributes.TryGetValue("Options", out var optionsObj) || optionsObj is null)
         {
-            Options = options;
+            return Options;
         }
+
+        if (optionsObj is IEnumerable<SelectOption<TValue>> typedOptions)
+        {
+            return typedOptions;
+        }
+
+        if (optionsObj is not System.Collections.IEnumerable rawOptions)
+        {
+            return Options;
+        }
+
+        var converted = new List<SelectOption<TValue>>();
+        foreach (var option in rawOptions)
+        {
+            if (option is null)
+            {
+                continue;
+            }
+
+            var optionType = option.GetType();
+            var valueProperty = optionType.GetProperty("Value");
+            var labelProperty = optionType.GetProperty("Label");
+            if (valueProperty is null || labelProperty is null)
+            {
+                continue;
+            }
+
+            var rawValue = valueProperty.GetValue(option);
+            var value = rawValue is TValue typedValue ? typedValue : default;
+            var label = labelProperty.GetValue(option)?.ToString() ?? string.Empty;
+            converted.Add(new SelectOption<TValue>(value!, label));
+        }
+
+        return converted;
     }
 
     protected override void OnParametersSet()

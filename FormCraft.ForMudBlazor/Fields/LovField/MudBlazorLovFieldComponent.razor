@@ -2,7 +2,7 @@
 @typeparam TModel
 @typeparam TValue
 @typeparam TItem
-@inherits FieldComponentBase<TModel, TValue>
+@inherits MudBlazorFieldComponentBase<TModel, TValue>
 @inject IDialogService DialogService
 @inject IServiceProvider ServiceProvider
 
@@ -14,7 +14,7 @@
     HelperText="@HelpText"
     ReadOnly="true"
     Disabled="@IsDisabled"
-    Variant="Variant.Outlined"
+    Variant="@EffectiveVariant"
     Margin="Margin.Dense"
     Adornment="Adornment.End"
     AdornmentIcon="@AdornmentIcon"

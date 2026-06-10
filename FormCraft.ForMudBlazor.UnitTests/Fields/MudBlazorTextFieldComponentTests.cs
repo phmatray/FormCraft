@@ -494,6 +494,50 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
         mudTextField.Instance.Value.ShouldBe("Jane Doe");
     }
 
+    [Fact]
+    public void TextField_Should_Emit_Autocomplete_Attribute_On_Rendered_Input()
+    {
+        // Arrange - issue #153: WithAutocomplete must reach the rendered <input>
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Password, field => field
+                .WithLabel("Password")
+                .WithInputType("password")
+                .WithAutocomplete("current-password"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var input = component.Find("input");
+        input.GetAttribute("autocomplete").ShouldBe("current-password");
+    }
+
+    [Fact]
+    public void TextField_Should_Not_Emit_Autocomplete_Attribute_When_Not_Configured()
+    {
+        // Arrange
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Name, field => field
+                .WithLabel("Name"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var input = component.Find("input");
+        input.HasAttribute("autocomplete").ShouldBeFalse();
+    }
+
     private class TestModel
     {
         public string Name { get; set; } = string.Empty;

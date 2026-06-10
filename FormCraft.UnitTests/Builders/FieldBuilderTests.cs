@@ -275,6 +275,39 @@ public class FieldBuilderTests
     }
 
     [Fact]
+    public async Task DependsOn_Async_Overload_Should_Add_Field_Dependency_Keyed_By_Watched_Field()
+    {
+        // Arrange
+        var callbackInvoked = false;
+        Func<TestModel, string, Task> onChangedAsync = (m, _) =>
+        {
+            callbackInvoked = true;
+            m.City = string.Empty;
+            return Task.CompletedTask;
+        };
+
+        // Act
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.City, field => field
+                .DependsOn(x => x.Country, onChangedAsync))
+            .Build();
+
+        // Assert - keyed by the WATCHED field's name (Country), not the configured field
+        var field = config.Fields.First(f => f.FieldName == "City");
+        field.Dependencies.Count.ShouldBe(1);
+        field.Dependencies.First().DependentFieldName.ShouldBe("Country");
+
+        config.FieldDependencies.ShouldContainKey("Country");
+        config.FieldDependencies["Country"].Count.ShouldBe(1);
+
+        // ...and the async callback executes through the async dispatch path
+        var model = new TestModel { Country = "USA", City = "New York" };
+        await config.FieldDependencies["Country"].First().OnDependencyChangedAsync(model);
+        callbackInvoked.ShouldBeTrue();
+        model.City.ShouldBe(string.Empty);
+    }
+
+    [Fact]
     public void WithCustomTemplate_Should_Set_CustomTemplate()
     {
         // Arrange

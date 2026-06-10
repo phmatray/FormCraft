@@ -1,0 +1,79 @@
+@page "/master-detail"
+
+<DemoPageLayout
+    DemoId="master-detail"
+    Title="Master-Detail Form"
+    Icon="@Icons.Material.Filled.TableView"
+    Description="A realistic invoice form combining a customer LOV lookup (master), editable line items (detail), and live computed totals."
+    FormDemoIcon="@Icons.Material.Filled.ReceiptLong">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="InvoiceFormModel"
+            Model="@_model"
+            Configuration="@_formConfiguration"
+            FormTitle="New Invoice"
+            FormIcon="@Icons.Material.Filled.ReceiptLong"
+            IsSubmitted="@_isSubmitted"
+            IsSubmitting="@_isSubmitting"
+            OnValidSubmit="@HandleValidSubmit"
+            OnReset="@ResetForm"
+            DataDisplayItems="@GetDataDisplayItems()"
+            ShowSubmitButton="true"
+            SubmitButtonText="Create Invoice"
+            SubmittingText="Creating...">
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="Master-Detail Features" />
+
+                <MudCard Elevation="2" Class="mt-4">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Calculate" Class="me-2 text-info" />
+                            How the Totals Work
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Functions" IconColor="Color.Primary">
+                                <MudText Typo="Typo.body2">Subtotal, Tax, and Total are computed model properties - they recalculate on every line item change</MudText>
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Link" IconColor="Color.Secondary">
+                                <MudText Typo="Typo.body2">Deposit Due uses DependsOn() - it reacts to Deposit % edits</MudText>
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.PersonSearch" IconColor="Color.Tertiary">
+                                <MudText Typo="Typo.body2">The customer LOV auto-fills name and email via MapField()</MudText>
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </SidebarContent>
+            <AdditionalContent>
+                <WhenToUseCard Text="@Documentation.WhenToUse" />
+                <CommonPitfallsCard Pitfalls="@Documentation.CommonPitfalls" />
+                <RelatedDemosCard DemoIds="@Documentation.RelatedDemoIds" />
+            </AdditionalContent>
+        </FormDemoSection>
+    </FormDemoContent>
+
+    <CodeExampleContent>
+        <CodeExample
+            Title="Master: Customer LOV With Field Mapping"
+            Language="csharp"
+            Code="@GetMasterExampleCode()" />
+
+        <CodeExample
+            Title="Detail: Line Items With AddCollectionField"
+            Language="csharp"
+            Code="@GetDetailExampleCode()"
+            Class="mt-4" />
+
+        <CodeExample
+            Title="Computed Totals and DependsOn"
+            Language="csharp"
+            Code="@GetTotalsExampleCode()"
+            Class="mt-4" />
+    </CodeExampleContent>
+
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Master-Detail Guidelines"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>

@@ -1,4 +1,5 @@
 using Bunit;
+using FormCraft.ForMudBlazor.Extensions;
 using MudBlazor;
 using MudBlazor.Services;
 using Shouldly;
@@ -17,7 +18,10 @@ public class PasswordFieldTests : BunitContext
 
     public PasswordFieldTests()
     {
+        // The consolidated render pipeline (#148) dispatches all fields through
+        // IFieldRendererService, so the MudBlazor renderers must be registered.
         Services.AddFormCraft();
+        ((Microsoft.Extensions.DependencyInjection.IServiceCollection)Services).AddFormCraftMudBlazor();
         Services.AddMudServices();
         JSInterop.Mode = JSRuntimeMode.Loose;
     }

@@ -10,14 +10,15 @@
 
 <MudFileUpload
     @ref="@_fileUpload"
-    T="IReadOnlyList<IBrowserFile>"
-    @bind-Files="SingleFileList"
+    T="IBrowserFile"
+    Files="@CurrentValue"
+    FilesChanged="@OnFileChanged"
     Accept="@Accept"
-    MaximumFileCount="1"
     Hidden="@false"
     InputClass="absolute mud-width-full mud-height-full overflow-hidden z-10 opacity-0"
     ErrorText="@string.Empty"
     tabindex="-1"
+    aria-label="@(Label ?? "File upload")"
     @ondrop="@ClearDragClass"
     @ondragenter="@SetDragClass"
     @ondragleave="@ClearDragClass"
@@ -52,7 +53,7 @@
     <MudButton
         Color="Color.Primary"
         OnClick="@OpenFilePickerAsync"
-        Variant="Variant.Filled"
+        Variant="@ButtonVariant"
         StartIcon="@Icons.Material.Filled.FolderOpen"
         Size="Size.Small">
         Browse
@@ -62,7 +63,7 @@
         <MudButton
             Color="Color.Error"
             OnClick="@ClearAsync"
-            Variant="Variant.Filled"
+            Variant="@ButtonVariant"
             StartIcon="@Icons.Material.Filled.Clear"
             Size="Size.Small">
             Clear

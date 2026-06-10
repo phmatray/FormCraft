@@ -1,0 +1,87 @@
+@page "/auto-form"
+
+<DemoPageLayout
+    DemoId="auto-form"
+    Title="Auto-Generated Forms"
+    Icon="@Icons.Material.Filled.AutoAwesome"
+    Description="Generate complete forms from any POCO with a single method call - no attributes, no per-field configuration."
+    FormDemoIcon="@Icons.Material.Filled.Bolt">
+    <FormDemoContent>
+        <FormDemoSection
+            TModel="AccountSignupModel"
+            Model="@_plainModel"
+            Configuration="@_plainConfiguration"
+            FormTitle="Account Signup (plain POCO, zero configuration)"
+            FormIcon="@Icons.Material.Filled.PersonAdd"
+            IsSubmitted="@_isPlainSubmitted"
+            IsSubmitting="@_isPlainSubmitting"
+            OnValidSubmit="@HandlePlainSubmit"
+            OnReset="@ResetPlainForm"
+            DataDisplayItems="@GetPlainDataDisplayItems()"
+            ShowSubmitButton="true"
+            SubmitButtonText="Sign Up"
+            SubmittingText="Signing up...">
+            <SidebarContent>
+                <FormGuidelines Guidelines="@_sidebarFeatures" Title="What You Get for Free" />
+            </SidebarContent>
+            <AdditionalContent>
+                <MudCard Elevation="2" Class="mt-4">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Label" Class="me-2 text-info" />
+                            With DataAnnotations
+                        </MudText>
+                        <MudText Typo="Typo.body2" Class="mb-4">
+                            AddFieldsAuto() requires no attributes, but it honors standard
+                            DataAnnotations when they are present. This second form is generated
+                            from a model using [Required], [EmailAddress], [Range], [MaxLength],
+                            [Display(Name = ...)] and [ExcludeField].
+                        </MudText>
+                        <FormCraftComponent
+                            TModel="SpeakerProfileModel"
+                            Model="@_annotatedModel"
+                            Configuration="@_annotatedConfiguration"
+                            OnValidSubmit="@HandleAnnotatedSubmit"
+                            ShowSubmitButton="true"
+                            SubmitButtonText="Save Profile" />
+                        @if (_isAnnotatedSubmitted)
+                        {
+                            <MudAlert Severity="Severity.Success" Class="mt-4">
+                                Speaker profile saved for @_annotatedModel.FullName!
+                            </MudAlert>
+                        }
+                    </MudCardContent>
+                </MudCard>
+
+                <WhenToUseCard Text="@Documentation.WhenToUse" />
+                <CommonPitfallsCard Pitfalls="@Documentation.CommonPitfalls" />
+                <RelatedDemosCard DemoIds="@Documentation.RelatedDemoIds" />
+            </AdditionalContent>
+        </FormDemoSection>
+    </FormDemoContent>
+
+    <CodeExampleContent>
+        <CodeExample
+            Title="Zero-Config Form From a Plain POCO"
+            Language="csharp"
+            Code="@GetPlainExampleCode()" />
+
+        <CodeExample
+            Title="DataAnnotations Are Honored When Present"
+            Language="csharp"
+            Code="@GetAnnotatedExampleCode()"
+            Class="mt-4" />
+
+        <CodeExample
+            Title="Customizing the Generated Fields"
+            Language="csharp"
+            Code="@GetOptionsExampleCode()"
+            Class="mt-4" />
+    </CodeExampleContent>
+
+    <GuidelinesContent>
+        <ApiGuidelinesTable
+            Title="Auto-Generation Guidelines"
+            Items="@_apiGuidelineTableItems" />
+    </GuidelinesContent>
+</DemoPageLayout>

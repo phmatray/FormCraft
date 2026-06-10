@@ -98,6 +98,17 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                 {
                     _messageStore.Add(_editContext.Field(collectionField.FieldName), error);
                 }
+
+                // Additionally attach per-item errors to nested field identifiers
+                // (e.g. Items[0].ProductName) so ValidationMessage/ValidationSummary
+                // and FieldValidationMessage can display them natively.
+                var itemErrors = await ValidateCollectionItemsAsync(model, collectionField);
+                foreach (var itemError in itemErrors)
+                {
+                    _messageStore.Add(
+                        CreateCollectionItemFieldIdentifier(collectionField.FieldName, itemError.ItemIndex, itemError.FieldName),
+                        itemError.Message);
+                }
             }
         }
 
@@ -128,10 +139,40 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         return await task;
     }
 
+    private async Task<List<CollectionItemError>> ValidateCollectionItemsAsync(TModel model, ICollectionFieldConfigurationBase collectionField)
+    {
+        // Use reflection to create the typed validator and invoke it
+        var validatorType = typeof(CollectionFieldValidator<,>).MakeGenericType(typeof(TModel), collectionField.ItemType);
+        var validator = Activator.CreateInstance(validatorType, collectionField);
+
+        var validateMethod = validatorType.GetMethod("ValidateItemsAsync");
+        if (validateMethod == null) return new List<CollectionItemError>();
+
+        var task = (Task<List<CollectionItemError>>)validateMethod.Invoke(validator, new object[] { model!, ServiceProvider })!;
+        return await task;
+    }
+
+    private FieldIdentifier CreateCollectionItemFieldIdentifier(string collectionFieldName, int itemIndex, string itemFieldName)
+        => new(_editContext!.Model, $"{collectionFieldName}[{itemIndex}].{itemFieldName}");
+
+    // Matches nested collection item field names such as "Items[0].ProductName".
+    private static readonly System.Text.RegularExpressions.Regex CollectionItemFieldPattern =
+        new(@"^(?<collection>[A-Za-z_]\w*)\[(?<index>\d+)\]\.(?<field>[A-Za-z_]\w*)$",
+            System.Text.RegularExpressions.RegexOptions.Compiled);
+
     private async void HandleFieldChanged(object? sender, FieldChangedEventArgs e)
     {
         try
         {
+            // Nested collection item identifiers (Items[0].ProductName) are validated
+            // against the owning collection field's item form configuration.
+            var nestedMatch = CollectionItemFieldPattern.Match(e.FieldIdentifier.FieldName);
+            if (nestedMatch.Success)
+            {
+                await ValidateCollectionItemFieldAsync(e.FieldIdentifier, nestedMatch);
+                return;
+            }
+
             // Find the field configuration for the changed field
             var fieldConfig = Configuration.Fields.FirstOrDefault(f => f.FieldName == e.FieldIdentifier.FieldName);
             if (fieldConfig == null) return;
@@ -159,6 +200,36 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         {
             // Exceptions escaping an async void handler would crash the circuit.
         }
+    }
+
+    private async Task ValidateCollectionItemFieldAsync(FieldIdentifier fieldIdentifier, System.Text.RegularExpressions.Match nestedMatch)
+    {
+        if (Configuration is not ICollectionFormConfiguration<TModel> collectionConfig) return;
+
+        var collectionFieldName = nestedMatch.Groups["collection"].Value;
+        var itemIndex = int.Parse(nestedMatch.Groups["index"].Value);
+        var itemFieldName = nestedMatch.Groups["field"].Value;
+
+        var collectionField = collectionConfig.CollectionFields
+            .FirstOrDefault(f => f.FieldName == collectionFieldName);
+        if (collectionField == null) return;
+
+        var model = (TModel)_editContext!.Model;
+
+        // Clear existing messages for this nested field only, then re-validate it
+        // so stale errors disappear as soon as the user corrects the value.
+        _messageStore!.Clear(fieldIdentifier);
+
+        var itemErrors = await ValidateCollectionItemsAsync(model, collectionField);
+        foreach (var itemError in itemErrors)
+        {
+            if (itemError.ItemIndex == itemIndex && itemError.FieldName == itemFieldName)
+            {
+                _messageStore.Add(fieldIdentifier, itemError.Message);
+            }
+        }
+
+        _editContext.NotifyValidationStateChanged();
     }
 
     public void Dispose()

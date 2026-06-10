@@ -99,6 +99,23 @@ public static class FieldBuilderExtensions
         {
             return builder.WithAttribute("Options", options);
         }
+
+        /// <summary>
+        /// Sets the HTML <c>autocomplete</c> attribute emitted on the rendered input element,
+        /// helping browsers and password managers fill the field correctly (WCAG 2.1 - 1.3.5).
+        /// </summary>
+        /// <param name="value">An autocomplete token such as <c>"username"</c>, <c>"email"</c>, <c>"current-password"</c>, <c>"new-password"</c> or <c>"off"</c>.</param>
+        /// <returns>The FieldBuilder instance for method chaining.</returns>
+        /// <example>
+        /// <code>
+        /// .AddField(x => x.Password)
+        ///     .WithAutocomplete("current-password")
+        /// </code>
+        /// </example>
+        public FieldBuilder<TModel, TValue> WithAutocomplete(string value)
+        {
+            return builder.WithAttribute("autocomplete", value);
+        }
     }
 
     /// <param name="builder">The FieldBuilder instance for an IEnumerable field.</param>

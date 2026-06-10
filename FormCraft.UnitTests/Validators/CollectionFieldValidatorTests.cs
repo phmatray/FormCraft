@@ -122,6 +122,70 @@ public class CollectionFieldValidatorTests
         errors.ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task ValidateItemsAsync_Should_Return_Structured_Errors_With_Index_And_FieldName()
+    {
+        // Arrange
+        var config = CreateCollectionConfigWithItemForm();
+        var validator = new CollectionFieldValidator<OrderModel, OrderItemModel>(config);
+        var model = new OrderModel
+        {
+            Items = new List<OrderItemModel>
+            {
+                new() { ProductName = "Widget", Quantity = 5 }, // valid
+                new() { ProductName = "", Quantity = 5 }        // invalid ProductName
+            }
+        };
+        var services = A.Fake<IServiceProvider>();
+
+        // Act
+        var errors = await validator.ValidateItemsAsync(model, services);
+
+        // Assert - structured error identifies the failing item index and field name
+        errors.Count.ShouldBe(1);
+        errors[0].ItemIndex.ShouldBe(1);
+        errors[0].FieldName.ShouldBe("ProductName");
+        errors[0].Message.ShouldBe("Product name is required");
+    }
+
+    [Fact]
+    public async Task ValidateItemsAsync_Should_Return_Empty_When_Items_Are_Valid()
+    {
+        // Arrange
+        var config = CreateCollectionConfigWithItemForm();
+        var validator = new CollectionFieldValidator<OrderModel, OrderItemModel>(config);
+        var model = new OrderModel
+        {
+            Items = new List<OrderItemModel>
+            {
+                new() { ProductName = "Widget", Quantity = 5, UnitPrice = 10.00m }
+            }
+        };
+        var services = A.Fake<IServiceProvider>();
+
+        // Act
+        var errors = await validator.ValidateItemsAsync(model, services);
+
+        // Assert
+        errors.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ValidateItemsAsync_Should_Return_Empty_When_No_ItemFormConfiguration()
+    {
+        // Arrange
+        var config = CreateCollectionConfig();
+        var validator = new CollectionFieldValidator<OrderModel, OrderItemModel>(config);
+        var model = new OrderModel { Items = new List<OrderItemModel> { new() } };
+        var services = A.Fake<IServiceProvider>();
+
+        // Act
+        var errors = await validator.ValidateItemsAsync(model, services);
+
+        // Assert
+        errors.ShouldBeEmpty();
+    }
+
     private CollectionFieldConfiguration<OrderModel, OrderItemModel> CreateCollectionConfig(
         int minItems = 0, int maxItems = 0)
     {

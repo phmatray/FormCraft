@@ -1,7 +1,7 @@
 @namespace FormCraft.ForMudBlazor
 @typeparam TModel
 @typeparam TValue where TValue : struct
-@inherits FieldComponentBase<TModel, TValue>
+@inherits MudBlazorFieldComponentBase<TModel, TValue>
 @implements INumericFieldComponent<TModel, TValue>
 
 <MudNumericField
@@ -16,7 +16,8 @@
     Min="@(Min ?? GetTypeMinValue())"
     Max="@(Max ?? GetTypeMaxValue())"
     Step="@(Step ?? GetDefaultStep())"
-    Variant="Variant.Outlined"
+    Culture="@Culture"
+    Variant="@EffectiveVariant"
     Margin="Margin.Dense"
     ShrinkLabel="true"
     Immediate="true" />

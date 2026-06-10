@@ -314,6 +314,35 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     }
 
     /// <summary>
+    /// Creates a dependency on another field, executing an asynchronous callback when the dependency changes.
+    /// Use this overload when reacting to the change requires async work such as fetching cascading
+    /// options from an API. The form re-renders after the callback completes, so model mutations made
+    /// by the callback are reflected in the UI without a manual StateHasChanged call.
+    /// </summary>
+    /// <typeparam name="TDependsOn">The type of the field this field depends on.</typeparam>
+    /// <param name="dependsOnExpression">An expression identifying the field this field depends on.</param>
+    /// <param name="onChangedAsync">An async callback to execute when the dependency field changes. Receives the model and the new value.</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .DependsOn(x => x.Country, async (model, country) => {
+    ///     model.AvailableCities = await cityApi.GetByCountryAsync(country);
+    /// })
+    /// </code>
+    /// </example>
+    public FieldBuilder<TModel, TValue> DependsOn<TDependsOn>(
+        Expression<Func<TModel, TDependsOn>> dependsOnExpression,
+        Func<TModel, TDependsOn, Task> onChangedAsync)
+    {
+        var dependency = new FieldDependency<TModel, TDependsOn>(dependsOnExpression, onChangedAsync);
+        _fieldConfiguration.Dependencies.Add(dependency);
+        // Key by the WATCHED field's name: the runtime looks the dictionary up with
+        // the name of the field that just changed to find the callbacks to fire.
+        _formBuilder.AddFieldDependency(dependency.DependentFieldName, dependency);
+        return this;
+    }
+
+    /// <summary>
     /// Provides a custom Blazor template for rendering the field instead of the default renderer.
     /// </summary>
     /// <param name="template">A render fragment that defines how to display the field.</param>

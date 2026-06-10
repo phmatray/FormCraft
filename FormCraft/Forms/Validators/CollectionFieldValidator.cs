@@ -46,23 +46,50 @@ public class CollectionFieldValidator<TModel, TItem>
         }
 
         // Validate individual items using the item form configuration
-        if (items != null && _configuration.ItemFormConfiguration != null)
+        var itemErrors = await ValidateItemsAsync(model, services);
+        foreach (var itemError in itemErrors)
         {
-            for (var i = 0; i < items.Count; i++)
-            {
-                var item = items[i];
-                foreach (var field in _configuration.ItemFormConfiguration.Fields)
-                {
-                    var getter = field.ValueExpression.Compile();
-                    var value = getter(item);
+            var field = _configuration.ItemFormConfiguration?.Fields
+                .FirstOrDefault(f => f.FieldName == itemError.FieldName);
+            errors.Add($"{_configuration.Label ?? _configuration.FieldName} [{itemError.ItemIndex + 1}] - {field?.Label ?? itemError.FieldName}: {itemError.Message}");
+        }
 
-                    foreach (var validator in field.Validators)
+        return errors;
+    }
+
+    /// <summary>
+    /// Validates each item of the collection using the item form configuration's validators and
+    /// returns structured errors that identify the failing item index and field name. This enables
+    /// callers to attach messages to nested Blazor field identifiers (e.g. <c>Items[0].ProductName</c>)
+    /// instead of flat, pre-formatted strings.
+    /// </summary>
+    /// <param name="model">The parent model instance.</param>
+    /// <param name="services">The service provider for dependency injection.</param>
+    /// <returns>A list of structured per-item validation errors. Empty if validation passed.</returns>
+    public async Task<List<CollectionItemError>> ValidateItemsAsync(TModel model, IServiceProvider services)
+    {
+        var errors = new List<CollectionItemError>();
+        var items = _configuration.CollectionAccessor(model);
+
+        if (items == null || _configuration.ItemFormConfiguration == null)
+        {
+            return errors;
+        }
+
+        for (var i = 0; i < items.Count; i++)
+        {
+            var item = items[i];
+            foreach (var field in _configuration.ItemFormConfiguration.Fields)
+            {
+                var getter = field.ValueExpression.Compile();
+                var value = getter(item);
+
+                foreach (var validator in field.Validators)
+                {
+                    var result = await validator.ValidateAsync(item, value, services);
+                    if (!result.IsValid)
                     {
-                        var result = await validator.ValidateAsync(item, value, services);
-                        if (!result.IsValid)
-                        {
-                            errors.Add($"{_configuration.Label ?? _configuration.FieldName} [{i + 1}] - {field.Label ?? field.FieldName}: {result.ErrorMessage}");
-                        }
+                        errors.Add(new CollectionItemError(i, field.FieldName, result.ErrorMessage!));
                     }
                 }
             }

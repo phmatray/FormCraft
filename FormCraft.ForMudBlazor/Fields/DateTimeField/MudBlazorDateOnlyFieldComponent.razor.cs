@@ -33,10 +33,21 @@ public partial class MudBlazorDateOnlyFieldComponent<TModel>
         }
     }
 
+
+    /// <summary>
+    /// Whether the bound model property is a nullable value type. Nullable fields
+    /// round-trip a cleared picker as null instead of default (#150).
+    /// </summary>
+    private bool IsNullableField => Nullable.GetUnderlyingType(Context.ActualFieldType) != null;
+
     private async Task OnLocalValueChanged()
     {
         var value = _localValue.HasValue ? DateOnly.FromDateTime(_localValue.Value) : default;
         SetValueWithoutNotification(value);
-        await Context.OnValueChanged.InvokeAsync(value);
+
+        object? notifiedValue = _localValue.HasValue
+            ? DateOnly.FromDateTime(_localValue.Value)
+            : IsNullableField ? null : default(DateOnly);
+        await Context.OnValueChanged.InvokeAsync(notifiedValue);
     }
 }

@@ -3,11 +3,24 @@
 @inherits FieldComponentBase<TModel, bool>
 @implements IBooleanFieldComponent<TModel>
 
-<MudSwitch
-    T="bool"
-    Label="@Label"
-    @bind-Value="@_localValue"
-    @bind-Value:after="OnLocalValueChanged"
-    ReadOnly="@IsReadOnly"
-    Disabled="@IsDisabled"
-    Color="Color.Primary" />
+@if (DisplayStyle == BooleanDisplayStyle.Switch)
+{
+    <MudSwitch
+        T="bool"
+        Label="@Label"
+        @bind-Value="@_localValue"
+        @bind-Value:after="OnLocalValueChanged"
+        ReadOnly="@IsReadOnly"
+        Disabled="@IsDisabled"
+        Color="Color.Primary" />
+}
+else
+{
+    <MudCheckBox
+        T="bool"
+        Label="@Label"
+        @bind-Value="@_localValue"
+        @bind-Value:after="OnLocalValueChanged"
+        ReadOnly="@IsReadOnly"
+        Disabled="@IsDisabled" />
+}
