@@ -233,12 +233,13 @@ public class FileUploadIntegrationTests
         formConfig.Fields.ShouldAllBe(f => !string.IsNullOrEmpty(f.Label));
         formConfig.Fields.Count(f => f.IsRequired).ShouldBe(3); // All except Certificates
 
-        // Verify file upload fields have custom renderer
+        // Verify file upload fields carry their configuration and leave renderer
+        // selection to type-based dispatch (no forced renderer override)
         var fileFields = formConfig.Fields
             .Where(f => f.FieldName == "Resume" || f.FieldName == "Certificates")
             .ToList();
 
-        fileFields.ShouldAllBe(f => f.CustomRendererType == typeof(FileUploadFieldRenderer));
+        fileFields.ShouldAllBe(f => f.CustomRendererType == null);
         fileFields.ShouldAllBe(f => f.AdditionalAttributes.ContainsKey("FileUploadConfiguration"));
     }
 }

@@ -23,6 +23,11 @@ public partial class AsyncValueProviderDemo : ComponentBase
     private int _cityCount;
 
     // Simulated data store
+    // Live lists bound to the State and City selects; repopulated by the async
+    // dependency callbacks below
+    private readonly List<SelectOption<string>> _stateOptions = [];
+    private readonly List<SelectOption<string>> _cityOptions = [];
+
     private static readonly Dictionary<string, List<string>> StatesByCountry = new()
     {
         ["United States"] = ["California", "New York", "Texas", "Florida", "Washington"],
@@ -134,7 +139,8 @@ public partial class AsyncValueProviderDemo : ComponentBase
                 .Required("Please select a country"))
             .AddField(x => x.State, field => field
                 .WithLabel("State/Region")
-                .WithPlaceholder("Select a state or region")
+                .WithPlaceholder("Select a country first")
+                .WithAttribute("Options", _stateOptions)
                 .DependsOn(x => x.Country, async (model, country) =>
                 {
                     model.State = "";
@@ -142,6 +148,8 @@ public partial class AsyncValueProviderDemo : ComponentBase
                     _statesLoaded = false;
                     _citiesLoaded = false;
                     _cityCount = 0;
+                    _stateOptions.Clear();
+                    _cityOptions.Clear();
 
                     if (!string.IsNullOrEmpty(country))
                     {
@@ -151,7 +159,12 @@ public partial class AsyncValueProviderDemo : ComponentBase
                         // Simulate API call
                         await Task.Delay(500);
 
-                        _stateCount = StatesByCountry.GetValueOrDefault(country)?.Count ?? 0;
+                        var states = StatesByCountry.GetValueOrDefault(country) ?? [];
+                        foreach (var state in states)
+                        {
+                            _stateOptions.Add(new SelectOption<string> { Value = state, Label = state });
+                        }
+                        _stateCount = states.Count;
                         _statesLoaded = true;
                         _loadingStates = false;
                         StateHasChanged();
@@ -160,11 +173,13 @@ public partial class AsyncValueProviderDemo : ComponentBase
                 .Required("Please select a state or region"))
             .AddField(x => x.City, field => field
                 .WithLabel("City")
-                .WithPlaceholder("Select a city")
+                .WithPlaceholder("Select a state first")
+                .WithAttribute("Options", _cityOptions)
                 .DependsOn(x => x.State, async (model, state) =>
                 {
                     model.City = "";
                     _citiesLoaded = false;
+                    _cityOptions.Clear();
 
                     if (!string.IsNullOrEmpty(state))
                     {
@@ -174,7 +189,12 @@ public partial class AsyncValueProviderDemo : ComponentBase
                         // Simulate API call
                         await Task.Delay(400);
 
-                        _cityCount = CitiesByState.GetValueOrDefault(state)?.Count ?? 0;
+                        var cities = CitiesByState.GetValueOrDefault(state) ?? [];
+                        foreach (var city in cities)
+                        {
+                            _cityOptions.Add(new SelectOption<string> { Value = city, Label = city });
+                        }
+                        _cityCount = cities.Count;
                         _citiesLoaded = true;
                         _loadingCities = false;
                         StateHasChanged();

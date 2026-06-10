@@ -198,9 +198,11 @@ public class FileUploadExtensionsTests
     }
 
     [Fact]
-    public void FileUploadExtensions_SetCustomRendererInstance()
+    public void FileUploadExtensions_DoNotForceARendererOverride()
     {
-        // Arrange & Act
+        // Arrange & Act - the field type must dispatch to the UI framework's
+        // upload component; forcing the core stub renderer broke MudBlazor's
+        // dropzone rendering
         var formConfig = FormBuilder<TestModel>.Create()
             .AddField(x => x.SingleFile!, field => field
                 .AsFileUpload())
@@ -208,8 +210,8 @@ public class FileUploadExtensionsTests
 
         // Assert
         var field = formConfig.Fields.First();
-        field.AdditionalAttributes.ShouldContainKey("CustomRendererInstance");
-        field.AdditionalAttributes["CustomRendererInstance"].ShouldBeOfType<FileUploadFieldRenderer>();
-        field.CustomRendererType.ShouldBe(typeof(FileUploadFieldRenderer));
+        field.AdditionalAttributes.ShouldContainKey("FileUploadConfiguration");
+        field.AdditionalAttributes.ShouldNotContainKey("CustomRendererInstance");
+        field.CustomRendererType.ShouldBeNull();
     }
 }

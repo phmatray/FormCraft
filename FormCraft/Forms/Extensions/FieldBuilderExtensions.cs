@@ -293,8 +293,9 @@ public static class FieldBuilderExtensions
                 EnableDragDrop = enableDragDrop
             };
 
+            // No renderer override: the field type dispatches to the UI framework's
+            // file upload component, which reads this configuration attribute.
             builder.WithAttribute("FileUploadConfiguration", config);
-            builder.WithCustomRenderer(new FileUploadFieldRenderer());
 
             return builder;
         }
@@ -338,8 +339,9 @@ public static class FieldBuilderExtensions
                 EnableDragDrop = enableDragDrop
             };
 
+            // No renderer override: the field type dispatches to the UI framework's
+            // file upload component, which reads this configuration attribute.
             builder.WithAttribute("FileUploadConfiguration", config);
-            builder.WithCustomRenderer(new FileUploadFieldRenderer());
 
             return builder;
         }
