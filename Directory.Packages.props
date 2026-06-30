@@ -26,7 +26,7 @@
     <PackageVersion Include="Markdig" Version="1.3.2" />
     <PackageVersion Include="Microsoft.AspNetCore.Http" Version="2.3.11" />
     <!-- Versioning -->
-    <PackageVersion Include="GitVersion.MsBuild" Version="6.7.0" />
+    <PackageVersion Include="GitVersion.MsBuild" Version="6.8.0" />
     <PackageVersion Include="MinVer" Version="7.0.0" />
   </ItemGroup>
   <!-- .NET 8.0 packages -->
