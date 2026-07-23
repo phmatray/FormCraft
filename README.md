@@ -615,6 +615,22 @@ FormCraft is extensively tested with over 880 unit tests covering:
 - ✅ Edge cases and error handling
 - ✅ Integration scenarios
 
+<!-- portfolio-techstack:start -->
+
+## Tech Stack
+
+- **.NET 10 · .NET 9 · .NET 8**
+- Microsoft.AspNetCore.Components.WebAssembly
+- Microsoft.AspNetCore.Components.WebAssembly.DevServer
+- MudBlazor
+- FluentValidation
+- Markdig
+- bunit
+- FakeItEasy
+- Shouldly
+
+<!-- portfolio-techstack:end -->
+
 ## 🤝 Contributing
 
 We love contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
