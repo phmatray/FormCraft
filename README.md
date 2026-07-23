@@ -2,6 +2,33 @@
 
 # FormCraft 🎨
 
+<!-- portfolio-toc:start -->
+
+## Table of Contents
+
+- [🌐 Live Demo](#-live-demo)
+- [🎉 What's New in v3.1.0](#-whats-new-in-v310)
+- [🎉 What's New in v3.0.0](#-whats-new-in-v300)
+- [🚀 Why FormCraft?](#-why-formcraft)
+- [📊 How FormCraft Compares](#-how-formcraft-compares)
+- [📦 Installation](#-installation)
+- [🎯 Quick Start](#-quick-start)
+- [🏷️ Attribute-Based Forms (NEW!)](#-attribute-based-forms-new)
+- [🎨 Examples](#-examples)
+- [🛠️ Advanced Features](#-advanced-features)
+- [📊 Performance](#-performance)
+- [🧪 Testing](#-testing)
+- [Tech Stack](#tech-stack)
+- [🤝 Contributing](#-contributing)
+- [📖 Documentation](#-documentation)
+- [🗺️ Roadmap](#-roadmap)
+- [💬 Community](#-community)
+- [📄 License](#-license)
+- [🙏 Acknowledgments](#-acknowledgments)
+
+<!-- portfolio-toc:end -->
+
+
 <div align="center">
 
 [![NuGet Version](https://img.shields.io/nuget/v/FormCraft.svg?style=flat-square)](https://www.nuget.org/packages/FormCraft/)
