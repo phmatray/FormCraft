@@ -1,3 +1,5 @@
+![FormCraft banner](.github/banner.png)
+
 # FormCraft 🎨
 
 <div align="center">
