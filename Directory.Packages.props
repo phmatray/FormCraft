@@ -4,6 +4,8 @@
   </PropertyGroup>
   <!-- Framework-agnostic packages -->
   <ItemGroup>
+    <!-- Epinglee directement : bunit tire AngleSharp 1.4.0, vulnerable (GHSA-pgww-w46g-26qg). -->
+    <PackageVersion Include="AngleSharp" Version="1.5.2" />
     <!-- UI Framework packages -->
     <PackageVersion Include="MudBlazor" Version="9.7.0" />
     <!-- Testing packages -->
