@@ -138,7 +138,11 @@ scoop install git-cliff
 
 ### Environment Variables
 
-- `NUGET_API_KEY`: Required for publishing to NuGet.org
+- `NUGET_API_KEY`: Required for publishing to NuGet.org. In CI this is **not** a stored secret —
+  `continuous.yml` obtains a key valid about an hour from NuGet
+  [Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing) via GitHub's
+  OIDC token, and passes it in through this same variable, so the build needs no change. Only a
+  local, manual publish uses a real API key you supply yourself.
 
 ### Parameters
 
