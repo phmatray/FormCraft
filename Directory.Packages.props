@@ -5,11 +5,11 @@
   <!-- Framework-agnostic packages -->
   <ItemGroup>
     <!-- Epinglee directement : bunit tire AngleSharp 1.4.0, vulnerable (GHSA-pgww-w46g-26qg). -->
-    <PackageVersion Include="AngleSharp" Version="1.5.2" />
+    <PackageVersion Include="AngleSharp" Version="1.6.0" />
     <!-- UI Framework packages -->
     <PackageVersion Include="MudBlazor" Version="9.7.0" />
     <!-- Testing packages -->
-    <PackageVersion Include="bunit" Version="2.7.2" />
+    <PackageVersion Include="bunit" Version="2.8.6" />
     <PackageVersion Include="FakeItEasy" Version="9.0.1" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
