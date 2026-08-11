@@ -58,6 +58,14 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **⚠️ Breaking: `IFieldConfiguration.Validators` is now `IReadOnlyList<>`; use `AddValidator(...)` to add one.** It was a concrete `List<>`, which made `config.Fields[i].Validators.Add(v)` compile, run, and **silently do nothing** — the object-typed view exposed through `IFormConfiguration.Fields` projects its validators from an underlying typed list, and because `List<>`'s members are not virtual it could only hand back a materialised snapshot. Adding to that snapshot never affected validation. Making the property an interface turns that silent no-op into a compile error (#155)
+
+  | before | after |
+  |---|---|
+  | `field.Validators.Add(validator)` | `field.AddValidator(validator)` |
+
+  **`AddValidator(...)` has existed since 3.1.0**, so you can migrate before upgrading and the change is then mechanical. Reading `Validators` — iterating, indexing, `.Count` — is unchanged. `AddValidator` also lost its default interface implementation: it could not be correct against a read-only property, and a custom `IFieldConfiguration` that forgets it should fail to compile rather than inherit a silent no-op.
+
 - **Numeric adornments now take an `onClick`, typed to the field's own value.** The numeric `WithAdornment` overloads added in #191 had no handler, because at the time the string overload's was read by neither render path. #192 made it live, so the reason expired and the gap remained. Both numeric overloads now accept `Action<TValue?>` — **not** the string overload's `Action<string?>`, which is right there only because that field's value happens to be a string — and the handler fires on both render paths, including inside `.WithItemForm(...)` (#215)
 
   ```csharp

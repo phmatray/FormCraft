@@ -286,20 +286,24 @@ public class FieldConfigurationWrapperTests
     }
 
     [Fact]
-    public void Validators_Mutations_Should_Be_Retained_Across_Reads()
+    public void AddValidator_Should_Be_Retained_Across_Reads()
     {
-        // Arrange - the natural mutation `config.Fields[i].Validators.Add(...)`
-        // used to mutate a fresh copy and silently drop the validator (issue #151)
+        // Arrange - `config.Fields[i].Validators.Add(...)` used to compile and silently drop the
+        // validator (#151). #151 made the view cache so the mutation at least survived; #155 removed
+        // the mutation instead — `Validators` is IReadOnlyList and that line no longer compiles, so
+        // AddValidator is the only way in and it writes through to the underlying typed config.
         var innerConfig = A.Fake<IFieldConfiguration<TestModel, string>>();
         A.CallTo(() => innerConfig.Validators).Returns(new List<IFieldValidator<TestModel, string>>());
         var wrapper = new FieldConfigurationWrapper<TestModel, string>(innerConfig);
         var addedValidator = A.Fake<IFieldValidator<TestModel, object>>();
 
         // Act
-        wrapper.Validators.Add(addedValidator);
+        wrapper.AddValidator(addedValidator);
 
-        // Assert
+        // Assert - the caller's own instance is what comes back, and it survives a re-read.
         wrapper.Validators.ShouldContain(addedValidator);
+        A.CallTo(() => innerConfig.AddValidator(A<IFieldValidator<TestModel, string>>._))
+            .MustHaveHappenedOnceExactly();
     }
 
     [Fact]
@@ -309,6 +313,11 @@ public class FieldConfigurationWrapperTests
         var typedValidators = new List<IFieldValidator<TestModel, string>>();
         var innerConfig = A.Fake<IFieldConfiguration<TestModel, string>>();
         A.CallTo(() => innerConfig.Validators).Returns(typedValidators);
+        // Make the fake behave like a real configuration: AddValidator is the mutation path since
+        // #155, so a fake that only returns a list would swallow the write and these assertions
+        // would be measuring the stub rather than the wrapper.
+        A.CallTo(() => innerConfig.AddValidator(A<IFieldValidator<TestModel, string>>._))
+            .Invokes((IFieldValidator<TestModel, string> v) => typedValidators.Add(v));
         var wrapper = new FieldConfigurationWrapper<TestModel, string>(innerConfig);
 
         var cached = wrapper.Validators;
@@ -329,6 +338,11 @@ public class FieldConfigurationWrapperTests
         var typedValidators = new List<IFieldValidator<TestModel, string>>();
         var innerConfig = A.Fake<IFieldConfiguration<TestModel, string>>();
         A.CallTo(() => innerConfig.Validators).Returns(typedValidators);
+        // Make the fake behave like a real configuration: AddValidator is the mutation path since
+        // #155, so a fake that only returns a list would swallow the write and these assertions
+        // would be measuring the stub rather than the wrapper.
+        A.CallTo(() => innerConfig.AddValidator(A<IFieldValidator<TestModel, string>>._))
+            .Invokes((IFieldValidator<TestModel, string> v) => typedValidators.Add(v));
         var wrapper = new FieldConfigurationWrapper<TestModel, string>(innerConfig);
         var objectValidator = A.Fake<IFieldValidator<TestModel, object>>();
 
@@ -348,6 +362,11 @@ public class FieldConfigurationWrapperTests
         var typedValidators = new List<IFieldValidator<TestModel, string>>();
         var innerConfig = A.Fake<IFieldConfiguration<TestModel, string>>();
         A.CallTo(() => innerConfig.Validators).Returns(typedValidators);
+        // Make the fake behave like a real configuration: AddValidator is the mutation path since
+        // #155, so a fake that only returns a list would swallow the write and these assertions
+        // would be measuring the stub rather than the wrapper.
+        A.CallTo(() => innerConfig.AddValidator(A<IFieldValidator<TestModel, string>>._))
+            .Invokes((IFieldValidator<TestModel, string> v) => typedValidators.Add(v));
         var wrapper = new FieldConfigurationWrapper<TestModel, string>(innerConfig);
 
         var typedValidator = A.Fake<IFieldValidator<TestModel, string>>();
@@ -367,6 +386,11 @@ public class FieldConfigurationWrapperTests
         var typedValidators = new List<IFieldValidator<TestModel, string>>();
         var innerConfig = A.Fake<IFieldConfiguration<TestModel, string>>();
         A.CallTo(() => innerConfig.Validators).Returns(typedValidators);
+        // Make the fake behave like a real configuration: AddValidator is the mutation path since
+        // #155, so a fake that only returns a list would swallow the write and these assertions
+        // would be measuring the stub rather than the wrapper.
+        A.CallTo(() => innerConfig.AddValidator(A<IFieldValidator<TestModel, string>>._))
+            .Invokes((IFieldValidator<TestModel, string> v) => typedValidators.Add(v));
         var wrapper = new FieldConfigurationWrapper<TestModel, string>(innerConfig);
 
         var objectValidator = A.Fake<IFieldValidator<TestModel, object>>();
@@ -389,15 +413,16 @@ public class FieldConfigurationWrapperTests
     [Fact]
     public void Validators_Added_Through_Built_Configuration_Should_Be_Retained()
     {
-        // Arrange - end-to-end shape of the bug report: mutate validators on a
-        // built configuration's object-typed field view
+        // Arrange - end-to-end shape of the bug report, now through the supported path. The original
+        // `config.Fields[0].Validators.Add(...)` no longer compiles (#155), which is the fix: it used
+        // to compile, run, and mutate a snapshot that validation never read.
         var config = FormBuilder<TestModel>.Create()
             .AddField(x => x.Name, field => field.WithLabel("Name"))
             .Build();
         var addedValidator = A.Fake<IFieldValidator<TestModel, object>>();
 
         // Act
-        config.Fields[0].Validators.Add(addedValidator);
+        config.Fields[0].AddValidator(addedValidator);
 
         // Assert - the validator is still there on subsequent reads (it will run during validation)
         config.Fields[0].Validators.ShouldContain(addedValidator);

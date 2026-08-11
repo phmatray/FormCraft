@@ -93,14 +93,17 @@ public class FieldConfigurationTests
     }
 
     [Fact]
-    public void Validators_Collection_Should_Be_Modifiable()
+    public void Validators_Should_Be_Extended_Through_AddValidator()
     {
-        // Arrange
+        // Arrange - `Validators` is IReadOnlyList since #155, so `.Add(...)` no longer compiles.
+        // That is the point of the change: it used to compile on the object-typed view and silently
+        // mutate a snapshot that never affected validation. AddValidator is the single mutation path
+        // and has existed since 3.1.0, so consumers could migrate before upgrading.
         var config = new FieldConfiguration<TestModel, string>(x => x.Name);
         var validator = A.Fake<IFieldValidator<TestModel, string>>();
 
         // Act
-        config.Validators.Add(validator);
+        config.AddValidator(validator);
 
         // Assert
         config.Validators.ShouldContain(validator);
