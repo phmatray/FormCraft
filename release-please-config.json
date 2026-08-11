@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "$comment": "NO extra-files, and that is the one deliberate divergence from Koine / blazor-tailwind-ui / AdrMcp / x402-dotnet, which all write the version into Directory.Build.props. FormCraft gets its version from MinVer, which reads the git tag release-please creates — so the tag is already the single source of truth and a written <Version> element would be inert: build/Build.cs records that MinVer's targets override any version passed in. Adding one would also turn Directory.Build.props into a new merge hot-spot for no gain. include-component-in-tag MUST stay false: Directory.Build.props sets <MinVerTagPrefix>v</MinVerTagPrefix>, so a component tag (formcraft-v3.2.0) would match no prefix, MinVer would find no tag, and both packages would pack and publish as 0.0.0-alpha.0.N to nuget.org — which delists but never deletes. JSON carries no comments; this key is inert, and the config schema allows extra keys inside a package entry.",
+      "release-type": "simple",
+      "package-name": "formcraft",
+      "include-component-in-tag": false,
+      "changelog-path": "CHANGELOG.md",
+      "changelog-sections": [
+        { "type": "feat", "section": "Features" },
+        { "type": "fix", "section": "Bug Fixes" },
+        { "type": "perf", "section": "Performance" },
+        { "type": "refactor", "section": "Refactor" },
+        { "type": "revert", "section": "Revert" },
+        { "type": "docs", "section": "Documentation", "hidden": true },
+        { "type": "style", "section": "Styling", "hidden": true },
+        { "type": "test", "section": "Testing", "hidden": true },
+        { "type": "build", "section": "Miscellaneous Tasks", "hidden": true },
+        { "type": "ci", "section": "Miscellaneous Tasks", "hidden": true },
+        { "type": "chore", "section": "Miscellaneous Tasks", "hidden": true }
+      ]
+    }
+  }
+}

@@ -1,0 +1,33 @@
+name: PR title lint
+
+# PRs are squash-merged, so the PR title becomes the commit message on `dev`. release-please parses
+# those messages to derive the next semantic version and to build the changelog, so a title that is
+# not a Conventional Commit is rejected here — before merge — rather than silently producing no
+# release. Until this check existed the convention was enforced by nothing, and a mistyped title
+# simply dropped its change out of the next release with no signal at all.
+
+on:
+  pull_request_target:
+    # A code push (`synchronize`) can't change the PR title, so re-linting on it is wasted work;
+    # lint only when the title can actually change (opened/edited) or a closed PR reopens.
+    # `ready_for_review` is included so the draft gate below re-evaluates when a draft PR flips to
+    # ready — otherwise a title set while in draft never gets linted and the check can stay
+    # permanently SKIPPED on a PR that then merges.
+    types: [opened, edited, reopened, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  lint-pr-title:
+    # Skip draft PRs — a draft's title isn't final yet, so don't flag it before the author is ready.
+    # This gate only re-evaluates because the trigger's `types:` above includes `ready_for_review`.
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # SHA-pinned: this runs under pull_request_target with `pull-requests: write`, so a mutable
+      # tag is the highest-value thing to pin here.
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

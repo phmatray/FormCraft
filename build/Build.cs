@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using Nuke.Common;
 using Nuke.Common.CI;
@@ -17,25 +15,21 @@ using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Utilities.Collections;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
-// continuous.yml is HAND-MAINTAINED (AutoGenerate = false) because it carries the NuGet Trusted
-// Publishing steps that Nuke cannot express: the OIDC exchange via NuGet/login before the build.
-// Do NOT set AutoGenerate = true — regenerating this file would silently delete that block and
-// the next release would fail. TrustedPublishingWorkflowTests guards the result.
+// Kept in sync with the hand-maintained .github/workflows/continuous.yml. AutoGenerate is false, so
+// this generates nothing — but it is the only in-repo declaration of that workflow's shape, and a
+// stale one would silently reinstate the tag-triggered publish path if anyone ever regenerated.
+// There is deliberately no OnPushTags and no ImportSecrets: nothing publishes from this workflow any
+// more, and the NuGet key is minted per-run by release-please.yml via OIDC rather than stored.
 [GitHubActions(
     "continuous",
     GitHubActionsImage.UbuntuLatest,
     AutoGenerate = false,
     OnPushBranches = ["main", "dev"],
-    OnPushTags = ["v*"],
     OnPullRequestBranches = ["main", "dev"],
-    InvokedTargets = [nameof(Continuous)],
+    InvokedTargets = [nameof(Pack)],
     EnableGitHubToken = true,
     FetchDepth = 0,
-    CacheKeyFiles = ["global.json", "**/*.csproj"],
-    WritePermissions = [
-        GitHubActionsPermissions.Contents,
-        GitHubActionsPermissions.Packages,
-        GitHubActionsPermissions.IdToken])]
+    CacheKeyFiles = ["global.json", "**/*.csproj"])]
 class Build : NukeBuild
 {
     public static int Main() => Execute<Build>(x => x.Compile);
@@ -51,9 +45,6 @@ class Build : NukeBuild
 
     [GitRepository]
     readonly GitRepository GitRepository;
-
-    [Parameter("GitHub personal access token")]
-    readonly string GitHubToken;
 
     string CurrentVersion => GetCurrentVersion();
 
@@ -116,81 +107,22 @@ class Build : NukeBuild
                     $"html;LogFileName={TestResultsDirectory / "test-results.html"}"));
         });
 
-    Target GenerateChangelog => _ => _
-        .Description("Generate CHANGELOG.md using git-cliff")
-        .OnlyWhenStatic(() => IsLocalBuild) // Only run changelog generation in local builds
-        .Executes(() =>
-        {
-            try
-            {
-                // Check if git-cliff is installed
-                var checkProcess = ProcessTasks.StartProcess("git-cliff", "--version", RootDirectory, logOutput: false);
-                checkProcess.WaitForExit();
-
-                if (checkProcess.ExitCode != 0)
-                {
-                    throw new Exception("git-cliff is not installed. Please install it from https://github.com/orhun/git-cliff");
-                }
-
-                // Generate the full changelog
-                var process = ProcessTasks.StartProcess(
-                    "git-cliff",
-                    "--config cliff.toml --output CHANGELOG.md",
-                    RootDirectory,
-                    logOutput: true);
-                process.WaitForExit();
-
-                if (process.ExitCode == 0)
-                {
-                    Serilog.Log.Information("✅ Changelog generated successfully at {Path}", ChangelogPath);
-
-                    // Copy changelog to FormCraft project directory for packaging
-                    var projectChangelogPath = SourceDirectory / "CHANGELOG.md";
-                    File.Copy(ChangelogPath, projectChangelogPath, overwrite: true);
-
-                    // Also copy to ForMudBlazor project
-                    var mudBlazorChangelogPath = MudBlazorDirectory / "CHANGELOG.md";
-                    File.Copy(ChangelogPath, mudBlazorChangelogPath, overwrite: true);
-
-                    Serilog.Log.Information("📄 Changelog copied to project directories");
-                }
-                else
-                {
-                    throw new Exception($"git-cliff exited with code {process.ExitCode}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Serilog.Log.Error(ex, "Failed to generate changelog");
-                throw;
-            }
-        });
-
     Target Pack => _ => _
         .DependsOn(Test)
-        .DependsOn(GenerateChangelog)
         .Produces(ArtifactsDirectory / "*.nupkg")
         .Produces(ArtifactsDirectory / "*.snupkg")
         .Executes(() =>
         {
-            // If changelog generation was skipped (in CI), check if we have existing changelog files
-            if (IsServerBuild)
+            // CHANGELOG.md is owned by release-please: it is rewritten in the release PR and is
+            // committed by the time we pack. Nothing in this build generates it any more (git-cliff
+            // used to, which meant a local Pack rewrote the file out from under the open release
+            // PR). We only mirror the committed file into the package directories so FormCraft.csproj
+            // can pack it — unconditionally, local and CI alike, so a package can never ship a
+            // changelog older than the one at the root.
+            if (ChangelogPath.FileExists())
             {
-                // In CI, we'll use the committed CHANGELOG.md files if they exist
-                if (ChangelogPath.FileExists())
-                {
-                    var projectChangelogPath = SourceDirectory / "CHANGELOG.md";
-                    if (!projectChangelogPath.FileExists())
-                    {
-                        File.Copy(ChangelogPath, projectChangelogPath, overwrite: true);
-                    }
-
-                    var mudBlazorChangelogPath = MudBlazorDirectory / "CHANGELOG.md";
-                    if (!mudBlazorChangelogPath.FileExists())
-                    {
-                        File.Copy(ChangelogPath, mudBlazorChangelogPath, overwrite: true);
-                    }
-                }
+                File.Copy(ChangelogPath, SourceDirectory / "CHANGELOG.md", overwrite: true);
+                File.Copy(ChangelogPath, MudBlazorDirectory / "CHANGELOG.md", overwrite: true);
             }
 
             // Package versions are computed by MinVer from git tags (MinVer's targets
@@ -245,60 +177,6 @@ class Build : NukeBuild
             Serilog.Log.Information("🔗 NuGet: https://www.nuget.org/packages/FormCraft.ForMudBlazor/{Version}", CurrentVersion);
         });
 
-    Target CreateGitHubRelease => _ => _
-        .Description("Manual fallback only - GitHub releases are normally created by .github/workflows/release.yml")
-        .DependsOn(Pack)
-        .Requires(() => GitHubToken)
-        .Requires(() => IsOnVersionTag())
-        .OnlyWhenStatic(() => IsServerBuild)
-        .Executes(async () =>
-        {
-            var releaseTag = $"v{CurrentVersion}";
-
-            // Generate changelog for this release using git-cliff
-            var changelogContent = GenerateChangelogForRelease(releaseTag);
-
-            // Get the repository owner and name
-            var (owner, name) = GetOwnerAndRepositoryName();
-
-            // Initialize GitHub client
-            var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("FormCraft"))
-            {
-                Credentials = new Octokit.Credentials(GitHubToken)
-            };
-
-            // Create GitHub release
-            var release = await client
-                .Repository
-                .Release
-                .Create(owner, name, new Octokit.NewRelease(releaseTag)
-                {
-                    Name = $"FormCraft {CurrentVersion}",
-                    Body = changelogContent,
-                    Draft = false,
-                    Prerelease = CurrentVersion.Contains("-")
-                });
-
-            // Upload NuGet packages as release assets
-            var packages = ArtifactsDirectory.GlobFiles("*.nupkg", "*.snupkg");
-            foreach (var package in packages)
-            {
-                await using var stream = File.OpenRead(package);
-                var assetUpload = new Octokit.ReleaseAssetUpload
-                {
-                    FileName = Path.GetFileName(package),
-                    ContentType = "application/octet-stream",
-                    RawData = stream
-                };
-                await client
-                    .Repository
-                    .Release
-                    .UploadAsset(release, assetUpload);
-            }
-
-            Serilog.Log.Information("📦 GitHub Release created: {ReleaseUrl}", release.HtmlUrl);
-        });
-
     Target Continuous => _ => _
         .DependsOn(Test, Pack)
         .Triggers(PublishIfNeeded);
@@ -320,9 +198,10 @@ class Build : NukeBuild
             Serilog.Log.Information("  - Current version: {Version}", CurrentVersion);
         })
         .DependsOn(Publish);
-        // Note: GitHub releases are created exclusively by .github/workflows/release.yml
-        // (softprops/action-gh-release). Do NOT chain CreateGitHubRelease here, or two
-        // workflows would race to create a release for the same tag (already_exists errors).
+        // Note: the GitHub Release is created exclusively by release-please, in
+        // .github/workflows/release-please.yml, which then runs this publish in the same job.
+        // Do NOT add a release-creating target back into this chain — two producers would race
+        // to create a release for the same tag (already_exists errors).
 
     Target Release => _ => _
         .Description("Creates a new release (NuGet + GitHub)")
@@ -386,61 +265,5 @@ class Build : NukeBuild
     {
         var tag = GetCurrentTag();
         return !string.IsNullOrEmpty(tag) && Regex.IsMatch(tag, @"^v\d+\.\d+\.\d+");
-    }
-
-    string GenerateChangelogForRelease(string tag)
-    {
-        try
-        {
-            // Run git-cliff to generate changelog for this specific release
-            var process = ProcessTasks.StartProcess(
-                "git-cliff",
-                $"--config cliff.toml --unreleased --tag {tag} --strip all",
-                RootDirectory,
-                logOutput: false);
-            process.WaitForExit();
-
-            if (process.ExitCode == 0)
-            {
-                return string.Join(Environment.NewLine, process.Output.Select(x => x.Text));
-            }
-        }
-        catch (Exception ex)
-        {
-            Serilog.Log.Warning("Failed to generate changelog with git-cliff: {Message}", ex.Message);
-        }
-
-        // Fallback to reading from CHANGELOG.md if git-cliff fails
-        if (ChangelogPath.FileExists())
-        {
-            var changelogContent = ChangelogPath.ReadAllText();
-            var versionSection = ExtractVersionSection(changelogContent, CurrentVersion);
-            if (!string.IsNullOrEmpty(versionSection))
-                return versionSection;
-        }
-
-        // Default changelog if all else fails
-        return $"## What's Changed in v{CurrentVersion}\n\nSee the [full changelog](https://github.com/phmatray/FormCraft/blob/main/CHANGELOG.md) for details.";
-    }
-
-    string ExtractVersionSection(string changelog, string version)
-    {
-        var pattern = $@"##\s*\[?{Regex.Escape(version)}\]?.*?(?=##\s*\[?|\z)";
-        var match = Regex.Match(changelog, pattern, RegexOptions.Singleline);
-        return match.Success ? match.Value.Trim() : string.Empty;
-    }
-
-    (string owner, string name) GetOwnerAndRepositoryName()
-    {
-        var remoteUrl = GitRepository.HttpsUrl ?? GitRepository.SshUrl ?? "";
-        var match = Regex.Match(remoteUrl, @"github\.com[:/]([^/]+)/([^/\.]+)");
-
-        if (match.Success)
-        {
-            return (match.Groups[1].Value, match.Groups[2].Value);
-        }
-
-        // Fallback values
-        return ("phmatray", "FormCraft");
     }
 }
