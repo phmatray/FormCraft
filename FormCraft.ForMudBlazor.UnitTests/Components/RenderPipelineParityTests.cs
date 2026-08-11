@@ -438,6 +438,53 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     }
 
     /// <summary>
+    /// The click selector for a rendered, clickable adornment. MudBlazor draws one as a real button.
+    /// </summary>
+    private const string AdornmentButton = "button.mud-input-adornment-icon-button";
+
+    [Fact]
+    public void CollectionItemField_Should_Fire_The_Adornment_Handler_Like_A_Standalone_Field()
+    {
+        // Arrange - the same builder call on both paths, with the one parameter that used to be
+        // discarded everywhere (#192). Delegate identity is not comparable across the two paths —
+        // each builds its own callback — so the parity claim here is behavioural: both invoke it,
+        // and both hand it their own field's value.
+        var fired = new List<string?>();
+
+        void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field
+                .WithLabel("Product")
+                .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, Color.Secondary, fired.Add);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act
+        RenderForm(standaloneConfig, new TestModel { Status = "standalone" })
+            .Find(AdornmentButton)
+            .Click();
+
+        Render<FormCraftComponent<OrderModel>>(parameters => parameters
+                .Add(p => p.Model, new OrderModel { Items = { new OrderItem { ProductName = "in-collection" } } })
+                .Add(p => p.Configuration, collectionConfig))
+            .Find(AdornmentButton)
+            .Click();
+
+        // Assert - one call per path, each carrying the value of the field that was clicked
+        fired.ShouldBe(new[] { "standalone", "in-collection" });
+    }
+
+    /// <summary>
     /// The presentation attributes both render paths are expected to honour identically, and which
     /// the test above actually configures. Add to this list whenever a field component gains one.
     /// <para>
@@ -449,8 +496,14 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     /// <item><c>Required</c> — the collection path emits it, no component-path renderer does.</item>
     /// <item><c>InputType</c>, <c>Lines</c>, <c>MaxLength</c>, <c>Autocomplete</c> — component path
     /// only; a <c>.AsPassword()</c> item field still renders as plain text inside a collection.</item>
-    /// <item><c>OnAdornmentClick</c> — component path only (an explicit non-goal of #184).</item>
     /// </list>
+    /// <para>
+    /// <c>OnAdornmentClick</c> is honoured by both paths since #192, but is absent from the list
+    /// below on purpose: the two paths build their callbacks separately, so comparing the values
+    /// would compare two different delegates and prove nothing. It is covered by
+    /// <see cref="CollectionItemField_Should_Fire_The_Adornment_Handler_Like_A_Standalone_Field"/>,
+    /// which asserts each path actually invokes the configured handler.
+    /// </para>
     /// </summary>
     private static object?[] Presentation(MudTextField<string> field) =>
     [

@@ -58,6 +58,18 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **`.WithAdornment(...)`'s `onClick` handler now fires — on both render paths.** The parameter was accepted, documented and then thrown away: `WithAdornment` never wrote it anywhere, so a search or visibility-toggle icon rendered, invited a click, and did nothing. It now runs on an ordinary field and on one inside `.WithItemForm(...)` alike, receiving the field's current value (#192)
+
+  ```csharp
+  .AddField(x => x.Query, f => f
+      .WithAdornment(Icons.Material.Filled.Search, Adornment.Start,
+          onClick: value => Search(value)))   // ← now runs
+  ```
+
+  **Behaviour change.** Code that already passed a handler starts executing it. That is the fix — a handler was never meant to be inert — but it is a real change for any form that has been passing one since v3.x. An adornment configured *without* a handler is unaffected: it stays a plain, inert icon.
+
+  **Scope.** The handler is typed `Action<string?>` and declared on string fields, so numeric item-field adornments remain inert; date item fields are unchanged, keeping MudBlazor's own calendar adornment.
+
 - **`.WithAdornment(...)` now renders inside collection item forms.** A field configured with an adornment inside `.WithItemForm(...)` had the setting accepted and then silently discarded — no icon, no exception, no warning — while the identical call on an ordinary field rendered fine. Text and numeric item fields now forward `Adornment`, `AdornmentIcon` and `AdornmentColor` (#184)
 
   ```csharp
