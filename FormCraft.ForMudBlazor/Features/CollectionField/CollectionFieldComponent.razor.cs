@@ -315,10 +315,12 @@ public partial class CollectionFieldComponent<TModel, TItem>
             return;
         }
 
-        field.AdditionalAttributes.TryGetValue("Adornment", out var adornmentValue);
-        var conflict = ShrinkLabelDiagnostic.Conflict(
-            field.Placeholder,
-            adornmentValue as Adornment?);
+        // Adornment is deliberately passed as null: AddCommonFieldAttributes above does not emit
+        // an Adornment attribute, so this render path never draws one. Reading the field's
+        // configured adornment here would warn that the label "will not float" when in fact the
+        // adornment is dropped and ShrinkLabel=false IS honoured — pushing the developer to
+        // remove a setting that was working. Same rule, different inputs per render path.
+        var conflict = ShrinkLabelDiagnostic.Conflict(field.Placeholder, adornment: null);
 
         if (conflict is null)
         {
@@ -328,7 +330,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // Prefer the form's collector so item fields join the single aggregated warning.
         if (ShrinkLabelDiagnostics is not null)
         {
-            ShrinkLabelDiagnostics.Report(field.Label ?? field.FieldName, conflict);
+            ShrinkLabelDiagnostics.Report(field.FieldName, field.Label, conflict);
             return;
         }
 

@@ -117,9 +117,11 @@ public partial class FormCraftComponent<TModel>
     {
         base.OnAfterRender(firstRender);
 
-        // Every field has now rendered and reported, so the collector holds the complete set.
-        // Flush is idempotent — it emits at most once per form.
-        _shrinkLabelDiagnostics.Flush(ServiceProvider.GetService<ILoggerFactory>());
+        // Every field has now rendered and reported, so the collector holds the current set.
+        // Flush reports each field once but stays live, so fields revealed later (a visibility
+        // condition, an expanded group, a new collection row) are still picked up. Resolving the
+        // logger is Flush's job — it happens inside that method's exception guard.
+        _shrinkLabelDiagnostics.Flush(ServiceProvider);
     }
 
     /// <summary>

@@ -261,6 +261,55 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
         _logs.Warnings.ShouldBeEmpty();
     }
 
+    [Fact]
+    public void Should_Not_Warn_About_An_Adornment_On_A_Collection_Item_Field()
+    {
+        // Arrange - the collection render path never emits an Adornment attribute, so the
+        // adornment is dropped and ShrinkLabel=false IS honoured there. Warning would push the
+        // developer to remove a setting that was working.
+        var config = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field
+                        .WithLabel("Product")
+                        .WithAdornment(Icons.Material.Filled.Search, Adornment.Start)
+                        .WithShrinkLabel(false))))
+            .Build();
+
+        // Act
+        Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Should_Count_Two_Fields_That_Share_A_Label()
+    {
+        // Arrange - grouped forms routinely repeat a label ("Name" under Billing and Shipping).
+        // Keying the collector on the label would merge them and report "1 field(s)", so the
+        // developer fixes one and believes they are done.
+        var config = FormBuilder<WideModel>
+            .Create()
+            .AddField(x => x.A, f => f.WithLabel("Name").WithPlaceholder("a").WithShrinkLabel(false))
+            .AddField(x => x.B, f => f.WithLabel("Name").WithPlaceholder("b").WithShrinkLabel(false))
+            .Build();
+
+        // Act
+        Render<FormCraftComponent<WideModel>>(parameters => parameters
+            .Add(p => p.Model, new WideModel())
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("2 field(s)");
+    }
+
     private class OrderModel
     {
         public List<OrderItem> Items { get; set; } = new();

@@ -140,14 +140,15 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
 
         _shrinkLabelDiagnosticEmitted = true;
 
-        var field = Label ?? Context.Field.FieldName;
+        var fieldName = Context.Field.FieldName;
+        var field = Label ?? fieldName;
 
         // Inside a FormCraftComponent, report to the form's collector so all conflicting fields
         // arrive in one warning. Rendered standalone there is no collector, so log directly
         // rather than lose the diagnostic entirely.
         if (ShrinkLabelDiagnostics is not null)
         {
-            ShrinkLabelDiagnostics.Report(field, conflict);
+            ShrinkLabelDiagnostics.Report(fieldName, Label, conflict);
             return;
         }
 
