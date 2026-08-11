@@ -15,7 +15,7 @@ public class NumericAdornmentTests : MudBlazorTestBase
     public void NumericField_Should_Render_The_Configured_Adornment()
     {
         // Arrange & Act
-        var component = RenderBasketForm(BuildQuantityConfiguration(field => field
+        var component = RenderNumericForm(BuildQuantityConfiguration(field => field
             .WithAttribute("Adornment", Adornment.End)
             .WithAttribute("AdornmentIcon", Icons.Material.Filled.Numbers)
             .WithAttribute("AdornmentColor", Color.Primary)));
@@ -32,7 +32,7 @@ public class NumericAdornmentTests : MudBlazorTestBase
     {
         // Arrange & Act - MudNumericField's own default is None, so forwarding an unset adornment
         // must leave an unconfigured field exactly as it rendered before #191.
-        var component = RenderBasketForm(BuildQuantityConfiguration(_ => { }));
+        var component = RenderNumericForm(BuildQuantityConfiguration(_ => { }));
 
         // Assert
         var numeric = component.FindComponent<MudNumericField<int>>().Instance;
@@ -45,7 +45,7 @@ public class NumericAdornmentTests : MudBlazorTestBase
     {
         // Arrange & Act - a field that set only "Adornment" through raw WithAttribute has no colour
         // to read, so the component must supply one rather than assume all three are present.
-        var component = RenderBasketForm(BuildQuantityConfiguration(field => field
+        var component = RenderNumericForm(BuildQuantityConfiguration(field => field
             .WithAttribute("Adornment", Adornment.End)));
 
         // Assert
@@ -59,7 +59,7 @@ public class NumericAdornmentTests : MudBlazorTestBase
     {
         // Arrange - the nullable variant is a separate component with its own markup, so it needs
         // its own coverage; fixing one of the pair and not the other is exactly how #191 arose.
-        var component = RenderBasketForm(BuildDiscountConfiguration(field => field
+        var component = RenderNumericForm(BuildDiscountConfiguration(field => field
             .WithAttribute("Adornment", Adornment.Start)
             .WithAttribute("AdornmentIcon", Icons.Material.Filled.Percent)
             .WithAttribute("AdornmentColor", Color.Secondary)));
@@ -75,7 +75,7 @@ public class NumericAdornmentTests : MudBlazorTestBase
     public void NullableNumericField_Without_An_Adornment_Should_Render_None()
     {
         // Arrange & Act
-        var component = RenderBasketForm(BuildDiscountConfiguration(_ => { }));
+        var component = RenderNumericForm(BuildDiscountConfiguration(_ => { }));
 
         // Assert
         var numeric = component.FindComponent<MudNumericField<decimal?>>().Instance;
@@ -83,18 +83,18 @@ public class NumericAdornmentTests : MudBlazorTestBase
         numeric.AdornmentIcon.ShouldBeNullOrEmpty();
     }
 
-    private IRenderedComponent<FormCraftComponent<BasketModel>> RenderBasketForm(
-        IFormConfiguration<BasketModel> config)
+    private IRenderedComponent<FormCraftComponent<NumericModel>> RenderNumericForm(
+        IFormConfiguration<NumericModel> config)
     {
-        return Render<FormCraftComponent<BasketModel>>(parameters => parameters
-            .Add(p => p.Model, new BasketModel())
+        return Render<FormCraftComponent<NumericModel>>(parameters => parameters
+            .Add(p => p.Model, new NumericModel())
             .Add(p => p.Configuration, config));
     }
 
-    private static IFormConfiguration<BasketModel> BuildQuantityConfiguration(
-        Action<FieldBuilder<BasketModel, int>> configureField)
+    private static IFormConfiguration<NumericModel> BuildQuantityConfiguration(
+        Action<FieldBuilder<NumericModel, int>> configureField)
     {
-        return FormBuilder<BasketModel>
+        return FormBuilder<NumericModel>
             .Create()
             .AddField(x => x.Quantity, field =>
             {
@@ -104,10 +104,10 @@ public class NumericAdornmentTests : MudBlazorTestBase
             .Build();
     }
 
-    private static IFormConfiguration<BasketModel> BuildDiscountConfiguration(
-        Action<FieldBuilder<BasketModel, decimal?>> configureField)
+    private static IFormConfiguration<NumericModel> BuildDiscountConfiguration(
+        Action<FieldBuilder<NumericModel, decimal?>> configureField)
     {
-        return FormBuilder<BasketModel>
+        return FormBuilder<NumericModel>
             .Create()
             .AddField(x => x.Discount, field =>
             {
@@ -117,7 +117,7 @@ public class NumericAdornmentTests : MudBlazorTestBase
             .Build();
     }
 
-    private class BasketModel
+    private class NumericModel
     {
         public int Quantity { get; set; }
 

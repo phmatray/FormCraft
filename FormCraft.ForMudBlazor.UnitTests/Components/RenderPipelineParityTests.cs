@@ -459,10 +459,10 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .AddField(x => x.Priority, Configure)
             .Build();
 
-        var collectionConfig = FormBuilder<BasketModel>
+        var collectionConfig = FormBuilder<OrderModel>
             .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
                 .WithItemForm(item => item.AddField(x => x.Quantity, Configure)))
             .Build();
 
@@ -470,8 +470,8 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         var standalone = RenderForm(standaloneConfig)
             .FindComponent<MudNumericField<int>>().Instance;
 
-        var itemField = Render<FormCraftComponent<BasketModel>>(parameters => parameters
-                .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
+        var itemField = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+                .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
                 .Add(p => p.Configuration, collectionConfig))
             .FindComponent<MudNumericField<int>>().Instance;
 
@@ -501,16 +501,6 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         field.AdornmentIcon,
         field.AdornmentColor,
     ];
-
-    private class BasketModel
-    {
-        public List<BasketLine> Lines { get; set; } = new();
-    }
-
-    private class BasketLine
-    {
-        public int Quantity { get; set; }
-    }
 
     /// <summary>
     /// The presentation attributes both render paths are expected to honour identically, and which
@@ -548,6 +538,8 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     private class OrderItem
     {
         public string ProductName { get; set; } = string.Empty;
+
+        public int Quantity { get; set; }
     }
 
     [Fact]

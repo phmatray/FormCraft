@@ -223,11 +223,17 @@ public static class MudBlazorFieldBuilderExtensions
     /// <returns>The FieldBuilder instance for method chaining.</returns>
     /// <remarks>
     /// <para>
-    /// Constrained to <see cref="INumber{TSelf}"/> rather than to <c>struct</c> so it reaches the
-    /// field types that can actually draw an adornment. A bare <c>struct</c> constraint would also
-    /// offer this on <c>bool</c> and <c>DateTime</c> fields, where MudCheckBox has no adornment
-    /// concept at all and MudDatePicker keeps its own calendar icon (#184) — a call that compiles
-    /// and silently does nothing is the very bug this closes (#191).
+    /// Constrained to <see cref="INumber{TSelf}"/> rather than to <c>struct</c> so it is not offered
+    /// on <c>bool</c> or <c>DateTime</c> fields, where MudCheckBox has no adornment concept at all
+    /// and MudDatePicker keeps its own calendar icon (#184).
+    /// </para>
+    /// <para>
+    /// This <b>narrows</b> the set of calls that compile and then do nothing; it does not eliminate
+    /// it. The constraint describes the field's CLR type, not the component it ends up rendering, so
+    /// a numeric field routed elsewhere — <c>.AsSlider(...)</c>, <c>.AsRating(...)</c>, or any
+    /// <c>.WithOptions(...)</c> field, which render MudSlider, MudRating and MudSelect — still
+    /// accepts this call and still draws no adornment. Closing that gap needs a renderer-aware
+    /// check, which no builder extension can perform at compile time.
     /// </para>
     /// <para>
     /// Takes no <c>onClick</c>: the string overload's parameter is read by neither render path, so
