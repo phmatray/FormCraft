@@ -587,6 +587,17 @@ var formConfig = FormBuilder<UserModel>
 
 > [!IMPORTANT]
 > **`ShrinkLabel="false"` only shows up on an empty field with no placeholder and no start adornment.** MudBlazor decides the shrunk state by OR-ing `ShrinkLabel` with "has a value", "has a placeholder" and "has a start adornment" — so on a field configured with `.WithPlaceholder(...)` or `.WithAdornment(...)`, the label stays pinned no matter what you pass here. This is MudBlazor's rule, not FormCraft's. If you want the label to float on a `Variant.Text` field, leave its placeholder unset and let the label do that job.
+>
+> **You don't have to remember this — FormCraft tells you.** When a field asks for `ShrinkLabel="false"` and carries a placeholder or start adornment, the form logs one warning naming every affected field:
+>
+> ```text
+> warn: FormCraft.ForMudBlazor.ShrinkLabel
+>       ShrinkLabel=false will not take effect on 2 field(s): 'Email' (has a Placeholder),
+>       'Search' (has a start Adornment). MudBlazor pins the label whenever a field has a
+>       value, a placeholder or a start adornment, so the label stays put.
+> ```
+>
+> Rendering is unaffected — this is a diagnostic only. It stays quiet when the setting *does* work, when a field is merely populated (a filled field must shrink its label), and on LOV fields, whose built-in placeholder means their label can never float anyway. No logger registered? The diagnostic degrades silently.
 
 `Variant` is honored by text, numeric, date/time pickers, select, multi-select, autocomplete, lookup, LOV, color picker and collection-item fields. `ShrinkLabel` reaches all of the same components, subject to the rule above — note that LOV fields always supply their own `"Click to select..."` placeholder, so their label is always pinned.
 
