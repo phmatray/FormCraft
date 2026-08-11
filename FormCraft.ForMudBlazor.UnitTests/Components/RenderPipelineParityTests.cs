@@ -405,7 +405,8 @@ public class RenderPipelineParityTests : MudBlazorTestBase
                 .WithPlaceholder("e.g. Widget")
                 .WithHelpText("The catalogue name")
                 .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, Color.Secondary)
-                .WithVariant(Variant.Filled);
+                .WithVariant(Variant.Filled)
+                .Required("Product name is required");
 
         var standaloneConfig = FormBuilder<TestModel>
             .Create()
@@ -435,6 +436,13 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         // Guard the guard: a comparison of two all-default fields would pass while proving nothing.
         standalone.Adornment.ShouldBe(Adornment.Start);
         standalone.Variant.ShouldBe(Variant.Filled);
+
+        // Required is the one compared attribute whose agreed value IS the default (#190): both
+        // paths must render false for a .Required(...) field, because validation here is
+        // server-side. So unlike the others it cannot be guarded by asserting a non-default —
+        // its bite comes from the collection path, which used to render true off field.IsRequired
+        // and would diverge from this standalone false the moment that emission came back.
+        standalone.Required.ShouldBeFalse();
     }
 
     [Fact]
@@ -506,12 +514,22 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     /// The presentation attributes both render paths are expected to honour identically, and which
     /// the test above actually configures. Add to this list whenever a field component gains one.
     /// <para>
+    /// <c>Required</c> joined the set in #190: both paths must render it <c>false</c> even for a
+    /// <c>.Required(...)</c> field, because validation is server-side and forms render
+    /// <c>novalidate</c>. It was previously listed as a known divergence while the test never
+    /// configured it — so the comparison passed vacuously over a real disagreement, which is the
+    /// trap the list below warns about.
+    /// </para>
+    /// <para>
     /// Deliberately NOT compared, because the two paths are known to disagree today — each is
     /// tracked separately, and listing one here without configuring it would assert nothing while
     /// looking like coverage:
     /// </para>
     /// <list type="bullet">
-    /// <item><c>Required</c> — the collection path emits it, no component-path renderer does.</item>
+    /// <item>The raw <c>"Required"</c> attribute — collection path only. <c>.Required(...)</c> is
+    /// compared above and agrees, but <c>.WithAttribute("Required", true)</c> is read solely by
+    /// <c>CollectionFieldComponent</c>; no component-path renderer looks for that key, so the
+    /// opt-in is honoured inside an item form and ignored outside one.</item>
     /// <item><c>InputType</c>, <c>Lines</c>, <c>MaxLength</c>, <c>Autocomplete</c> — component path
     /// only; a <c>.AsPassword()</c> item field still renders as plain text inside a collection.</item>
     /// <item><c>OnAdornmentClick</c> — component path only (an explicit non-goal of #184).</item>
@@ -522,6 +540,7 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         field.Label,
         field.Placeholder,
         field.HelperText,
+        field.Required,
         field.Variant,
         field.Margin,
         field.ShrinkLabel,
