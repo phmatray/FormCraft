@@ -326,12 +326,16 @@ public partial class CollectionFieldComponent<TModel, TItem>
         var shrinkLabel = GetItemFieldShrinkLabel(field);
         builder.AddAttribute(startIndex++, "ShrinkLabel", shrinkLabel);
 
-        if (rendersAdornment)
+        // Null on a path that draws no adornment of ours — which the diagnostic below needs to
+        // tell apart from "none configured".
+        var adornment = rendersAdornment ? GetItemFieldAdornment(field) : (Adornment?)null;
+
+        if (adornment is { } rendered)
         {
             // Emitted unconditionally (not only when configured) so the frame layout stays the
             // same on every render of a given field. The defaults below are the component's own,
             // so an item field with no adornment renders exactly as it did before #184.
-            builder.AddAttribute(startIndex++, "Adornment", GetItemFieldAdornment(field));
+            builder.AddAttribute(startIndex++, "Adornment", rendered);
             builder.AddAttribute(startIndex++, "AdornmentIcon", GetItemFieldAttribute<string?>(field, "AdornmentIcon", null));
             builder.AddAttribute(startIndex++, "AdornmentColor", GetItemFieldAttribute(field, "AdornmentColor", Color.Default));
         }
@@ -339,10 +343,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // The diagnostic has to judge what this path actually RENDERS, not what was configured:
         // a dropped adornment cannot pin the label, so reporting one would tell the developer to
         // remove a setting that was working (#183).
-        WarnIfShrinkLabelUnhonoured(
-            field,
-            shrinkLabel,
-            rendersAdornment ? GetItemFieldAdornment(field) : null);
+        WarnIfShrinkLabelUnhonoured(field, shrinkLabel, adornment);
 
         return startIndex;
     }
