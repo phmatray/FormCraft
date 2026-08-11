@@ -58,6 +58,19 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **Collection item fields no longer carry the HTML5 `Required` attribute.** `.Required("…")` inside `.WithItemForm(...)` set `Required="true"` on the underlying MudBlazor component, so the rendered `<input>` came out with `required` and `aria-required="true"` — while the identical call on an ordinary field did not. That contradicted the library's validation stance: validation is server-side, forms render `novalidate`, and messages come from the validator you configured. Item fields now match ordinary fields (#190)
+
+  ```csharp
+  .AddCollectionField(x => x.Items, c => c.WithItemForm(item => item
+      .AddField(x => x.ProductName, f => f
+          .WithLabel("Product")
+          .Required("Product name is required"))))   // ← validates; no HTML5 required attribute
+  ```
+
+  **Validation is unchanged.** `.Required(...)` still registers its validator, a blank item field still fails validation, and the message is still the one you passed. What changes is only the attribute on the element — and with it `aria-required`, which now reports `false` on these fields as it already did on ordinary ones.
+
+  **Opting back in.** `.WithAttribute("Required", true)` on an item field still renders `Required="true"`, so a form that deliberately wants MudBlazor's native required semantics keeps them. The attribute is now read from that explicit opt-in rather than inferred from `.Required(...)`.
+
 - **`.WithAdornment(...)` now renders inside collection item forms.** A field configured with an adornment inside `.WithItemForm(...)` had the setting accepted and then silently discarded — no icon, no exception, no warning — while the identical call on an ordinary field rendered fine. Text and numeric item fields now forward `Adornment`, `AdornmentIcon` and `AdornmentColor` (#184)
 
   ```csharp
