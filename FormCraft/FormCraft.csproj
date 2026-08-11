@@ -60,7 +60,15 @@
     <!-- Include README, CHANGELOG, and icon in package -->
     <None Include="README.md" Pack="true" PackagePath="\" />
     <None Include="icon.png" Pack="true" PackagePath="\" Condition="Exists('icon.png')" />
-    <None Include="CHANGELOG.md" Pack="true" PackagePath="\" Condition="Exists('CHANGELOG.md')" />
+    <!--
+      Packed straight from the repository root, by link (#222). CHANGELOG.md is owned by
+      release-please, which rewrites only the root copy. Nuke's Pack used to copy that file into this
+      directory and into FormCraft.ForMudBlazor's so this item could pick it up locally — which made
+      two git-TRACKED files build outputs, left them stale after every release until someone ran
+      Pack, and then reported two modified files nobody edited. Packing the source directly means
+      there is no copy that can go stale.
+    -->
+    <None Include="../CHANGELOG.md" Pack="true" PackagePath="\" Condition="Exists('../CHANGELOG.md')" />
   </ItemGroup>
 
 

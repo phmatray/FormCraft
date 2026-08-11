@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Linq;
 using FormCraft.Build;
 using Nuke.Common;
@@ -53,7 +52,6 @@ class Build : NukeBuild
     AbsolutePath TestsDirectory => RootDirectory / "FormCraft.UnitTests";
     AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
     AbsolutePath TestResultsDirectory => RootDirectory / "test-results";
-    AbsolutePath ChangelogPath => RootDirectory / "CHANGELOG.md";
 
     Target Clean => _ => _
         .Before(Restore)
@@ -115,15 +113,13 @@ class Build : NukeBuild
         {
             // CHANGELOG.md is owned by release-please: it is rewritten in the release PR and is
             // committed by the time we pack. Nothing in this build generates it any more (git-cliff
-            // used to, which meant a local Pack rewrote the file out from under the open release
-            // PR). We only mirror the committed file into the package directories so FormCraft.csproj
-            // can pack it — unconditionally, local and CI alike, so a package can never ship a
-            // changelog older than the one at the root.
-            if (ChangelogPath.FileExists())
-            {
-                File.Copy(ChangelogPath, SourceDirectory / "CHANGELOG.md", overwrite: true);
-                File.Copy(ChangelogPath, MudBlazorDirectory / "CHANGELOG.md", overwrite: true);
-            }
+            // used to, which meant a local Pack rewrote the file out from under the open release PR).
+            //
+            // Nothing copies it either, since #222. FormCraft.csproj packs `../CHANGELOG.md` by link,
+            // so the packaged changelog is the root file itself and cannot lag behind it. The two
+            // mirrors this target used to write were git-TRACKED, which made `Pack` mutate tracked
+            // files — the shape of the portfolio rule about builds rewriting things git is watching —
+            // and one of them (FormCraft.ForMudBlazor's) was packed by nothing at all.
 
             // Package versions are computed by MinVer from git tags (MinVer's targets
             // override any /p:Version passed on the command line, so we don't set one here).
