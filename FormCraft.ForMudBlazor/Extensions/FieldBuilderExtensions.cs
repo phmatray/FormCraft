@@ -189,12 +189,18 @@ public static class MudBlazorFieldBuilderExtensions
     /// <param name="icon">The MudBlazor icon to display (e.g., Icons.Material.Filled.Email).</param>
     /// <param name="position">The position of the adornment (Start or End, default: Start).</param>
     /// <param name="color">The color of the adornment icon (default: Default).</param>
-    /// <param name="onClick">Optional click handler for the adornment.</param>
+    /// <param name="onClick">
+    /// Optional click handler for the adornment icon. It receives the field's current value, and
+    /// fires on both render paths — an ordinary field and one inside <c>.WithItemForm(...)</c>.
+    /// </param>
     /// <returns>The FieldBuilder instance for method chaining.</returns>
     /// <example>
     /// <code>
     /// .AddField(x => x.Email)
     ///     .WithAdornment(Icons.Material.Filled.Email, MudBlazor.Adornment.Start)
+    ///
+    /// .AddField(x => x.Query)
+    ///     .WithAdornment(Icons.Material.Filled.Search, onClick: value => Search(value))
     /// </code>
     /// </example>
     public static FieldBuilder<TModel, string> WithAdornment<TModel>(
@@ -208,8 +214,21 @@ public static class MudBlazorFieldBuilderExtensions
         return builder
             .WithAttribute("Adornment", position)
             .WithAttribute("AdornmentIcon", icon)
-            .WithAttribute("AdornmentColor", color);
+            .WithAttribute("AdornmentColor", color)
+            // Written unconditionally — a null handler must OVERWRITE one an earlier call left
+            // behind, not be skipped. Writing it only when supplied made this method a partial
+            // overwrite: a reusable helper that set a handler, refined by a caller asking for a
+            // plain decorative icon, would keep firing the helper's handler from an icon the
+            // caller believes is inert. Both readers resolve the value with `is Action<string?>`,
+            // so a stored null reads back as "no handler" exactly like an absent key would.
+            .WithAttribute(AdornmentClickAttribute, onClick!);
     }
+
+    /// <summary>
+    /// Attribute key under which <see cref="WithAdornment{TModel}"/> stores its click handler, and
+    /// which both render paths read it back from. Shared so the two cannot drift apart (#192).
+    /// </summary>
+    internal const string AdornmentClickAttribute = "OnAdornmentClick";
 
     /// <summary>
     /// Adds an adornment (icon or text) to a numeric field.
@@ -236,9 +255,12 @@ public static class MudBlazorFieldBuilderExtensions
     /// check, which no builder extension can perform at compile time.
     /// </para>
     /// <para>
-    /// Takes no <c>onClick</c>: the string overload's parameter is read by neither render path, so
-    /// mirroring it here would add a second dead parameter. Wiring <c>OnAdornmentClick</c> through
-    /// is tracked separately.
+    /// Takes no <c>onClick</c>. The original reason — that the string overload's parameter was read
+    /// by neither render path — expired with #192, which made that parameter live on both. What
+    /// keeps it off these overloads now is the shape question #192 deferred: <c>Action&lt;string?&gt;</c>
+    /// is right there only because the value happens to be a string, so the numeric counterpart is
+    /// <c>Action&lt;TValue?&gt;</c> — which makes these two methods rather than one generic. Decided
+    /// once in the follow-up, not copied per overload.
     /// </para>
     /// </remarks>
     /// <example>
