@@ -28,14 +28,25 @@ When you push a version tag (e.g., `v1.0.0`) to the main branch:
 
 Ensure these secrets are configured in your GitHub repository:
 
-- `NUGET_API_KEY`: Your NuGet.org API key for package publishing
+- `NUGET_USER`: Your nuget.org **profile name** — the *Package Owner* named by the Trusted
+  Publishing policy. This is not a credential; it only tells `NuGet/login` whose policy to match.
 - `GITHUB_TOKEN`: Already available by default in GitHub Actions
+
+> **No long-lived NuGet API key is stored.** Publishing uses
+> [NuGet Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing): on a
+> `v*` tag, `continuous.yml` exchanges GitHub's OIDC token for a nuget.org key valid about an hour
+> and passes it to the build as the `NUGET_API_KEY` *environment variable*. Do **not** create a
+> `NUGET_API_KEY` repository secret — it would reintroduce exactly the standing credential this
+> setup exists to avoid. A matching policy must exist on nuget.org (Account settings → Trusted
+> Publishing) naming this repository and the workflow file `continuous.yml`; nuget.org does not
+> validate that filename, so a typo there is accepted silently and fails only at the first tag.
 
 ### Permissions
 
 The GitHub Actions workflow requires:
 - `contents: write` - For creating releases
 - `packages: write` - For publishing packages
+- `id-token: write` - For requesting the OIDC token that Trusted Publishing exchanges for a key
 
 ## How to Create a Release
 
