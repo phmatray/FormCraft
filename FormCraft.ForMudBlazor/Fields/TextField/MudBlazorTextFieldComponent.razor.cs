@@ -84,6 +84,21 @@ public partial class MudBlazorTextFieldComponent<TModel>
             AdornmentIcon = Icons.Material.Filled.Visibility;
             AdornmentColor = Color.Default;
             OnAdornmentClick = TogglePasswordVisibility;
+
+            // A field has one adornment slot and the toggle just took it, so anything configured for
+            // that slot is discarded — including a click handler, which #192 made live everywhere
+            // else. Say so rather than dropping it silently (#219). This branch is the only place
+            // that knows something was displaced.
+            var displacedHandler = GetAttribute<Action<string?>?>(
+                MudBlazorFieldBuilderExtensions.AdornmentClickAttribute);
+
+            if (customAdornment.HasValue || customAdornmentIcon is not null || displacedHandler is not null)
+            {
+                PasswordAdornmentDiagnostic.Warn(
+                    DiagnosticServiceProvider,
+                    Context.Field.FieldName,
+                    Label);
+            }
         }
         else if (customAdornment.HasValue)
         {
