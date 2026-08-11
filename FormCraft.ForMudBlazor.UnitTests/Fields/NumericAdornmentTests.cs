@@ -20,11 +20,18 @@ public class NumericAdornmentTests : MudBlazorTestBase
             .WithAttribute("AdornmentIcon", Icons.Material.Filled.Numbers)
             .WithAttribute("AdornmentColor", Color.Primary)));
 
-        // Assert
+        // Assert - the parameters reached the component...
         var numeric = component.FindComponent<MudNumericField<int>>().Instance;
         numeric.Adornment.ShouldBe(Adornment.End);
         numeric.AdornmentIcon.ShouldBe(Icons.Material.Filled.Numbers);
         numeric.AdornmentColor.ShouldBe(Color.Primary);
+
+        // ...and MudBlazor actually drew them. Asserted separately on purpose: a forwarded parameter
+        // can be inert on the element MudBlazor ends up rendering, and a parameter-level assertion
+        // cannot tell "set" from "drawn". MudNumericField puts its spin buttons at the End, so this
+        // is exactly the slot where an end adornment could have been silently swallowed.
+        component.FindAll(".mud-input-adornment").Count.ShouldBe(1);
+        component.Markup.ShouldContain(Icons.Material.Filled.Numbers);
     }
 
     [Fact]
@@ -38,6 +45,11 @@ public class NumericAdornmentTests : MudBlazorTestBase
         var numeric = component.FindComponent<MudNumericField<int>>().Instance;
         numeric.Adornment.ShouldBe(Adornment.None);
         numeric.AdornmentIcon.ShouldBeNullOrEmpty();
+
+        // No adornment element is drawn. Note this cannot be asserted as "no <svg>": MudNumericField
+        // renders two of them for its spin buttons even with no adornment, so the adornment element
+        // is the only honest discriminator.
+        component.FindAll(".mud-input-adornment").ShouldBeEmpty();
     }
 
     [Fact]
@@ -69,6 +81,10 @@ public class NumericAdornmentTests : MudBlazorTestBase
         numeric.Adornment.ShouldBe(Adornment.Start);
         numeric.AdornmentIcon.ShouldBe(Icons.Material.Filled.Percent);
         numeric.AdornmentColor.ShouldBe(Color.Secondary);
+
+        // Drawn, and drawn at the start — the position is a rendered fact, not just a parameter.
+        component.FindAll(".mud-input-adornment-start").Count.ShouldBe(1);
+        component.Markup.ShouldContain(Icons.Material.Filled.Percent);
     }
 
     [Fact]
