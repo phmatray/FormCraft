@@ -219,6 +219,40 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
     }
 
+    [Theory]
+    [InlineData("number", InputType.Number)]
+    [InlineData("date", InputType.Date)]
+    [InlineData("time", InputType.Time)]
+    public void ItemField_Should_Map_The_Numeric_And_Temporal_Input_Types(
+        string configured,
+        InputType expected)
+    {
+        // Arrange & Act - #210. These three fell through to InputType.Text, silently costing the
+        // mobile keypad and the native picker. #189 carried the recognised set over unchanged on
+        // purpose, so widening it is a behaviour change rather than a parity fix — but because both
+        // paths resolve through TextInputTypeMap, it lands on both at once.
+        var component = RenderOrderForm(BuildConfiguration(field => field.WithInputType(configured)));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.InputType.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("number")]
+    [InlineData("date")]
+    [InlineData("time")]
+    public void ItemField_Should_Emit_The_Numeric_And_Temporal_Types_In_The_Markup(string configured)
+    {
+        // Arrange & Act - the parameter assertion above proves the value was forwarded; this proves
+        // it reaches the element the browser reads, which is what actually selects the keypad or the
+        // picker. A forwarded parameter that never lands on the <input> is the failure mode both
+        // #189 and #207 hit.
+        var component = RenderOrderForm(BuildConfiguration(field => field.WithInputType(configured)));
+
+        // Assert
+        component.Find("input").GetAttribute("type").ShouldBe(configured);
+    }
+
     [Fact]
     public void ItemField_With_AsPassword_And_Lines_Should_Stay_Masked()
     {
