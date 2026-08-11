@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using Nuke.Common;
 using Nuke.Common.CI;
@@ -17,19 +15,21 @@ using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Utilities.Collections;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
+// Kept in sync with the hand-maintained .github/workflows/continuous.yml. AutoGenerate is false, so
+// this generates nothing — but it is the only in-repo declaration of that workflow's shape, and a
+// stale one would silently reinstate the tag-triggered publish path if anyone ever regenerated.
+// There is deliberately no OnPushTags and no ImportSecrets: nothing publishes from this workflow any
+// more, and the NuGet key is minted per-run by release-please.yml via OIDC rather than stored.
 [GitHubActions(
     "continuous",
     GitHubActionsImage.UbuntuLatest,
     AutoGenerate = false,
     OnPushBranches = ["main", "dev"],
-    OnPushTags = ["v*"],
     OnPullRequestBranches = ["main", "dev"],
-    InvokedTargets = [nameof(Continuous)],
+    InvokedTargets = [nameof(Pack)],
     EnableGitHubToken = true,
     FetchDepth = 0,
-    ImportSecrets = ["NUGET_API_KEY"],
-    CacheKeyFiles = ["global.json", "**/*.csproj"],
-    WritePermissions = [GitHubActionsPermissions.Contents, GitHubActionsPermissions.Packages])]
+    CacheKeyFiles = ["global.json", "**/*.csproj"])]
 class Build : NukeBuild
 {
     public static int Main() => Execute<Build>(x => x.Compile);
@@ -45,9 +45,6 @@ class Build : NukeBuild
 
     [GitRepository]
     readonly GitRepository GitRepository;
-
-    [Parameter("GitHub personal access token")]
-    readonly string GitHubToken;
 
     string CurrentVersion => GetCurrentVersion();
 
@@ -268,19 +265,5 @@ class Build : NukeBuild
     {
         var tag = GetCurrentTag();
         return !string.IsNullOrEmpty(tag) && Regex.IsMatch(tag, @"^v\d+\.\d+\.\d+");
-    }
-
-    (string owner, string name) GetOwnerAndRepositoryName()
-    {
-        var remoteUrl = GitRepository.HttpsUrl ?? GitRepository.SshUrl ?? "";
-        var match = Regex.Match(remoteUrl, @"github\.com[:/]([^/]+)/([^/\.]+)");
-
-        if (match.Success)
-        {
-            return (match.Groups[1].Value, match.Groups[2].Value);
-        }
-
-        // Fallback values
-        return ("phmatray", "FormCraft");
     }
 }

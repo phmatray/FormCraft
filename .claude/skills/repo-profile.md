@@ -31,8 +31,11 @@
 
 ## CI gates (the exact commands CI fails on — satisfy these locally before ready/merge)
 - `./build.cmd Test` — `.github/workflows/ci.yml` (Compile then Test, Release config)
-- `./build.cmd Continuous` — `.github/workflows/continuous.yml` (`DependsOn(Test, Pack)`). Since #197
-  this workflow builds/tests/packs only — it no longer publishes and has no `tags:` trigger.
+- `./build.cmd Pack` — `.github/workflows/continuous.yml` (`Pack` is `DependsOn(Test)`). Since #197
+  this workflow builds/tests/packs only: no `tags:` trigger, no key, and it invokes `Pack` rather
+  than `Continuous` precisely so it never reaches `PublishIfNeeded` — that target's only guard is
+  `IsOnVersionTag() && IsServerBuild`, which would be satisfied on any tagged commit (`origin/main`
+  *is* the `v3.1.0` commit) and would then hard-fail on `Publish`'s `Requires(NuGetApiKey)`.
 - **`pr-title-lint.yml`** — `amannn/action-semantic-pull-request` on `pull_request_target`. The PR
   title **must** be a Conventional Commit. Skipped on drafts, and re-evaluated on `ready_for_review`.
 - Locally equivalent: `dotnet build -c Release` && `dotnet test -c Release`.
@@ -42,8 +45,12 @@
 
 ## Integration style
 - **Merge mode:** **squash** (recent subjects on a linear `dev` all read `… (#issue) (#PR)`).
-  One documented exception: the #197 reconciliation PR (#201) was merged with a **merge commit**, on
-  purpose — squashing it would have left `v3.1.0` unreachable from `dev`. Everything else squashes.
+  One documented exception: the #197 reconciliation PR (**#201**) must be merged with a **merge
+  commit**, not squashed — a squash creates a new commit and leaves `v3.1.0` unreachable from `dev`,
+  which would make release-please compute its first release over the whole project history.
+  ⚠️ **Verify before trusting this line:** run
+  `git merge-base --is-ancestor v3.1.0 origin/dev; echo $?` — `0` means #201 landed correctly.
+  Everything else squashes.
 - **PR title convention:** Conventional Commits prefix, **enforced by `pr-title-lint.yml`** since
   #197 (it used to be house convention with nothing checking it) —
   `<type>(<scope>): <subject> (#<issue>)`. Because the repo squash-merges, the PR title *becomes*

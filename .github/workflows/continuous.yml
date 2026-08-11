@@ -17,9 +17,10 @@ on:
       - main
       - dev
 
+# This job writes nothing to the repository or to any package registry — it only uploads workflow
+# artifacts, which needs no repository scope.
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 jobs:
   ubuntu-latest:
@@ -40,12 +41,19 @@ jobs:
             .nuke/temp
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('global.json', '**/*.csproj') }}
-      # No package-registry key is minted here, deliberately. Continuous triggers PublishIfNeeded,
-      # which is OnlyWhenStatic(IsOnVersionTag() && IsServerBuild); no ref this workflow builds is a
-      # version tag, so the publish path never activates and the key stays unset. The Trusted
-      # Publishing login lives in release-please.yml's `nupkg` job instead.
-      - name: 'Run: Continuous'
-        run: ./build.cmd Continuous
+      # `Pack`, not `Continuous`. Both run Test then Pack, but `Continuous` additionally
+      # `.Triggers(PublishIfNeeded)`, whose only guard is OnlyWhenStatic(IsOnVersionTag() &&
+      # IsServerBuild) — it does NOT check whether a key exists. That guard is satisfied whenever the
+      # checked-out commit happens to carry a v* tag, which is not hypothetical here: `origin/main`
+      # IS the v3.1.0 commit, and after each release the tagged commit sits on `dev` too. This
+      # workflow mints no key, so reaching Publish would hard-fail on its Requires(NuGetApiKey) and
+      # redden a default branch. Invoking `Pack` removes the publish path from this workflow
+      # entirely rather than relying on it never being reached.
+      #
+      # Publishing lives solely in release-please.yml's `nupkg` job, which checks out the tag on
+      # purpose and mints a short-lived key alongside it.
+      - name: 'Run: Pack'
+        run: ./build.cmd Pack
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: 'Publish: test-results'

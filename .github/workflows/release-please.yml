@@ -23,13 +23,25 @@ name: release-please
 on:
   push:
     branches: [dev]
-  # Manual dry-run: `release_created` is false off a dispatch, so every publish step is skipped.
-  # Use it to validate the release path without sending anything to nuget.org.
+  # Manual re-run, for when the push-triggered run failed or was missed.
+  #
+  # ⚠️ This is NOT an unconditional dry-run. In the ordinary case — no merged release PR waiting to
+  # be processed — release-please only refreshes the release PR, `release_created` stays false, and
+  # the publish steps below all skip. But if a release PR has already been merged and its own run
+  # did not complete, a dispatch will legitimately finish the job: create the tag and the Release,
+  # set `release_created` to true, and publish. That is the intended recovery path; just do not
+  # click it expecting a guaranteed no-op.
   workflow_dispatch:
 
 permissions:
   contents: write
   pull-requests: write
+  # Required to create and apply the `autorelease: pending` label. release-please finds a merged
+  # release PR *solely* by that label, and this repo has no `autorelease:*` label yet, so it must
+  # create one (POST /repos/{o}/{r}/labels — an Issues-scoped endpoint). Without this the release PR
+  # is opened and can be merged, but is never recognised afterwards: no tag, no Release,
+  # `release_created` stays false, the nupkg job skips, and nothing publishes — with no failed step.
+  issues: write
 
 # Serialize release-please runs. The action pushes a release-PR branch and, on merge, creates the
 # tag and the GitHub Release; two overlapping runs could race on the tag/manifest. Never cancel an
@@ -63,9 +75,13 @@ jobs:
   #   - No publish path may ever run on `pull_request`. This workflow has no pull_request trigger,
   #     and a fork could not obtain this repository's OIDC token anyway — minting a key on a PR
   #     would be both pointless and a hard failure.
-  #   - `release_created` is false on a workflow_dispatch, which is what makes the dry-run safe:
-  #     every publish step below is gated on it, so a dispatch exercises the build/pack path and
-  #     sends nothing to nuget.org.
+  #   - Every publish step is gated on `release_created`, so a run that only refreshes the release
+  #     PR builds and packs but sends nothing to nuget.org. See the `workflow_dispatch` note above
+  #     for the one case where a manual run legitimately does publish.
+  #   - The tag and the GitHub Release are created BEFORE this job builds anything. If this job
+  #     fails, the release exists with no packages attached. Recover with **Re-run failed jobs** —
+  #     "Re-run all jobs" re-runs release-please, which now sees the release already created,
+  #     reports `release_created: false`, and skips this job entirely.
   #   - Publishing requires a nuget.org Trusted Publishing policy for BOTH the FormCraft and
   #     FormCraft.ForMudBlazor packages, naming this repository and THIS workflow file
   #     (release-please.yml — it named continuous.yml until this change), plus the NUGET_USER
@@ -125,9 +141,11 @@ jobs:
           name: test-results
           path: test-results
 
+      # Symbol packages included: Pack produces .snupkg alongside .nupkg, and the removed
+      # CreateGitHubRelease target attached both. `*.nupkg` does not match `*.snupkg`.
       - name: Attach packages to the GitHub Release
         if: ${{ needs.release-please.outputs.release_created == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.release-please.outputs.tag_name }}
-        run: gh release upload "$TAG" ./artifacts/*.nupkg --clobber
+        run: gh release upload "$TAG" ./artifacts/*.nupkg ./artifacts/*.snupkg --clobber

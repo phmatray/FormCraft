@@ -47,9 +47,12 @@ On Windows use `build.cmd` / `build.ps1`; `build.cmd` also works on macOS and Li
 - **PublishIfNeeded** — the CI gate in front of `Publish`:
   `OnlyWhenStatic(IsOnVersionTag() && IsServerBuild)`. This is what makes the release workflow thin —
   it checks out the tag, so the gate is satisfied without any conditional logic in the workflow.
-- **Continuous** — `DependsOn(Test, Pack)`, triggering `PublishIfNeeded`. Invoked by both
-  `continuous.yml` (where no ref is ever a version tag, so nothing publishes) and by
-  `release-please.yml`'s `nupkg` job (where the tag *is* checked out, so it publishes).
+- **Continuous** — `DependsOn(Test, Pack)`, triggering `PublishIfNeeded`. Invoked **only** by
+  `release-please.yml`'s `nupkg` job, which checks out the tag on purpose so the publish activates.
+  `continuous.yml` deliberately invokes `Pack` instead: `PublishIfNeeded`'s guard does not check
+  whether a key exists, so on any tagged commit (`origin/main` *is* the `v3.1.0` commit, and each
+  release tag lands on `dev`) `Continuous` would reach `Publish` and hard-fail its
+  `Requires(NuGetApiKey)`.
 - **Release** — informational only; logs the version it would release
 
 ## Versioning
@@ -79,7 +82,7 @@ Do not hand-edit `CHANGELOG.md`. Your PR title is the changelog entry.
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `ci.yml` | push / PR | `./build.cmd Test` |
-| `continuous.yml` | push to `main`/`dev`, PRs | `./build.cmd Continuous` — build, test, pack. **Never publishes**: no ref it builds is a version tag. |
+| `continuous.yml` | push to `main`/`dev`, PRs | `./build.cmd Pack` — build, test, pack. **Never publishes**: it does not invoke the target that triggers publishing. |
 | `release-please.yml` | push to `dev`, `workflow_dispatch` | keeps the release PR open; on merge tags the release and, in the same run, publishes both packages via Trusted Publishing |
 | `pr-title-lint.yml` | `pull_request_target` | rejects a PR title that is not a Conventional Commit |
 

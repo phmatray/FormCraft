@@ -146,6 +146,19 @@ The full convention is `<type>(<scope>): <subject> (#<issue>)`.
   target and the changelog pre-commit hook were all removed: with release-please owning the file, a
   second generator would rewrite it out from under the open release PR.
 
+#### If you ever ran `./setup-hooks.sh`, remove the hook
+
+Those installer scripts are gone, but they are not self-uninstalling — a hook they wrote is still in
+your local clone, and it still tries to regenerate and `git add` `CHANGELOG.md` on every commit. That
+is a second writer to a file release-please now owns. Check and remove it:
+
+```bash
+cat .git/hooks/pre-commit     # if it mentions generate-changelog, remove it:
+rm .git/hooks/pre-commit
+```
+
+(`git commit --no-verify` skips it for a single commit, but removing it is the fix.)
+
 ## Documentation
 
 - Update XML documentation for public APIs
@@ -170,6 +183,30 @@ Releasing is one action: **merge the release PR**. Nothing is tagged by hand.
 Publishing lives in that same workflow run by necessity: release-please creates the tag with
 `GITHUB_TOKEN`, and GitHub does not fire `on: push: tags` for events created by that token, so a
 tag-triggered publish workflow would never run.
+
+### If the release run fails
+
+The tag and the GitHub Release are created **before** the `nupkg` job builds anything, so a failure
+there leaves a tagged, announced release with no packages attached.
+
+Recover with **“Re-run failed jobs”**. Do *not* use “Re-run all jobs”: that re-runs release-please,
+which sees the release already exists, reports `release_created: false`, and skips the `nupkg` job
+entirely — so nothing is retried and the failure looks resolved. Pushing to NuGet is idempotent
+(`--skip-duplicate`), so re-running the publish is always safe.
+
+### Forcing a release when nothing releasable has landed
+
+Only `feat`, `fix`, `perf`, `refactor` and `revert` commits produce a release; `chore`, `ci`, `docs`,
+`style`, `test` and `build` are hidden and do not trigger one. That is intentional — it matches what
+the previous git-cliff config did — but it means a period of pure `chore(deps):` updates opens no
+release PR, even if one of those bumps matters (a shipped runtime dependency, say).
+
+Hand-tagging is no longer an escape hatch. To force a release, add a `Release-As:` footer to the
+squashed commit, e.g. a PR whose body ends with:
+
+```
+Release-As: 3.2.1
+```
 
 ## Questions?
 
