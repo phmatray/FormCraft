@@ -34,6 +34,12 @@ jobs:
       # continuous.yml has carried such a step for some time and no run of it has ever produced a
       # test-results artifact. `test-results` is still listed so the artifact gains the trx/html the
       # day the build actually emits them.
+      #
+      # Reading it: the log is UTF-16LE and carries ANSI colour escapes, so a plain `grep '^failed '`
+      # matches nothing and looks exactly like an empty artifact. Use:
+      #   gh run download <run-id> -n test-results -D /tmp/tr
+      #   iconv -f UTF-16LE -t UTF-8 /tmp/tr/**/TestResults/*.log | sed $'s/\\x1b\\[[0-9;]*m//g' \
+      #     | grep -A5 '^failed '
       - name: 'Publish: test-results'
         if: always()
         uses: actions/upload-artifact@v7
