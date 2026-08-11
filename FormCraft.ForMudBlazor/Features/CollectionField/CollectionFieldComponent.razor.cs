@@ -242,6 +242,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
             EventCallback.Factory.Create<string>(this,
                 newValue => UpdateItemFieldValue(itemIndex, field.FieldName, newValue)));
         builder.AddAttribute(CallerAttributeStart + 2, "Immediate", true);
+        AddTextInputAttributes(builder, field, TextAttributeStart);
         builder.CloseComponent();
     }
 
@@ -302,6 +303,50 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// stopped" — the gap is what lets the common set grow without every caller moving.
     /// </summary>
     private const int CallerAttributeStart = 20;
+
+    /// <summary>
+    /// First sequence number <see cref="AddTextInputAttributes"/> may use. Clear of the caller
+    /// block above for the same reason that block is clear of the common one: sequence numbers are
+    /// source-position constants, so each contiguous run needs room to grow without moving the next.
+    /// </summary>
+    private const int TextAttributeStart = 30;
+
+    /// <summary>
+    /// Emits the input attributes that only the text path takes (#189), starting with the one this
+    /// issue was filed for: without <c>InputType</c>, a <c>.AsPassword()</c> item field rendered
+    /// its characters in clear text.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately NOT part of <see cref="AddCommonFieldAttributes"/>, which all three item
+    /// renderers call. <c>MudNumericField</c> derives its own <c>InputType</c> and forwarding one
+    /// would override it, and <c>MudDatePicker</c> has no such parameter at all — the value would
+    /// fall through to its unmatched-attribute bag and be emitted as raw HTML. The #184
+    /// calendar-icon lesson, applied before the fact rather than after.
+    /// </remarks>
+    /// <param name="builder">The render tree builder for the open item-field component.</param>
+    /// <param name="field">The item field's configuration.</param>
+    /// <param name="startIndex">The first sequence number this method may use.</param>
+    private static void AddTextInputAttributes(
+        RenderTreeBuilder builder,
+        IFieldConfiguration<TItem, object> field,
+        int startIndex)
+    {
+        builder.AddAttribute(startIndex, "InputType", GetItemFieldInputType(field));
+    }
+
+    /// <summary>
+    /// Resolves the input type for an item field exactly as the component path does: the
+    /// first-class <see cref="IFieldConfiguration{TModel, TValue}.InputType"/> that
+    /// <c>WithInputType(...)</c> and <c>AsPassword()</c> write, then a raw "InputType" attribute,
+    /// then text.
+    /// </summary>
+    /// <remarks>
+    /// Reading only <c>AdditionalAttributes</c> here would miss <c>AsPassword()</c> entirely — it
+    /// writes the property, not an attribute — and leave the clear-text bug exactly where it was.
+    /// </remarks>
+    private static InputType GetItemFieldInputType(IFieldConfiguration<TItem, object> field)
+        => TextInputTypeMap.Resolve(
+            field.InputType ?? GetItemFieldAttribute<string?>(field, "InputType", null));
 
     /// <summary>
     /// Emits the presentation attributes every item field shares.
