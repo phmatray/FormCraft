@@ -95,10 +95,14 @@ dotnet test
 
 ## Versioning
 
-This project uses [MinVer](https://github.com/adamralph/minver) for semantic versioning:
-- Tag releases with `v` prefix (e.g., `v1.0.0`)
-- Pre-release versions are automatically generated
-- Follow [Semantic Versioning](https://semver.org/)
+This project follows [Semantic Versioning](https://semver.org/), and **the version is never chosen
+by hand**. [release-please](https://github.com/googleapis/release-please) derives it from the
+Conventional Commits that have landed on `dev` and creates the `vX.Y.Z` tag when the release PR is
+merged; [MinVer](https://github.com/adamralph/minver) then reads that tag to stamp the assemblies and
+packages. The tag is the single source of truth — no file in the repository records the version.
+
+Between releases MinVer produces height-based pre-release versions (e.g. `3.1.1-preview.4`) from your
+local commits, which is what you will see when you build or pack locally.
 
 ## Commit Messages and Changelog
 
@@ -120,55 +124,27 @@ fix: resolve null reference in field renderer
 docs: update API documentation
 ```
 
-### Automatic Changelog Generation
+### Your PR title matters more than your commit messages
 
-The changelog is automatically generated from commit messages before each commit.
+Pull requests are **squash-merged**, so the **PR title** — not the individual commits on your branch —
+becomes the commit message on `dev`, and that is what release-please parses. A PR titled
+`feat(mudblazor): add a colour-picker field (#123)` produces a minor bump and a changelog entry; a PR
+titled `Update stuff` produces neither, silently.
 
-#### Setup (one-time)
-```bash
-# macOS/Linux
-./setup-hooks.sh
+`.github/workflows/pr-title-lint.yml` checks this on every non-draft PR, so a non-conforming title is
+caught before merge rather than quietly dropping your change out of the next release.
 
-# Windows
-./setup-hooks.ps1
-```
+The full convention is `<type>(<scope>): <subject> (#<issue>)`.
 
-This installs a pre-commit hook that:
-- Generates the changelog based on existing commits
-- Excludes the current commit to avoid the "one commit ahead" problem
-- Automatically stages the updated CHANGELOG.md
-- Works with ANY Git interface (Rider, VS, VS Code, CLI, etc.)
+### The changelog is generated — never edit it
 
-#### How it Works
+`CHANGELOG.md` is owned entirely by release-please, which rewrites it in the standing release PR.
 
-When you commit (from any interface):
-1. The pre-commit hook runs automatically
-2. Changelog is generated from existing commits
-3. Updated CHANGELOG.md is staged with your commit
-4. Your commit proceeds normally
-
-#### Manual Generation
-If you need to generate the changelog manually:
-```bash
-# macOS/Linux
-./generate-changelog.sh
-
-# Windows
-./generate-changelog.ps1
-```
-
-#### Disable Auto-Generation
-To temporarily skip changelog generation:
-```bash
-git commit --no-verify
-```
-
-To permanently disable:
-```bash
-rm .git/hooks/pre-commit
-```
-
-The changelog follows the [Keep a Changelog](https://keepachangelog.com/) format.
+- **Do not hand-edit `CHANGELOG.md`**, and do not add an entry for your change — your PR title is the
+  entry.
+- Nothing in the build generates it either. git-cliff, `cliff.toml`, the Nuke `GenerateChangelog`
+  target and the changelog pre-commit hook were all removed: with release-please owning the file, a
+  second generator would rewrite it out from under the open release PR.
 
 ## Documentation
 
@@ -179,10 +155,21 @@ The changelog follows the [Keep a Changelog](https://keepachangelog.com/) format
 
 ## Release Process
 
-Releases are automated through GitHub Actions:
-1. Maintainers create a new tag (e.g., `v1.1.0`)
-2. CI/CD pipeline runs tests
-3. Package is automatically published to NuGet.org
+Releasing is one action: **merge the release PR**. Nothing is tagged by hand.
+
+1. Every push to `dev` runs `.github/workflows/release-please.yml`, which keeps a release PR open
+   showing the next version and the changelog it would publish. If nothing releasable has landed
+   (for example only `chore(deps):` commits), no PR is opened — that is correct.
+2. A maintainer reviews that PR and merges it.
+3. release-please tags `vX.Y.Z` and creates the GitHub Release.
+4. In the same workflow run, the `nupkg` job checks out the new tag — MinVer resolves the version
+   from it — and publishes `FormCraft` and `FormCraft.ForMudBlazor` to NuGet.org via Trusted
+   Publishing (OIDC, a short-lived key; no long-lived secret), then attaches the packages to the
+   release.
+
+Publishing lives in that same workflow run by necessity: release-please creates the tag with
+`GITHUB_TOKEN`, and GitHub does not fire `on: push: tags` for events created by that token, so a
+tag-triggered publish workflow would never run.
 
 ## Questions?
 

@@ -1,12 +1,15 @@
 # FormCraft Build System
 
-This project uses [Nuke](https://nuke.build/) as its build automation system with [git-cliff](https://github.com/orhun/git-cliff) for changelog generation.
+This project uses [Nuke](https://nuke.build/) as its build automation system.
+
+Nuke builds, tests, packs and publishes. It does **not** decide *when* to release and it does **not**
+generate the changelog — [release-please](https://github.com/googleapis/release-please) owns both.
+See [CONTRIBUTING.md](../CONTRIBUTING.md#release-process) for the release flow.
 
 ## Prerequisites
 
-- .NET SDK 9.0 or later
-- Git
-- git-cliff (for changelog generation - auto-installed on macOS/Linux)
+- .NET SDK `10.0.302` or later (pinned in `global.json`, `rollForward: latestFeature`)
+- Git — with **full history**, because MinVer derives the version from tags (`fetch-depth: 0` in CI)
 
 ## Quick Start
 
@@ -19,130 +22,84 @@ This project uses [Nuke](https://nuke.build/) as its build automation system wit
 
 # Create NuGet packages
 ./build.sh Pack
-
-# Generate changelog
-./build.sh Changelog
 ```
+
+On Windows use `build.cmd` / `build.ps1`; `build.cmd` also works on macOS and Linux (it shells out to
+`build.sh`), which is why the CI workflows call `./build.cmd`.
 
 ## Build Targets
 
-### Core Targets
+### Core
 
-- **Clean**: Cleans build outputs and artifacts
-- **Restore**: Restores NuGet packages
-- **Compile**: Builds the solution (default target)
-- **Test**: Runs unit tests with test results in TRX and HTML formats
-- **Pack**: Creates NuGet packages (.nupkg and .snupkg)
+- **Clean** — cleans build outputs and artifacts
+- **Restore** — restores NuGet packages
+- **Compile** — builds the solution (default target)
+- **Test** — runs the unit tests, writing TRX and HTML results to `test-results/`
+- **Pack** — creates the NuGet packages (`.nupkg` + `.snupkg`) in `artifacts/`, and mirrors the
+  committed root `CHANGELOG.md` into the two package directories so it ships inside the package
 
-### Publishing & Release
+### Publishing
 
-- **Publish**: Publishes packages to NuGet.org
-  - Only runs on main branch with release configuration
-  - Requires `NUGET_API_KEY` environment variable
-  - Automatically triggered by version tags (v*)
-  
-- **Announce**: Logs publication success with package details
-  - Automatically triggered after successful publish
+- **Publish** — pushes the packages to NuGet.org. Requires `NUGET_API_KEY`, a Release configuration,
+  and a version tag / main / release branch. Uses `--skip-duplicate`, so re-running a release is
+  idempotent.
+- **Announce** — logs the published package details; triggered after a successful `Publish`
+- **PublishIfNeeded** — the CI gate in front of `Publish`:
+  `OnlyWhenStatic(IsOnVersionTag() && IsServerBuild)`. This is what makes the release workflow thin —
+  it checks out the tag, so the gate is satisfied without any conditional logic in the workflow.
+- **Continuous** — `DependsOn(Test, Pack)`, triggering `PublishIfNeeded`. Invoked by both
+  `continuous.yml` (where no ref is ever a version tag, so nothing publishes) and by
+  `release-please.yml`'s `nupkg` job (where the tag *is* checked out, so it publishes).
+- **Release** — informational only; logs the version it would release
 
-### Continuous Integration
+## Versioning
 
-- **Continuous**: Main CI target that runs Test and Pack
-  - Triggers conditional publishing and changelog updates
-  
-- **PublishIfNeeded**: Publishes when on a version tag
-  - Only runs in CI on main branch with version tags
-  
-- **ChangelogIfNeeded**: Updates changelog on main branch
-  - Only runs in CI on main branch without version tags
-  - Automatically commits changes with [skip ci]
+Versions come from [MinVer](https://github.com/adamralph/minver), which reads the nearest `v*` git
+tag (`MinVerTagPrefix=v` in `Directory.Build.props`). No file in the repository records the version,
+and `Pack` deliberately passes no `/p:Version` — MinVer's targets would override it anyway.
 
-### Changelog Management
+Between releases you get height-based pre-release versions such as `3.1.1-preview.4`.
 
-- **Changelog**: Generates CHANGELOG.md using git-cliff
-  - Uses conventional commits format
-  - Groups changes by type (features, fixes, etc.)
-  - Automatically installs git-cliff if not available (macOS/Linux)
+The `vX.Y.Z` tag itself is created by release-please when the release PR is merged. That is also why
+`release-please-config.json` sets `include-component-in-tag: false`: a component tag
+(`formcraft-v3.2.0`) would not match `MinVerTagPrefix=v`, MinVer would find no tag at all, and both
+packages would pack as `0.0.0-alpha.0.N`.
 
-## GitHub Actions Workflow
+## Changelog
 
-The build system generates a single, comprehensive workflow (`continuous.yml`) that:
+`CHANGELOG.md` is generated and owned by release-please, in the standing release PR. **Nothing in
+this build generates it** — the former `GenerateChangelog` target, `cliff.toml` and the git-cliff
+dependency were removed, because a second generator would rewrite the file out from under the open
+release PR. `Pack` only *copies* the committed file into the package directories.
 
-1. **On Push/PR to main/develop**: Runs tests and creates packages
-2. **On Version Tags (v*)**: Additionally publishes to NuGet
-3. **On Push to main**: Updates changelog (if not a tag)
+Do not hand-edit `CHANGELOG.md`. Your PR title is the changelog entry.
 
-### Workflow Features
+## GitHub Actions
 
-- Runs on Ubuntu latest
-- Full git history fetch for changelog generation
-- Automatic git-cliff installation in CI environment
-- Write permissions for committing changelog updates
-- Caches NuGet packages for faster builds
-- Conditional steps based on branch and tags
-- Secure secret handling for NuGet API key
+| Workflow | Trigger | What it does |
+|---|---|---|
+| `ci.yml` | push / PR | `./build.cmd Test` |
+| `continuous.yml` | push to `main`/`dev`, PRs | `./build.cmd Continuous` — build, test, pack. **Never publishes**: no ref it builds is a version tag. |
+| `release-please.yml` | push to `dev`, `workflow_dispatch` | keeps the release PR open; on merge tags the release and, in the same run, publishes both packages via Trusted Publishing |
+| `pr-title-lint.yml` | `pull_request_target` | rejects a PR title that is not a Conventional Commit |
 
-### Permissions
+The publish lives inside `release-please.yml` by necessity: release-please creates the tag with
+`GITHUB_TOKEN`, and GitHub does not fire `on: push: tags` for events created by that token, so a
+tag-triggered publish workflow would silently never run.
 
-The workflow has `contents: write` permission enabled to allow:
-- Committing and pushing changelog updates
-- Creating releases (future enhancement)
-
-## Changelog Generation with git-cliff
-
-The project uses [git-cliff](https://github.com/orhun/git-cliff) for generating changelogs from conventional commits.
-
-### Configuration
-
-The changelog is configured in `cliff.toml` with:
-- Conventional commit parsing
-- Automatic grouping by change type
-- GitHub commit links
-- Breaking change highlighting
-
-### Commit Types
-
-| Type | Description | Group |
-|------|-------------|-------|
-| `feat` | New features | ✨ Features |
-| `fix` | Bug fixes | 🐛 Bug Fixes |
-| `docs` | Documentation | 📚 Documentation |
-| `perf` | Performance improvements | ⚡ Performance |
-| `refactor` | Code refactoring | ♻️ Refactor |
-| `style` | Code style changes | 💄 Styling |
-| `test` | Test changes | ✅ Testing |
-| `chore` | Maintenance tasks | 🔧 Miscellaneous Tasks |
-
-### Breaking Changes
-
-Mark breaking changes with `!`:
-```
-feat!: new API that breaks compatibility
-fix!: critical security fix with breaking changes
-```
-
-### Installation
-
-**In GitHub Actions**: git-cliff is automatically installed via direct download in the workflow.
-
-**For local development**: git-cliff is automatically installed when running the Changelog target on macOS and Linux. For Windows, install manually:
-
-```powershell
-# Windows (using Scoop)
-scoop install git-cliff
-
-# Or download from GitHub releases
-# https://github.com/orhun/git-cliff/releases
-```
+> The `[GitHubActions]` attribute on `Build` has `AutoGenerate = false`. The workflow files are
+> maintained by hand; regenerating them from the attribute would overwrite that.
 
 ## Configuration
 
-### Environment Variables
+### Environment variables
 
-- `NUGET_API_KEY`: Required for publishing to NuGet.org. In CI this is **not** a stored secret —
-  `continuous.yml` obtains a key valid about an hour from NuGet
+- `NUGET_API_KEY` — required only by `Publish`. In CI this is **not** a stored secret:
+  `release-please.yml` obtains a key valid about an hour from NuGet
   [Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing) via GitHub's
-  OIDC token, and passes it in through this same variable, so the build needs no change. Only a
-  local, manual publish uses a real API key you supply yourself.
+  OIDC token and passes it in through this variable, so the build needs no change. Only a local,
+  manual publish uses a real API key you supply yourself.
+- `NUGET_USER` — repository secret holding the nuget.org profile name, used by the OIDC login step.
 
 ### Parameters
 
@@ -152,68 +109,15 @@ scoop install git-cliff
 
 # Run specific targets
 ./build.sh Test Pack --skip Restore
-```
 
-## Local Development
-
-### Running Specific Targets
-
-```bash
-# Clean everything
-./build.sh Clean
-
-# Run tests
-./build.sh Test
-
-# Generate changelog locally
-./build.sh Changelog
-```
-
-### Viewing Execution Plan
-
-```bash
-# Show execution plan in HTML
+# Show the execution plan in HTML
 ./build.sh --plan
 ```
 
 ## Troubleshooting
 
-### Regenerate GitHub Actions Workflow
-
-If the workflow is out of sync:
-```bash
-./build.sh --generate-configuration GitHubActions_continuous --host GitHubActions
-```
-
-**Note**: The workflow includes custom modifications for git-cliff installation. These are preserved in `.github/workflow-modifications.yml` and automatically applied when regenerating.
-
-### Manual git-cliff Installation
-
-If automatic installation fails:
-
-```bash
-# macOS
-brew install git-cliff
-
-# Linux
-wget -qO- https://github.com/orhun/git-cliff/releases/latest/download/git-cliff-x86_64-unknown-linux-gnu.tar.gz | tar -xz
-sudo mv git-cliff /usr/local/bin/
-
-# Verify installation
-git-cliff --version
-```
-
-### Common Issues
-
-1. **Workflow generation errors**: Remove `.github/workflows/*.yml` and run build again
-2. **Version detection**: Ensure tags follow `v*` pattern (e.g., v1.0.0)
-3. **Changelog commits**: Failed with [skip ci] to prevent infinite loops
-4. **git-cliff not found**: Install manually using instructions above
-
-## Benefits of This Approach
-
-1. **Single Workflow**: One comprehensive workflow for all CI/CD needs
-2. **Professional Changelogs**: git-cliff generates well-formatted, consistent changelogs
-3. **Conventional Commits**: Enforces good commit message practices
-4. **Type-Safe Build**: C# build scripts with IntelliSense and compile-time checks
-5. **Cross-Platform**: Works on Windows, Linux, and macOS
+1. **Packages version as `0.0.0-alpha…`** — MinVer found no tag. Check out the tag itself and fetch
+   full history (`fetch-depth: 0`); a shallow clone has no tags.
+2. **Version detection** — tags must follow the `v*` pattern (e.g. `v1.0.0`).
+3. **A build warning fails the build** — that is deliberate: `Directory.Build.props` sets
+   `TreatWarningsAsErrors=true`. Fix the warning rather than relaxing the setting.
