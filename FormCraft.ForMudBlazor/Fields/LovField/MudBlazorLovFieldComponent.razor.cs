@@ -23,6 +23,18 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     protected ILovConfiguration<TItem, TValue>? LovConfig => _lovConfig;
 
     /// <summary>
+    /// Suppresses the ShrinkLabel diagnostic (#181) for LOV fields.
+    /// </summary>
+    /// <remarks>
+    /// This component always renders a non-empty placeholder — the caller's, else
+    /// "Click to select..." — and MudBlazor pins the label whenever a placeholder is present.
+    /// A LOV label therefore can never float, whatever <c>ShrinkLabel</c> says, so the warning
+    /// would be unactionable: there is no configuration change that would satisfy it. Silence
+    /// here is deliberate, and asserted by ShrinkLabelDiagnosticsTests.
+    /// </remarks>
+    protected override bool SuppressShrinkLabelDiagnostic => true;
+
+    /// <summary>
     /// Gets whether multiple selection is enabled.
     /// </summary>
     protected bool IsMultiSelect => _lovConfig?.SelectionMode == LovSelectionMode.Multiple;

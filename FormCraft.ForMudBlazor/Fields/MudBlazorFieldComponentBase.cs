@@ -88,6 +88,12 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
 
     private bool _shrinkLabelDiagnosticEmitted;
 
+    /// <summary>
+    /// When true, this component never reports a ShrinkLabel conflict. Override in components
+    /// whose label is structurally always pinned, where the warning would be unactionable.
+    /// </summary>
+    protected virtual bool SuppressShrinkLabelDiagnostic => false;
+
     /// <inheritdoc />
     protected override void OnParametersSet()
     {
@@ -108,7 +114,7 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     {
         // Once per component instance: the conflict is a configuration fact, so re-reporting it
         // on every parameter change would flood the console as the user types.
-        if (_shrinkLabelDiagnosticEmitted || EffectiveShrinkLabel)
+        if (_shrinkLabelDiagnosticEmitted || EffectiveShrinkLabel || SuppressShrinkLabelDiagnostic)
         {
             return;
         }
@@ -146,7 +152,7 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// null when the setting will be honoured.
     /// </summary>
     private string? ShrinkLabelConflict() =>
-        ShrinkLabelDiagnostic.Conflict(Placeholder);
+        ShrinkLabelDiagnostic.Conflict(Placeholder, GetAttribute<Adornment?>("Adornment"));
 }
 
 /// <summary>
@@ -168,6 +174,14 @@ internal static class ShrinkLabelDiagnostic
     /// label or the two overlap, so that override is correct behaviour rather than a surprise —
     /// warning about it would be noise on every filled form.
     /// </remarks>
-    internal static string? Conflict(string? placeholder) =>
-        !string.IsNullOrWhiteSpace(placeholder) ? "a Placeholder" : null;
+    internal static string? Conflict(string? placeholder, Adornment? adornment)
+    {
+        if (!string.IsNullOrWhiteSpace(placeholder))
+        {
+            return "a Placeholder";
+        }
+
+        // Only a START adornment sits where a floating label would go; End is harmless.
+        return adornment == Adornment.Start ? "a start Adornment" : null;
+    }
 }
