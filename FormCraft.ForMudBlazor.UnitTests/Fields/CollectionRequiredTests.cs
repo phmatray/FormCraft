@@ -253,6 +253,93 @@ public class CollectionRequiredTests : MudBlazorTestBase
         textField.ErrorText.ShouldBeNullOrEmpty();
     }
 
+    [Fact]
+    public void TextItemField_With_WithNativeRequired_Should_Render_The_Decoration()
+    {
+        // Arrange & Act - #204. The same opt-in as the raw string above, through the typed method.
+        // Asserted on all three renderers fed by AddCommonFieldAttributes, because the escape hatch
+        // being text-only would be the exact divergence class this library keeps re-filing.
+        var component = RenderOrderForm(BuildConfiguration(field => field.WithNativeRequired()));
+
+        // Assert - the component property, and the class MudBlazor's asterisk hangs off.
+        component.FindComponent<MudTextField<string>>().Instance.Required.ShouldBeTrue();
+        component.FindAll(".mud-input-required").ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public void NumericItemField_With_WithNativeRequired_Should_Render_The_Decoration()
+    {
+        // Arrange - the second renderer. WithNativeRequired is declared on the general TValue
+        // overload rather than string-only precisely so this compiles.
+        var config = FormBuilder<BasketModel>
+            .Create()
+            .AddCollectionField(x => x.Lines, collection => collection
+                .WithLabel("Lines")
+                .WithItemForm(item => item
+                    .AddField(x => x.Quantity, field => field
+                        .WithLabel("Quantity")
+                        .WithNativeRequired())))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<BasketModel>>(parameters => parameters
+            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudNumericField<int>>().Instance.Required.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void DateItemField_With_WithNativeRequired_Should_Render_The_Decoration()
+    {
+        // Arrange - the third renderer, MudDatePicker.
+        var config = FormBuilder<AppointmentModel>
+            .Create()
+            .AddCollectionField(x => x.Slots, collection => collection
+                .WithLabel("Slots")
+                .WithItemForm(item => item
+                    .AddField(x => x.When, field => field
+                        .WithLabel("When")
+                        .WithNativeRequired())))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<AppointmentModel>>(parameters => parameters
+            .Add(p => p.Model, new AppointmentModel { Slots = { new AppointmentSlot() } })
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudDatePicker>().Instance.Required.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void BooleanItemField_With_WithNativeRequired_Should_Be_Inert()
+    {
+        // Arrange - RenderBooleanField sets its own attributes and never calls
+        // AddCommonFieldAttributes, so the opt-in is inert here through the typed method exactly as
+        // through the raw string. Pinned rather than fixed, mirroring the adornment inertness test
+        // (#184): the claim is that configuring it is harmless, not that it works.
+        var config = FormBuilder<BasketModel>
+            .Create()
+            .AddCollectionField(x => x.Lines, collection => collection
+                .WithLabel("Lines")
+                .WithItemForm(item => item
+                    .AddField(x => x.IsGift, field => field
+                        .WithLabel("Gift")
+                        .WithNativeRequired())))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<BasketModel>>(parameters => parameters
+            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Gift");
+        component.FindAll(".mud-input-required").ShouldBeEmpty();
+    }
+
     private IRenderedComponent<FormCraftComponent<OrderModel>> RenderOrderForm(
         IFormConfiguration<OrderModel> config)
     {

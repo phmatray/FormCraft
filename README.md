@@ -58,6 +58,16 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **`.WithNativeRequired()` replaces the `.WithAttribute("Required", true)` magic string — and now works on ordinary fields too.** #193 introduced the native-required opt-in as a documented raw string: undiscoverable by IntelliSense, unchecked by the compiler, and one typo (`"required"`) away from silently doing nothing. It is now a typed builder method, declared for every field type rather than strings only. The raw string keeps working and writes the same attribute, so this is additive (#204)
+
+  ```csharp
+  .AddField(x => x.Email, field => field
+      .Required("Email is required")   // the validation — server-side, your message
+      .WithNativeRequired())           // the decoration — asterisk + HTML5 attribute
+  ```
+
+  **The opt-in was collection-only, and no longer is.** A raw `"Required"` attribute was read solely by `CollectionFieldComponent`, so the escape hatch was honoured inside `.WithItemForm(...)` and silently ignored outside it. Both render paths now honour it, and `RenderPipelineParityTests` compares them. `.Required(...)` on its own still emits no HTML5 attribute on either path — that is the #190 behaviour and it is unchanged.
+
 - **`novalidate` is now a rendered attribute on the form, not something applied by a script afterwards.** The library documents its forms as `novalidate` — server-side validation, messages from your configured validator, no native browser bubbles — but the attribute was bolted on after first render with `JSRuntime.InvokeVoidAsync("eval", "document.querySelector('form')?.setAttribute(…)")`. That missed in three ways: it marked the **first** form in the document rather than FormCraft's (so a search or login form higher up the page got marked instead, and with two FormCraft forms the second was never marked at all), it never ran during **prerender/SSR**, and it failed silently. Being `eval`, a strict **CSP** blocked it outright — silently and totally. The attribute is now in the markup, so it targets the right form by construction, survives prerender, and needs no JavaScript (#206)
 
   **Worth knowing if you rely on it.** This is the guarantee `.WithAttribute("Required", true)` (#193) depends on: that opt-in emits a genuine HTML5 `required`, and on a page where the script missed, the browser really did enforce it — producing exactly the native validation bubbles this library says it never produces.
@@ -128,7 +138,7 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **⚠️ This is a visible change, not just an attribute change.** MudBlazor draws the required asterisk from a CSS rule on the `mud-input-required` class, which it only adds when `Required="true"`. So text, numeric **and date** item fields configured with `.Required(...)` lose their `*` — they now look exactly like ordinary `.Required(...)` fields, which never had one. `aria-required` likewise reports `false` on these fields as it already did on ordinary ones; identifying required fields to assistive technology is a gap the library has on **both** render paths, tracked separately rather than fixed on one side here.
 
-  **Opting back in.** `.WithAttribute("Required", true)` on a text, numeric or date item field renders `Required="true"` again, restoring both the asterisk and MudBlazor's native required semantics. The attribute is now read from that explicit opt-in rather than inferred from `.Required(...)`. Two limits worth knowing: the opt-in is **collection-only** (an ordinary field ignores a raw `"Required"` attribute — use `.Required(...)` there), and it is **inert on boolean item fields**, which render through a path that takes none of these shared attributes.
+  **Opting back in.** Use `.WithNativeRequired()` (see the note below) — or the raw `.WithAttribute("Required", true)`, which still works — on a text, numeric or date field to render `Required="true"` again, restoring both the asterisk and MudBlazor's native required semantics. The attribute is read from that explicit opt-in rather than inferred from `.Required(...)`. It is **inert on boolean item fields**, which render through a path that takes none of these shared attributes.
 
 - **`.WithAdornment(...)` now renders inside collection item forms.** A field configured with an adornment inside `.WithItemForm(...)` had the setting accepted and then silently discarded — no icon, no exception, no warning — while the identical call on an ordinary field rendered fine. Text and numeric item fields now forward `Adornment`, `AdornmentIcon` and `AdornmentColor` (#184)
 

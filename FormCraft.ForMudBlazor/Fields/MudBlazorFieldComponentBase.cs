@@ -116,6 +116,20 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     protected Color EffectiveAdornmentColor => GetAttribute("AdornmentColor", Color.Default);
 
     /// <summary>
+    /// Whether the field opted into MudBlazor's native required decoration via
+    /// <c>.WithNativeRequired()</c> (or the equivalent raw <c>"Required"</c> attribute). Defaults to
+    /// <c>false</c> (#204).
+    /// </summary>
+    /// <remarks>
+    /// ⛔ Deliberately read from the attribute and **never** from <c>Context.Field.IsRequired</c>.
+    /// Driving it from <c>.Required(...)</c> is exactly what #190 removed: FormCraft's validation is
+    /// server-side, and the same call emitted the HTML5 attribute inside <c>.WithItemForm(...)</c>
+    /// and not outside it. This is the explicit opt-in for callers who want the decoration anyway,
+    /// and it is honoured on both render paths so the escape hatch does not work on only one of them.
+    /// </remarks>
+    protected bool EffectiveNativeRequired => GetAttribute("Required", false);
+
+    /// <summary>
     /// Service provider used to resolve an optional <see cref="ILoggerFactory"/> for the
     /// ShrinkLabel diagnostic. Diagnostics degrade silently when no logger is registered.
     /// </summary>
