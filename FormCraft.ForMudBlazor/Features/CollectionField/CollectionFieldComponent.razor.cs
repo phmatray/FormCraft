@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Rendering;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
@@ -236,12 +237,14 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private void RenderTextField(RenderTreeBuilder builder, IFieldConfiguration<TItem, object> field, string? value, int itemIndex)
     {
         builder.OpenComponent<MudTextField<string>>(0);
-        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: true);
+        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: true,
+            adornmentClick: BuildAdornmentClick(field, itemIndex));
         builder.AddAttribute(CallerAttributeStart, "Value", value);
         builder.AddAttribute(CallerAttributeStart + 1, "ValueChanged",
             EventCallback.Factory.Create<string>(this,
                 newValue => UpdateItemFieldValue(itemIndex, field.FieldName, newValue)));
         builder.AddAttribute(CallerAttributeStart + 2, "Immediate", true);
+        AddTextInputAttributes(builder, field, TextAttributeStart);
         builder.CloseComponent();
     }
 
@@ -249,7 +252,10 @@ public partial class CollectionFieldComponent<TModel, TItem>
         where T : struct
     {
         builder.OpenComponent(0, typeof(MudNumericField<>).MakeGenericType(typeof(T)));
-        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: true);
+        // WithAdornment — and so its handler — is declared on string fields only, leaving a numeric
+        // item field's adornment inert. Numeric adornment support is tracked separately (#191).
+        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: true,
+            adornmentClick: default);
         builder.AddAttribute(CallerAttributeStart, "Value", value);
         builder.AddAttribute(CallerAttributeStart + 1, "ValueChanged",
             EventCallback.Factory.Create<T>(this,
@@ -281,7 +287,8 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // rendersAdornment: false — MudDatePicker defaults to Adornment.End with its calendar
         // icon, so forwarding a field's (usually unset) adornment here would silently strip that
         // icon on every date item field. Out of scope for #184; see the issue's non-goals.
-        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: false);
+        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: false,
+            adornmentClick: default);
         builder.AddAttribute(CallerAttributeStart, "Date", value);
         builder.AddAttribute(CallerAttributeStart + 1, "DateChanged",
             EventCallback.Factory.Create<DateTime?>(this,
@@ -304,6 +311,89 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private const int CallerAttributeStart = 20;
 
     /// <summary>
+    /// First sequence number <see cref="AddTextInputAttributes"/> may use. Clear of the caller
+    /// block above for the same reason that block is clear of the common one: sequence numbers are
+    /// source-position constants, so each contiguous run needs room to grow without moving the next.
+    /// </summary>
+    private const int TextAttributeStart = 30;
+
+    /// <summary>
+    /// Emits the input attributes that only the text path takes (#189), starting with the one this
+    /// issue was filed for: without <c>InputType</c>, a <c>.AsPassword()</c> item field rendered
+    /// its characters in clear text.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Deliberately NOT part of <see cref="AddCommonFieldAttributes"/>, which all three item
+    /// renderers call. <c>MudNumericField</c> derives its own <c>InputType</c> and forwarding one
+    /// would override it, and <c>MudDatePicker</c> has no such parameter at all — the value would
+    /// fall through to its unmatched-attribute bag and be emitted as raw HTML. The #184
+    /// calendar-icon lesson, applied before the fact rather than after.
+    /// </para>
+    /// <para>
+    /// Each fallback is the value the COMPONENT path renders when nothing is configured, which is
+    /// not always MudBlazor's own default — see <see cref="GetItemFieldMaxLength"/>. Parity between
+    /// FormCraft's two render paths is the point; matching MudBlazor's bare defaults instead would
+    /// leave the very gap this issue exists to close.
+    /// </para>
+    /// <para>
+    /// <c>Mask</c> is deliberately absent. FormCraft stores it as a string and MudBlazor's
+    /// parameter takes an <c>IMask</c>; the component path reads the string into a property and
+    /// then drops it, so neither path masks anything today. Forwarding it here would introduce a
+    /// divergence rather than remove one.
+    /// </para>
+    /// </remarks>
+    /// <param name="builder">The render tree builder for the open item-field component.</param>
+    /// <param name="field">The item field's configuration.</param>
+    /// <param name="startIndex">The first sequence number this method may use.</param>
+    private static void AddTextInputAttributes(
+        RenderTreeBuilder builder,
+        IFieldConfiguration<TItem, object> field,
+        int startIndex)
+    {
+        builder.AddAttribute(startIndex++, "InputType", GetItemFieldInputType(field));
+        builder.AddAttribute(startIndex++, "Lines", GetItemFieldAttribute(field, "Lines", 1));
+        builder.AddAttribute(startIndex++, "MaxLength", GetItemFieldMaxLength(field));
+
+        // Lowercase on purpose: MudTextField has no Autocomplete parameter, so this rides through
+        // its unmatched-attribute bag onto the rendered <input> exactly as the component path's
+        // `autocomplete="@Autocomplete"` does. A capitalised name would emit a different attribute
+        // and no browser or password manager would read it.
+        builder.AddAttribute(startIndex, "autocomplete",
+            GetItemFieldAttribute<string?>(field, "autocomplete", null));
+    }
+
+    /// <summary>
+    /// Resolves the maximum length for an item field, mirroring the component path: a configured
+    /// positive value, otherwise unbounded.
+    /// </summary>
+    /// <remarks>
+    /// The fallback is <see cref="int.MaxValue"/> rather than MudBlazor's own 524288 default,
+    /// because that is what the component path renders for an unconfigured field. A non-positive
+    /// configured value means "no limit" there too — treating it literally would render an item
+    /// field that accepts no input at all.
+    /// </remarks>
+    private static int GetItemFieldMaxLength(IFieldConfiguration<TItem, object> field)
+    {
+        var configured = GetItemFieldAttribute(field, "MaxLength", 0);
+        return configured > 0 ? configured : int.MaxValue;
+    }
+
+    /// <summary>
+    /// Resolves the input type for an item field exactly as the component path does: the
+    /// first-class <see cref="IFieldConfiguration{TModel, TValue}.InputType"/> that
+    /// <c>WithInputType(...)</c> and <c>AsPassword()</c> write, then a raw "InputType" attribute,
+    /// then text.
+    /// </summary>
+    /// <remarks>
+    /// Reading only <c>AdditionalAttributes</c> here would miss <c>AsPassword()</c> entirely — it
+    /// writes the property, not an attribute — and leave the clear-text bug exactly where it was.
+    /// </remarks>
+    private static InputType GetItemFieldInputType(IFieldConfiguration<TItem, object> field)
+        => TextInputTypeMap.Resolve(
+            field.InputType ?? GetItemFieldAttribute<string?>(field, "InputType", null));
+
+    /// <summary>
     /// Emits the presentation attributes every item field shares.
     /// </summary>
     /// <param name="builder">The render tree builder for the open item-field component.</param>
@@ -315,11 +405,17 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// whose own default is <see cref="Adornment.End"/> with a calendar icon that forwarding would
     /// erase.
     /// </param>
+    /// <param name="adornmentClick">
+    /// The callback to fire when the adornment icon is clicked (#192), or <c>default</c> for a path
+    /// that forwards no handler. It is emitted with the other three adornment attributes so the set
+    /// stays together; a callback with no delegate leaves the adornment a plain, inert icon.
+    /// </param>
     private void AddCommonFieldAttributes(
         RenderTreeBuilder builder,
         IFieldConfiguration<TItem, object> field,
         int startIndex,
-        bool rendersAdornment)
+        bool rendersAdornment,
+        EventCallback<MouseEventArgs> adornmentClick)
     {
         builder.AddAttribute(startIndex++, "Label", field.Label);
         builder.AddAttribute(startIndex++, "Placeholder", field.Placeholder);
@@ -354,7 +450,13 @@ public partial class CollectionFieldComponent<TModel, TItem>
         {
             builder.AddAttribute(startIndex++, "Adornment", rendered);
             builder.AddAttribute(startIndex++, "AdornmentIcon", GetItemFieldAttribute<string?>(field, "AdornmentIcon", null));
-            builder.AddAttribute(startIndex, "AdornmentColor", GetItemFieldAttribute(field, "AdornmentColor", Color.Default));
+            builder.AddAttribute(startIndex++, "AdornmentColor", GetItemFieldAttribute(field, "AdornmentColor", Color.Default));
+
+            // Emitted unconditionally inside the branch, like the three above: the frame layout is
+            // per-CALL-SITE, so a row whose field configured no handler must still produce the same
+            // frames as one that did. An empty EventCallback is what "no handler" looks like to
+            // MudBlazor — it draws a plain icon instead of a button, exactly as before #192.
+            builder.AddAttribute(startIndex, "OnAdornmentClick", adornmentClick);
         }
 
         // The diagnostic has to judge what this path actually RENDERS, not what was configured:
@@ -454,6 +556,49 @@ public partial class CollectionFieldComponent<TModel, TItem>
         => field.AdditionalAttributes.TryGetValue(name, out var value) && value is T typed
             ? typed
             : fallback;
+
+    /// <summary>
+    /// Builds the adornment click callback for a text item field (#192), or <c>default</c> when the
+    /// field configured no handler.
+    /// </summary>
+    /// <remarks>
+    /// The value is read from the model when the click happens rather than captured at render time,
+    /// so a handler always sees what the row holds now — the row may have been typed into, and this
+    /// path re-renders on every keystroke. The index is re-checked for the same reason a row could
+    /// have been removed between the render that produced this callback and the click.
+    /// </remarks>
+    private EventCallback<MouseEventArgs> BuildAdornmentClick(
+        IFieldConfiguration<TItem, object> field,
+        int itemIndex)
+    {
+        // AdditionalAttributes is untyped, so anything could sit under the key; a value of another
+        // shape means "no handler" rather than an InvalidCastException at click time.
+        var handler = GetItemFieldAttribute<Action<string?>?>(
+            field, MudBlazorFieldBuilderExtensions.AdornmentClickAttribute, null);
+
+        if (handler is null)
+        {
+            return default;
+        }
+
+        var fieldName = field.FieldName;
+        return EventCallback.Factory.Create<MouseEventArgs>(
+            this, () => handler(ReadItemFieldText(itemIndex, fieldName)));
+    }
+
+    /// <summary>
+    /// Reads an item field's current value as a string, or <c>null</c> when the row is gone or the
+    /// property does not hold one.
+    /// </summary>
+    private string? ReadItemFieldText(int itemIndex, string fieldName)
+    {
+        if (itemIndex < 0 || itemIndex >= Items.Count)
+        {
+            return null;
+        }
+
+        return typeof(TItem).GetProperty(fieldName)?.GetValue(Items[itemIndex]) as string;
+    }
 
     /// <summary>
     /// Resolves ShrinkLabel for an item field: the field-level "ShrinkLabel" attribute when

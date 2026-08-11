@@ -398,6 +398,16 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         // years apart. This pins the set the two paths DO agree on, so a regression in any of them
         // fails here. It is not a claim that the paths agree on everything: see Presentation()
         // for the attributes still known to diverge.
+        // One field carrying every compared attribute at once, so a single comparison covers the
+        // whole set. Two deliberate exclusions:
+        //
+        // - AsPassword's visibility toggle is off: it is component-path-only and would replace the
+        //   start adornment below with its own eye icon, failing this test for a reason it does not
+        //   exist to test.
+        // - Lines stays at its default 1, and is covered by the multiline test below instead.
+        //   MudBlazor renders a <textarea> once Lines > 1, and a textarea has no `type` attribute —
+        //   so combining Lines with AsPassword would make InputType inert and this test's headline
+        //   masking assertion vacuous: it would compare a parameter that changes nothing.
         static void Configure<TOwner>(FieldBuilder<TOwner, string> field)
             where TOwner : new()
             => field
@@ -406,6 +416,9 @@ public class RenderPipelineParityTests : MudBlazorTestBase
                 .WithHelpText("The catalogue name")
                 .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, Color.Secondary)
                 .WithVariant(Variant.Filled)
+                .AsPassword(enableVisibilityToggle: false)
+                .WithAttribute("MaxLength", 500)
+                .WithAutocomplete("current-password")
                 .Required("Product name is required");
 
         var standaloneConfig = FormBuilder<TestModel>
@@ -421,13 +434,13 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .Build();
 
         // Act
-        var standalone = RenderForm(standaloneConfig)
-            .FindComponent<MudTextField<string>>().Instance;
+        var standaloneRender = RenderForm(standaloneConfig);
+        var standalone = standaloneRender.FindComponent<MudTextField<string>>().Instance;
 
-        var itemField = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-                .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-                .Add(p => p.Configuration, collectionConfig))
-            .FindComponent<MudTextField<string>>().Instance;
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+        var itemField = itemRender.FindComponent<MudTextField<string>>().Instance;
 
         // Assert - compared as one set, so a newly-honoured attribute on the component path that
         // the collection path ignores shows up here rather than in a bug report
@@ -436,6 +449,15 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         // Guard the guard: a comparison of two all-default fields would pass while proving nothing.
         standalone.Adornment.ShouldBe(Adornment.Start);
         standalone.Variant.ShouldBe(Variant.Filled);
+        standalone.InputType.ShouldBe(InputType.Password);
+        standalone.MaxLength.ShouldBe(500);
+        standalone.UserAttributes.GetValueOrDefault("autocomplete").ShouldBe("current-password");
+
+        // And guard against the subtler failure the parameter comparison cannot see: a value that
+        // is forwarded but has no effect on the rendered element. `type="password"` is what masks
+        // the characters, so assert the DOM, on both paths.
+        standaloneRender.Find("input").GetAttribute("type").ShouldBe("password");
+        itemRender.Find("input").GetAttribute("type").ShouldBe("password");
 
         // Required is the one compared attribute whose agreed value IS the default (#190): both
         // paths must render false for a .Required(...) field, because validation here is
@@ -443,6 +465,158 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         // its bite comes from the collection path, which used to render true off field.IsRequired
         // and would diverge from this standalone false the moment that emission came back.
         standalone.Required.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void NumericCollectionItemField_Should_Honour_The_Same_Presentation_Attributes_As_A_Standalone_Field()
+    {
+        // Arrange - the numeric counterpart of the test above. Only the string field was ever
+        // compared across the two paths, which is exactly how #191 survived #184: that fix taught
+        // the collection path to forward adornments for numeric item fields, leaving the component
+        // path the deficient one, so the same configuration rendered an icon inside
+        // .WithItemForm(...) and nothing outside it. Comparing only strings could not see that.
+        static void Configure<TOwner>(FieldBuilder<TOwner, int> field)
+            where TOwner : new()
+            => field
+                .WithLabel("Quantity")
+                .WithPlaceholder("e.g. 3")
+                .WithHelpText("Units to order")
+                .WithAdornment(Icons.Material.Filled.Numbers, Adornment.End, Color.Secondary)
+                .WithVariant(Variant.Filled);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Priority, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.Quantity, Configure)))
+            .Build();
+
+        // Act
+        var standalone = RenderForm(standaloneConfig)
+            .FindComponent<MudNumericField<int>>().Instance;
+
+        var itemField = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+                .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+                .Add(p => p.Configuration, collectionConfig))
+            .FindComponent<MudNumericField<int>>().Instance;
+
+        // Assert
+        Presentation(itemField).ShouldBe(Presentation(standalone));
+
+        // Guard the guard: two all-default fields would compare equal while proving nothing.
+        standalone.Adornment.ShouldBe(Adornment.End);
+        standalone.AdornmentIcon.ShouldBe(Icons.Material.Filled.Numbers);
+        standalone.Variant.ShouldBe(Variant.Filled);
+    }
+
+    /// <summary>
+    /// The numeric counterpart of the attribute set below. Kept as a separate overload rather than
+    /// a shared generic because MudTextField and MudNumericField have no common base that exposes
+    /// these, and the two lists are free to diverge (a numeric field has no InputType or Lines).
+    /// </summary>
+    private static object?[] Presentation(MudNumericField<int> field) =>
+    [
+        field.Label,
+        field.Placeholder,
+        field.HelperText,
+        field.Variant,
+        field.Margin,
+        field.ShrinkLabel,
+        field.Adornment,
+        field.AdornmentIcon,
+        field.AdornmentColor,
+    ];
+
+    /// <summary>
+    /// The click selector for a rendered, clickable adornment. MudBlazor draws one as a real button.
+    /// </summary>
+    private const string AdornmentButton = "button.mud-input-adornment-icon-button";
+
+    [Fact]
+    public void CollectionItemField_Should_Fire_The_Adornment_Handler_Like_A_Standalone_Field()
+    {
+        // Arrange - the same builder call on both paths, with the one parameter that used to be
+        // discarded everywhere (#192). Delegate identity is not comparable across the two paths —
+        // each builds its own callback — so the parity claim here is behavioural: both invoke it,
+        // and both hand it their own field's value.
+        var fired = new List<string?>();
+
+        void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field
+                .WithLabel("Product")
+                .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, Color.Secondary, fired.Add);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act
+        RenderForm(standaloneConfig, new TestModel { Status = "standalone" })
+            .Find(AdornmentButton)
+            .Click();
+
+        Render<FormCraftComponent<OrderModel>>(parameters => parameters
+                .Add(p => p.Model, new OrderModel { Items = { new OrderItem { ProductName = "in-collection" } } })
+                .Add(p => p.Configuration, collectionConfig))
+            .Find(AdornmentButton)
+            .Click();
+
+        // Assert - one call per path, each carrying the value of the field that was clicked
+        fired.ShouldBe(new[] { "standalone", "in-collection" });
+    }
+
+    [Fact]
+    public void MultilineCollectionItemField_Should_Render_The_Same_Element_As_A_Standalone_One()
+    {
+        // Arrange - Lines is split out of the presentation test because it changes the element
+        // MudBlazor renders rather than an attribute on it: past 1 line the input becomes a
+        // <textarea>. That makes it the one forwarded attribute whose parity cannot be judged by
+        // comparing parameters, and the reason it must not share a field with AsPassword — a
+        // textarea has no `type`, so the two together would silently unmask while every parameter
+        // still matched.
+        static void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field.WithLabel("Notes").AsTextArea(lines: 4, maxLength: 2000);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act
+        var standaloneRender = RenderForm(standaloneConfig);
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+
+        // Assert - same parameters, and the same element actually rendered
+        Presentation(itemRender.FindComponent<MudTextField<string>>().Instance)
+            .ShouldBe(Presentation(standaloneRender.FindComponent<MudTextField<string>>().Instance));
+
+        standaloneRender.FindAll("textarea").Count.ShouldBe(1);
+        itemRender.FindAll("textarea").Count.ShouldBe(1);
+        standaloneRender.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(4);
     }
 
     /// <summary>
@@ -465,10 +639,34 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     /// compared above and agrees, but <c>.WithAttribute("Required", true)</c> is read solely by
     /// <c>CollectionFieldComponent</c>; no component-path renderer looks for that key, so the
     /// opt-in is honoured inside an item form and ignored outside one.</item>
-    /// <item><c>InputType</c>, <c>Lines</c>, <c>MaxLength</c>, <c>Autocomplete</c> — component path
-    /// only; a <c>.AsPassword()</c> item field still renders as plain text inside a collection.</item>
-    /// <item><c>OnAdornmentClick</c> — component path only (an explicit non-goal of #184).</item>
+    /// <item><c>EnablePasswordToggle</c> — component path only: <c>.AsPassword()</c> puts a
+    /// visibility eye on a standalone field and nothing on an item field. The masking itself is
+    /// compared (see <c>InputType</c> below); only the toggle affordance diverges.</item>
+    /// <item><c>Mask</c> — neither path renders one. FormCraft stores it as a string, MudBlazor's
+    /// parameter wants an <c>IMask</c>, and the component path's <c>GetMask()</c> is an
+    /// unimplemented stub that nothing calls. Listed so it is not mistaken for coverage.</item>
     /// </list>
+    /// <para>
+    /// <c>InputType</c>, <c>Lines</c>, <c>MaxLength</c> and <c>Autocomplete</c> moved out of that
+    /// list and into the compared set in #189 — before it, a <c>.AsPassword()</c> item field
+    /// rendered its characters in clear text inside a collection.
+    /// </para>
+    /// <para>
+    /// <c>OnAdornmentClick</c> is honoured by both paths since #192, but is absent from the list
+    /// below on purpose: the two paths build their callbacks separately, so comparing the values
+    /// would compare two different delegates and prove nothing. It is covered by
+    /// <see cref="CollectionItemField_Should_Fire_The_Adornment_Handler_Like_A_Standalone_Field"/>,
+    /// which asserts each path actually invokes the configured handler.
+    /// </para>
+    /// <para>
+    /// That parity holds when a handler IS configured. Without one the paths still differ in
+    /// MARKUP, though not in behaviour: <c>MudBlazorTextFieldComponent.razor</c> binds
+    /// <c>OnAdornmentClick</c> unconditionally, so an ordinary field's adornment is always a
+    /// focusable <c>&lt;button&gt;</c> — inert, but in the tab order — while the collection path
+    /// emits an empty callback and MudBlazor draws a plain icon. Predates #192 on the component
+    /// side and is left alone rather than change an unrelated render path; both are click-inert,
+    /// which is what the two "…Without_A_Handler_Should_Stay_Inert" tests pin down.
+    /// </para>
     /// </summary>
     private static object?[] Presentation(MudTextField<string> field) =>
     [
@@ -482,6 +680,12 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         field.Adornment,
         field.AdornmentIcon,
         field.AdornmentColor,
+        field.InputType,
+        field.Lines,
+        field.MaxLength,
+        // MudTextField has no Autocomplete parameter; both paths emit a raw lowercase HTML
+        // attribute, so the unmatched-attribute bag is where the comparison has to read it.
+        field.UserAttributes.GetValueOrDefault("autocomplete"),
     ];
 
     private class OrderModel
@@ -492,6 +696,8 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     private class OrderItem
     {
         public string ProductName { get; set; } = string.Empty;
+
+        public int Quantity { get; set; }
     }
 
     [Fact]
