@@ -139,6 +139,38 @@ public static class MudBlazorFieldBuilderExtensions
     }
 
     /// <summary>
+    /// Sets MudBlazor's <c>ShrinkLabel</c> for the field's input, overriding the form-level
+    /// default (see <c>FormCraftComponent&lt;TModel&gt;.DefaultShrinkLabel</c>). When neither
+    /// is configured, fields render with <c>ShrinkLabel="true"</c> — the label stays in its
+    /// shrunk position above the input.
+    /// </summary>
+    /// <remarks>
+    /// Pass <c>false</c> when using <see cref="MudBlazor.Variant.Text"/>: that variant has no
+    /// border for a shrunk label to sit in, so the label should float up from inside the input
+    /// on focus instead of being permanently pinned above it.
+    /// </remarks>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <typeparam name="TValue">The type of the field value.</typeparam>
+    /// <param name="builder">The FieldBuilder instance.</param>
+    /// <param name="shrinkLabel">Whether the label stays shrunk (default: true).</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Name, field => field
+    ///     .WithLabel("Name")
+    ///     .WithVariant(Variant.Text)
+    ///     .WithShrinkLabel(false))
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, TValue> WithShrinkLabel<TModel, TValue>(
+        this FieldBuilder<TModel, TValue> builder,
+        bool shrinkLabel = true)
+        where TModel : new()
+    {
+        return builder.WithAttribute("ShrinkLabel", shrinkLabel);
+    }
+
+    /// <summary>
     /// Adds an adornment (icon or text) to a text field.
     /// </summary>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
