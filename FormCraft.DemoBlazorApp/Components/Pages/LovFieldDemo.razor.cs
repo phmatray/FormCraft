@@ -104,7 +104,7 @@ public partial class LovFieldDemo
                     .AsLov<OrderFormModel, int?, CustomerModel>(lov => lov
                         .WithDataSource(() => _customers)
                         .WithKey(c => c.Id)
-                        .WithDisplay((Func<CustomerModel, string>)(c => $"{c.Code} - {c.Name}"))
+                        .WithDisplay(c => $"{c.Code} - {c.Name}")
                         .AddColumn(c => c.Code, "Code", col => col.Width("100px"))
                         .AddColumn(c => c.Name, "Company Name", col => col.Width("200px"))
                         .AddColumn(c => c.City, "City")
@@ -209,7 +209,7 @@ public partial class LovFieldDemo
             .AsLov<OrderFormModel, int?, CustomerModel>(lov => lov
                 .WithDataSource(() => customers)
                 .WithKey(c => c.Id)
-                .WithDisplay((Func<CustomerModel, string>)(c => $"{c.Code} - {c.Name}"))
+                .WithDisplay(c => $"{c.Code} - {c.Name}")
 
                 // Configure table columns with width and formatting
                 .AddColumn(c => c.Code, "Code", col => col.Width("100px"))
