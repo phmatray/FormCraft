@@ -398,6 +398,10 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         // years apart. This pins the set the two paths DO agree on, so a regression in any of them
         // fails here. It is not a claim that the paths agree on everything: see Presentation()
         // for the attributes still known to diverge.
+        // The combination is deliberately unrealistic — one field carrying every compared attribute
+        // at once, so a single comparison covers the whole set. AsPassword's visibility toggle is
+        // switched off on purpose: it is component-path-only and would replace the start adornment
+        // below with its own eye icon, making this test fail for a reason it does not exist to test.
         static void Configure<TOwner>(FieldBuilder<TOwner, string> field)
             where TOwner : new()
             => field
@@ -405,7 +409,10 @@ public class RenderPipelineParityTests : MudBlazorTestBase
                 .WithPlaceholder("e.g. Widget")
                 .WithHelpText("The catalogue name")
                 .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, Color.Secondary)
-                .WithVariant(Variant.Filled);
+                .WithVariant(Variant.Filled)
+                .AsPassword(enableVisibilityToggle: false)
+                .AsTextArea(lines: 3, maxLength: 500)
+                .WithAutocomplete("current-password");
 
         var standaloneConfig = FormBuilder<TestModel>
             .Create()
@@ -435,6 +442,10 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         // Guard the guard: a comparison of two all-default fields would pass while proving nothing.
         standalone.Adornment.ShouldBe(Adornment.Start);
         standalone.Variant.ShouldBe(Variant.Filled);
+        standalone.InputType.ShouldBe(InputType.Password);
+        standalone.Lines.ShouldBe(3);
+        standalone.MaxLength.ShouldBe(500);
+        standalone.UserAttributes.GetValueOrDefault("autocomplete").ShouldBe("current-password");
     }
 
     /// <summary>
@@ -447,10 +458,19 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     /// </para>
     /// <list type="bullet">
     /// <item><c>Required</c> — the collection path emits it, no component-path renderer does.</item>
-    /// <item><c>InputType</c>, <c>Lines</c>, <c>MaxLength</c>, <c>Autocomplete</c> — component path
-    /// only; a <c>.AsPassword()</c> item field still renders as plain text inside a collection.</item>
     /// <item><c>OnAdornmentClick</c> — component path only (an explicit non-goal of #184).</item>
+    /// <item><c>EnablePasswordToggle</c> — component path only: <c>.AsPassword()</c> puts a
+    /// visibility eye on a standalone field and nothing on an item field. The masking itself is
+    /// compared (see <c>InputType</c> below); only the toggle affordance diverges.</item>
+    /// <item><c>Mask</c> — neither path renders one. FormCraft stores it as a string, MudBlazor's
+    /// parameter wants an <c>IMask</c>, and the component path's <c>GetMask()</c> is an
+    /// unimplemented stub that nothing calls. Listed so it is not mistaken for coverage.</item>
     /// </list>
+    /// <para>
+    /// <c>InputType</c>, <c>Lines</c>, <c>MaxLength</c> and <c>Autocomplete</c> moved out of that
+    /// list and into the compared set in #189 — before it, a <c>.AsPassword()</c> item field
+    /// rendered its characters in clear text inside a collection.
+    /// </para>
     /// </summary>
     private static object?[] Presentation(MudTextField<string> field) =>
     [
@@ -463,6 +483,12 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         field.Adornment,
         field.AdornmentIcon,
         field.AdornmentColor,
+        field.InputType,
+        field.Lines,
+        field.MaxLength,
+        // MudTextField has no Autocomplete parameter; both paths emit a raw lowercase HTML
+        // attribute, so the unmatched-attribute bag is where the comparison has to read it.
+        field.UserAttributes.GetValueOrDefault("autocomplete"),
     ];
 
     private class OrderModel
