@@ -58,6 +58,17 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **A password field combined with a multi-line setting was rendering in clear text — on both render paths. Masking now wins.** `.AsPassword()` together with `.AsTextArea(...)` (or any `Lines > 1`) made MudBlazor emit a `<textarea>`, and a textarea has no `type` attribute, so the masking was silently dropped and the credential was displayed. Unlike #189 this was not a drift between the two render paths — both had the same gap. Such a field now renders **masked, on a single line**, and FormCraft logs a warning naming the field and the line count it dropped (#207)
+
+  ```csharp
+  .AddField(x => x.Secret, f => f
+      .WithLabel("Password")
+      .AsPassword()
+      .AsTextArea(lines: 4))   // ← was clear text; now masked on one line, with a warning
+  ```
+
+  **Why masking wins rather than the line count.** There is no such thing as a masked `<textarea>`, so the combination can never be honoured as written — and of the two settings, `.AsPassword()` is an explicit security request while the line count is presentation. Rejecting the combination at build time was the alternative, but `.AsTextArea(...)` and `.AsPassword()` live in different assemblies and either may be called first, so no builder method ever sees both; the check would have had to throw from `Build()`, turning an insecure-but-working form into a startup crash. The warning is logged under the `FormCraft.ForMudBlazor.PasswordMasking` category — filter it out if you have a reason to keep the combination.
+
 - **A decorative adornment no longer renders as a focusable button.** An adornment configured with `.WithAdornment(...)` and *no* `onClick` was drawn as a real `<button>` on ordinary fields — inert to click, but a stop in the tab order, so keyboard and screen-reader users landed on a control that does nothing. The component path bound its click callback unconditionally; the collection path never did, so the same configuration produced different markup inside and outside `.WithItemForm(...)`. Both now render a plain icon (#216)
 
   **Worth knowing if you assert on markup.** A handler-less adornment no longer matches `button.mud-input-adornment-icon-button`. Adornments configured *with* a handler are unchanged — still a real button, still clickable.
