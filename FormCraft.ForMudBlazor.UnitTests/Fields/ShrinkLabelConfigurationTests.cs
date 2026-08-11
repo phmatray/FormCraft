@@ -329,9 +329,7 @@ public class ShrinkLabelConfigurationTests : MudBlazorTestBase
                 f.WithLabel("City").AsLov<TestModel, int, CityDto>(lov => lov
                     .WithDataSource(() => new[] { new CityDto { Id = 1, Name = "Paris" } })
                     .WithKey(c => c.Id)
-                    // Cast required: WithDisplay has both Expression<Func<>> and Func<>
-                    // overloads, so a bare lambda is ambiguous (CS0121).
-                    .WithDisplay((Expression<Func<CityDto, string>>)(c => c.Name))),
+                    .WithDisplay(c => c.Name)),
                 fieldLevel))
             .Build();
 

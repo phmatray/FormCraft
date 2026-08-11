@@ -27,7 +27,7 @@ public class SpecializedRendererDispatchTests : MudBlazorTestBase
                 .WithLabel("Customer")
                 .AsLov<OrderModel, int?, Customer>(lov => lov
                     .WithKey(c => (int?)c.Id)
-                    .WithDisplay((Expression<Func<Customer, string>>)(c => c.Name))
+                    .WithDisplay(c => c.Name)
                     .WithDataSource(() => new List<Customer> { new() { Id = 1, Name = "ACME" } })
                     .AddColumn(c => c.Name, "Name")))
             .Build();

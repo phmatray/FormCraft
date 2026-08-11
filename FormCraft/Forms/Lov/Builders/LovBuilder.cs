@@ -103,22 +103,24 @@ public class LovBuilder<TModel, TValue, TItem> where TModel : new()
     }
 
     /// <summary>
-    /// Configures the function to generate display text for selected items.
+    /// Configures the function that generates the display text for selected items.
+    /// A simple property selector and complex formatting are both expressed the same way.
     /// </summary>
-    /// <param name="displayExpression">Expression to select the display property.</param>
+    /// <remarks>
+    /// This is deliberately the only overload. It previously had an
+    /// <c>Expression&lt;Func&lt;TItem, string&gt;&gt;</c> twin that merely called
+    /// <c>.Compile()</c> before assigning the very same delegate, which made every bare lambda
+    /// ambiguous (<c>CS0121</c>) — including the ones in this type's own examples. Nothing here
+    /// inspects the expression tree, so do not reintroduce it.
+    /// </remarks>
+    /// <param name="displayFunc">Function that returns the display text for an item.</param>
     /// <returns>The LovBuilder instance for method chaining.</returns>
-    public LovBuilder<TModel, TValue, TItem> WithDisplay(Expression<Func<TItem, string>> displayExpression)
-    {
-        _configuration.DisplaySelector = displayExpression.Compile();
-        return this;
-    }
-
-    /// <summary>
-    /// Configures the display text using a custom function.
-    /// Use this for complex display formatting.
-    /// </summary>
-    /// <param name="displayFunc">Function to generate display text.</param>
-    /// <returns>The LovBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .WithDisplay(c => c.Name)                      // simple property
+    /// .WithDisplay(c => $"{c.Code} - {c.Name}")      // complex formatting
+    /// </code>
+    /// </example>
     public LovBuilder<TModel, TValue, TItem> WithDisplay(Func<TItem, string> displayFunc)
     {
         _configuration.DisplaySelector = displayFunc;
