@@ -17,6 +17,10 @@ using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Utilities.Collections;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
+// continuous.yml is HAND-MAINTAINED (AutoGenerate = false) because it carries the NuGet Trusted
+// Publishing steps that Nuke cannot express: the OIDC exchange via NuGet/login before the build.
+// Do NOT set AutoGenerate = true — regenerating this file would silently delete that block and
+// the next release would fail. TrustedPublishingWorkflowTests guards the result.
 [GitHubActions(
     "continuous",
     GitHubActionsImage.UbuntuLatest,
@@ -27,9 +31,11 @@ using static Nuke.Common.Tools.DotNet.DotNetTasks;
     InvokedTargets = [nameof(Continuous)],
     EnableGitHubToken = true,
     FetchDepth = 0,
-    ImportSecrets = ["NUGET_API_KEY"],
     CacheKeyFiles = ["global.json", "**/*.csproj"],
-    WritePermissions = [GitHubActionsPermissions.Contents, GitHubActionsPermissions.Packages])]
+    WritePermissions = [
+        GitHubActionsPermissions.Contents,
+        GitHubActionsPermissions.Packages,
+        GitHubActionsPermissions.IdToken])]
 class Build : NukeBuild
 {
     public static int Main() => Execute<Build>(x => x.Compile);
