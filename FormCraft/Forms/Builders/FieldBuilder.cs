@@ -127,7 +127,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     public FieldBuilder<TModel, TValue> Required(string? errorMessage = null)
     {
         _fieldConfiguration.IsRequired = true;
-        _fieldConfiguration.Validators.Add(new RequiredValidator<TModel, TValue>(errorMessage));
+        _fieldConfiguration.AddValidator(new RequiredValidator<TModel, TValue>(errorMessage));
         return this;
     }
 
@@ -247,7 +247,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithValidator(IFieldValidator<TModel, TValue> validator)
     {
-        _fieldConfiguration.Validators.Add(validator);
+        _fieldConfiguration.AddValidator(validator);
         return this;
     }
 
@@ -264,7 +264,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithValidator(Func<TValue, bool> validation, string errorMessage)
     {
-        _fieldConfiguration.Validators.Add(new CustomValidator<TModel, TValue>(validation, errorMessage));
+        _fieldConfiguration.AddValidator(new CustomValidator<TModel, TValue>(validation, errorMessage));
         return this;
     }
 
@@ -281,7 +281,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithAsyncValidator(Func<TValue, Task<bool>> validation, string errorMessage)
     {
-        _fieldConfiguration.Validators.Add(new AsyncValidator<TModel, TValue>(validation, errorMessage));
+        _fieldConfiguration.AddValidator(new AsyncValidator<TModel, TValue>(validation, errorMessage));
         return this;
     }
 

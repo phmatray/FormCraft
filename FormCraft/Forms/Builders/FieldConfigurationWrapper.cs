@@ -75,7 +75,7 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
     /// builder API after the first read are appended to the cached view on the next read.
     /// Prefer <see cref="AddValidator"/> to keep the underlying typed configuration in sync.
     /// </summary>
-    public List<IFieldValidator<TModel, object>> Validators
+    public IReadOnlyList<IFieldValidator<TModel, object>> Validators
     {
         get
         {
@@ -105,16 +105,20 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
         // Materialize the cached object-typed view (and pull in any typed validators
         // added since the last read) so the original instance — not a re-wrapped
         // copy — is what callers observe through Validators afterwards.
-        var objectView = Validators;
+        _ = Validators;
 
         // Unwrap validators that already wrap a typed validator; adapt arbitrary
         // object-typed validators so the inner typed list remains the source of truth.
         var typedValidator = validator is ValidatorWrapper<TModel, TValue> wrapper
             ? wrapper.Inner
             : new ObjectValidatorAdapter(validator);
-        _inner.Validators.Add(typedValidator);
+        _inner.AddValidator(typedValidator);
 
-        objectView.Add(validator);
+        // Appended to the backing list directly: the public view is IReadOnlyList since #155, and
+        // the whole point of that change is that callers cannot do this. Adding the caller's own
+        // instance (rather than re-wrapping the one just handed to _inner) keeps reference identity
+        // through the object-typed view.
+        _validators!.Add(validator);
         _wrappedInnerValidatorCount = _inner.Validators.Count;
     }
 

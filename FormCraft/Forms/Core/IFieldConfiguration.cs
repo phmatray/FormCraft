@@ -109,20 +109,39 @@ public interface IFieldConfiguration<TModel, TValue>
     string? InputType { get; set; }
 
     /// <summary>
-    /// Gets the list of validators that will be applied to this field's value.
-    /// Validators are executed in the order they appear in this list.
+    /// Gets the validators that will be applied to this field's value, in execution order.
     /// </summary>
-    List<IFieldValidator<TModel, TValue>> Validators { get; }
+    /// <remarks>
+    /// <b>Read-only by design (#155).</b> This was a concrete <c>List&lt;&gt;</c> until v4, which made
+    /// <c>config.Fields[i].Validators.Add(...)</c> compile, run, and silently do nothing: the
+    /// object-typed view exposed through <c>IFormConfiguration.Fields</c> projects its validators from
+    /// an underlying typed list, and because <c>List&lt;&gt;</c>'s members are not virtual it could
+    /// only hand back a materialised snapshot. Adding to that snapshot never affected validation.
+    /// <para>
+    /// Making the property an interface turns that silent no-op into a compile error, and leaves
+    /// <see cref="AddValidator"/> as the single mutation path. It has existed since 3.1.0, so
+    /// consumers can migrate before upgrading: replace <c>field.Validators.Add(v)</c> with
+    /// <c>field.AddValidator(v)</c>.
+    /// </para>
+    /// </remarks>
+    IReadOnlyList<IFieldValidator<TModel, TValue>> Validators { get; }
 
     /// <summary>
-    /// Adds a validator to this field configuration. Prefer this over mutating <see cref="Validators"/>
-    /// directly: some configuration views (such as the object-typed wrapper exposed through
-    /// <c>IFormConfiguration.Fields</c>) project their validators from an underlying typed list,
-    /// and this method guarantees the validator is registered against the underlying configuration.
-    /// The default implementation appends to <see cref="Validators"/>.
+    /// Adds a validator to this field configuration — the single supported way to register one.
     /// </summary>
+    /// <remarks>
+    /// Implementations must register the validator against the configuration that validation actually
+    /// reads. The object-typed wrapper overrides this to write through to the underlying typed
+    /// configuration rather than to its own projection, which is the whole reason this member exists
+    /// (#151, #155).
+    /// <para>
+    /// No default implementation on purpose: <see cref="Validators"/> is read-only, so a default could
+    /// not be correct, and an implementer that forgets this member should fail to compile rather than
+    /// inherit a silent no-op.
+    /// </para>
+    /// </remarks>
     /// <param name="validator">The validator to add.</param>
-    void AddValidator(IFieldValidator<TModel, TValue> validator) => Validators.Add(validator);
+    void AddValidator(IFieldValidator<TModel, TValue> validator);
 
     /// <summary>
     /// Gets the list of dependencies that define how this field reacts to changes in other fields.

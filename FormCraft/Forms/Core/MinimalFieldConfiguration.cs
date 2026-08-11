@@ -21,7 +21,12 @@ internal class MinimalFieldConfiguration : IFieldConfiguration<object, object>
     public string? CssClass { get; set; }
     public Dictionary<string, object> AdditionalAttributes { get; set; } = new();
     public string? InputType { get; set; }
-    public List<IFieldValidator<object, object>> Validators { get; set; } = new();
+    private readonly List<IFieldValidator<object, object>> _validators = [];
+
+    public IReadOnlyList<IFieldValidator<object, object>> Validators => _validators;
+
+    public void AddValidator(IFieldValidator<object, object> validator) => _validators.Add(validator);
+
     public List<IFieldDependency<object>> Dependencies { get; set; } = new();
     public Expression<Func<object, object>> ValueExpression { get; set; } = obj => obj;
     public Type? CustomRendererType { get; set; }

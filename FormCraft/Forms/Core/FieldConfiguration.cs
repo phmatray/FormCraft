@@ -51,8 +51,13 @@ public class FieldConfiguration<TModel, TValue> : IFieldConfiguration<TModel, TV
     /// </summary>
     public string? InputType { get; set; }
 
+    private readonly List<IFieldValidator<TModel, TValue>> _validators = [];
+
     /// <inheritdoc />
-    public List<IFieldValidator<TModel, TValue>> Validators { get; } = new();
+    public IReadOnlyList<IFieldValidator<TModel, TValue>> Validators => _validators;
+
+    /// <inheritdoc />
+    public void AddValidator(IFieldValidator<TModel, TValue> validator) => _validators.Add(validator);
 
     /// <inheritdoc />
     public List<IFieldDependency<TModel>> Dependencies { get; } = new();
