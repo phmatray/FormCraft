@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Rendering;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
@@ -236,7 +237,8 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private void RenderTextField(RenderTreeBuilder builder, IFieldConfiguration<TItem, object> field, string? value, int itemIndex)
     {
         builder.OpenComponent<MudTextField<string>>(0);
-        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: true);
+        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: true,
+            adornmentClick: BuildAdornmentClick(field, itemIndex));
         builder.AddAttribute(CallerAttributeStart, "Value", value);
         builder.AddAttribute(CallerAttributeStart + 1, "ValueChanged",
             EventCallback.Factory.Create<string>(this,
@@ -249,7 +251,10 @@ public partial class CollectionFieldComponent<TModel, TItem>
         where T : struct
     {
         builder.OpenComponent(0, typeof(MudNumericField<>).MakeGenericType(typeof(T)));
-        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: true);
+        // WithAdornment — and so its handler — is declared on string fields only, leaving a numeric
+        // item field's adornment inert. Numeric adornment support is tracked separately (#191).
+        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: true,
+            adornmentClick: default);
         builder.AddAttribute(CallerAttributeStart, "Value", value);
         builder.AddAttribute(CallerAttributeStart + 1, "ValueChanged",
             EventCallback.Factory.Create<T>(this,
@@ -281,7 +286,8 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // rendersAdornment: false — MudDatePicker defaults to Adornment.End with its calendar
         // icon, so forwarding a field's (usually unset) adornment here would silently strip that
         // icon on every date item field. Out of scope for #184; see the issue's non-goals.
-        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: false);
+        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: false,
+            adornmentClick: default);
         builder.AddAttribute(CallerAttributeStart, "Date", value);
         builder.AddAttribute(CallerAttributeStart + 1, "DateChanged",
             EventCallback.Factory.Create<DateTime?>(this,
@@ -315,11 +321,17 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// whose own default is <see cref="Adornment.End"/> with a calendar icon that forwarding would
     /// erase.
     /// </param>
+    /// <param name="adornmentClick">
+    /// The callback to fire when the adornment icon is clicked (#192), or <c>default</c> for a path
+    /// that forwards no handler. It is emitted with the other three adornment attributes so the set
+    /// stays together; a callback with no delegate leaves the adornment a plain, inert icon.
+    /// </param>
     private void AddCommonFieldAttributes(
         RenderTreeBuilder builder,
         IFieldConfiguration<TItem, object> field,
         int startIndex,
-        bool rendersAdornment)
+        bool rendersAdornment,
+        EventCallback<MouseEventArgs> adornmentClick)
     {
         builder.AddAttribute(startIndex++, "Label", field.Label);
         builder.AddAttribute(startIndex++, "Placeholder", field.Placeholder);
@@ -346,7 +358,13 @@ public partial class CollectionFieldComponent<TModel, TItem>
         {
             builder.AddAttribute(startIndex++, "Adornment", rendered);
             builder.AddAttribute(startIndex++, "AdornmentIcon", GetItemFieldAttribute<string?>(field, "AdornmentIcon", null));
-            builder.AddAttribute(startIndex, "AdornmentColor", GetItemFieldAttribute(field, "AdornmentColor", Color.Default));
+            builder.AddAttribute(startIndex++, "AdornmentColor", GetItemFieldAttribute(field, "AdornmentColor", Color.Default));
+
+            // Emitted unconditionally inside the branch, like the three above: the frame layout is
+            // per-CALL-SITE, so a row whose field configured no handler must still produce the same
+            // frames as one that did. An empty EventCallback is what "no handler" looks like to
+            // MudBlazor — it draws a plain icon instead of a button, exactly as before #192.
+            builder.AddAttribute(startIndex, "OnAdornmentClick", adornmentClick);
         }
 
         // The diagnostic has to judge what this path actually RENDERS, not what was configured:
@@ -446,6 +464,49 @@ public partial class CollectionFieldComponent<TModel, TItem>
         => field.AdditionalAttributes.TryGetValue(name, out var value) && value is T typed
             ? typed
             : fallback;
+
+    /// <summary>
+    /// Builds the adornment click callback for a text item field (#192), or <c>default</c> when the
+    /// field configured no handler.
+    /// </summary>
+    /// <remarks>
+    /// The value is read from the model when the click happens rather than captured at render time,
+    /// so a handler always sees what the row holds now — the row may have been typed into, and this
+    /// path re-renders on every keystroke. The index is re-checked for the same reason a row could
+    /// have been removed between the render that produced this callback and the click.
+    /// </remarks>
+    private EventCallback<MouseEventArgs> BuildAdornmentClick(
+        IFieldConfiguration<TItem, object> field,
+        int itemIndex)
+    {
+        // AdditionalAttributes is untyped, so anything could sit under the key; a value of another
+        // shape means "no handler" rather than an InvalidCastException at click time.
+        var handler = GetItemFieldAttribute<Action<string?>?>(
+            field, MudBlazorFieldBuilderExtensions.AdornmentClickAttribute, null);
+
+        if (handler is null)
+        {
+            return default;
+        }
+
+        var fieldName = field.FieldName;
+        return EventCallback.Factory.Create<MouseEventArgs>(
+            this, () => handler(ReadItemFieldText(itemIndex, fieldName)));
+    }
+
+    /// <summary>
+    /// Reads an item field's current value as a string, or <c>null</c> when the row is gone or the
+    /// property does not hold one.
+    /// </summary>
+    private string? ReadItemFieldText(int itemIndex, string fieldName)
+    {
+        if (itemIndex < 0 || itemIndex >= Items.Count)
+        {
+            return null;
+        }
+
+        return typeof(TItem).GetProperty(fieldName)?.GetValue(Items[itemIndex]) as string;
+    }
 
     /// <summary>
     /// Resolves ShrinkLabel for an item field: the field-level "ShrinkLabel" attribute when
