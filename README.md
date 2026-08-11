@@ -58,6 +58,20 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **`.WithAdornment(...)`'s `onClick` handler now fires — on both render paths.** The parameter was accepted, documented and then thrown away: `WithAdornment` never wrote it anywhere, so a search or visibility-toggle icon rendered, invited a click, and did nothing. It now runs on an ordinary field and on one inside `.WithItemForm(...)` alike, receiving the field's current value (#192)
+
+  ```csharp
+  .AddField(x => x.Query, f => f
+      .WithAdornment(Icons.Material.Filled.Search, Adornment.Start,
+          onClick: value => Search(value)))   // ← now runs
+  ```
+
+  **Behaviour change.** Code that already passed a handler starts executing it. That is the fix — a handler was never meant to be inert — but it is a real change for any form that has been passing one since v3.x. An adornment configured *without* a handler does nothing when clicked, exactly as before; its markup is also unchanged on both paths (an ordinary field has always rendered its adornment as a button, a collection item field as a plain icon).
+
+  Note that `.WithAdornment(...)` overwrites **all four** of its settings, the handler included. Re-configuring a field that a shared helper already gave a searching adornment — `.WithAdornment(Icons.Material.Filled.Email, Adornment.End)` — yields a plain decorative icon, not one that quietly still runs the helper's handler.
+
+  **Scope.** The handler is typed `Action<string?>` and declared on string fields, so numeric item-field adornments remain inert; date item fields are unchanged, keeping MudBlazor's own calendar adornment. One combination still discards the handler: `.AsPassword(enableVisibilityToggle: true)` claims the adornment slot for its own show/hide toggle, so a handler passed alongside it does not run — a field can only have one adornment.
+
 - **Numeric fields render adornments, and `.WithAdornment(...)` finally reaches them.** The numeric field components emitted no `Adornment`, `AdornmentIcon` or `AdornmentColor` at all, so an adornment configured on a numeric field was accepted and silently dropped. Since #184 the *collection* path did render it, which left the same configuration showing an icon inside `.WithItemForm(...)` and nothing outside it (#191)
 
   ```csharp
@@ -68,6 +82,7 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
   `WithAdornment` was declared only on `FieldBuilder<TModel, string>`, so a numeric field could not call it at all — the sole way to configure one was the untyped `.WithAttribute("Adornment", …)` escape hatch, which is how the gap stayed invisible. It now has numeric overloads covering nullable numerics too, constrained to `INumber<T>` rather than to `struct` so it is not offered on `bool` or `DateTime` fields, where MudCheckBox has no adornment concept and MudDatePicker keeps its own calendar icon.
 
   **Behaviour change.** A form that already configures a numeric adornment through raw `.WithAttribute(...)` starts showing the icon it asked for. That is the whole of it: unconfigured numeric fields are untouched, because MudNumericField's own default is `Adornment.None`. The `ShrinkLabel` diagnostic is **not** affected — it reads the *configured* adornment rather than the rendered one, so a numeric field pairing a start adornment with `ShrinkLabel="false"` already warned before this change. (That the diagnostic judges configuration rather than rendering is a separate defect: it still warns on date and select fields, which render no adornment of ours at all.)
+
 - **Collection item fields no longer carry the HTML5 `Required` attribute.** `.Required("…")` inside `.WithItemForm(...)` set `Required="true"` on the underlying MudBlazor component, so the rendered `<input>` came out with `required` and `aria-required="true"` — while the identical call on an ordinary field did not. That contradicted the library's validation stance: validation is server-side, forms render `novalidate`, and messages come from the validator you configured. Item fields now match ordinary fields (#190)
 
   ```csharp

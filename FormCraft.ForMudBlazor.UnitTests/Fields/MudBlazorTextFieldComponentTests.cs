@@ -259,6 +259,132 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
         mudTextField.Instance.AdornmentColor.ShouldBe(Color.Primary);
     }
 
+    /// <summary>
+    /// The click selector for a rendered adornment icon. MudBlazor draws the adornment as a real
+    /// button, so these tests click the DOM rather than invoking the callback directly — asserting
+    /// the wiring end to end, which is the whole point of #192.
+    /// </summary>
+    private const string AdornmentButton = "button.mud-input-adornment-icon-button";
+
+    [Fact]
+    public void TextField_Adornment_Click_Should_Invoke_The_Configured_Handler()
+    {
+        // Arrange - before #192 the handler was accepted by WithAdornment and dropped, so this
+        // clicked a live button that called nothing
+        var received = new List<string?>();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email")
+                .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, onClick: received.Add))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, new TestModel { Email = "someone@example.com" })
+            .Add(p => p.Configuration, config));
+
+        // Act
+        component.Find(AdornmentButton).Click();
+
+        // Assert - fired once, and with the field's current value
+        received.ShouldHaveSingleItem().ShouldBe("someone@example.com");
+    }
+
+    [Fact]
+    public void TextField_Adornment_Click_Should_Pass_The_Value_Typed_By_The_User()
+    {
+        // Arrange - the handler receives the CURRENT value, not the one the model started with;
+        // a search icon that searches the initial value would be useless
+        var received = new List<string?>();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email")
+                .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, onClick: received.Add))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, new TestModel { Email = "before" })
+            .Add(p => p.Configuration, config));
+
+        // Act
+        component.Find("input").Input("after");
+        component.Find(AdornmentButton).Click();
+
+        // Assert
+        received.ShouldHaveSingleItem().ShouldBe("after");
+    }
+
+    [Fact]
+    public void TextField_Adornment_Without_A_Handler_Should_Stay_Inert()
+    {
+        // Arrange - an adornment configured with no handler renders and clicks harmlessly
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email")
+                .WithAdornment(Icons.Material.Filled.Email, Adornment.Start))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, new TestModel { Email = "someone@example.com" })
+            .Add(p => p.Configuration, config));
+
+        // Act & Assert
+        Should.NotThrow(() => component.Find(AdornmentButton).Click());
+    }
+
+    [Fact]
+    public void TextField_Adornment_Reconfigured_Without_A_Handler_Should_Not_Fire_The_Old_One()
+    {
+        // Arrange - the helper-then-refine shape, asserted where it actually matters: clicking.
+        // A partial overwrite would leave a decorative icon still running the first handler.
+        var received = new List<string?>();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email")
+                .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, onClick: received.Add)
+                .WithAdornment(Icons.Material.Filled.Email, Adornment.End))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, new TestModel { Email = "someone@example.com" })
+            .Add(p => p.Configuration, config));
+
+        // Act
+        component.Find(AdornmentButton).Click();
+
+        // Assert - the second call described a plain icon, so nothing runs
+        received.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void TextField_Password_Toggle_Should_Keep_Its_Own_Adornment_Handler()
+    {
+        // Arrange - the password toggle owns the adornment slot and must not be displaced by the
+        // configuration lookup #192 adds
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Password, field => field
+                .WithLabel("Password")
+                .AsPassword(enableVisibilityToggle: true))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, new TestModel())
+            .Add(p => p.Configuration, config));
+
+        var textField = component.FindComponent<MudTextField<string>>();
+        textField.Instance.InputType.ShouldBe(InputType.Password);
+
+        // Act - clicking the toggle reveals the password
+        component.Find(AdornmentButton).Click();
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.InputType.ShouldBe(InputType.Text);
+    }
+
     [Fact]
     public async Task TextField_Should_Update_Model_On_Input()
     {

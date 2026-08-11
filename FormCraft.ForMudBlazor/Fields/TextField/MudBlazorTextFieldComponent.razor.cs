@@ -52,6 +52,12 @@ public partial class MudBlazorTextFieldComponent<TModel>
             Adornment = customAdornment;
             AdornmentIcon = customAdornmentIcon;
             AdornmentColor = customAdornmentColor;
+
+            // Stays null when WithAdornment got no handler, which leaves HandleAdornmentClick a
+            // no-op rather than a throw (#192). The password branch above deliberately keeps its
+            // own toggle: it owns the adornment slot, so a configured handler must not displace it.
+            OnAdornmentClick = GetAttribute<Action<string?>?>(
+                MudBlazorFieldBuilderExtensions.AdornmentClickAttribute);
         }
     }
 
