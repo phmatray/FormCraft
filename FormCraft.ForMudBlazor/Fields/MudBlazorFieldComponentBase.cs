@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using MudBlazor;
 
 namespace FormCraft.ForMudBlazor;
@@ -71,4 +73,101 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// </remarks>
     protected bool EffectiveShrinkLabel =>
         GetAttribute<bool?>("ShrinkLabel") ?? FormDefaultShrinkLabel ?? true;
+
+    /// <summary>
+    /// Service provider used to resolve an optional <see cref="ILoggerFactory"/> for the
+    /// ShrinkLabel diagnostic. Diagnostics degrade silently when no logger is registered.
+    /// </summary>
+    /// <remarks>
+    /// Private on purpose: derived components inject their own <c>ServiceProvider</c>
+    /// (MudBlazorLovFieldComponent does), and a protected member of the same name would hide
+    /// theirs (CS0108). Blazor injects non-public properties, so privacy costs nothing here.
+    /// </remarks>
+    [Inject]
+    private IServiceProvider? DiagnosticServices { get; set; }
+
+    private bool _shrinkLabelDiagnosticEmitted;
+
+    /// <inheritdoc />
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        EmitShrinkLabelDiagnosticIfNeeded();
+    }
+
+    /// <summary>
+    /// Warns when the field asked for a floating label that MudBlazor will not give it.
+    /// <para>
+    /// MudInput decides the shrunk state by OR-ing <c>ShrinkLabel</c> with "has a value",
+    /// "has a placeholder" and "has a start adornment", so <c>ShrinkLabel=false</c> is only
+    /// observable on an empty field with neither. Rendering is untouched — this only tells the
+    /// developer why their setting appears to do nothing.
+    /// </para>
+    /// </summary>
+    private void EmitShrinkLabelDiagnosticIfNeeded()
+    {
+        // Once per component instance: the conflict is a configuration fact, so re-reporting it
+        // on every parameter change would flood the console as the user types.
+        if (_shrinkLabelDiagnosticEmitted || EffectiveShrinkLabel)
+        {
+            return;
+        }
+
+        var conflict = ShrinkLabelConflict();
+        if (conflict is null)
+        {
+            return;
+        }
+
+        _shrinkLabelDiagnosticEmitted = true;
+
+        // A diagnostic must never break a render, so a logger that throws is swallowed.
+        try
+        {
+            var logger = DiagnosticServices?
+                .GetService<ILoggerFactory>()?
+                .CreateLogger(ShrinkLabelDiagnostic.Category);
+
+            logger?.LogWarning(
+                "Field '{Field}' sets ShrinkLabel=false but also has {Conflict}, which MudBlazor " +
+                "lets win — the label stays pinned and will not float. Remove that property to get " +
+                "a floating label, or drop ShrinkLabel=false.",
+                Label ?? Context.Field.FieldName,
+                conflict);
+        }
+        catch
+        {
+            // Ignored: a failing diagnostic must not take the form down with it.
+        }
+    }
+
+    /// <summary>
+    /// Returns the property that will override <c>ShrinkLabel=false</c> for this field, or
+    /// null when the setting will be honoured.
+    /// </summary>
+    private string? ShrinkLabelConflict() =>
+        ShrinkLabelDiagnostic.Conflict(Placeholder);
+}
+
+/// <summary>
+/// The single implementation of the ShrinkLabel conflict rule, shared by the component render
+/// path (<see cref="MudBlazorFieldComponentBase{TModel, TValue}"/>) and the imperative
+/// RenderTreeBuilder path used for collection item fields.
+/// </summary>
+internal static class ShrinkLabelDiagnostic
+{
+    /// <summary>Logger category for the ShrinkLabel diagnostic.</summary>
+    internal const string Category = "FormCraft.ForMudBlazor.ShrinkLabel";
+
+    /// <summary>
+    /// Names the property that will override <c>ShrinkLabel=false</c>, or returns null when
+    /// nothing does and the setting will be honoured.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately does NOT consider "the field has a value". A populated field must shrink its
+    /// label or the two overlap, so that override is correct behaviour rather than a surprise —
+    /// warning about it would be noise on every filled form.
+    /// </remarks>
+    internal static string? Conflict(string? placeholder) =>
+        !string.IsNullOrWhiteSpace(placeholder) ? "a Placeholder" : null;
 }
