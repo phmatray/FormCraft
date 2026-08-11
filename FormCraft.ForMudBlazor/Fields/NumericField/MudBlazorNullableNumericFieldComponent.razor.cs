@@ -1,4 +1,6 @@
 using System.Globalization;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 
 namespace FormCraft.ForMudBlazor;
@@ -21,6 +23,22 @@ public partial class MudBlazorNullableNumericFieldComponent<TModel, TValue>
     /// it — see the sibling non-nullable component (#212).
     /// </summary>
     protected override Adornment? RenderedAdornment => EffectiveAdornment;
+
+    /// <summary>
+    /// The adornment click handler configured by <c>WithAdornment(..., onClick:)</c>, or null —
+    /// see the sibling non-nullable component (#215).
+    /// </summary>
+    private Action<TValue?>? OnAdornmentClick =>
+        GetAttribute<Action<TValue?>?>(MudBlazorFieldBuilderExtensions.AdornmentClickAttribute);
+
+    /// <summary>
+    /// The callback bound to MudBlazor, or <c>default</c> when no handler is configured (#216) —
+    /// a handler-less adornment must stay a plain icon rather than a focusable button.
+    /// </summary>
+    private EventCallback<MouseEventArgs> AdornmentClick =>
+        OnAdornmentClick is null
+            ? default
+            : EventCallback.Factory.Create<MouseEventArgs>(this, () => OnAdornmentClick(CurrentValue));
 
     /// <inheritdoc cref="INumericFieldComponent{TModel, TValue}.Min" />
     public TValue? Min { get; set; }

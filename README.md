@@ -58,6 +58,16 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **Numeric adornments now take an `onClick`, typed to the field's own value.** The numeric `WithAdornment` overloads added in #191 had no handler, because at the time the string overload's was read by neither render path. #192 made it live, so the reason expired and the gap remained. Both numeric overloads now accept `Action<TValue?>` — **not** the string overload's `Action<string?>`, which is right there only because that field's value happens to be a string — and the handler fires on both render paths, including inside `.WithItemForm(...)` (#215)
+
+  ```csharp
+  .AddField(x => x.Quantity, field => field
+      .WithAdornment(Icons.Material.Filled.Numbers, Adornment.End,
+          onClick: quantity => Recalculate(quantity)))   // receives int?, not string?
+  ```
+
+  A numeric adornment with **no** handler still renders a plain icon rather than a focusable button, matching #216.
+
 - **FormCraft now warns when the password visibility toggle discards a configured adornment.** A field has one adornment slot, and `.AsPassword(enableVisibilityToggle: true)` claims it for the show/hide eye — so an adornment configured alongside it, and any `onClick` with it, was dropped without a word. Since #192 made that handler work everywhere else, this was the last place it silently did nothing. Nothing about the rendering changes (one slot cannot hold both); the warning names the two ways out — remove the adornment, or pass `enableVisibilityToggle: false`. Logged under the `FormCraft.ForMudBlazor.PasswordAdornment` category (#219)
 
 - **The `ShrinkLabel` diagnostic no longer warns about an adornment the field never draws.** It judged the *configured* `Adornment` attribute regardless of whether the component binds one — so date, select, autocomplete, lookup and file-upload fields told you to remove a `ShrinkLabel=false` that was in fact being honoured. It now judges what the component actually **renders**, which is the rule the collection item path has followed since #183. Text and numeric fields do render their adornment, so their (correct) warnings are unchanged (#212)
