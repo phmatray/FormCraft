@@ -81,15 +81,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
             return MudBlazor.InputType.Text;
         }
 
-        return InputType.ToLowerInvariant() switch
-        {
-            "email" => MudBlazor.InputType.Email,
-            "password" => MudBlazor.InputType.Password,
-            "tel" or "telephone" => MudBlazor.InputType.Telephone,
-            "url" => MudBlazor.InputType.Url,
-            "search" => MudBlazor.InputType.Search,
-            _ => MudBlazor.InputType.Text
-        };
+        return TextInputTypeMap.Resolve(InputType);
     }
 
     private IMask? GetMask()
@@ -122,4 +114,45 @@ public partial class MudBlazorTextFieldComponent<TModel>
         // Notify parent to update the model
         await Context.OnValueChanged.InvokeAsync(_localValue);
     }
+}
+
+/// <summary>
+/// The single implementation of FormCraft's input-type string to <see cref="InputType"/> mapping,
+/// shared by the component render path (<see cref="MudBlazorTextFieldComponent{TModel}"/>) and the
+/// imperative RenderTreeBuilder path used for collection item fields.
+/// </summary>
+/// <remarks>
+/// Extracted in #189. The collection path previously emitted no input type at all, so a
+/// <c>.AsPassword()</c> field inside <c>.WithItemForm(...)</c> rendered its characters in clear
+/// text. Duplicating the mapping to fix that would have set up the next divergence, so both paths
+/// resolve through here instead.
+/// </remarks>
+internal static class TextInputTypeMap
+{
+    /// <summary>The input type a field renders with when it configures none.</summary>
+    internal const string Default = "text";
+
+    /// <summary>
+    /// Maps a configured input-type string onto MudBlazor's enum, falling back to
+    /// <see cref="InputType.Text"/> for null and for any value this library does not recognise.
+    /// </summary>
+    /// <remarks>
+    /// The recognised set is carried over unchanged from the component path, so that #189 moved the
+    /// mapping without changing what it renders. It is **not** complete: <c>"number"</c>,
+    /// <c>"date"</c> and <c>"time"</c> fall through to <see cref="InputType.Text"/> even though
+    /// MudBlazor has arms for them and FormCraft's own auto-builders emit those strings — a field
+    /// so configured loses its mobile keypad and native picker, silently. Widening this changes
+    /// what the component path renders too, so it is tracked separately rather than smuggled into
+    /// a parity fix.
+    /// </remarks>
+    internal static InputType Resolve(string? inputType) =>
+        (inputType ?? Default).ToLowerInvariant() switch
+        {
+            "email" => InputType.Email,
+            "password" => InputType.Password,
+            "tel" or "telephone" => InputType.Telephone,
+            "url" => InputType.Url,
+            "search" => InputType.Search,
+            _ => InputType.Text,
+        };
 }

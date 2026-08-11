@@ -58,6 +58,19 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **Password fields inside collection item forms were rendering in clear text. They now mask.** A field configured with `.AsPassword()` inside `.WithItemForm(...)` rendered as a plain-text input: the characters the user typed were displayed on screen. The identical call on an ordinary field masked correctly. The collection render path never emitted `InputType` at all, so nothing failed and nothing warned — the credential was simply visible (#189)
+
+  ```csharp
+  .AddCollectionField(x => x.Credentials, c => c.WithItemForm(item => item
+      .AddField(x => x.Secret, f => f
+          .WithLabel("Secret")
+          .AsPassword())))   // ← was clear text, now masked
+  ```
+
+  **Behaviour change to be aware of.** Forms that already use `.AsPassword()` inside a collection **start masking** — the characters stop being visible. If any workflow relied on reading those values off the screen, it will notice. The same path now also forwards `Lines`, `MaxLength` and `autocomplete`, so multi-line item fields honour their configured height, length limits apply, and password managers can fill item fields.
+
+  **Scope.** The visibility-toggle eye that `.AsPassword()` puts on an ordinary field is still not drawn on an item field; the masking no longer depends on it. `Mask` remains unimplemented on **both** render paths — FormCraft stores it as a string, MudBlazor wants an `IMask`, and the conversion has never been written — so `.WithAttribute("Mask", …)` is inert everywhere rather than newly inconsistent. The parity test introduced with the #184 entry below now compares `InputType`, `Lines`, `MaxLength` and `autocomplete` instead of listing them as known divergences.
+
 - **`.WithAdornment(...)`'s `onClick` handler now fires — on both render paths.** The parameter was accepted, documented and then thrown away: `WithAdornment` never wrote it anywhere, so a search or visibility-toggle icon rendered, invited a click, and did nothing. It now runs on an ordinary field and on one inside `.WithItemForm(...)` alike, receiving the field's current value (#192)
 
   ```csharp
