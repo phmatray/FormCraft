@@ -1,8 +1,6 @@
-@using Microsoft.JSInterop
 @namespace FormCraft.ForMudBlazor
 @typeparam TModel where TModel : new()
 @inject IFieldRendererService FieldRendererService
-@inject IJSRuntime JSRuntime
 
 @if (BeforeForm != null)
 {
@@ -12,7 +10,22 @@
 <CascadingValue TValue="Variant?" Name="@FormCraftCascadingValues.DefaultVariant" Value="@DefaultVariant">
 <CascadingValue TValue="bool?" Name="@FormCraftCascadingValues.DefaultShrinkLabel" Value="@DefaultShrinkLabel">
 <CascadingValue TValue="ShrinkLabelDiagnosticCollector" Name="@FormCraftCascadingValues.ShrinkLabelDiagnostics" Value="@_shrinkLabelDiagnostics" IsFixed="true">
-<EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit">
+@* `novalidate` is rendered here, as a real attribute on the form EditForm emits (#206).
+
+   It used to be bolted on after the fact by
+   `JSRuntime.InvokeVoidAsync("eval", "document.querySelector('form')?.setAttribute(…)")`, which
+   missed three ways: it marked the FIRST form in the document rather than this component's (so a
+   page with a search form above it marked the wrong one, and two FormCraft forms meant the first was
+   marked twice and the second never), it never ran during prerender because OnAfterRenderAsync does
+   not execute on the server pass, and it failed silently through `?.`. It was also `eval`, which a
+   strict CSP blocks outright — making the failure silent *and* total.
+
+   This matters beyond tidiness: FormCraft validates server-side and #190 removed the HTML5 Required
+   attribute from item fields on the strength of this guarantee, while #193 added
+   `.WithAttribute("Required", true)` as an opt-in that emits a genuine `required`. On a page where
+   the script missed, that input was browser-enforced — the native validation bubbles this library
+   documents itself as never producing. *@
+<EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit" novalidate="novalidate">
     <DynamicFormValidator TModel="TModel" Configuration="@Configuration" @ref="_validator" />
     
     @if (GroupedConfiguration != null && GroupedConfiguration.UseFieldGroups && GroupedConfiguration.FieldGroups.Any())
@@ -124,15 +137,6 @@
 }
 
 @code {
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            // Disable browser validation using JavaScript
-            await JSRuntime.InvokeVoidAsync("eval", "document.querySelector('form')?.setAttribute('novalidate', 'novalidate')");
-        }
-    }
-    
     private RenderFragment RenderFieldGroup(FieldGroup<TModel> group)
     {
         return builder =>
