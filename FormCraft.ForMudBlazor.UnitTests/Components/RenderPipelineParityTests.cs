@@ -463,12 +463,50 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         standaloneRender.Find("input").GetAttribute("type").ShouldBe("password");
         itemRender.Find("input").GetAttribute("type").ShouldBe("password");
 
-        // Required is the one compared attribute whose agreed value IS the default (#190): both
-        // paths must render false for a .Required(...) field, because validation here is
-        // server-side. So unlike the others it cannot be guarded by asserting a non-default —
-        // its bite comes from the collection path, which used to render true off field.IsRequired
-        // and would diverge from this standalone false the moment that emission came back.
+        // Required is compared here at its agreed DEFAULT (#190): both paths must render false for a
+        // .Required(...) field, because validation here is server-side. Its bite comes from the
+        // collection path, which used to render true off field.IsRequired and would diverge from
+        // this standalone false the moment that emission came back. The non-default direction — the
+        // explicit .WithNativeRequired() opt-in — is guarded by the test below (#204).
         standalone.Required.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void NativeRequiredOptIn_Should_Be_Honoured_Identically_On_Both_Paths()
+    {
+        // Arrange - #204. `.WithNativeRequired()` (and the raw "Required" attribute it replaces) used
+        // to be read ONLY by CollectionFieldComponent, so the escape hatch worked inside an item form
+        // and was silently ignored outside one. This is the non-default direction of the Required
+        // comparison: the test above pins that both paths agree on `false` for `.Required(...)`,
+        // this one pins that both agree on `true` when the decoration is explicitly asked for.
+        static void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field.WithLabel("Product").WithNativeRequired();
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act
+        var standaloneRender = RenderForm(standaloneConfig);
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+
+        // Assert - the parameter on both, and the attribute on the element the browser sees.
+        standaloneRender.FindComponent<MudTextField<string>>().Instance.Required.ShouldBeTrue();
+        itemRender.FindComponent<MudTextField<string>>().Instance.Required.ShouldBeTrue();
+
+        standaloneRender.Find("input").HasAttribute("required").ShouldBeTrue();
+        itemRender.Find("input").HasAttribute("required").ShouldBeTrue();
     }
 
     [Fact]
@@ -689,10 +727,12 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     /// looking like coverage:
     /// </para>
     /// <list type="bullet">
-    /// <item>The raw <c>"Required"</c> attribute — collection path only. <c>.Required(...)</c> is
-    /// compared above and agrees, but <c>.WithAttribute("Required", true)</c> is read solely by
-    /// <c>CollectionFieldComponent</c>; no component-path renderer looks for that key, so the
-    /// opt-in is honoured inside an item form and ignored outside one.</item>
+    /// <item>✅ <b>Resolved in #204</b> — the native-required opt-in used to be collection-path only:
+    /// <c>.WithAttribute("Required", true)</c> was read solely by <c>CollectionFieldComponent</c>, so
+    /// it was honoured inside an item form and silently ignored outside one. Both paths now read it
+    /// (via the typed <c>.WithNativeRequired()</c>), and <c>Required</c> is compared in
+    /// <c>Presentation()</c> below. <c>.Required(...)</c> alone still renders <c>false</c> on both,
+    /// which is the #190 invariant.</item>
     /// <item><c>EnablePasswordToggle</c> — component path only: <c>.AsPassword()</c> puts a
     /// visibility eye on a standalone field and nothing on an item field. The masking itself is
     /// compared (see <c>InputType</c> below); only the toggle affordance diverges.</item>

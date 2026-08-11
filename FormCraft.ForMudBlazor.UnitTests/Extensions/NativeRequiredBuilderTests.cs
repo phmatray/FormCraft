@@ -102,6 +102,60 @@ public class NativeRequiredBuilderTests
         Attributes(config).ContainsKey("Required").ShouldBeFalse();
     }
 
+    [Fact]
+    public void WithNativeRequired_Should_Be_Honoured_On_The_Component_Path()
+    {
+        // Arrange - #204 Task 3, decided rather than left open. Before this the opt-in reached the
+        // collection item path only, so `.WithNativeRequired()` on an ordinary field silently did
+        // nothing. An escape hatch that works on one render path and not the other is the exact
+        // divergence class this library keeps re-filing (#146, #177, #184, #189).
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Name, f => f.WithLabel("Name").WithNativeRequired())
+            .Build();
+
+        // Act
+        var component = new TestHost().Render(config);
+
+        // Assert - the component property, the class MudBlazor's asterisk hangs off, and the
+        // attribute on the element the user's browser and screen reader actually see.
+        component.FindComponent<MudTextField<string>>().Instance.Required.ShouldBeTrue();
+        component.FindAll(".mud-input-required").ShouldNotBeEmpty();
+        component.Find("input").HasAttribute("required").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void A_Field_Without_The_Opt_In_Should_Not_Be_Decorated_On_The_Component_Path()
+    {
+        // Arrange - the guard on the guard: `.Required(...)` must still emit nothing (#190), and an
+        // unconfigured field must be untouched. This is the overwhelmingly common case.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Name, f => f.WithLabel("Name").Required("Name is required"))
+            .Build();
+
+        // Act
+        var component = new TestHost().Render(config);
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Required.ShouldBeFalse();
+        component.Find("input").HasAttribute("required").ShouldBeFalse();
+        component.FindAll(".mud-input-required").ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// bUnit host for the two component-path cases above. The rest of this suite asserts on the
+    /// built configuration and needs no renderer, so the bUnit dependency is confined here.
+    /// </summary>
+    private sealed class TestHost : MudBlazorTestBase
+    {
+        public IRenderedComponent<FormCraftComponent<TestModel>> Render(
+            IFormConfiguration<TestModel> config) =>
+            Render<FormCraftComponent<TestModel>>(parameters => parameters
+                .Add(p => p.Model, new TestModel())
+                .Add(p => p.Configuration, config));
+    }
+
     private static IReadOnlyDictionary<string, object> Attributes(IFormConfiguration<TestModel> config) =>
         config.Fields[0].AdditionalAttributes;
 
