@@ -324,12 +324,13 @@ public partial class CollectionFieldComponent<TModel, TItem>
         builder.AddAttribute(startIndex++, "Label", field.Label);
         builder.AddAttribute(startIndex++, "Placeholder", field.Placeholder);
         builder.AddAttribute(startIndex++, "HelperText", field.HelpText);
-        // Resolved from an explicit attribute, NOT from field.IsRequired (#190). The project's
-        // validation convention is server-side only — forms render novalidate and no component-path
-        // renderer emits Required — so driving it from IsRequired made a .Required("…") item field
-        // run MudBlazor's own required check alongside the configured validator, surfacing two
-        // differently-worded messages for one problem. Reading the attribute keeps the deliberate
-        // opt-in, .WithAttribute("Required", true), working.
+        // Resolved from an explicit attribute, NOT from field.IsRequired (#190). Validation here is
+        // server-side — forms render novalidate, messages come from the configured validator, and no
+        // component-path renderer emits Required — so driving this from IsRequired put required and
+        // aria-required="true" on the rendered input of a .Required("…") item field while the same
+        // call on an ordinary field emitted neither. Measured: it armed no second validator (item
+        // fields have no MudForm and no For), so this is a convention and a11y-semantics fix, not a
+        // duplicate-message one. Reading the attribute keeps .WithAttribute("Required", true) working.
         builder.AddAttribute(startIndex++, "Required", GetItemFieldAttribute(field, "Required", false));
         builder.AddAttribute(startIndex++, "ReadOnly", field.IsReadOnly);
         builder.AddAttribute(startIndex++, "Disabled", field.IsDisabled);

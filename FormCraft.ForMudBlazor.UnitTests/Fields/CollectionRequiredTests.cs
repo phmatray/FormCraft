@@ -4,9 +4,16 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// Tests that collection item fields do NOT carry the HTML5 <c>Required</c> attribute (#190).
 /// The project's validation convention is server-side only — forms render <c>novalidate</c>, messages
 /// come from the validator, and no component-path renderer emits <c>Required</c>. The collection
-/// path drove it from <c>field.IsRequired</c>, so the same <c>.Required("…")</c> call rendered
-/// differently inside <c>.WithItemForm(...)</c>, and MudBlazor's own required validation ran
-/// alongside the configured one — two differently-worded messages for one problem.
+/// path drove it from <c>field.IsRequired</c>, so the same <c>.Required("…")</c> call put
+/// <c>required</c> and <c>aria-required="true"</c> on the input inside <c>.WithItemForm(...)</c> and
+/// neither outside it.
+/// <para>
+/// Measured while fixing #190: the attribute armed no second validator — item fields sit in no
+/// <c>MudForm</c> and carry no <c>For</c>, so MudBlazor's own required check never fired and the
+/// field surfaced one message either way. The defect is the contradicted convention and the
+/// accessibility semantics, not duplicate messages; the one-message test below pins the count so
+/// that stays true if item fields are ever wired into MudBlazor's validation.
+/// </para>
 /// <para>
 /// The attribute is now resolved from an explicit <c>"Required"</c> attribute instead, so a field
 /// that opts back in with <c>.WithAttribute("Required", true)</c> still gets it.
@@ -115,9 +122,11 @@ public class CollectionRequiredTests : MudBlazorTestBase
     [Fact]
     public async Task Blank_Required_ItemField_Should_Surface_Exactly_One_Message()
     {
-        // Arrange - MudBlazor's Required drives a second, differently-worded required check of its
-        // own. Emitting the attribute was the way that check could ever be armed for an item field,
-        // so this pins the count at one rather than merely asserting the right text is present.
+        // Arrange - MudBlazor's Required can drive a second, differently-worded required check of
+        // its own. It does not fire for item fields today (no MudForm, no For), and emitting the
+        // attribute was the only way it could ever be armed - so this pins the COUNT at one rather
+        // than merely asserting the right text is present, and would catch the duplicate if that
+        // wiring ever changed.
         var model = new OrderModel { Items = { new OrderItem() } };
 
         var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
