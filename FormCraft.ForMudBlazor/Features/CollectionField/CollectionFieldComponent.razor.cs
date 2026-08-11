@@ -267,9 +267,10 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// <remarks>
     /// Once per field name for the lifetime of this component: <see cref="RenderTextField"/> runs
     /// for every row and on every re-render, so an unguarded call would emit one warning per row per
-    /// keystroke. Reuses <see cref="_warnedItemFields"/>' sibling set rather than that set itself —
-    /// the two diagnostics are independent, and sharing one latch would let whichever fired first
-    /// silence the other on the same field.
+    /// keystroke — a collection of 50 items would produce 50 identical warnings before the user
+    /// typed anything. Latched on its own set rather than <see cref="_warnedItemFields"/>: the two
+    /// diagnostics are independent, and sharing one latch would let whichever fired first silence
+    /// the other on the same field.
     /// </remarks>
     private void WarnIfMaskedLinesDropped(IFieldConfiguration<TItem, object> field)
     {
