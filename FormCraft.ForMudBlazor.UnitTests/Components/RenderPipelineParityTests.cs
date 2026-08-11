@@ -471,6 +471,54 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         standalone.Required.ShouldBeFalse();
     }
 
+    [Theory]
+    [InlineData("email")]
+    [InlineData("tel")]
+    [InlineData("url")]
+    [InlineData("search")]
+    [InlineData("number")]
+    [InlineData("date")]
+    [InlineData("time")]
+    [InlineData("definitely-not-an-input-type")]
+    public void InputType_Should_Resolve_Identically_On_Both_Paths(string configured)
+    {
+        // Arrange - #210 widened TextInputTypeMap with number/date/time. Both paths resolve through
+        // that one method, which is exactly why #189 extracted it — so this compares the whole
+        // recognised set rather than the newly added arms alone, and includes an unrecognised value
+        // so the shared fallback to `text` is pinned too.
+        //
+        // `password` is deliberately absent: #207 makes a masked field render on a single line, and
+        // its cross-path behaviour is asserted by PasswordCollectionItemField_… below.
+        void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field.WithLabel("Value").WithInputType(configured);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act
+        var standaloneRender = RenderForm(standaloneConfig);
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+
+        // Assert - the resolved parameter agrees, and so does the attribute the browser reads.
+        var standaloneType = standaloneRender.FindComponent<MudTextField<string>>().Instance.InputType;
+
+        itemRender.FindComponent<MudTextField<string>>().Instance.InputType.ShouldBe(standaloneType);
+        itemRender.Find("input").GetAttribute("type")
+            .ShouldBe(standaloneRender.Find("input").GetAttribute("type"));
+    }
+
     [Fact]
     public void NativeRequiredOptIn_Should_Be_Honoured_Identically_On_Both_Paths()
     {

@@ -58,6 +58,10 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **`.WithInputType("number" | "date" | "time")` now renders the type it names.** All three fell through to `type="text"`, so a string field configured with one lost its mobile numeric keypad or its native date/time picker — silently, with nothing reported. The recognised set is now `email`, `password`, `tel`/`telephone`, `url`, `search`, `number`, `date` and `time`; anything else still falls back to `text` rather than throwing (#210)
+
+  **Not a change to auto-generated forms.** `AddFieldsAuto()` emits these same strings for numeric, date and time *properties*, but those render through `MudNumericField` / `MudDatePicker` / `MudTimePicker`, which never consulted this mapping — it applies to `string` fields only. Pinned by a test so the scope is measured rather than assumed.
+
 - **`.WithNativeRequired()` replaces the `.WithAttribute("Required", true)` magic string — and now works on ordinary fields too.** #193 introduced the native-required opt-in as a documented raw string: undiscoverable by IntelliSense, unchecked by the compiler, and one typo (`"required"`) away from silently doing nothing. It is now a typed builder method, declared for every field type rather than strings only. The raw string keeps working and writes the same attribute, so this is additive (#204)
 
   ```csharp

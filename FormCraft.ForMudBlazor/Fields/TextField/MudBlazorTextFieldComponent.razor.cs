@@ -181,13 +181,25 @@ internal static class TextInputTypeMap
     /// <see cref="InputType.Text"/> for null and for any value this library does not recognise.
     /// </summary>
     /// <remarks>
-    /// The recognised set is carried over unchanged from the component path, so that #189 moved the
-    /// mapping without changing what it renders. It is **not** complete: <c>"number"</c>,
-    /// <c>"date"</c> and <c>"time"</c> fall through to <see cref="InputType.Text"/> even though
-    /// MudBlazor has arms for them and FormCraft's own auto-builders emit those strings — a field
-    /// so configured loses its mobile keypad and native picker, silently. Widening this changes
-    /// what the component path renders too, so it is tracked separately rather than smuggled into
-    /// a parity fix.
+    /// <para>
+    /// Recognised: <c>email</c>, <c>password</c>, <c>tel</c>/<c>telephone</c>, <c>url</c>,
+    /// <c>search</c>, <c>number</c>, <c>date</c> and <c>time</c>. Anything else — including a typo —
+    /// falls back to <see cref="InputType.Text"/> rather than throwing, which is the behaviour
+    /// carried over from before #189.
+    /// </para>
+    /// <para>
+    /// <c>number</c>, <c>date</c> and <c>time</c> were added in #210. They previously fell through to
+    /// <see cref="InputType.Text"/>, so a field configured with one lost its mobile keypad or native
+    /// picker with nothing reported. They were left out of #189 deliberately: that issue moved the
+    /// mapping without changing what it renders, and widening the set is a behaviour change.
+    /// </para>
+    /// <para>
+    /// Note on scope: <c>AutoFormBuilderExtensions</c> emits these same three strings, but for
+    /// numeric, date and time *properties* — which are rendered by <c>MudNumericField</c>,
+    /// <c>MudDatePicker</c> and <c>MudTimePicker</c>, none of which consult this map. It is reached
+    /// only from the text path, i.e. <c>string</c> fields, so widening it does not change what an
+    /// auto-generated form renders (pinned by a test).
+    /// </para>
     /// </remarks>
     internal static InputType Resolve(string? inputType) =>
         (inputType ?? Default).ToLowerInvariant() switch
@@ -197,6 +209,9 @@ internal static class TextInputTypeMap
             "tel" or "telephone" => InputType.Telephone,
             "url" => InputType.Url,
             "search" => InputType.Search,
+            "number" => InputType.Number,
+            "date" => InputType.Date,
+            "time" => InputType.Time,
             _ => InputType.Text,
         };
 
