@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- Updated MudBlazor to v9.3.0 for latest features and improvements
+- Updated coverlet.collector to v8.0.0 for improved test coverage reporting
+- Updated bUnit to v2.0.5 for enhanced Blazor component testing
+
+## [2.5.0] - 2025-08-08
+
 ### ♻️ Refactor
 
 - Simplify GetActualFieldType method using pattern matching ([0e6969d](https://github.com/phmatray/FormCraft/commit/0e6969d74c114c0e243b240e6d3fbb45193a2a77))
