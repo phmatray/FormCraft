@@ -316,9 +316,12 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void TextField_Adornment_Without_A_Handler_Should_Stay_Inert()
+    public void TextField_Adornment_Without_A_Handler_Should_Render_A_Plain_Icon()
     {
-        // Arrange - an adornment configured with no handler renders and clicks harmlessly
+        // Arrange - an adornment configured with no handler is decorative, so it must not be a
+        // focus stop. Before #216 this path bound OnAdornmentClick unconditionally, so MudBlazor
+        // drew a real <button>: inert to click, but in the tab order for keyboard and screen-reader
+        // users. The collection path has always drawn a plain icon here.
         var config = FormBuilder<TestModel>
             .Create()
             .AddField(x => x.Email, field => field
@@ -330,8 +333,12 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
             .Add(p => p.Model, new TestModel { Email = "someone@example.com" })
             .Add(p => p.Configuration, config));
 
-        // Act & Assert
-        Should.NotThrow(() => component.Find(AdornmentButton).Click());
+        // Assert - the adornment still renders; it just isn't clickable or focusable
+        var textField = component.FindComponent<MudTextField<string>>().Instance;
+        textField.Adornment.ShouldBe(Adornment.Start);
+        textField.AdornmentIcon.ShouldBe(Icons.Material.Filled.Email);
+        textField.OnAdornmentClick.HasDelegate.ShouldBeFalse();
+        component.FindAll(AdornmentButton).ShouldBeEmpty();
     }
 
     [Fact]
@@ -352,10 +359,10 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
             .Add(p => p.Model, new TestModel { Email = "someone@example.com" })
             .Add(p => p.Configuration, config));
 
-        // Act
-        component.Find(AdornmentButton).Click();
-
-        // Assert - the second call described a plain icon, so nothing runs
+        // Assert - the second call described a plain icon, so there is nothing left to click and
+        // the first handler cannot run. Before #216 a button survived the reconfiguration and this
+        // asserted the weaker "clicking it fires nothing"; no button at all is the stronger claim.
+        component.FindAll(AdornmentButton).ShouldBeEmpty();
         received.ShouldBeEmpty();
     }
 

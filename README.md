@@ -58,6 +58,10 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **A decorative adornment no longer renders as a focusable button.** An adornment configured with `.WithAdornment(...)` and *no* `onClick` was drawn as a real `<button>` on ordinary fields — inert to click, but a stop in the tab order, so keyboard and screen-reader users landed on a control that does nothing. The component path bound its click callback unconditionally; the collection path never did, so the same configuration produced different markup inside and outside `.WithItemForm(...)`. Both now render a plain icon (#216)
+
+  **Worth knowing if you assert on markup.** A handler-less adornment no longer matches `button.mud-input-adornment-icon-button`. Adornments configured *with* a handler are unchanged — still a real button, still clickable.
+
 - **Password fields inside collection item forms were rendering in clear text. They now mask.** A field configured with `.AsPassword()` inside `.WithItemForm(...)` rendered as a plain-text input: the characters the user typed were displayed on screen. The identical call on an ordinary field masked correctly. The collection render path never emitted `InputType` at all, so nothing failed and nothing warned — the credential was simply visible (#189)
 
   ```csharp
