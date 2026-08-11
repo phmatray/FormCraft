@@ -1,10 +1,18 @@
 using System.Globalization;
+using MudBlazor;
 
 namespace FormCraft.ForMudBlazor;
 
 public partial class MudBlazorNumericFieldComponent<TModel, TValue>
 {
     private TValue _localValue;
+
+    /// <summary>
+    /// This component binds <c>EffectiveAdornment</c> (#191), so the ShrinkLabel diagnostic judges
+    /// it — a numeric field really does draw the configured adornment, and its warning is correct
+    /// (#212).
+    /// </summary>
+    protected override Adornment? RenderedAdornment => EffectiveAdornment;
 
     public TValue? Min { get; set; }
     public TValue? Max { get; set; }

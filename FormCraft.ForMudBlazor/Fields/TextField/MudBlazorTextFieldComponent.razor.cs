@@ -23,6 +23,17 @@ public partial class MudBlazorTextFieldComponent<TModel>
     public string? Autocomplete { get; set; }
     public string? Mask { get; set; }
     public Adornment? Adornment { get; set; }
+
+    /// <summary>
+    /// This component binds <see cref="Adornment"/>, so the ShrinkLabel diagnostic judges that
+    /// resolved value (#212).
+    /// </summary>
+    /// <remarks>
+    /// The resolved value, not the configured attribute: <c>.AsPassword()</c> with the visibility
+    /// toggle installs a start-agnostic End adornment of its own, and a field that configured none
+    /// still renders none. Judging the configured attribute would describe a different field.
+    /// </remarks>
+    protected override Adornment? RenderedAdornment => Adornment;
     public string? AdornmentIcon { get; set; }
     public Color AdornmentColor { get; set; } = Color.Default;
     public Action<string?>? OnAdornmentClick { get; set; }

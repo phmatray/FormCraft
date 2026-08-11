@@ -1,4 +1,5 @@
 using System.Globalization;
+using MudBlazor;
 
 namespace FormCraft.ForMudBlazor;
 
@@ -14,6 +15,12 @@ public partial class MudBlazorNullableNumericFieldComponent<TModel, TValue>
     where TValue : struct
 {
     private TValue? _localValue;
+
+    /// <summary>
+    /// This component binds <c>EffectiveAdornment</c> (#191), so the ShrinkLabel diagnostic judges
+    /// it — see the sibling non-nullable component (#212).
+    /// </summary>
+    protected override Adornment? RenderedAdornment => EffectiveAdornment;
 
     /// <inheritdoc cref="INumericFieldComponent{TModel, TValue}.Min" />
     public TValue? Min { get; set; }
