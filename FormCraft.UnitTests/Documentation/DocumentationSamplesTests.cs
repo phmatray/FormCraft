@@ -392,6 +392,47 @@ public class DocumentationSamplesTests
 
     #endregion
 
+    #region README - LOV WithDisplay (Unreleased)
+
+    [Fact]
+    public void Readme_LovWithDisplay_Sample_Should_Build()
+    {
+        // Mirrors README.md "Unreleased > LovBuilder.WithDisplay ... removed".
+        // The sample's whole point is that these two lines COMPILE without a cast, so the
+        // value of this test is the compile, not the assertion — which is exactly the drift
+        // this class exists to catch (#180: the docs showed a form that did not compile).
+        var formConfig = FormBuilder<LovSampleModel>
+            .Create()
+            .AddField(x => x.CustomerId, field => field
+                .AsLov<LovSampleModel, int, LovSampleCustomer>(lov => lov
+                    .WithDataSource(() => [new LovSampleCustomer { Id = 1, Code = "ACM", Name = "Acme" }])
+                    .WithKey(c => c.Id)
+                    .WithDisplay(c => c.Name)))                  // simple property
+            .AddField(x => x.VendorId, field => field
+                .AsLov<LovSampleModel, int, LovSampleCustomer>(lov => lov
+                    .WithDataSource(() => [new LovSampleCustomer { Id = 2, Code = "GLB", Name = "Globex" }])
+                    .WithKey(c => c.Id)
+                    .WithDisplay(c => $"{c.Code} - {c.Name}")))  // complex formatting
+            .Build();
+
+        formConfig.Fields.Count.ShouldBe(2);
+    }
+
+    private class LovSampleModel
+    {
+        public int CustomerId { get; set; }
+        public int VendorId { get; set; }
+    }
+
+    private class LovSampleCustomer
+    {
+        public int Id { get; set; }
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+    }
+
+    #endregion
+
     #region README - Security Features
 
     [Fact]

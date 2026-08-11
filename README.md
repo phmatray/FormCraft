@@ -60,6 +60,17 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 - **Configurable MudBlazor ShrinkLabel** — `.WithShrinkLabel(false)` per field and a `DefaultShrinkLabel` parameter on `FormCraftComponent`, completing the `Variant` work from v3.1.0: `Variant.Text` can now let its label float instead of pinning it above a borderless input. Field-level wins over form-level; the default stays `true`, so **no existing form changes appearance** (#177)
   - Caveat, inherited from MudBlazor: `ShrinkLabel="false"` is only visible on an **empty field with no placeholder and no start adornment**. MudBlazor ORs `ShrinkLabel` with those conditions, so a field with a placeholder keeps its label pinned whatever you pass. To get a floating label on a `Variant.Text` field, leave its placeholder unset.
+- **`LovBuilder.WithDisplay` / `WithKey` accept a plain lambda again — no cast, no breaking change.** `.WithDisplay(c => c.Name)`, the form shown throughout our own documentation, did not compile: each method had an `Expression<Func<…>>` overload alongside a `Func<…>` one, and an expression-bodied lambda converts to both (`CS0121`). The `Func` overloads now carry `[OverloadResolutionPriority(1)]`, so a lambda binds to them unambiguously (#180)
+
+  ```csharp
+  .WithKey(c => c.Id)
+  .WithDisplay(c => c.Name)                   // simple property
+  .WithDisplay(c => $"{c.Code} - {c.Name}")   // complex formatting
+  ```
+
+  **Nothing to migrate today.** Existing code — including `Expression<Func<…>>` variables and any cast added to work around the ambiguity — keeps compiling and behaving identically. Statement-bodied lambdas (`c => { return c.Name; }`) and method groups were never ambiguous and are untouched.
+
+  **Deprecation notice:** the `Expression<Func<…>>` overloads of `WithDisplay` and `WithKey` are now `[Obsolete]` and **will be removed in v4.0.0**. They only compiled the expression and discarded the tree, so they never did anything the lambda form does not — and under Blazor WebAssembly that `Expression.Compile()` is the trimming-hostile path. Pass a lambda, or `expr.Compile()` if you genuinely hold an expression.
 
 ## 🎉 What's New in v3.1.0
 

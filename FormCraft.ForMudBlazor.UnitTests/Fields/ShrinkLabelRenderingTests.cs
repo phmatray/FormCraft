@@ -113,7 +113,7 @@ public class ShrinkLabelRenderingTests : MudBlazorTestBase
                 .AsLov<TestModel, int, CityDto>(lov => lov
                     .WithDataSource(() => new[] { new CityDto { Id = 1, Name = "Paris" } })
                     .WithKey(c => c.Id)
-                    .WithDisplay((Expression<Func<CityDto, string>>)(c => c.Name)))
+                    .WithDisplay(c => c.Name))
                 .WithShrinkLabel(false))
             .Build();
 
