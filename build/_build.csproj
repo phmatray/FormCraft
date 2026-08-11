@@ -14,6 +14,27 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Nuke.Common" />
+    <!--
+      ⛔ NOT an unused reference — do not delete it (#228).
+
+      Nuke.Common 10.1.0 resolves System.Security.Cryptography.Xml 9.0.0 transitively, and that
+      version carries 8 high-severity advisories (GHSA-23rf-6693-g89p, GHSA-37gx-xxp4-5rgx,
+      GHSA-6588-8gv4-xfgh, GHSA-8q5v-6pqq-x66h, GHSA-cvvh-rhrc-wg4q, GHSA-g8r8-53c2-pm3f,
+      GHSA-mmjf-rqrv-855v, GHSA-w3x6-4m5h-cxqf). 10.1.0 is the latest Nuke.Common, so there is no
+      bump that clears them.
+
+      No code here uses this package: it is referenced solely to raise the resolved version. That is
+      the only mechanism that works — removing a reference does NOT remove a package that is also
+      reached transitively, it just lets the vulnerable version resolve again in silence. The version
+      lives in Directory.Packages.props (central package management).
+
+      Verify with a COLD restore, never a warm build — restore advisories are not re-emitted on a
+      warm restore, so `dotnet build` reports "0 Warning(s)" whether or not this is here. Run
+      `dotnet restore build/_build.csproj` with the force flag and count NU1903: expect zero. Read
+      the count together with the restore's exit status, because a restore that fails outright also
+      prints no NU1903 lines and so looks identical to a clean one.
+    -->
+    <PackageReference Include="System.Security.Cryptography.Xml" />
   </ItemGroup>
 
 </Project>

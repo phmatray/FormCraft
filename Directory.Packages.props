@@ -6,6 +6,14 @@
   <ItemGroup>
     <!-- Epinglee directement : bunit tire AngleSharp 1.4.0, vulnerable (GHSA-pgww-w46g-26qg). -->
     <PackageVersion Include="AngleSharp" Version="1.7.1" />
+    <!--
+      Pinned directly for the same reason as AngleSharp above: Nuke.Common 10.1.0 (the latest
+      published version — a bump does not help) pulls System.Security.Cryptography.Xml 9.0.0
+      transitively, which carries 8 high-severity advisories (#228). A transitive edge can only be
+      overridden by a direct reference at a higher version, so build/_build.csproj references this
+      explicitly. Do not remove either half.
+    -->
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.11" />
     <!-- UI Framework packages -->
     <PackageVersion Include="MudBlazor" Version="9.8.0" />
     <!-- Testing packages -->
