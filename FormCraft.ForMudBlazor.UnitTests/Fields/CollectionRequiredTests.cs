@@ -3,9 +3,11 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// <summary>
 /// Tests that collection item fields do NOT carry the HTML5 <c>Required</c> attribute (#190).
 /// The project's validation convention is server-side only — messages come from the validator, no
-/// component-path renderer emits <c>Required</c>, and the form is marked <c>novalidate</c> (on a
-/// best-effort basis: it is applied by script to the first form in the document after the first
-/// render, so it is not a guarantee the rendered attribute can rely on). The collection
+/// component-path renderer emits <c>Required</c>, and the form is marked <c>novalidate</c>. Since
+/// #206 that last part is an actual guarantee rather than a best effort: the attribute is rendered
+/// on the form itself, so it applies during prerender and targets this component's own form. It was
+/// previously applied by script to the *first* form in the document after the first render, which is
+/// why this note used to qualify it. The collection
 /// path drove it from <c>field.IsRequired</c>, so the same <c>.Required("…")</c> call put
 /// <c>required</c> and <c>aria-required="true"</c> on the input inside <c>.WithItemForm(...)</c> and
 /// neither outside it.

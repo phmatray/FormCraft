@@ -58,6 +58,10 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **`novalidate` is now a rendered attribute on the form, not something applied by a script afterwards.** The library documents its forms as `novalidate` — server-side validation, messages from your configured validator, no native browser bubbles — but the attribute was bolted on after first render with `JSRuntime.InvokeVoidAsync("eval", "document.querySelector('form')?.setAttribute(…)")`. That missed in three ways: it marked the **first** form in the document rather than FormCraft's (so a search or login form higher up the page got marked instead, and with two FormCraft forms the second was never marked at all), it never ran during **prerender/SSR**, and it failed silently. Being `eval`, a strict **CSP** blocked it outright — silently and totally. The attribute is now in the markup, so it targets the right form by construction, survives prerender, and needs no JavaScript (#206)
+
+  **Worth knowing if you rely on it.** This is the guarantee `.WithAttribute("Required", true)` (#193) depends on: that opt-in emits a genuine HTML5 `required`, and on a page where the script missed, the browser really did enforce it — producing exactly the native validation bubbles this library says it never produces.
+
 - **A password field combined with a multi-line setting was rendering in clear text — on both render paths. Masking now wins.** `.AsPassword()` together with `.AsTextArea(...)` (or any `Lines > 1`) made MudBlazor emit a `<textarea>`, and a textarea has no `type` attribute, so the masking was silently dropped and the credential was displayed. Unlike #189 this was not a drift between the two render paths — both had the same gap. Such a field now renders **masked, on a single line**, and FormCraft logs a warning naming the field and the line count it dropped (#207)
 
   ```csharp
