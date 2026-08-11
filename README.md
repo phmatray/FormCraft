@@ -67,9 +67,11 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
           .Required("Product name is required"))))   // ← validates; no HTML5 required attribute
   ```
 
-  **Validation is unchanged.** `.Required(...)` still registers its validator, a blank item field still fails validation, and the message is still the one you passed. What changes is only the attribute on the element — and with it `aria-required`, which now reports `false` on these fields as it already did on ordinary ones.
+  **Validation is unchanged.** `.Required(...)` still registers its validator, a blank item field still fails validation, and the message is still the one you passed.
 
-  **Opting back in.** `.WithAttribute("Required", true)` on an item field still renders `Required="true"`, so a form that deliberately wants MudBlazor's native required semantics keeps them. The attribute is now read from that explicit opt-in rather than inferred from `.Required(...)`.
+  **⚠️ This is a visible change, not just an attribute change.** MudBlazor draws the required asterisk from a CSS rule on the `mud-input-required` class, which it only adds when `Required="true"`. So text, numeric **and date** item fields configured with `.Required(...)` lose their `*` — they now look exactly like ordinary `.Required(...)` fields, which never had one. `aria-required` likewise reports `false` on these fields as it already did on ordinary ones; identifying required fields to assistive technology is a gap the library has on **both** render paths, tracked separately rather than fixed on one side here.
+
+  **Opting back in.** `.WithAttribute("Required", true)` on a text, numeric or date item field renders `Required="true"` again, restoring both the asterisk and MudBlazor's native required semantics. The attribute is now read from that explicit opt-in rather than inferred from `.Required(...)`. Two limits worth knowing: the opt-in is **collection-only** (an ordinary field ignores a raw `"Required"` attribute — use `.Required(...)` there), and it is **inert on boolean item fields**, which render through a path that takes none of these shared attributes.
 
 - **`.WithAdornment(...)` now renders inside collection item forms.** A field configured with an adornment inside `.WithItemForm(...)` had the setting accepted and then silently discarded — no icon, no exception, no warning — while the identical call on an ordinary field rendered fine. Text and numeric item fields now forward `Adornment`, `AdornmentIcon` and `AdornmentColor` (#184)
 

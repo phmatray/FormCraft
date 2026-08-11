@@ -2,8 +2,10 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
 /// Tests that collection item fields do NOT carry the HTML5 <c>Required</c> attribute (#190).
-/// The project's validation convention is server-side only — forms render <c>novalidate</c>, messages
-/// come from the validator, and no component-path renderer emits <c>Required</c>. The collection
+/// The project's validation convention is server-side only — messages come from the validator, no
+/// component-path renderer emits <c>Required</c>, and the form is marked <c>novalidate</c> (on a
+/// best-effort basis: it is applied by script to the first form in the document after the first
+/// render, so it is not a guarantee the rendered attribute can rely on). The collection
 /// path drove it from <c>field.IsRequired</c>, so the same <c>.Required("…")</c> call put
 /// <c>required</c> and <c>aria-required="true"</c> on the input inside <c>.WithItemForm(...)</c> and
 /// neither outside it.
@@ -40,8 +42,13 @@ public class CollectionRequiredTests : MudBlazorTestBase
         var component = RenderOrderForm(BuildConfiguration(field => field
             .WithAttribute("Required", true)));
 
-        // Assert
-        component.FindComponent<MudTextField<string>>().Instance.Required.ShouldBeTrue();
+        // Assert - the property, and that it actually reaches the DOM. Asserting only the property
+        // would stay green if a future change stopped it reaching the input, and this test is the
+        // opt-in's only guard.
+        var textField = component.FindComponent<MudTextField<string>>();
+        textField.Instance.Required.ShouldBeTrue();
+        textField.Find("input").HasAttribute("required").ShouldBeTrue();
+        component.FindAll(".mud-input-required").Count.ShouldBe(1);
     }
 
     [Fact]
@@ -57,8 +64,8 @@ public class CollectionRequiredTests : MudBlazorTestBase
     [Fact]
     public void Required_NumericItemField_Should_Not_Render_The_Html5_Required_Attribute()
     {
-        // Arrange - AddCommonFieldAttributes is shared by the text and numeric paths, so the numeric
-        // one must lose the forward too rather than being fixed only where it was measured.
+        // Arrange - AddCommonFieldAttributes feeds three renderers (text, numeric and date), so the
+        // numeric one must lose the forward too rather than being fixed only where it was measured.
         var config = FormBuilder<BasketModel>
             .Create()
             .AddCollectionField(x => x.Lines, collection => collection
@@ -87,10 +94,101 @@ public class CollectionRequiredTests : MudBlazorTestBase
         var component = RenderOrderForm(BuildConfiguration(field => field
             .Required("Product name is required")));
 
-        // Assert
-        var input = component.FindAll("input")[0];
+        // Assert - anchored to the field under test, not to whichever input happens to be first
+        var input = component.FindComponent<MudTextField<string>>().Find("input");
         input.HasAttribute("required").ShouldBeFalse();
-        input.GetAttribute("aria-required").ShouldBe("false");
+        input.GetAttribute("aria-required").ShouldNotBe("true");
+    }
+
+    [Fact]
+    public void Required_ItemField_Should_Not_Render_MudBlazors_Required_Asterisk()
+    {
+        // Arrange & Act - the asterisk is a CSS ::after on .mud-input-required, which MudBlazor adds
+        // only when Required is true. A markup search for "*" cannot see it, so the CLASS is the
+        // measurable proxy. This is the user-visible half of the change: a required item field now
+        // looks exactly like a required ordinary field, which never carried one.
+        var component = RenderOrderForm(BuildConfiguration(field => field
+            .Required("Product name is required")));
+
+        // Assert
+        component.FindAll(".mud-input-required").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void DateItemField_Should_Not_Render_The_Html5_Required_Attribute()
+    {
+        // Arrange - MudDatePicker is the THIRD renderer fed by AddCommonFieldAttributes, and it
+        // derives from MudFormComponent too, so it took the same forward. Its sibling suite covers
+        // the date path for adornments (#184); this keeps that parity for Required.
+        var config = FormBuilder<AppointmentModel>
+            .Create()
+            .AddCollectionField(x => x.Slots, collection => collection
+                .WithLabel("Slots")
+                .WithItemForm(item => item
+                    .AddField(x => x.When, field => field
+                        .WithLabel("When")
+                        .Required("When is required"))))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<AppointmentModel>>(parameters => parameters
+            .Add(p => p.Model, new AppointmentModel { Slots = { new AppointmentSlot() } })
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudDatePicker>().Instance.Required.ShouldBeFalse();
+        component.FindAll(".mud-input-required").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void DateItemField_Should_Honour_An_Explicit_Required_Attribute()
+    {
+        // Arrange - the opt-in has to reach the date path too, or the escape hatch is text/numeric
+        // only while the README promises it for item fields generally.
+        var config = FormBuilder<AppointmentModel>
+            .Create()
+            .AddCollectionField(x => x.Slots, collection => collection
+                .WithLabel("Slots")
+                .WithItemForm(item => item
+                    .AddField(x => x.When, field => field
+                        .WithLabel("When")
+                        .WithAttribute("Required", true))))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<AppointmentModel>>(parameters => parameters
+            .Add(p => p.Model, new AppointmentModel { Slots = { new AppointmentSlot() } })
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudDatePicker>().Instance.Required.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void BooleanItemField_With_An_Explicit_Required_Attribute_Should_Be_Inert()
+    {
+        // Arrange - RenderBooleanField sets its own attributes and never calls
+        // AddCommonFieldAttributes, so the opt-in is silently inert here. Pinned rather than fixed,
+        // exactly as CollectionAdornmentTests pins the same inertness for adornments (#184): the
+        // point is that configuring it is harmless, not that it works.
+        var config = FormBuilder<BasketModel>
+            .Create()
+            .AddCollectionField(x => x.Lines, collection => collection
+                .WithLabel("Lines")
+                .WithItemForm(item => item
+                    .AddField(x => x.IsGift, field => field
+                        .WithLabel("Gift")
+                        .WithAttribute("Required", true))))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<BasketModel>>(parameters => parameters
+            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
+            .Add(p => p.Configuration, config));
+
+        // Assert - renders, does not throw, and takes no notice of the attribute
+        component.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Gift");
+        component.FindAll(".mud-input-required").ShouldBeEmpty();
     }
 
     [Fact]
@@ -137,9 +235,13 @@ public class CollectionRequiredTests : MudBlazorTestBase
         // Act
         await component.InvokeAsync(() => component.Instance.ValidateAsync());
 
-        // Assert - FieldValidationMessage renders one MudText per error for the field
+        // Assert - scoped to the FieldValidationMessage bound to Items[0].ProductName, not to every
+        // error-coloured MudText in the form: a second item field, or any unrelated error text,
+        // would otherwise move this count for a reason that has nothing to do with duplication.
         component.WaitForAssertion(() =>
-            component.FindComponents<MudText>()
+            component.FindComponents<FieldValidationMessage>()
+                .Single(m => m.Instance.FieldName == "Items[0].ProductName")
+                .FindComponents<MudText>()
                 .Count(t => t.Instance.Color == Color.Error)
                 .ShouldBe(1));
 
@@ -193,5 +295,17 @@ public class CollectionRequiredTests : MudBlazorTestBase
     private class BasketLine
     {
         public int Quantity { get; set; }
+
+        public bool IsGift { get; set; }
+    }
+
+    private class AppointmentModel
+    {
+        public List<AppointmentSlot> Slots { get; set; } = new();
+    }
+
+    private class AppointmentSlot
+    {
+        public DateTime When { get; set; }
     }
 }

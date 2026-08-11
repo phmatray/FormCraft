@@ -461,6 +461,10 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     /// looking like coverage:
     /// </para>
     /// <list type="bullet">
+    /// <item>The raw <c>"Required"</c> attribute — collection path only. <c>.Required(...)</c> is
+    /// compared above and agrees, but <c>.WithAttribute("Required", true)</c> is read solely by
+    /// <c>CollectionFieldComponent</c>; no component-path renderer looks for that key, so the
+    /// opt-in is honoured inside an item form and ignored outside one.</item>
     /// <item><c>InputType</c>, <c>Lines</c>, <c>MaxLength</c>, <c>Autocomplete</c> — component path
     /// only; a <c>.AsPassword()</c> item field still renders as plain text inside a collection.</item>
     /// <item><c>OnAdornmentClick</c> — component path only (an explicit non-goal of #184).</item>
