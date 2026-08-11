@@ -225,7 +225,13 @@ public class FormCraftComponentTests : BunitContext
         // The DynamicFormValidator is rendered inside the EditForm
         // We can't directly find it with FindComponents due to how Blazor handles nested components,
         // but we can verify the form structure is correct
-        editForm.Attributes.FirstOrDefault(a => a.Name == "novalidate")?.Value.ShouldBe("novalidate");
+        // The `?.` here used to make this VACUOUS — with the attribute absent the expression was
+        // null and nothing was asserted, so it stayed green throughout the period `novalidate` was
+        // applied by a script bUnit never runs (#206).
+        var novalidate = editForm.Attributes.FirstOrDefault(a => a.Name == "novalidate");
+
+        novalidate.ShouldNotBeNull();
+        novalidate.Value.ShouldBe("novalidate");
 
         // Ensure DataAnnotationsValidator is NOT present to avoid duplicate validation messages
         component.FindComponents<DataAnnotationsValidator>().Count.ShouldBe(0);

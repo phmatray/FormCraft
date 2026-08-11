@@ -214,8 +214,16 @@ public class FormCraftComponentTests : MudBlazorTestBase
             .Add(p => p.Configuration, config));
 
         // Assert
+        // The `?.` this assertion used to carry made it VACUOUS: with the attribute absent — which
+        // it was, because it was applied by a script bUnit never runs — the whole expression was
+        // null and no assertion executed. A test named "Should_Have_Novalidate_Attribute" reported
+        // green for the entire period the attribute was missing, which is the same class of defect
+        // as #206 itself: a guarantee asserted everywhere and checked nowhere.
         var form = component.Find("form");
-        form.Attributes.FirstOrDefault(a => a.Name == "novalidate")?.Value.ShouldBe("novalidate");
+        var novalidate = form.Attributes.FirstOrDefault(a => a.Name == "novalidate");
+
+        novalidate.ShouldNotBeNull();
+        novalidate.Value.ShouldBe("novalidate");
     }
 
     [Fact]

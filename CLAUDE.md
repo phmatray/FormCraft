@@ -222,7 +222,12 @@ public interface IUIFrameworkAdapter
 
 #### Validation Behavior
 - `Required()` adds validation but NOT HTML5 required attribute
-- Browser validation disabled via `novalidate` attribute
+- Browser validation disabled via a `novalidate` attribute **rendered on the form** by
+  `FormCraftComponent` (#206). It is a real attribute in the markup, so it applies during
+  prerender/SSR, targets this component's own form rather than the first one on the page, and needs
+  no JavaScript. ⛔ Do not reintroduce the `JSRuntime.InvokeVoidAsync("eval", …)` version: it marked
+  `document.querySelector('form')` — the wrong form on any page with another form above it — never
+  ran on the server pass, failed silently, and was blocked outright by a strict CSP
 - All validation through FluentValidation
 - Validation messages from server, not browser
 - MudBlazor components don't include `Required` attribute
