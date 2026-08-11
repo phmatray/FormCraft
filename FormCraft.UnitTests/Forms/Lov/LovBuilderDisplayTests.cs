@@ -26,10 +26,10 @@ public class LovBuilderDisplayTests
                     .WithDisplay(c => c.Name)))
             .Build();
 
-        // Assert
+        // Assert - both rows, so a selector wired to the wrong item cannot pass
         var lovConfig = GetLovConfiguration(config);
-        lovConfig.DisplaySelector.ShouldNotBeNull();
         lovConfig.DisplaySelector(Customers[0]).ShouldBe("Acme");
+        lovConfig.DisplaySelector(Customers[1]).ShouldBe("Globex");
     }
 
     [Fact]
@@ -49,6 +49,24 @@ public class LovBuilderDisplayTests
         // Assert
         var lovConfig = GetLovConfiguration(config);
         lovConfig.DisplaySelector(Customers[0]).ShouldBe("ACM - Acme");
+        lovConfig.DisplaySelector(Customers[1]).ShouldBe("GLB - Globex");
+    }
+
+    [Fact]
+    public void WithDisplay_Should_Reject_Null()
+    {
+        // Arrange - DisplaySelector is non-nullable and ships a safe default; letting null
+        // through would replace it and only surface as a NullReferenceException at render time.
+        var builder = FormBuilder<OrderModel>.Create();
+        Func<CustomerDto, string> displayFunc = null!;
+
+        // Act & Assert
+        Should.Throw<ArgumentNullException>(() => builder
+            .AddField(x => x.CustomerId, field => field
+                .AsLov<OrderModel, int, CustomerDto>(lov => lov
+                    .WithDataSource(() => Customers)
+                    .WithKey(c => c.Id)
+                    .WithDisplay(displayFunc))));
     }
 
     [Fact]
@@ -79,11 +97,16 @@ public class LovBuilderDisplayTests
         new() { Id = 2, Code = "GLB", Name = "Globex" }
     ];
 
-    private static LovConfiguration<CustomerDto, int> GetLovConfiguration(
+    /// <summary>
+    /// Casts to the ILovConfiguration interface the renderer actually consumes
+    /// (MudBlazorLovFieldComponent reads the attribute as ILovConfiguration), not the concrete
+    /// type — so swapping the stored implementation would not turn these into InvalidCastException.
+    /// </summary>
+    private static ILovConfiguration<CustomerDto, int> GetLovConfiguration(
         IFormConfiguration<OrderModel> config)
     {
         var field = config.Fields.Single(f => f.FieldName == nameof(OrderModel.CustomerId));
-        return (LovConfiguration<CustomerDto, int>)field.AdditionalAttributes["LovConfiguration"];
+        return (ILovConfiguration<CustomerDto, int>)field.AdditionalAttributes["LovConfiguration"];
     }
 
     private class OrderModel

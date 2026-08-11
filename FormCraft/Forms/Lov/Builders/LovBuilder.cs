@@ -102,19 +102,20 @@ public class LovBuilder<TModel, TValue, TItem> where TModel : new()
         return this;
     }
 
+    // Maintainer note (#180): do NOT add an Expression<Func<TItem, string>> overload here.
+    // One existed and only called .Compile() before assigning the very same delegate this
+    // overload takes directly, so it added no capability while making an expression-bodied
+    // lambda ambiguous (CS0121) — including the calls in this type's own examples. Nothing
+    // reads the expression tree. The bare-lambda tests in LovBuilderDisplayTests fail to
+    // compile if it comes back, so the guard is mechanical, not just this comment.
+
     /// <summary>
     /// Configures the function that generates the display text for selected items.
     /// A simple property selector and complex formatting are both expressed the same way.
     /// </summary>
-    /// <remarks>
-    /// This is deliberately the only overload. It previously had an
-    /// <c>Expression&lt;Func&lt;TItem, string&gt;&gt;</c> twin that merely called
-    /// <c>.Compile()</c> before assigning the very same delegate, which made every bare lambda
-    /// ambiguous (<c>CS0121</c>) — including the ones in this type's own examples. Nothing here
-    /// inspects the expression tree, so do not reintroduce it.
-    /// </remarks>
     /// <param name="displayFunc">Function that returns the display text for an item.</param>
     /// <returns>The LovBuilder instance for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="displayFunc"/> is null.</exception>
     /// <example>
     /// <code>
     /// .WithDisplay(c => c.Name)                      // simple property
@@ -123,6 +124,11 @@ public class LovBuilder<TModel, TValue, TItem> where TModel : new()
     /// </example>
     public LovBuilder<TModel, TValue, TItem> WithDisplay(Func<TItem, string> displayFunc)
     {
+        // Guarded because DisplaySelector is non-nullable and ships a safe default; assigning
+        // null here would replace it and surface as a NullReferenceException during render,
+        // far from this call site.
+        ArgumentNullException.ThrowIfNull(displayFunc);
+
         _configuration.DisplaySelector = displayFunc;
         return this;
     }
