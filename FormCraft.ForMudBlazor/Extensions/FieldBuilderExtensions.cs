@@ -139,6 +139,48 @@ public static class MudBlazorFieldBuilderExtensions
     }
 
     /// <summary>
+    /// Sets MudBlazor's <c>ShrinkLabel</c> for the field's input, overriding the form-level
+    /// default (see <c>FormCraftComponent&lt;TModel&gt;.DefaultShrinkLabel</c>). When neither
+    /// is configured, fields render with <c>ShrinkLabel="true"</c> — the label stays in its
+    /// shrunk position above the input.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Pass <c>false</c> when using <see cref="MudBlazor.Variant.Text"/>: that variant has no
+    /// border for a shrunk label to sit in, so the label should float up from inside the input
+    /// on focus instead of being permanently pinned above it.
+    /// </para>
+    /// <para>
+    /// <b>Setting this to <c>false</c> only has a visible effect on an empty field with no
+    /// placeholder and no start adornment.</b> MudBlazor combines <c>ShrinkLabel</c> with those
+    /// conditions using OR, so a field that has a value, a placeholder (see
+    /// <c>WithPlaceholder</c>) or a start adornment (see <c>WithAdornment</c>) keeps its label
+    /// pinned regardless. This is MudBlazor's behaviour, not FormCraft's — to get a floating
+    /// label on a <see cref="MudBlazor.Variant.Text"/> field, leave its placeholder unset.
+    /// </para>
+    /// </remarks>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <typeparam name="TValue">The type of the field value.</typeparam>
+    /// <param name="builder">The FieldBuilder instance.</param>
+    /// <param name="shrinkLabel">Whether the label stays shrunk (default: true).</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Name, field => field
+    ///     .WithLabel("Name")
+    ///     .WithVariant(Variant.Text)
+    ///     .WithShrinkLabel(false))
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, TValue> WithShrinkLabel<TModel, TValue>(
+        this FieldBuilder<TModel, TValue> builder,
+        bool shrinkLabel = true)
+        where TModel : new()
+    {
+        return builder.WithAttribute("ShrinkLabel", shrinkLabel);
+    }
+
+    /// <summary>
     /// Adds an adornment (icon or text) to a text field.
     /// </summary>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>

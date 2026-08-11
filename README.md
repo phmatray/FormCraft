@@ -56,6 +56,11 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 - 📤 File upload capabilities
 - 🎨 Real-time form generation
 
+## 🎉 Unreleased
+
+- **Configurable MudBlazor ShrinkLabel** — `.WithShrinkLabel(false)` per field and a `DefaultShrinkLabel` parameter on `FormCraftComponent`, completing the `Variant` work from v3.1.0: `Variant.Text` can now let its label float instead of pinning it above a borderless input. Field-level wins over form-level; the default stays `true`, so **no existing form changes appearance** (#177)
+  - Caveat, inherited from MudBlazor: `ShrinkLabel="false"` is only visible on an **empty field with no placeholder and no start adornment**. MudBlazor ORs `ShrinkLabel` with those conditions, so a field with a placeholder keeps its label pinned whatever you pass. To get a floating label on a `Variant.Text` field, leave its placeholder unset.
+
 ## 🎉 What's New in v3.1.0
 
 v3.1.0 implements every issue that was open after v3.0 — all features, no breaking changes. [Full changelog →](https://github.com/phmatray/FormCraft/releases/tag/v3.1.0)
@@ -541,6 +546,38 @@ var formConfig = FormBuilder<UserModel>
         .AddField(x => x.Address))
     .Build();
 ```
+
+### Input Appearance — Variant and ShrinkLabel
+
+Both MudBlazor presentation properties are configurable per field, with a form-level default. Field-level always wins; unconfigured fields render `Variant.Outlined` with `ShrinkLabel="true"`.
+
+```csharp
+// Form-level defaults for every field
+<FormCraftComponent TModel="UserModel"
+                    Model="@model"
+                    Configuration="@formConfig"
+                    DefaultVariant="Variant.Text"
+                    DefaultShrinkLabel="false" />
+```
+
+```csharp
+// Per-field override — a Filled search box among otherwise Text inputs
+var formConfig = FormBuilder<UserModel>
+    .Create()
+    .AddField(x => x.Query, field => field
+        .WithLabel("Search")
+        .WithVariant(Variant.Filled)
+        .WithShrinkLabel(true))
+    .Build();
+```
+
+> [!TIP]
+> `Variant.Text` usually wants `ShrinkLabel="false"`. That variant draws no border, so there is nothing for a permanently shrunk label to sit in — letting it float up from inside the input on focus is what makes `Text` look right. The two properties stay independent so you can still pin a label on a `Text` input if that is what you want.
+
+> [!IMPORTANT]
+> **`ShrinkLabel="false"` only shows up on an empty field with no placeholder and no start adornment.** MudBlazor decides the shrunk state by OR-ing `ShrinkLabel` with "has a value", "has a placeholder" and "has a start adornment" — so on a field configured with `.WithPlaceholder(...)` or `.WithAdornment(...)`, the label stays pinned no matter what you pass here. This is MudBlazor's rule, not FormCraft's. If you want the label to float on a `Variant.Text` field, leave its placeholder unset and let the label do that job.
+
+`Variant` is honored by text, numeric, date/time pickers, select, multi-select, autocomplete, lookup, LOV, color picker and collection-item fields. `ShrinkLabel` reaches all of the same components, subject to the rule above — note that LOV fields always supply their own `"Click to select..."` placeholder, so their label is always pinned.
 
 ### Security Features (v2.0.0+)
 

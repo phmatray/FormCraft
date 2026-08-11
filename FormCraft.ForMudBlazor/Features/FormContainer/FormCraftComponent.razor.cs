@@ -53,6 +53,27 @@ public partial class FormCraftComponent<TModel>
     public Variant DefaultVariant { get; set; } = Variant.Outlined;
 
     /// <summary>
+    /// Default value for MudBlazor's <c>ShrinkLabel</c> on every rendered input field.
+    /// Individual fields override it via the <c>.WithShrinkLabel(...)</c> builder extension.
+    /// Defaults to <c>true</c>, which keeps each label pinned above its input.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Set this to <c>false</c> alongside <see cref="DefaultVariant"/> =
+    /// <see cref="Variant.Text"/>: that variant draws no border for a shrunk label to sit
+    /// in, so the label should float up from inside the input on focus instead.
+    /// </para>
+    /// <para>
+    /// <b><c>false</c> only has a visible effect on empty fields with no placeholder and no
+    /// start adornment.</b> MudBlazor ORs <c>ShrinkLabel</c> with those conditions, so fields
+    /// that have a value, a placeholder or a start adornment keep their label pinned
+    /// regardless. Fields configured with a placeholder are unaffected by this parameter.
+    /// </para>
+    /// </remarks>
+    [Parameter]
+    public bool DefaultShrinkLabel { get; set; } = true;
+
+    /// <summary>
     /// Stable identifier used for security enforcement (rate limiting and audit log
     /// entries) configured via <c>WithSecurity()</c>. Set this to a per-user or
     /// per-session value (e.g. user id, circuit id, IP address) so limits are not

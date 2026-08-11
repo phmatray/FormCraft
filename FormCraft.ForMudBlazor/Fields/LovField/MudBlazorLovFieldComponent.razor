@@ -6,6 +6,10 @@
 @inject IDialogService DialogService
 @inject IServiceProvider ServiceProvider
 
+@* ShrinkLabel is passed for consistency with the other input components, but it cannot
+   change this field's rendering: the Placeholder below is never empty, and MudBlazor ORs
+   a non-empty placeholder into its own shrink decision. The label is therefore always
+   pinned here, whatever ShrinkLabel says. Pinned by ShrinkLabelRenderingTests. *@
 <MudTextField
     T="string"
     Label="@Label"
@@ -16,6 +20,7 @@
     Disabled="@IsDisabled"
     Variant="@EffectiveVariant"
     Margin="Margin.Dense"
+    ShrinkLabel="@EffectiveShrinkLabel"
     Adornment="Adornment.End"
     AdornmentIcon="@AdornmentIcon"
     AdornmentColor="Color.Primary"
