@@ -128,6 +128,18 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     private IServiceProvider? DiagnosticServices { get; set; }
 
     /// <summary>
+    /// The same provider, exposed to derived components that emit a diagnostic of their own
+    /// (<see cref="MaskedLinesDiagnostic"/>, #207).
+    /// </summary>
+    /// <remarks>
+    /// Deliberately named differently from the injected property above rather than simply making
+    /// that one protected: derived components inject their own <c>ServiceProvider</c>
+    /// (<c>MudBlazorLovFieldComponent</c> does), and a protected member sharing a name with theirs
+    /// would hide it (CS0108) — which under <c>TreatWarningsAsErrors</c> is a build break.
+    /// </remarks>
+    protected IServiceProvider? DiagnosticServiceProvider => DiagnosticServices;
+
+    /// <summary>
     /// The form's diagnostic collector, when this field is rendered inside a
     /// <see cref="FormCraftComponent{TModel}"/>. Null for a standalone field.
     /// </summary>

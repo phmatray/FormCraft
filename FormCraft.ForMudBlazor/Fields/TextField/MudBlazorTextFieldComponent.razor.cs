@@ -43,7 +43,19 @@ public partial class MudBlazorTextFieldComponent<TModel>
         // <textarea>, which has no `type` attribute and therefore cannot mask (#207). Resolved from
         // the CONFIGURED input type, so revealing a password with the toggle does not reflow the
         // field from one line to four.
-        Lines = TextInputTypeMap.EffectiveLines(TextInputTypeMap.Resolve(InputType), ConfiguredLines);
+        var configuredInputType = TextInputTypeMap.Resolve(InputType);
+        Lines = TextInputTypeMap.EffectiveLines(configuredInputType, ConfiguredLines);
+
+        // Emitted from OnInitialized, so once per component instance: the conflict is a
+        // configuration fact and re-reporting it on every keystroke would drown the console.
+        if (MaskedLinesDiagnostic.Applies(configuredInputType, ConfiguredLines))
+        {
+            MaskedLinesDiagnostic.Warn(
+                DiagnosticServiceProvider,
+                Context.Field.FieldName,
+                Label,
+                ConfiguredLines);
+        }
         Autocomplete = GetAttribute<string?>("autocomplete");
         Mask = GetAttribute<string?>("Mask");
 
