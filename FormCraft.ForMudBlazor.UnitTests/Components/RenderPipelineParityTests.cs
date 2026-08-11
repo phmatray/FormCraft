@@ -405,9 +405,13 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         //   start adornment below with its own eye icon, failing this test for a reason it does not
         //   exist to test.
         // - Lines stays at its default 1, and is covered by the multiline test below instead.
-        //   MudBlazor renders a <textarea> once Lines > 1, and a textarea has no `type` attribute —
-        //   so combining Lines with AsPassword would make InputType inert and this test's headline
-        //   masking assertion vacuous: it would compare a parameter that changes nothing.
+        //   MudBlazor renders a <textarea> once Lines > 1, and a textarea has no `type` attribute.
+        //   Until #207 that made the combination genuinely unsafe to assert here: InputType went
+        //   inert and this test's headline masking assertion became vacuous, comparing a parameter
+        //   that changed nothing. That is no longer why Lines is excluded — the combination is now
+        //   defined behaviour (masking wins, the field renders on one line) and is asserted by
+        //   PasswordCollectionItemField_... below. Lines stays out of THIS field only because a
+        //   password field always renders Lines=1, so putting it here would compare a constant.
         static void Configure<TOwner>(FieldBuilder<TOwner, string> field)
             where TOwner : new()
             => field
@@ -617,6 +621,56 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         standaloneRender.FindAll("textarea").Count.ShouldBe(1);
         itemRender.FindAll("textarea").Count.ShouldBe(1);
         standaloneRender.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(4);
+    }
+
+    [Fact]
+    public void PasswordCollectionItemField_With_Lines_Should_Stay_Masked_Like_A_Standalone_One()
+    {
+        // Arrange - #207, the counterpart to the test above. `.AsPassword()` plus a multi-line
+        // setting used to render the credential in clear text on BOTH paths: past Lines > 1
+        // MudBlazor emits a <textarea>, which carries no `type` attribute, so the masking was
+        // dropped without a word. It was never a drift between the two paths — it was a shared gap,
+        // which is why the parity comparison could not have caught it and this case is asserted on
+        // the rendered element rather than on parameters.
+        //
+        // A masked textarea does not exist, so the combination can never be honoured as written:
+        // masking wins and the field renders on one line. Both paths must agree on that, and on the
+        // fact that they collapse it to the same single line rather than one of them keeping four.
+        static void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field
+                .WithLabel("Secret")
+                .AsPassword(enableVisibilityToggle: false)
+                .AsTextArea(lines: 4);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act
+        var standaloneRender = RenderForm(standaloneConfig);
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+
+        // Assert - neither path renders a textarea, both mask, and both agree on the line count.
+        standaloneRender.FindAll("textarea").ShouldBeEmpty();
+        itemRender.FindAll("textarea").ShouldBeEmpty();
+
+        standaloneRender.Find("input").GetAttribute("type").ShouldBe("password");
+        itemRender.Find("input").GetAttribute("type").ShouldBe("password");
+
+        itemRender.FindComponent<MudTextField<string>>().Instance.Lines
+            .ShouldBe(standaloneRender.FindComponent<MudTextField<string>>().Instance.Lines);
+        standaloneRender.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(1);
     }
 
     /// <summary>

@@ -70,6 +70,16 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private readonly HashSet<string> _warnedItemFields = [];
 
     /// <summary>
+    /// Item fields already reported for a dropped multi-line setting (#207).
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="_warnedItemFields"/> on purpose: the two diagnostics are
+    /// independent, and a shared latch would let whichever fired first silence the other on the
+    /// same field.
+    /// </remarks>
+    private readonly HashSet<string> _maskedLinesWarnedFields = [];
+
+    /// <summary>
     /// Gets or sets the parent form's EditContext, cascaded from the surrounding EditForm.
     /// When present, item field changes raise <see cref="EditContext.NotifyFieldChanged(in FieldIdentifier)"/>
     /// with a nested field identifier (e.g. <c>Items[0].ProductName</c>) on the root model, so
@@ -246,6 +256,33 @@ public partial class CollectionFieldComponent<TModel, TItem>
         builder.AddAttribute(CallerAttributeStart + 2, "Immediate", true);
         AddTextInputAttributes(builder, field, TextAttributeStart);
         builder.CloseComponent();
+
+        WarnIfMaskedLinesDropped(field);
+    }
+
+    /// <summary>
+    /// Reports a multi-line setting dropped so an item field could stay masked (#207), using the
+    /// same rule as the component render path.
+    /// </summary>
+    /// <remarks>
+    /// Once per field name for the lifetime of this component: <see cref="RenderTextField"/> runs
+    /// for every row and on every re-render, so an unguarded call would emit one warning per row per
+    /// keystroke — a collection of 50 items would produce 50 identical warnings before the user
+    /// typed anything. Latched on its own set rather than <see cref="_warnedItemFields"/>: the two
+    /// diagnostics are independent, and sharing one latch would let whichever fired first silence
+    /// the other on the same field.
+    /// </remarks>
+    private void WarnIfMaskedLinesDropped(IFieldConfiguration<TItem, object> field)
+    {
+        var configuredLines = GetItemFieldAttribute(field, "Lines", 1);
+
+        if (!MaskedLinesDiagnostic.Applies(GetItemFieldInputType(field), configuredLines)
+            || !_maskedLinesWarnedFields.Add(field.FieldName))
+        {
+            return;
+        }
+
+        MaskedLinesDiagnostic.Warn(DiagnosticServices, field.FieldName, field.Label, configuredLines);
     }
 
     private void RenderNumericField<T>(RenderTreeBuilder builder, IFieldConfiguration<TItem, object> field, T value, int itemIndex)
@@ -352,7 +389,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
         int startIndex)
     {
         builder.AddAttribute(startIndex++, "InputType", GetItemFieldInputType(field));
-        builder.AddAttribute(startIndex++, "Lines", GetItemFieldAttribute(field, "Lines", 1));
+        builder.AddAttribute(startIndex++, "Lines", GetItemFieldLines(field));
         builder.AddAttribute(startIndex++, "MaxLength", GetItemFieldMaxLength(field));
 
         // Lowercase on purpose: MudTextField has no Autocomplete parameter, so this rides through
@@ -362,6 +399,21 @@ public partial class CollectionFieldComponent<TModel, TItem>
         builder.AddAttribute(startIndex, "autocomplete",
             GetItemFieldAttribute<string?>(field, "autocomplete", null));
     }
+
+    /// <summary>
+    /// Resolves the rendered line count for an item field: the configured value, forced back to 1
+    /// when the field is masked (#207).
+    /// </summary>
+    /// <remarks>
+    /// The rule itself lives in <see cref="TextInputTypeMap.EffectiveLines"/> so this path and the
+    /// component path cannot drift apart on it — the same reason #189 moved the input-type mapping
+    /// there. Both call <see cref="GetItemFieldInputType"/>/<c>Resolve</c> first, so both ask the
+    /// question of the *configured* type.
+    /// </remarks>
+    private static int GetItemFieldLines(IFieldConfiguration<TItem, object> field)
+        => TextInputTypeMap.EffectiveLines(
+            GetItemFieldInputType(field),
+            GetItemFieldAttribute(field, "Lines", 1));
 
     /// <summary>
     /// Resolves the maximum length for an item field, mirroring the component path: a configured

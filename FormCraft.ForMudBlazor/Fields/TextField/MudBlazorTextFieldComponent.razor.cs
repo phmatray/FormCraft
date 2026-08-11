@@ -10,6 +10,14 @@ public partial class MudBlazorTextFieldComponent<TModel>
     private string? _localValue;
 
     public int Lines { get; set; } = 1;
+
+    /// <summary>
+    /// The <c>Lines</c> the field asked for, before the password rule in
+    /// <see cref="TextInputTypeMap.EffectiveLines"/> may have reduced it to 1 (#207). Kept so the
+    /// diagnostic can report what was dropped rather than what was rendered.
+    /// </summary>
+    internal int ConfiguredLines { get; private set; } = 1;
+
     public int? MaxLength { get; set; }
     public string InputType { get; set; } = "text";
     public string? Autocomplete { get; set; }
@@ -27,9 +35,27 @@ public partial class MudBlazorTextFieldComponent<TModel>
         _localValue = CurrentValue;
 
         // Load configuration - prioritize field.InputType over AdditionalAttributes
-        Lines = GetAttribute("Lines", 1);
+        ConfiguredLines = GetAttribute("Lines", 1);
         MaxLength = GetAttribute<int?>("MaxLength");
         InputType = Context.Field.InputType ?? GetAttribute("InputType", "text") ?? "text";
+
+        // A masked field is forced back to a single line: past Lines > 1 MudBlazor renders a
+        // <textarea>, which has no `type` attribute and therefore cannot mask (#207). Resolved from
+        // the CONFIGURED input type, so revealing a password with the toggle does not reflow the
+        // field from one line to four.
+        var configuredInputType = TextInputTypeMap.Resolve(InputType);
+        Lines = TextInputTypeMap.EffectiveLines(configuredInputType, ConfiguredLines);
+
+        // Emitted from OnInitialized, so once per component instance: the conflict is a
+        // configuration fact and re-reporting it on every keystroke would drown the console.
+        if (MaskedLinesDiagnostic.Applies(configuredInputType, ConfiguredLines))
+        {
+            MaskedLinesDiagnostic.Warn(
+                DiagnosticServiceProvider,
+                Context.Field.FieldName,
+                Label,
+                ConfiguredLines);
+        }
         Autocomplete = GetAttribute<string?>("autocomplete");
         Mask = GetAttribute<string?>("Mask");
 
@@ -173,4 +199,30 @@ internal static class TextInputTypeMap
             "search" => InputType.Search,
             _ => InputType.Text,
         };
+
+    /// <summary>
+    /// The number of lines a field actually renders with: always 1 for a masked field, otherwise
+    /// whatever was configured.
+    /// </summary>
+    /// <remarks>
+    /// #207. MudBlazor emits a <c>&lt;textarea&gt;</c> once <c>Lines &gt; 1</c>, and a textarea has
+    /// no <c>type</c> attribute — so honouring <c>Lines</c> on a password field silently defeats the
+    /// masking and renders the credential in clear text. That happened identically on both render
+    /// paths, so it was a shared gap rather than a drift.
+    /// <para>
+    /// Masking wins because there is no such thing as a masked textarea: the combination can never
+    /// be honoured as written, and of the two settings <c>.AsPassword()</c> is an explicit security
+    /// request while <c>Lines</c> is presentation. Rejecting the combination at build time was the
+    /// alternative, but <c>AsTextArea</c> lives in the core project and <c>AsPassword</c> here, so
+    /// neither builder method ever sees both — the check would have to throw from
+    /// <c>Build()</c>, turning an insecure-but-working form into a startup crash.
+    /// </para>
+    /// <para>
+    /// Callers must pass the **configured** input type, not the one currently rendered: the
+    /// visibility toggle flips a revealed password to <see cref="InputType.Text"/>, and a field
+    /// that reflowed from one line to four on reveal would be a second surprise.
+    /// </para>
+    /// </remarks>
+    internal static int EffectiveLines(InputType resolved, int configuredLines) =>
+        resolved == InputType.Password ? 1 : configuredLines;
 }

@@ -219,6 +219,38 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
     }
 
+    [Fact]
+    public void ItemField_With_AsPassword_And_Lines_Should_Stay_Masked()
+    {
+        // Arrange & Act - #207. Past Lines > 1 MudBlazor emits a <textarea>, and a textarea has no
+        // `type` attribute at all, so the masking was silently dropped and the credential was
+        // displayed. There is no such thing as a masked textarea, so the security-relevant half of
+        // the configuration wins and the field renders as a single-line password input.
+        var component = RenderOrderForm(BuildConfiguration(field =>
+            field.AsPassword().AsTextArea(lines: 4)));
+
+        // Assert - the markup, not just the parameter: asserting only MudTextField.InputType would
+        // pass while MudBlazor still rendered a <textarea>, which is exactly how this bug hid.
+        component.FindAll("textarea").ShouldBeEmpty();
+        component.Find("input").GetAttribute("type").ShouldBe("password");
+        component.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(1);
+    }
+
+    [Fact]
+    public void ItemField_With_Lines_Then_AsPassword_Should_Stay_Masked()
+    {
+        // Arrange & Act - order-independence is not a nicety here: AsTextArea lives in the core
+        // FormCraft project and AsPassword in FormCraft.ForMudBlazor, so neither builder method
+        // ever sees the other's setting. Only the render path can reconcile them.
+        var component = RenderOrderForm(BuildConfiguration(field =>
+            field.AsTextArea(lines: 4).AsPassword()));
+
+        // Assert
+        component.FindAll("textarea").ShouldBeEmpty();
+        component.Find("input").GetAttribute("type").ShouldBe("password");
+        component.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(1);
+    }
+
     private IRenderedComponent<FormCraftComponent<CredentialsModel>> RenderOrderForm(
         IFormConfiguration<CredentialsModel> config)
     {
