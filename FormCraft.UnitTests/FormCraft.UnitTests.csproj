@@ -16,6 +16,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      The version-tag publish rule, compiled into this assembly so VersionTagRuleTests can reach it
+      (#227). Linked source, NOT a ProjectReference to build/_build.csproj: that would pull Nuke and
+      its whole dependency graph into the library test assemblies. BuildVersioning.cs depends on
+      nothing but System.Text.RegularExpressions so that this stays a single-file link.
+    -->
+    <Compile Include="..\build\BuildVersioning.cs" Link="Ci\BuildVersioning.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
