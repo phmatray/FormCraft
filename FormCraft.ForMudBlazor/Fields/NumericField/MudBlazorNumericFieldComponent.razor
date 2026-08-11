@@ -4,6 +4,15 @@
 @inherits MudBlazorFieldComponentBase<TModel, TValue>
 @implements INumericFieldComponent<TModel, TValue>
 
+@* `Format` and `HideSpinButtons` are bound below for #208. Both were resolved in OnInitialized and
+   then never bound — read and dropped, the same defect #191 fixed for the three adornment parameters.
+
+   Note the inversion: FormCraft's public contract (INumericFieldComponent) exposes ShowSpinButtons,
+   while MudBlazor 9's MudNumericField takes HideSpinButtons. Keeping our name and inverting here is
+   deliberate — the contract is public API, MudBlazor's spelling is an implementation detail.
+
+   The comment lives outside the tag because MudBlazor's MUD0002 analyser rejects a razor comment
+   between component attributes as an illegal attribute. *@
 <MudNumericField
     T="TValue"
     Label="@Label"
@@ -17,6 +26,8 @@
     Max="@(Max ?? GetTypeMaxValue())"
     Step="@(Step ?? GetDefaultStep())"
     Culture="@Culture"
+    Format="@Format"
+    HideSpinButtons="@(!ShowSpinButtons)"
     Adornment="@EffectiveAdornment"
     AdornmentIcon="@EffectiveAdornmentIcon"
     AdornmentColor="@EffectiveAdornmentColor"

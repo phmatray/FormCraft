@@ -302,6 +302,22 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // fully-anchored regex here becomes invalid (e.g. "...?*"). The component's
         // default pattern already handles decimal input; only Culture is needed.
         builder.AddAttribute(CallerAttributeStart + 3, "Culture", System.Globalization.CultureInfo.InvariantCulture);
+
+        // #208. The component path resolved Format and ShowSpinButtons and then never bound them;
+        // this path never forwarded them at all. Fixing only the component path would have opened a
+        // fresh divergence, which is the failure RenderPipelineParityTests exists to close.
+        //
+        // ShowSpinButtons is FormCraft's public name (INumericFieldComponent); MudBlazor 9 takes the
+        // inverse, HideSpinButtons. The default is `true` here to match the component path's default,
+        // so an item field that configures neither renders exactly as it did before.
+        //
+        // Sequence numbers: this run now ends at CallerAttributeStart + 5 (25), still clear of
+        // TextAttributeStart (30).
+        builder.AddAttribute(CallerAttributeStart + 4, "Format",
+            GetItemFieldAttribute<string?>(field, "Format", null));
+        builder.AddAttribute(CallerAttributeStart + 5, "HideSpinButtons",
+            !GetItemFieldAttribute(field, "ShowSpinButtons", true));
+
         builder.CloseComponent();
     }
 
