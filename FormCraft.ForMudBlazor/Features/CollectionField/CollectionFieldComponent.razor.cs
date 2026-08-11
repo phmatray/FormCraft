@@ -246,6 +246,31 @@ public partial class CollectionFieldComponent<TModel, TItem>
             {
                 RenderNumericField<double>(builder, field, (double)(value ?? 0.0), itemIndex);
             }
+            // #209. These four were missing, and a missing arm here does not degrade — it emits NO
+            // frames at all: no input, no label, no validation message, just an empty row. The same
+            // field outside a collection rendered fine, because MudBlazorNumericFieldRenderer.CanRender
+            // accepts all seven numeric types. #191 made it worse by adding numeric WithAdornment
+            // overloads constrained to INumber<T>, which compile on exactly these types — so an
+            // adornment could be configured, without a warning, on a field that rendered nothing.
+            //
+            // CollectionNumericTypeTests drives its guard off CanRender rather than a copied list, so
+            // adding a type to the renderer without adding it here goes red.
+            else if (underlyingType == typeof(float))
+            {
+                RenderNumericField<float>(builder, field, (float)(value ?? 0f), itemIndex);
+            }
+            else if (underlyingType == typeof(long))
+            {
+                RenderNumericField<long>(builder, field, (long)(value ?? 0L), itemIndex);
+            }
+            else if (underlyingType == typeof(short))
+            {
+                RenderNumericField<short>(builder, field, (short)(value ?? (short)0), itemIndex);
+            }
+            else if (underlyingType == typeof(byte))
+            {
+                RenderNumericField<byte>(builder, field, (byte)(value ?? (byte)0), itemIndex);
+            }
             else if (underlyingType == typeof(bool))
             {
                 RenderBooleanField(builder, field, value ?? false, itemIndex);
