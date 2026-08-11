@@ -182,6 +182,50 @@ public static class MudBlazorFieldBuilderExtensions
     }
 
     /// <summary>
+    /// Opts this field into MudBlazor's native required decoration — the HTML5 <c>required</c>
+    /// attribute and MudBlazor's required styling on the rendered input.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <typeparam name="TValue">The type of the field value.</typeparam>
+    /// <param name="builder">The FieldBuilder instance.</param>
+    /// <param name="enabled">Whether to apply the native decoration (default: <c>true</c>).</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// ⚠️ **This adds no validation.** It is presentation only. <c>.Required("…")</c> is what makes a
+    /// field actually required — it registers a validator, and FormCraft's validation is server-side
+    /// with messages from the validator you configured. The two are deliberately separate: #190
+    /// removed the native attribute from <c>.Required(...)</c> because the same call emitted it
+    /// inside <c>.WithItemForm(...)</c> and not outside, and because native browser validation
+    /// contradicts the library's stance. This method is the explicit opt-in for the cases that want
+    /// the decoration anyway.
+    /// </para>
+    /// <para>
+    /// Replaces the documented magic string <c>.WithAttribute("Required", true)</c> from #193, which
+    /// is undiscoverable and one typo away from silently doing nothing (#204). The raw form still
+    /// works and writes the same attribute — this is additive.
+    /// </para>
+    /// <para>
+    /// Forms render <c>novalidate</c> (#206), so the browser does not enforce the attribute on a
+    /// FormCraft form; what it buys is the semantics and the styling, not native validation bubbles.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Email, field => field
+    ///     .Required("Email is required")   // the validation
+    ///     .WithNativeRequired())           // the decoration
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, TValue> WithNativeRequired<TModel, TValue>(
+        this FieldBuilder<TModel, TValue> builder,
+        bool enabled = true)
+        where TModel : new()
+    {
+        return builder.WithAttribute("Required", enabled);
+    }
+
+    /// <summary>
     /// Adds an adornment (icon or text) to a text field.
     /// </summary>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
