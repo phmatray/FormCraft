@@ -15,7 +15,7 @@
     Disabled="@IsDisabled"
     Variant="@EffectiveVariant"
     Margin="Margin.Dense"
-    ShrinkLabel="true">
+    ShrinkLabel="@EffectiveShrinkLabel">
     @foreach (SelectOption<TItem> option in Options)
     {
         <MudSelectItem T="TItem" Value="@option.Value">
