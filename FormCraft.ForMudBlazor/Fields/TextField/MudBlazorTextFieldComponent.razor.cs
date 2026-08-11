@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 
 namespace FormCraft.ForMudBlazor;
@@ -100,6 +102,22 @@ public partial class MudBlazorTextFieldComponent<TModel>
         AdornmentIcon = _passwordVisible ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility;
         StateHasChanged();
     }
+
+    /// <summary>
+    /// The adornment click callback, or <c>default</c> when the field configured no handler (#216).
+    /// </summary>
+    /// <remarks>
+    /// Binding <see cref="HandleAdornmentClick"/> directly would hand MudBlazor a method group, whose
+    /// <c>EventCallback.HasDelegate</c> is always <c>true</c> — and MudBlazor draws a real
+    /// <c>&lt;button&gt;</c> for that. A decorative icon then becomes a focus stop for keyboard and
+    /// screen-reader users, even though clicking it does nothing. Returning <c>default</c> mirrors
+    /// <c>CollectionFieldComponent.BuildAdornmentClick</c>, which has always done this, and is what
+    /// closes the last markup divergence between the two render paths.
+    /// </remarks>
+    private EventCallback<MouseEventArgs> AdornmentClick =>
+        OnAdornmentClick is null
+            ? default
+            : EventCallback.Factory.Create<MouseEventArgs>(this, HandleAdornmentClick);
 
     private void HandleAdornmentClick()
     {

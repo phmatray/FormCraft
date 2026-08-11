@@ -659,13 +659,14 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     /// which asserts each path actually invokes the configured handler.
     /// </para>
     /// <para>
-    /// That parity holds when a handler IS configured. Without one the paths still differ in
-    /// MARKUP, though not in behaviour: <c>MudBlazorTextFieldComponent.razor</c> binds
-    /// <c>OnAdornmentClick</c> unconditionally, so an ordinary field's adornment is always a
-    /// focusable <c>&lt;button&gt;</c> — inert, but in the tab order — while the collection path
-    /// emits an empty callback and MudBlazor draws a plain icon. Predates #192 on the component
-    /// side and is left alone rather than change an unrelated render path; both are click-inert,
-    /// which is what the two "…Without_A_Handler_Should_Stay_Inert" tests pin down.
+    /// The handler-less case used to diverge in MARKUP, though not in behaviour: the component path
+    /// bound <c>OnAdornmentClick</c> unconditionally, so an ordinary field's decorative adornment
+    /// was always a focusable <c>&lt;button&gt;</c> — inert, but in the tab order — while the
+    /// collection path emitted an empty callback and MudBlazor drew a plain icon. Closed in #216 by
+    /// making the component path's binding conditional too. Both paths now render a plain icon, each
+    /// pinned by its own test (<c>TextField_Adornment_Without_A_Handler_Should_Render_A_Plain_Icon</c>
+    /// and <c>ItemField_Adornment_Without_A_Handler_Should_Stay_Inert</c>), so a regression on either
+    /// side fails on its own rather than only as a parity mismatch.
     /// </para>
     /// </summary>
     private static object?[] Presentation(MudTextField<string> field) =>
