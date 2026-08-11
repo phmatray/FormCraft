@@ -35,8 +35,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build-config", "build-confi
 		global.json = global.json
 		NuGet.config = NuGet.config
 		GitVersion.yml = GitVersion.yml
-		cliff.toml = cliff.toml
 		renovate.json = renovate.json
+		release-please-config.json = release-please-config.json
+		.release-please-manifest.json = .release-please-manifest.json
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{D1A2B3C4-6E5F-4D7E-8B9A-0C1D2E3F4A5B}"
@@ -46,14 +47,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{D1A2
 		build.cmd = build.cmd
 		pack-local.sh = pack-local.sh
 		pack-local.ps1 = pack-local.ps1
-		setup-hooks.sh = setup-hooks.sh
-		setup-hooks.ps1 = setup-hooks.ps1
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{E1F2A3B4-7C8D-4E9F-A0B1-2C3D4E5F6A7B}"
 	ProjectSection(SolutionItems) = preProject
+		.github\workflows\ci.yml = .github\workflows\ci.yml
 		.github\workflows\continuous.yml = .github\workflows\continuous.yml
 		.github\workflows\deploy-docs.yml = .github\workflows\deploy-docs.yml
+		.github\workflows\pr-title-lint.yml = .github\workflows\pr-title-lint.yml
+		.github\workflows\release-please.yml = .github\workflows\release-please.yml
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FormCraft.ForMudBlazor", "FormCraft.ForMudBlazor\FormCraft.ForMudBlazor.csproj", "{DE15024B-BF9D-4D15-A205-AACF6A8EE670}"

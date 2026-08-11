@@ -1,79 +1,23 @@
 # Build and Release Setup
 
-This document describes the automated build and release process for FormCraft.
+> **This document has moved.** FormCraft no longer releases by hand-pushing a version tag. Since
+> [#197](https://github.com/phmatray/FormCraft/issues/197) the release is derived from the
+> Conventional Commits on `dev` by [release-please](https://github.com/googleapis/release-please).
+>
+> - **How to release** → [CONTRIBUTING.md § Release Process](CONTRIBUTING.md#release-process)
+> - **Build targets, versioning, workflows** → [build/README.md](build/README.md)
 
-## Overview
+## Why hand-tagging no longer works
 
-The NUKE build system has been enhanced to automatically:
-1. Push NuGet packages to NuGet.org
-2. Create GitHub releases with changelog
-3. Upload NuGet packages as release assets
+Creating and pushing a `vX.Y.Z` tag yourself will **not** produce a release any more, and will not
+fail loudly either — it will simply do nothing:
 
-## Release Process
+- There is no longer a workflow triggered by `on: push: tags`. `release.yml` was deleted and
+  `continuous.yml`'s tag trigger was removed, because publishing now happens inside
+  `release-please.yml`'s own run.
+- That is a requirement, not a preference: release-please creates the tag with `GITHUB_TOKEN`, and
+  GitHub deliberately does not fire `on: push: tags` / `on: release` for events created by that
+  token. A tag-triggered publish workflow could therefore never run again.
 
-When you push a version tag (e.g., `v1.0.0`) to the main branch:
-
-1. **CI/CD Pipeline** runs automatically
-2. **Tests** are executed
-3. **NuGet packages** are created
-4. **Packages are published** to NuGet.org
-5. **GitHub release** is created with:
-   - Changelog generated from commit history (using git-cliff)
-   - NuGet packages attached as assets
-   - Proper version tagging
-
-## Configuration Requirements
-
-### GitHub Repository Secrets
-
-Ensure these secrets are configured in your GitHub repository:
-
-- `NUGET_API_KEY`: Your NuGet.org API key for package publishing
-- `GITHUB_TOKEN`: Already available by default in GitHub Actions
-
-### Permissions
-
-The GitHub Actions workflow requires:
-- `contents: write` - For creating releases
-- `packages: write` - For publishing packages
-
-## How to Create a Release
-
-1. **Update version** in your project
-2. **Commit changes** to main branch
-3. **Create and push a version tag**:
-   ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
-
-The CI/CD pipeline will automatically:
-- Build and test the project
-- Create NuGet packages
-- Push to NuGet.org
-- Create a GitHub release with changelog
-
-## Build Targets
-
-- `Continuous`: Runs on every push/PR (build, test, pack)
-- `Publish`: Publishes to NuGet.org (requires tag on main branch)
-- `CreateGitHubRelease`: Creates GitHub release (triggered after publish)
-
-## Changelog Generation
-
-Changelogs are generated using git-cliff based on conventional commits:
-- `feat:` - Features
-- `fix:` - Bug fixes
-- `docs:` - Documentation
-- `chore:` - Maintenance
-
-## Local Testing
-
-To test the build locally:
-```bash
-./build.sh Compile
-./build.sh Test
-./build.sh Pack
-```
-
-Note: Publishing requires proper credentials and should only be done via CI/CD.
+Release by merging the release PR that release-please keeps open. That single action produces the
+version, the changelog, the tag, the GitHub Release, and both NuGet packages.
