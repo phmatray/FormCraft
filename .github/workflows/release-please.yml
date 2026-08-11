@@ -1,0 +1,55 @@
+name: release-please
+
+# Derives the next semantic version from the Conventional Commits on `dev` and keeps a release PR
+# up to date (rewriting CHANGELOG.md + .release-please-manifest.json). Merging that PR tags vX.Y.Z
+# and creates the GitHub Release.
+#
+# Two things differ from the other release-please repos in this portfolio (Koine, AdrMcp,
+# x402-dotnet, blazor-tailwind-ui, ai-migration-kit), and both are deliberate:
+#
+#   1. The target branch is `dev`, not `main`. `dev` is FormCraft's default branch; `main` is a
+#      release branch that this repo no longer merges into.
+#   2. The version is written into NO file. FormCraft's version comes from MinVer, which reads the
+#      git tag release-please creates — so the tag is the single source of truth. The other repos
+#      have release-please rewrite a <Version> element in Directory.Build.props; here that element
+#      would be inert, because MinVer's targets override any version passed in (see build/Build.cs).
+#      This is why release-please-config.json has no `extra-files`; the reason is recorded there too.
+#
+# Publishing lives in the `nupkg` job of THIS workflow rather than in a tag-triggered workflow, and
+# it has to: release-please creates the tag with GITHUB_TOKEN, and GitHub deliberately does not fire
+# `on: push: tags` / `on: release` for events created by that token. A tag-triggered publish would
+# therefore never run again — silently, with no failed run to notice.
+
+on:
+  push:
+    branches: [dev]
+  # Manual dry-run: `release_created` is false off a dispatch, so every publish step is skipped.
+  # Use it to validate the release path without sending anything to nuget.org.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Serialize release-please runs. The action pushes a release-PR branch and, on merge, creates the
+# tag and the GitHub Release; two overlapping runs could race on the tag/manifest. Never cancel an
+# in-progress run — cancelling mid-tag can leave the tag/manifest half-applied.
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    # Backstop so a wedged step can't run to the 6-hour default.
+    timeout-minutes: 15
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
+        id: release
+        with:
+          target-branch: dev
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
