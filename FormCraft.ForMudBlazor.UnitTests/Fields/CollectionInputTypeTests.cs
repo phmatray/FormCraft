@@ -45,6 +45,22 @@ public class CollectionInputTypeTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void ItemField_With_AsPassword_Should_Emit_A_Password_Input_In_The_Markup()
+    {
+        // Arrange & Act - the parameter assertions above prove the value was forwarded; this proves
+        // it reaches the DOM the user actually looks at. That is the whole claim of this issue, and
+        // a component parameter that never made it onto the <input> would satisfy the others.
+        var component = RenderOrderForm(BuildConfiguration(field => field.AsPassword()));
+
+        // Assert - `type="password"` is the whole of the fix: it is what makes the browser mask the
+        // characters. Deliberately NOT asserting the value is absent from the markup — a bound
+        // input renders its `value` attribute whatever its type, and a standalone password field
+        // does exactly the same. That would be a claim about the DOM that is false of correctly
+        // masked password fields everywhere, not evidence of this bug.
+        component.Find("input").GetAttribute("type").ShouldBe("password");
+    }
+
+    [Fact]
     public void ItemField_Without_An_Input_Type_Should_Render_Text()
     {
         // Arrange & Act - unchanged from before #189; guards the forward against regressing the
