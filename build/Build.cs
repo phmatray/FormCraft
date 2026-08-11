@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
+using FormCraft.Build;
 using Nuke.Common;
 using Nuke.Common.CI;
 using Nuke.Common.CI.GitHubActions;
@@ -261,9 +261,14 @@ class Build : NukeBuild
         return null;
     }
 
-    bool IsOnVersionTag()
-    {
-        var tag = GetCurrentTag();
-        return !string.IsNullOrEmpty(tag) && Regex.IsMatch(tag, @"^v\d+\.\d+\.\d+");
-    }
+    /// <summary>
+    /// Whether HEAD carries a release tag — the static gate behind <see cref="PublishIfNeeded"/>.
+    /// </summary>
+    /// <remarks>
+    /// The rule itself lives in <see cref="FormCraft.Build.BuildVersioning.IsVersionTag"/> so it can
+    /// be tested without instantiating this class; <c>VersionTagRuleTests</c> pins its accept and
+    /// reject sets, including why a prerelease tag must keep publishing (#198's rehearsal) and why a
+    /// legal-but-nonsense prerelease label is not excluded (#227).
+    /// </remarks>
+    bool IsOnVersionTag() => BuildVersioning.IsVersionTag(GetCurrentTag());
 }
