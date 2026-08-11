@@ -58,6 +58,10 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **Collection item fields typed `long`, `float`, `short` or `byte` rendered *nothing at all* — they now render.** `RenderItemField` dispatched on `string`/`int`/`decimal`/`double`/`bool`/`DateTime` only, so a field of one of those four types emitted no input, no label and no validation message: an empty row, while the identical field outside a collection worked. `MudBlazorNumericFieldRenderer` has always accepted all seven numeric types (#209)
+
+  A test now drives the collection path off `MudBlazorNumericFieldRenderer.CanRender` rather than a copied list, so a type added to one and not the other fails the build.
+
 - **⚠️ Breaking: `IFieldConfiguration.Validators` is now `IReadOnlyList<>`; use `AddValidator(...)` to add one.** It was a concrete `List<>`, which made `config.Fields[i].Validators.Add(v)` compile, run, and **silently do nothing** — the object-typed view exposed through `IFormConfiguration.Fields` projects its validators from an underlying typed list, and because `List<>`'s members are not virtual it could only hand back a materialised snapshot. Adding to that snapshot never affected validation. Making the property an interface turns that silent no-op into a compile error (#155)
 
   | before | after |
