@@ -27,10 +27,14 @@ on:
   #
   # ⚠️ This is NOT an unconditional dry-run. In the ordinary case — no merged release PR waiting to
   # be processed — release-please only refreshes the release PR, `release_created` stays false, and
-  # the publish steps below all skip. But if a release PR has already been merged and its own run
-  # did not complete, a dispatch will legitimately finish the job: create the tag and the Release,
-  # set `release_created` to true, and publish. That is the intended recovery path; just do not
-  # click it expecting a guaranteed no-op.
+  # the job runs `./build.cmd Pack`, a target with no path to `Publish` at all (#221). But if a
+  # release PR has already been merged and its own run did not complete, a dispatch will legitimately
+  # finish the job: create the tag and the Release, set `release_created` to true, and publish. That
+  # is the intended recovery path; just do not click it expecting a guaranteed no-op.
+  #
+  # So the guarantee is precise: a dispatch cannot publish *when no release was created*, and that
+  # holds because a non-releasing run never invokes the publishing target — not because a gate inside
+  # that target is expected to hold.
   workflow_dispatch:
 
 permissions:
@@ -75,9 +79,11 @@ jobs:
   #   - No publish path may ever run on `pull_request`. This workflow has no pull_request trigger,
   #     and a fork could not obtain this repository's OIDC token anyway — minting a key on a PR
   #     would be both pointless and a hard failure.
-  #   - Every publish step is gated on `release_created`, so a run that only refreshes the release
-  #     PR builds and packs but sends nothing to nuget.org. See the `workflow_dispatch` note above
-  #     for the one case where a manual run legitimately does publish.
+  #   - A run that only refreshes the release PR invokes `./build.cmd Pack`, a target that has no
+  #     path to `Publish` — it builds and packs and sends nothing to nuget.org. This is structural,
+  #     not a gate: `Continuous` (which triggers PublishIfNeeded) is invoked ONLY on the
+  #     `release_created == 'true'` branch (#221). See the `workflow_dispatch` note above for the one
+  #     case where a manual run legitimately does publish.
   #   - The tag and the GitHub Release are created BEFORE this job builds anything. If this job
   #     fails, the release exists with no packages attached. Recover with **Re-run failed jobs** —
   #     "Re-run all jobs" re-runs release-please, which now sees the release already created,
@@ -138,11 +144,34 @@ jobs:
         with:
           user: ${{ env.NUGET_USER }}
 
-      # Test, Pack, then PublishIfNeeded -> Publish. On a dry-run NUGET_API_KEY is empty and the
-      # tag is absent, so PublishIfNeeded's static gate skips the push.
+      # The run step is split in two on `release_created`, and the split is the guarantee (#221).
+      #
+      # A non-releasing run invokes `Pack`, a target that has no path to `Publish` at all — the same
+      # reason continuous.yml invokes `Pack` rather than `Continuous`. Previously a single
+      # unconditional `./build.cmd Continuous` ran on every invocation, and `Continuous` triggers
+      # `PublishIfNeeded`, so nothing structural stopped a dispatch from reaching the publish target:
+      # safety rested entirely on PublishIfNeeded's `OnlyWhenStatic(IsOnVersionTag() && IsServerBuild)`
+      # gate holding. That gate is real, but it is a runtime check on the tag rather than an absence
+      # of the code path, and `origin/main` IS the v3.1.0 commit — so a dispatch that happened to
+      # check out a tagged commit satisfied it. One target that cannot publish is a stronger claim
+      # than one that is expected not to.
+      #
+      # The two conditions are exhaustive and mutually exclusive, so exactly one step runs on every
+      # invocation and the job can never silently do neither.
+      #
+      # ⛔ The publishing step below is byte-identical to the step this replaced, apart from its `if:`
+      # — the real release path is deliberately unchanged.
+      - name: 'Run: Pack (no release — cannot publish)'
+        if: ${{ needs.release-please.outputs.release_created != 'true' }}
+        run: ./build.cmd Pack
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Test, Pack, then PublishIfNeeded -> Publish.
       # `dotnet nuget push` runs with --skip-duplicate (EnableSkipDuplicate in build/Build.cs), so
       # re-running a release is idempotent.
       - name: 'Run: Continuous'
+        if: ${{ needs.release-please.outputs.release_created == 'true' }}
         run: ./build.cmd Continuous
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}

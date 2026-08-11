@@ -47,12 +47,17 @@ On Windows use `build.cmd` / `build.ps1`; `build.cmd` also works on macOS and Li
 - **PublishIfNeeded** — the CI gate in front of `Publish`:
   `OnlyWhenStatic(IsOnVersionTag() && IsServerBuild)`. This is what makes the release workflow thin —
   it checks out the tag, so the gate is satisfied without any conditional logic in the workflow.
-- **Continuous** — `DependsOn(Test, Pack)`, triggering `PublishIfNeeded`. Invoked **only** by
-  `release-please.yml`'s `nupkg` job, which checks out the tag on purpose so the publish activates.
-  `continuous.yml` deliberately invokes `Pack` instead: `PublishIfNeeded`'s guard does not check
+- **Continuous** — `DependsOn(Test, Pack)`, triggering `PublishIfNeeded`. **The release-only path.**
+  It is invoked from exactly one place: the `release-please.yml` `nupkg` job's run step, which is
+  gated on `release_created == 'true'` and checks out the tag on purpose so the publish activates
+  (#221). Every other run — `continuous.yml`, and the `nupkg` job's own non-releasing branch —
+  invokes `Pack`, which has no path to `Publish` at all.
+
+  That is deliberate, and stronger than relying on the gate: `PublishIfNeeded`'s guard does not check
   whether a key exists, so on any tagged commit (`origin/main` *is* the `v3.1.0` commit, and each
   release tag lands on `dev`) `Continuous` would reach `Publish` and hard-fail its
-  `Requires(NuGetApiKey)`.
+  `Requires(NuGetApiKey)`. A target that *cannot* publish is a stronger claim than one that is
+  *expected not to*.
 - **Release** — informational only; logs the version it would release
 
 ## Versioning
@@ -83,7 +88,7 @@ Do not hand-edit `CHANGELOG.md`. Your PR title is the changelog entry.
 |---|---|---|
 | `ci.yml` | push / PR | `./build.cmd Test` |
 | `continuous.yml` | push to `main`/`dev`, PRs | `./build.cmd Pack` — build, test, pack. **Never publishes**: it does not invoke the target that triggers publishing. |
-| `release-please.yml` | push to `dev`, `workflow_dispatch` | keeps the release PR open; on merge tags the release and, in the same run, publishes both packages via Trusted Publishing |
+| `release-please.yml` | push to `dev`, `workflow_dispatch` | keeps the release PR open; on merge tags the release and, in the same run, publishes both packages via Trusted Publishing. Its run step is **split on `release_created`**: a releasing run invokes `Continuous`, every other run invokes `Pack`, which cannot publish (#221) |
 | `pr-title-lint.yml` | `pull_request_target` | rejects a PR title that is not a Conventional Commit |
 
 The publish lives inside `release-please.yml` by necessity: release-please creates the tag with
