@@ -405,7 +405,8 @@ public class RenderPipelineParityTests : MudBlazorTestBase
                 .WithPlaceholder("e.g. Widget")
                 .WithHelpText("The catalogue name")
                 .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, Color.Secondary)
-                .WithVariant(Variant.Filled);
+                .WithVariant(Variant.Filled)
+                .Required("Product name is required");
 
         var standaloneConfig = FormBuilder<TestModel>
             .Create()
@@ -435,7 +436,79 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         // Guard the guard: a comparison of two all-default fields would pass while proving nothing.
         standalone.Adornment.ShouldBe(Adornment.Start);
         standalone.Variant.ShouldBe(Variant.Filled);
+
+        // Required is the one compared attribute whose agreed value IS the default (#190): both
+        // paths must render false for a .Required(...) field, because validation here is
+        // server-side. So unlike the others it cannot be guarded by asserting a non-default —
+        // its bite comes from the collection path, which used to render true off field.IsRequired
+        // and would diverge from this standalone false the moment that emission came back.
+        standalone.Required.ShouldBeFalse();
     }
+
+    [Fact]
+    public void NumericCollectionItemField_Should_Honour_The_Same_Presentation_Attributes_As_A_Standalone_Field()
+    {
+        // Arrange - the numeric counterpart of the test above. Only the string field was ever
+        // compared across the two paths, which is exactly how #191 survived #184: that fix taught
+        // the collection path to forward adornments for numeric item fields, leaving the component
+        // path the deficient one, so the same configuration rendered an icon inside
+        // .WithItemForm(...) and nothing outside it. Comparing only strings could not see that.
+        static void Configure<TOwner>(FieldBuilder<TOwner, int> field)
+            where TOwner : new()
+            => field
+                .WithLabel("Quantity")
+                .WithPlaceholder("e.g. 3")
+                .WithHelpText("Units to order")
+                .WithAdornment(Icons.Material.Filled.Numbers, Adornment.End, Color.Secondary)
+                .WithVariant(Variant.Filled);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Priority, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.Quantity, Configure)))
+            .Build();
+
+        // Act
+        var standalone = RenderForm(standaloneConfig)
+            .FindComponent<MudNumericField<int>>().Instance;
+
+        var itemField = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+                .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+                .Add(p => p.Configuration, collectionConfig))
+            .FindComponent<MudNumericField<int>>().Instance;
+
+        // Assert
+        Presentation(itemField).ShouldBe(Presentation(standalone));
+
+        // Guard the guard: two all-default fields would compare equal while proving nothing.
+        standalone.Adornment.ShouldBe(Adornment.End);
+        standalone.AdornmentIcon.ShouldBe(Icons.Material.Filled.Numbers);
+        standalone.Variant.ShouldBe(Variant.Filled);
+    }
+
+    /// <summary>
+    /// The numeric counterpart of the attribute set below. Kept as a separate overload rather than
+    /// a shared generic because MudTextField and MudNumericField have no common base that exposes
+    /// these, and the two lists are free to diverge (a numeric field has no InputType or Lines).
+    /// </summary>
+    private static object?[] Presentation(MudNumericField<int> field) =>
+    [
+        field.Label,
+        field.Placeholder,
+        field.HelperText,
+        field.Variant,
+        field.Margin,
+        field.ShrinkLabel,
+        field.Adornment,
+        field.AdornmentIcon,
+        field.AdornmentColor,
+    ];
 
     /// <summary>
     /// The click selector for a rendered, clickable adornment. MudBlazor draws one as a real button.
@@ -488,12 +561,22 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     /// The presentation attributes both render paths are expected to honour identically, and which
     /// the test above actually configures. Add to this list whenever a field component gains one.
     /// <para>
+    /// <c>Required</c> joined the set in #190: both paths must render it <c>false</c> even for a
+    /// <c>.Required(...)</c> field, because validation is server-side and forms render
+    /// <c>novalidate</c>. It was previously listed as a known divergence while the test never
+    /// configured it — so the comparison passed vacuously over a real disagreement, which is the
+    /// trap the list below warns about.
+    /// </para>
+    /// <para>
     /// Deliberately NOT compared, because the two paths are known to disagree today — each is
     /// tracked separately, and listing one here without configuring it would assert nothing while
     /// looking like coverage:
     /// </para>
     /// <list type="bullet">
-    /// <item><c>Required</c> — the collection path emits it, no component-path renderer does.</item>
+    /// <item>The raw <c>"Required"</c> attribute — collection path only. <c>.Required(...)</c> is
+    /// compared above and agrees, but <c>.WithAttribute("Required", true)</c> is read solely by
+    /// <c>CollectionFieldComponent</c>; no component-path renderer looks for that key, so the
+    /// opt-in is honoured inside an item form and ignored outside one.</item>
     /// <item><c>InputType</c>, <c>Lines</c>, <c>MaxLength</c>, <c>Autocomplete</c> — component path
     /// only; a <c>.AsPassword()</c> item field still renders as plain text inside a collection.</item>
     /// </list>
@@ -519,6 +602,7 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         field.Label,
         field.Placeholder,
         field.HelperText,
+        field.Required,
         field.Variant,
         field.Margin,
         field.ShrinkLabel,
@@ -535,6 +619,8 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     private class OrderItem
     {
         public string ProductName { get; set; } = string.Empty;
+
+        public int Quantity { get; set; }
     }
 
     [Fact]

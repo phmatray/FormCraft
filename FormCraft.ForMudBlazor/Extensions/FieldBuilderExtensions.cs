@@ -1,3 +1,4 @@
+using System.Numerics;
 using FormCraft.ForMudBlazor;
 
 // ReSharper disable once CheckNamespace
@@ -228,6 +229,95 @@ public static class MudBlazorFieldBuilderExtensions
     /// which both render paths read it back from. Shared so the two cannot drift apart (#192).
     /// </summary>
     internal const string AdornmentClickAttribute = "OnAdornmentClick";
+
+    /// <summary>
+    /// Adds an adornment (icon or text) to a numeric field.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <typeparam name="TValue">The numeric type of the field value.</typeparam>
+    /// <param name="builder">The FieldBuilder instance for a numeric field.</param>
+    /// <param name="icon">The MudBlazor icon to display (e.g., Icons.Material.Filled.Numbers).</param>
+    /// <param name="position">The position of the adornment (Start or End, default: Start).</param>
+    /// <param name="color">The color of the adornment icon (default: Default).</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// Constrained to <see cref="INumber{TSelf}"/> rather than to <c>struct</c> so it is not offered
+    /// on <c>bool</c> or <c>DateTime</c> fields, where MudCheckBox has no adornment concept at all
+    /// and MudDatePicker keeps its own calendar icon (#184).
+    /// </para>
+    /// <para>
+    /// This <b>narrows</b> the set of calls that compile and then do nothing; it does not eliminate
+    /// it. The constraint describes the field's CLR type, not the component it ends up rendering, so
+    /// a numeric field routed elsewhere — <c>.AsSlider(...)</c>, <c>.AsRating(...)</c>, or any
+    /// <c>.WithOptions(...)</c> field, which render MudSlider, MudRating and MudSelect — still
+    /// accepts this call and still draws no adornment. Closing that gap needs a renderer-aware
+    /// check, which no builder extension can perform at compile time.
+    /// </para>
+    /// <para>
+    /// Takes no <c>onClick</c>. The original reason — that the string overload's parameter was read
+    /// by neither render path — expired with #192, which made that parameter live on both. What
+    /// keeps it off these overloads now is the shape question #192 deferred: <c>Action&lt;string?&gt;</c>
+    /// is right there only because the value happens to be a string, so the numeric counterpart is
+    /// <c>Action&lt;TValue?&gt;</c> — which makes these two methods rather than one generic. Decided
+    /// once in the follow-up, not copied per overload.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Quantity)
+    ///     .WithAdornment(Icons.Material.Filled.Numbers, MudBlazor.Adornment.End)
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, TValue> WithAdornment<TModel, TValue>(
+        this FieldBuilder<TModel, TValue> builder,
+        string icon,
+        MudBlazor.Adornment position = MudBlazor.Adornment.Start,
+        MudBlazor.Color color = MudBlazor.Color.Default)
+        where TModel : new()
+        where TValue : struct, INumber<TValue>
+    {
+        return builder
+            .WithAttribute("Adornment", position)
+            .WithAttribute("AdornmentIcon", icon)
+            .WithAttribute("AdornmentColor", color);
+    }
+
+    /// <summary>
+    /// Adds an adornment (icon or text) to a nullable numeric field.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <typeparam name="TValue">The underlying numeric type of the field value.</typeparam>
+    /// <param name="builder">The FieldBuilder instance for a nullable numeric field.</param>
+    /// <param name="icon">The MudBlazor icon to display (e.g., Icons.Material.Filled.Percent).</param>
+    /// <param name="position">The position of the adornment (Start or End, default: Start).</param>
+    /// <param name="color">The color of the adornment icon (default: Default).</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <remarks>
+    /// A separate overload because the <c>struct</c> constraint excludes nullable value types, so
+    /// <c>int?</c> and <c>decimal?</c> fields do not fall out of the non-nullable one. The two never
+    /// compete: <c>TValue</c> binds to <c>int</c> for an <c>int?</c> receiver and to <c>int</c> for
+    /// an <c>int</c> receiver, and only one is applicable in each case.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Discount)
+    ///     .WithAdornment(Icons.Material.Filled.Percent, MudBlazor.Adornment.End)
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, TValue?> WithAdornment<TModel, TValue>(
+        this FieldBuilder<TModel, TValue?> builder,
+        string icon,
+        MudBlazor.Adornment position = MudBlazor.Adornment.Start,
+        MudBlazor.Color color = MudBlazor.Color.Default)
+        where TModel : new()
+        where TValue : struct, INumber<TValue>
+    {
+        return builder
+            .WithAttribute("Adornment", position)
+            .WithAttribute("AdornmentIcon", icon)
+            .WithAttribute("AdornmentColor", color);
+    }
 
     /// <summary>
     /// Configures the field as a lookup table with a modal dialog for selecting items from large datasets.

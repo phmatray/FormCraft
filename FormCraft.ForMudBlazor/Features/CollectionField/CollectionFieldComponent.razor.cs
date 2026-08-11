@@ -336,7 +336,15 @@ public partial class CollectionFieldComponent<TModel, TItem>
         builder.AddAttribute(startIndex++, "Label", field.Label);
         builder.AddAttribute(startIndex++, "Placeholder", field.Placeholder);
         builder.AddAttribute(startIndex++, "HelperText", field.HelpText);
-        builder.AddAttribute(startIndex++, "Required", field.IsRequired);
+        // Resolved from an explicit attribute, NOT from field.IsRequired (#190). Validation here is
+        // server-side — messages come from the configured validator and no component-path renderer
+        // emits Required — so driving this from IsRequired put required and aria-required="true" on
+        // the rendered input of a .Required("…") item field, and MudBlazor's required asterisk with
+        // them, while the same call on an ordinary field produced none of it. Measured: it armed no
+        // second validator (item fields have no MudForm and no For), so what this restores is
+        // consistency and what it costs is the asterisk — see the release note.
+        // Reading the attribute keeps .WithAttribute("Required", true) working as the opt-in.
+        builder.AddAttribute(startIndex++, "Required", GetItemFieldAttribute(field, "Required", false));
         builder.AddAttribute(startIndex++, "ReadOnly", field.IsReadOnly);
         builder.AddAttribute(startIndex++, "Disabled", field.IsDisabled);
         builder.AddAttribute(startIndex++, "Variant", GetItemFieldVariant(field));

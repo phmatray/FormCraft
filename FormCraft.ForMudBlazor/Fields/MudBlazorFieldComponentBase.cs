@@ -81,6 +81,41 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
         GetAttribute<bool?>("ShrinkLabel") ?? FormDefaultShrinkLabel ?? true;
 
     /// <summary>
+    /// Gets the adornment position to apply to the MudBlazor input: the field-level "Adornment"
+    /// additional attribute when present, otherwise <see cref="Adornment.None"/>. There is no
+    /// form-level default for adornments.
+    /// </summary>
+    /// <remarks>
+    /// Only components whose MudBlazor input defaults to <see cref="Adornment.None"/> may bind this
+    /// unconditionally — MudTextField and MudNumericField do. MudDatePicker defaults to
+    /// <see cref="Adornment.End"/> with a calendar icon that binding an unset adornment would erase,
+    /// which is why the date components deliberately take no part (#184, #191).
+    /// <para>
+    /// Named <c>Effective*</c> rather than <c>Adornment*</c> both to match
+    /// <see cref="EffectiveVariant"/> and because <c>MudBlazorLovFieldComponent</c> already declares
+    /// its own <c>AdornmentIcon</c>; a base member of that name would hide it (CS0108), which this
+    /// repo compiles as an error.
+    /// </para>
+    /// </remarks>
+    protected Adornment EffectiveAdornment =>
+        GetAttribute<Adornment?>("Adornment") ?? Adornment.None;
+
+    /// <summary>
+    /// Gets the adornment icon for the MudBlazor input, or null when none is configured.
+    /// </summary>
+    protected string? EffectiveAdornmentIcon => GetAttribute<string?>("AdornmentIcon");
+
+    /// <summary>
+    /// Gets the adornment colour for the MudBlazor input, defaulting to <see cref="Color.Default"/>.
+    /// </summary>
+    /// <remarks>
+    /// Resolved independently of the position and icon: <c>WithAdornment(...)</c> writes all three
+    /// together, but a field that set only "Adornment" through raw <c>WithAttribute(...)</c> has no
+    /// colour to read, so this must supply one rather than assume the trio is present.
+    /// </remarks>
+    protected Color EffectiveAdornmentColor => GetAttribute("AdornmentColor", Color.Default);
+
+    /// <summary>
     /// Service provider used to resolve an optional <see cref="ILoggerFactory"/> for the
     /// ShrinkLabel diagnostic. Diagnostics degrade silently when no logger is registered.
     /// </summary>
