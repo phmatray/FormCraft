@@ -89,6 +89,64 @@ public class LovBuilderDisplayTests
         lovConfig.DisplaySelector(Customers[0]).ShouldBe("Acme (ACM)");
     }
 
+    [Fact]
+    public void WithKey_Should_Accept_A_Bare_Lambda()
+    {
+        // Arrange & Act - WithKey carried the same redundant-Expression shape; it now has a Func
+        // overload with resolution priority, so a lambda binds without compiling an expression tree
+        var config = FormBuilder<OrderModel>
+            .Create()
+            .AddField(x => x.CustomerId, field => field
+                .AsLov<OrderModel, int, CustomerDto>(lov => lov
+                    .WithDataSource(() => Customers)
+                    .WithKey(c => c.Id)
+                    .WithDisplay(c => c.Name)))
+            .Build();
+
+        // Assert
+        var lovConfig = GetLovConfiguration(config);
+        lovConfig.ValueSelector(Customers[0]).ShouldBe(1);
+        lovConfig.ValueSelector(Customers[1]).ShouldBe(2);
+    }
+
+    [Fact]
+    public void WithKey_Should_Reject_Null()
+    {
+        var builder = FormBuilder<OrderModel>.Create();
+        Func<CustomerDto, int> keySelector = null!;
+
+        Should.Throw<ArgumentNullException>(() => builder
+            .AddField(x => x.CustomerId, field => field
+                .AsLov<OrderModel, int, CustomerDto>(lov => lov
+                    .WithDataSource(() => Customers)
+                    .WithKey(keySelector)
+                    .WithDisplay(c => c.Name))));
+    }
+
+    [Fact]
+    public void Obsolete_Expression_Overloads_Should_Still_Work()
+    {
+        // The Expression overloads are deprecated, not gone — existing callers must keep
+        // working until v4.0.0. This is the back-compat guard for that promise.
+        Expression<Func<CustomerDto, string>> display = c => c.Name;
+        Expression<Func<CustomerDto, int>> key = c => c.Id;
+
+#pragma warning disable CS0618 // deliberately exercising the deprecated overloads
+        var config = FormBuilder<OrderModel>
+            .Create()
+            .AddField(x => x.CustomerId, field => field
+                .AsLov<OrderModel, int, CustomerDto>(lov => lov
+                    .WithDataSource(() => Customers)
+                    .WithKey(key)
+                    .WithDisplay(display)))
+            .Build();
+#pragma warning restore CS0618
+
+        var lovConfig = GetLovConfiguration(config);
+        lovConfig.DisplaySelector(Customers[0]).ShouldBe("Acme");
+        lovConfig.ValueSelector(Customers[0]).ShouldBe(1);
+    }
+
     private static string FormatCustomer(CustomerDto customer) => $"{customer.Name} ({customer.Code})";
 
     private static readonly CustomerDto[] Customers =

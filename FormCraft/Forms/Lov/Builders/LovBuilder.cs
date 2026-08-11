@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 
 namespace FormCraft;
 
@@ -91,23 +92,54 @@ public class LovBuilder<TModel, TValue, TItem> where TModel : new()
 
     #region Value and Display Configuration
 
+    // Maintainer note (#180): WithKey carried the same redundancy as WithDisplay — it compiled
+    // the expression and never read the tree, paying an Expression.Compile() (a DynamicMethod
+    // emit, and the trimming-hostile path under Blazor WebAssembly) on every form build for no
+    // benefit. Same remedy: a Func overload that wins overload resolution, with the Expression
+    // form kept [Obsolete] until v4.0.0 so no consumer has to change a line today.
+
     /// <summary>
-    /// Configures the function to extract the value from a selected item.
+    /// Configures the function that extracts the value from a selected item.
     /// </summary>
-    /// <param name="keyExpression">Expression to select the key/value property.</param>
+    /// <param name="keySelector">Function that returns the key/value for an item.</param>
     /// <returns>The LovBuilder instance for method chaining.</returns>
-    public LovBuilder<TModel, TValue, TItem> WithKey(Expression<Func<TItem, TValue>> keyExpression)
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="keySelector"/> is null.</exception>
+    /// <example>
+    /// <code>
+    /// .WithKey(c => c.Id)
+    /// </code>
+    /// </example>
+    [OverloadResolutionPriority(1)]
+    public LovBuilder<TModel, TValue, TItem> WithKey(Func<TItem, TValue> keySelector)
     {
-        _configuration.ValueSelector = keyExpression.Compile();
+        ArgumentNullException.ThrowIfNull(keySelector);
+
+        _configuration.ValueSelector = keySelector;
         return this;
     }
 
-    // Maintainer note (#180): do NOT add an Expression<Func<TItem, string>> overload here.
-    // One existed and only called .Compile() before assigning the very same delegate this
-    // overload takes directly, so it added no capability while making an expression-bodied
-    // lambda ambiguous (CS0121) — including the calls in this type's own examples. Nothing
-    // reads the expression tree. The bare-lambda tests in LovBuilderDisplayTests fail to
-    // compile if it comes back, so the guard is mechanical, not just this comment.
+    /// <summary>
+    /// Configures the value selector using an expression. Obsolete: the expression is compiled
+    /// immediately and its tree is never read, so this adds nothing over passing a lambda.
+    /// </summary>
+    /// <param name="keyExpression">Expression to select the key/value property.</param>
+    /// <returns>The LovBuilder instance for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="keyExpression"/> is null.</exception>
+    [Obsolete("Pass the lambda directly — .WithKey(c => c.Id). This overload compiles the " +
+              "expression and discards the tree, and is removed in v4.0.0.")]
+    public LovBuilder<TModel, TValue, TItem> WithKey(Expression<Func<TItem, TValue>> keyExpression)
+    {
+        ArgumentNullException.ThrowIfNull(keyExpression);
+
+        return WithKey(keyExpression.Compile());
+    }
+
+    // Maintainer note (#180): the Expression overload below is redundant — it only calls
+    // .Compile() and assigns the very same delegate the Func overload takes directly, and
+    // nothing ever reads the expression tree. Having both made an expression-bodied lambda
+    // ambiguous (CS0121), including the calls in this type's own examples.
+    // [OverloadResolutionPriority] resolves that in favour of the Func overload without
+    // removing public API; the Expression form is [Obsolete] and goes away in v4.0.0.
 
     /// <summary>
     /// Configures the function that generates the display text for selected items.
@@ -122,6 +154,7 @@ public class LovBuilder<TModel, TValue, TItem> where TModel : new()
     /// .WithDisplay(c => $"{c.Code} - {c.Name}")      // complex formatting
     /// </code>
     /// </example>
+    [OverloadResolutionPriority(1)]
     public LovBuilder<TModel, TValue, TItem> WithDisplay(Func<TItem, string> displayFunc)
     {
         // Guarded because DisplaySelector is non-nullable and ships a safe default; assigning
@@ -131,6 +164,22 @@ public class LovBuilder<TModel, TValue, TItem> where TModel : new()
 
         _configuration.DisplaySelector = displayFunc;
         return this;
+    }
+
+    /// <summary>
+    /// Configures the display text using an expression. Obsolete: the expression is compiled
+    /// immediately and its tree is never read, so this adds nothing over passing a lambda.
+    /// </summary>
+    /// <param name="displayExpression">Expression to select the display property.</param>
+    /// <returns>The LovBuilder instance for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="displayExpression"/> is null.</exception>
+    [Obsolete("Pass the lambda directly — .WithDisplay(c => c.Name). This overload compiles the " +
+              "expression and discards the tree, and is removed in v4.0.0.")]
+    public LovBuilder<TModel, TValue, TItem> WithDisplay(Expression<Func<TItem, string>> displayExpression)
+    {
+        ArgumentNullException.ThrowIfNull(displayExpression);
+
+        return WithDisplay(displayExpression.Compile());
     }
 
     #endregion
