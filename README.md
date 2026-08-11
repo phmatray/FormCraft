@@ -58,6 +58,16 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **Numeric fields render adornments, and `.WithAdornment(...)` finally reaches them.** The numeric field components emitted no `Adornment`, `AdornmentIcon` or `AdornmentColor` at all, so an adornment configured on a numeric field was accepted and silently dropped. Since #184 the *collection* path did render it, which left the same configuration showing an icon inside `.WithItemForm(...)` and nothing outside it (#191)
+
+  ```csharp
+  .AddField(x => x.Quantity, f => f
+      .WithAdornment(Icons.Material.Filled.Numbers, Adornment.End))   // ← now compiles, and renders
+  ```
+
+  `WithAdornment` was declared only on `FieldBuilder<TModel, string>`, so a numeric field could not call it at all — the sole way to configure one was the untyped `.WithAttribute("Adornment", …)` escape hatch, which is how the gap stayed invisible. It now has numeric overloads covering nullable numerics too, constrained to `INumber<T>` rather than to `struct` so it is not offered on `bool` or `DateTime` fields, where MudCheckBox has no adornment concept and MudDatePicker keeps its own calendar icon.
+
+  **Behaviour change.** A form that already configures a numeric adornment through raw `.WithAttribute(...)` starts showing the icon it asked for. That is the whole of it: unconfigured numeric fields are untouched, because MudNumericField's own default is `Adornment.None`. The `ShrinkLabel` diagnostic is **not** affected — it reads the *configured* adornment rather than the rendered one, so a numeric field pairing a start adornment with `ShrinkLabel="false"` already warned before this change. (That the diagnostic judges configuration rather than rendering is a separate defect: it still warns on date and select fields, which render no adornment of ours at all.)
 - **Collection item fields no longer carry the HTML5 `Required` attribute.** `.Required("…")` inside `.WithItemForm(...)` set `Required="true"` on the underlying MudBlazor component, so the rendered `<input>` came out with `required` and `aria-required="true"` — while the identical call on an ordinary field did not. That contradicted the library's validation stance: validation is server-side, forms render `novalidate`, and messages come from the validator you configured. Item fields now match ordinary fields (#190)
 
   ```csharp
@@ -84,7 +94,7 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Two behaviour changes to be aware of.** Forms that already call `.WithAdornment(...)` inside a collection start showing the icon they asked for. And because the adornment is now really drawn there, the `ShrinkLabel` diagnostic added in v3.2 stops suppressing itself on that path: a collection item field combining a **start** adornment with `ShrinkLabel="false"` now logs the same warning an ordinary field would. That warning is correct — the label was never going to float — but it is new output on the diagnostics channel.
 
-  **Scope.** Date item fields are unchanged: they keep MudBlazor's own calendar adornment, which a blanket forward would erase. Standalone (non-collection) numeric fields still do not render adornments at all, so a numeric field configured through raw `.WithAttribute("Adornment", …)` renders differently inside and outside a collection — tracked separately. A parity test now pins the presentation attributes the two render paths **do** agree on; it names the ones still known to diverge rather than implying there are none.
+  **Scope.** Date item fields are unchanged: they keep MudBlazor's own calendar adornment, which a blanket forward would erase. A parity test now pins the presentation attributes the two render paths **do** agree on; it names the ones still known to diverge rather than implying there are none.
 
 - **Configurable MudBlazor ShrinkLabel** — `.WithShrinkLabel(false)` per field and a `DefaultShrinkLabel` parameter on `FormCraftComponent`, completing the `Variant` work from v3.1.0: `Variant.Text` can now let its label float instead of pinning it above a borderless input. Field-level wins over form-level; the default stays `true`, so **no existing form changes appearance** (#177)
   - Caveat, inherited from MudBlazor: `ShrinkLabel="false"` is only visible on an **empty field with no placeholder and no start adornment**. MudBlazor ORs `ShrinkLabel` with those conditions, so a field with a placeholder keeps its label pinned whatever you pass. To get a floating label on a `Variant.Text` field, leave its placeholder unset.

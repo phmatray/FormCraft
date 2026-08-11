@@ -445,6 +445,71 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         standalone.Required.ShouldBeFalse();
     }
 
+    [Fact]
+    public void NumericCollectionItemField_Should_Honour_The_Same_Presentation_Attributes_As_A_Standalone_Field()
+    {
+        // Arrange - the numeric counterpart of the test above. Only the string field was ever
+        // compared across the two paths, which is exactly how #191 survived #184: that fix taught
+        // the collection path to forward adornments for numeric item fields, leaving the component
+        // path the deficient one, so the same configuration rendered an icon inside
+        // .WithItemForm(...) and nothing outside it. Comparing only strings could not see that.
+        static void Configure<TOwner>(FieldBuilder<TOwner, int> field)
+            where TOwner : new()
+            => field
+                .WithLabel("Quantity")
+                .WithPlaceholder("e.g. 3")
+                .WithHelpText("Units to order")
+                .WithAdornment(Icons.Material.Filled.Numbers, Adornment.End, Color.Secondary)
+                .WithVariant(Variant.Filled);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Priority, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.Quantity, Configure)))
+            .Build();
+
+        // Act
+        var standalone = RenderForm(standaloneConfig)
+            .FindComponent<MudNumericField<int>>().Instance;
+
+        var itemField = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+                .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+                .Add(p => p.Configuration, collectionConfig))
+            .FindComponent<MudNumericField<int>>().Instance;
+
+        // Assert
+        Presentation(itemField).ShouldBe(Presentation(standalone));
+
+        // Guard the guard: two all-default fields would compare equal while proving nothing.
+        standalone.Adornment.ShouldBe(Adornment.End);
+        standalone.AdornmentIcon.ShouldBe(Icons.Material.Filled.Numbers);
+        standalone.Variant.ShouldBe(Variant.Filled);
+    }
+
+    /// <summary>
+    /// The numeric counterpart of the attribute set below. Kept as a separate overload rather than
+    /// a shared generic because MudTextField and MudNumericField have no common base that exposes
+    /// these, and the two lists are free to diverge (a numeric field has no InputType or Lines).
+    /// </summary>
+    private static object?[] Presentation(MudNumericField<int> field) =>
+    [
+        field.Label,
+        field.Placeholder,
+        field.HelperText,
+        field.Variant,
+        field.Margin,
+        field.ShrinkLabel,
+        field.Adornment,
+        field.AdornmentIcon,
+        field.AdornmentColor,
+    ];
+
     /// <summary>
     /// The presentation attributes both render paths are expected to honour identically, and which
     /// the test above actually configures. Add to this list whenever a field component gains one.
@@ -492,6 +557,8 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     private class OrderItem
     {
         public string ProductName { get; set; } = string.Empty;
+
+        public int Quantity { get; set; }
     }
 
     [Fact]
