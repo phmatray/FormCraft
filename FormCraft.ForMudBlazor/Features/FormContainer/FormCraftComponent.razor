@@ -11,6 +11,7 @@
 
 <CascadingValue TValue="Variant?" Name="@FormCraftCascadingValues.DefaultVariant" Value="@DefaultVariant">
 <CascadingValue TValue="bool?" Name="@FormCraftCascadingValues.DefaultShrinkLabel" Value="@DefaultShrinkLabel">
+<CascadingValue TValue="ShrinkLabelDiagnosticCollector" Name="@FormCraftCascadingValues.ShrinkLabelDiagnostics" Value="@_shrinkLabelDiagnostics" IsFixed="true">
 <EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit">
     <DynamicFormValidator TModel="TModel" Configuration="@Configuration" @ref="_validator" />
     
@@ -113,6 +114,7 @@
         </MudButton>
     }
 </EditForm>
+</CascadingValue>
 </CascadingValue>
 </CascadingValue>
 

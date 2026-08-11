@@ -85,6 +85,12 @@ public partial class FormCraftComponent<TModel>
     [Inject]
     private IServiceProvider ServiceProvider { get; set; } = null!;
 
+    /// <summary>
+    /// Collects ShrinkLabel conflicts reported by this form's fields during the render pass, so
+    /// they surface as one warning naming every affected field rather than one warning each (#181).
+    /// </summary>
+    private readonly ShrinkLabelDiagnosticCollector _shrinkLabelDiagnostics = new();
+
     private EditContext? _editContext;
     private DynamicFormValidator<TModel>? _validator;
     private string? _csrfToken;
@@ -104,6 +110,16 @@ public partial class FormCraftComponent<TModel>
         }
         await InitializeSecurityAsync();
         await base.OnInitializedAsync();
+    }
+
+    /// <inheritdoc />
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+
+        // Every field has now rendered and reported, so the collector holds the complete set.
+        // Flush is idempotent — it emits at most once per form.
+        _shrinkLabelDiagnostics.Flush(ServiceProvider.GetService<ILoggerFactory>());
     }
 
     /// <summary>

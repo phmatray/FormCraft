@@ -24,6 +24,12 @@ public static class FormCraftCascadingValues
     /// <c>.WithShrinkLabel(...)</c> (the "ShrinkLabel" additional attribute).
     /// </summary>
     public const string DefaultShrinkLabel = "FormCraftDefaultShrinkLabel";
+
+    /// <summary>
+    /// Name of the cascading <see cref="ShrinkLabelDiagnosticCollector"/> that gathers
+    /// ShrinkLabel conflicts so the form can report them in a single warning (#181).
+    /// </summary>
+    public const string ShrinkLabelDiagnostics = "FormCraftShrinkLabelDiagnostics";
 }
 
 /// <summary>
@@ -86,6 +92,13 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     [Inject]
     private IServiceProvider? DiagnosticServices { get; set; }
 
+    /// <summary>
+    /// The form's diagnostic collector, when this field is rendered inside a
+    /// <see cref="FormCraftComponent{TModel}"/>. Null for a standalone field.
+    /// </summary>
+    [CascadingParameter(Name = FormCraftCascadingValues.ShrinkLabelDiagnostics)]
+    public ShrinkLabelDiagnosticCollector? ShrinkLabelDiagnostics { get; set; }
+
     private bool _shrinkLabelDiagnosticEmitted;
 
     /// <summary>
@@ -127,6 +140,17 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
 
         _shrinkLabelDiagnosticEmitted = true;
 
+        var field = Label ?? Context.Field.FieldName;
+
+        // Inside a FormCraftComponent, report to the form's collector so all conflicting fields
+        // arrive in one warning. Rendered standalone there is no collector, so log directly
+        // rather than lose the diagnostic entirely.
+        if (ShrinkLabelDiagnostics is not null)
+        {
+            ShrinkLabelDiagnostics.Report(field, conflict);
+            return;
+        }
+
         // A diagnostic must never break a render, so a logger that throws is swallowed.
         try
         {
@@ -138,7 +162,7 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
                 "Field '{Field}' sets ShrinkLabel=false but also has {Conflict}, which MudBlazor " +
                 "lets win — the label stays pinned and will not float. Remove that property to get " +
                 "a floating label, or drop ShrinkLabel=false.",
-                Label ?? Context.Field.FieldName,
+                field,
                 conflict);
         }
         catch

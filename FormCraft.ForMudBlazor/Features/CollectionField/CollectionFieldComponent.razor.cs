@@ -57,6 +57,12 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private IServiceProvider? DiagnosticServices { get; set; }
 
     /// <summary>
+    /// The form's diagnostic collector, so item-field conflicts join the form's single warning.
+    /// </summary>
+    [CascadingParameter(Name = FormCraftCascadingValues.ShrinkLabelDiagnostics)]
+    public ShrinkLabelDiagnosticCollector? ShrinkLabelDiagnostics { get; set; }
+
+    /// <summary>
     /// Item fields already reported, so the diagnostic fires once per field rather than once
     /// per row — a collection of 50 items must not produce 50 identical warnings.
     /// </summary>
@@ -316,6 +322,13 @@ public partial class CollectionFieldComponent<TModel, TItem>
 
         if (conflict is null)
         {
+            return;
+        }
+
+        // Prefer the form's collector so item fields join the single aggregated warning.
+        if (ShrinkLabelDiagnostics is not null)
+        {
+            ShrinkLabelDiagnostics.Report(field.Label ?? field.FieldName, conflict);
             return;
         }
 

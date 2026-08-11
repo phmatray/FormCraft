@@ -171,6 +171,45 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void Should_Aggregate_Into_One_Warning_For_A_Whole_Form()
+    {
+        // Arrange - DefaultShrinkLabel="false" on a form of placeholder-bearing fields is the
+        // realistic way to hit this at scale. One warning listing the fields is actionable;
+        // five identical ones are noise that trains developers to ignore the channel.
+        var config = FormBuilder<WideModel>
+            .Create()
+            .AddField(x => x.A, f => f.WithLabel("Alpha").WithPlaceholder("a"))
+            .AddField(x => x.B, f => f.WithLabel("Bravo").WithPlaceholder("b"))
+            .AddField(x => x.C, f => f.WithLabel("Charlie").WithPlaceholder("c"))
+            .AddField(x => x.D, f => f.WithLabel("Delta").WithPlaceholder("d"))
+            .AddField(x => x.E, f => f.WithLabel("Echo").WithPlaceholder("e"))
+            .Build();
+
+        // Act
+        Render<FormCraftComponent<WideModel>>(parameters => parameters
+            .Add(p => p.Model, new WideModel())
+            .Add(p => p.Configuration, config)
+            .Add(p => p.DefaultShrinkLabel, false));
+
+        // Assert - exactly one warning, naming every affected field
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        foreach (var field in new[] { "Alpha", "Bravo", "Charlie", "Delta", "Echo" })
+        {
+            warnings[0].ShouldContain(field);
+        }
+    }
+
+    private class WideModel
+    {
+        public string A { get; set; } = string.Empty;
+        public string B { get; set; } = string.Empty;
+        public string C { get; set; } = string.Empty;
+        public string D { get; set; } = string.Empty;
+        public string E { get; set; } = string.Empty;
+    }
+
+    [Fact]
     public void Should_Warn_For_A_Collection_Item_Field()
     {
         // Arrange - collection item fields render through CollectionFieldComponent's imperative
