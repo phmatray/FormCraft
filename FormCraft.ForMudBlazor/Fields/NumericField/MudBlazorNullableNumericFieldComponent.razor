@@ -4,6 +4,9 @@
 @inherits MudBlazorFieldComponentBase<TModel, TValue?>
 @implements INumericFieldComponent<TModel, TValue>
 
+@* `Format` and `HideSpinButtons` are bound below for #208 — see the sibling non-nullable component
+   for the rationale, including why FormCraft's ShowSpinButtons is inverted into MudBlazor's
+   HideSpinButtons, and why this comment sits outside the tag (MUD0002). *@
 <MudNumericField
     T="TValue?"
     Label="@Label"
@@ -17,6 +20,8 @@
     Max="@(Max ?? GetTypeMaxValue())"
     Step="@(Step ?? GetDefaultStep())"
     Culture="@Culture"
+    Format="@Format"
+    HideSpinButtons="@(!ShowSpinButtons)"
     Adornment="@EffectiveAdornment"
     AdornmentIcon="@EffectiveAdornmentIcon"
     AdornmentColor="@EffectiveAdornmentColor"

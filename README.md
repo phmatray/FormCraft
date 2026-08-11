@@ -58,6 +58,10 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **`Format` and `ShowSpinButtons` now take effect on numeric fields — on both render paths.** Both were resolved in the numeric components' `OnInitialized` and then never bound, so `.WithAttribute("Format", "N2")` and `.WithAttribute("ShowSpinButtons", false)` were silently discarded. `ShowSpinButtons` is part of the public `INumericFieldComponent<TModel, TValue>` contract, so the library advertised a setting it dropped. The collection item path never forwarded either, and now does (#208)
+
+  **This is a behaviour change** for any form already passing them: they start working. `ShowSpinButtons` defaults to `true`, matching MudBlazor, so a field that configures neither renders exactly as before.
+
 - **`.WithInputType("number" | "date" | "time")` now renders the type it names.** All three fell through to `type="text"`, so a string field configured with one lost its mobile numeric keypad or its native date/time picker — silently, with nothing reported. The recognised set is now `email`, `password`, `tel`/`telephone`, `url`, `search`, `number`, `date` and `time`; anything else still falls back to `text` rather than throwing (#210)
 
   **Not a change to auto-generated forms.** `AddFieldsAuto()` emits these same strings for numeric, date and time *properties*, but those render through `MudNumericField` / `MudDatePicker` / `MudTimePicker`, which never consulted this mapping — it applies to `string` fields only. Pinned by a test so the scope is measured rather than assumed.
