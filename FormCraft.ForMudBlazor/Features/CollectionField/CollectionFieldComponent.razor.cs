@@ -352,7 +352,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
         int startIndex)
     {
         builder.AddAttribute(startIndex++, "InputType", GetItemFieldInputType(field));
-        builder.AddAttribute(startIndex++, "Lines", GetItemFieldAttribute(field, "Lines", 1));
+        builder.AddAttribute(startIndex++, "Lines", GetItemFieldLines(field));
         builder.AddAttribute(startIndex++, "MaxLength", GetItemFieldMaxLength(field));
 
         // Lowercase on purpose: MudTextField has no Autocomplete parameter, so this rides through
@@ -362,6 +362,21 @@ public partial class CollectionFieldComponent<TModel, TItem>
         builder.AddAttribute(startIndex, "autocomplete",
             GetItemFieldAttribute<string?>(field, "autocomplete", null));
     }
+
+    /// <summary>
+    /// Resolves the rendered line count for an item field: the configured value, forced back to 1
+    /// when the field is masked (#207).
+    /// </summary>
+    /// <remarks>
+    /// The rule itself lives in <see cref="TextInputTypeMap.EffectiveLines"/> so this path and the
+    /// component path cannot drift apart on it — the same reason #189 moved the input-type mapping
+    /// there. Both call <see cref="GetItemFieldInputType"/>/<c>Resolve</c> first, so both ask the
+    /// question of the *configured* type.
+    /// </remarks>
+    private static int GetItemFieldLines(IFieldConfiguration<TItem, object> field)
+        => TextInputTypeMap.EffectiveLines(
+            GetItemFieldInputType(field),
+            GetItemFieldAttribute(field, "Lines", 1));
 
     /// <summary>
     /// Resolves the maximum length for an item field, mirroring the component path: a configured

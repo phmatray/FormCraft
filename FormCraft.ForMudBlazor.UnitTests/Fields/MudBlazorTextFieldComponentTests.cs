@@ -671,6 +671,84 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
         input.HasAttribute("autocomplete").ShouldBeFalse();
     }
 
+    [Fact]
+    public void TextField_With_AsPassword_And_Lines_Should_Stay_Masked()
+    {
+        // Arrange - #207. MudBlazor swaps to a <textarea> past Lines > 1, and a textarea carries no
+        // `type` attribute, so the masking vanished and the password was rendered in clear text.
+        // A masked textarea does not exist, so `.AsPassword()` — an explicit security request —
+        // wins over `Lines`, which is presentation.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Password, field => field
+                .WithLabel("Password")
+                .AsPassword()
+                .AsTextArea(lines: 4))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert - assert the rendered element, not merely MudTextField.InputType: the parameter
+        // was already being forwarded correctly before this fix, and the field still displayed the
+        // characters, because the element MudBlazor chose ignored it.
+        component.FindAll("textarea").ShouldBeEmpty();
+        component.Find("input").GetAttribute("type").ShouldBe("password");
+        component.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(1);
+    }
+
+    [Fact]
+    public void TextField_With_Lines_Then_AsPassword_Should_Stay_Masked()
+    {
+        // Arrange - the other call order. AsTextArea lives in the core FormCraft project and
+        // AsPassword in FormCraft.ForMudBlazor, so no builder method ever observes both settings;
+        // reconciling them is necessarily the render path's job, and it must not depend on order.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Password, field => field
+                .WithLabel("Password")
+                .AsTextArea(lines: 4)
+                .AsPassword())
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindAll("textarea").ShouldBeEmpty();
+        component.Find("input").GetAttribute("type").ShouldBe("password");
+        component.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(1);
+    }
+
+    [Fact]
+    public void TextField_With_Lines_And_No_Password_Should_Still_Render_A_Textarea()
+    {
+        // Arrange - the guard on the guard. The fix must be scoped to masked fields only; an
+        // ordinary multi-line field is the overwhelmingly common case and must be untouched.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Description, field => field
+                .WithLabel("Description")
+                .AsTextArea(lines: 4))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(4);
+        component.FindAll("textarea").Count.ShouldBe(1);
+    }
+
     private class TestModel
     {
         public string Name { get; set; } = string.Empty;
