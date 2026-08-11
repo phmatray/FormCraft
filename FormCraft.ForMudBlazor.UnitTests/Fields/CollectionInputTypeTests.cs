@@ -122,8 +122,11 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // Arrange & Act
         var component = RenderOrderForm(BuildConfiguration(field => field.AsTextArea(lines: 4)));
 
-        // Assert
+        // Assert - the parameter, and the consequence of it. MudTextField switches element on
+        // Lines > 1, so this is the one forwarded attribute whose effect is visible in the markup
+        // as a different tag rather than a different attribute value.
         component.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(4);
+        component.FindAll("textarea").Count.ShouldBe(1);
     }
 
     [Fact]
