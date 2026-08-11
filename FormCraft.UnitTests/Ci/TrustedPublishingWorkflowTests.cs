@@ -1,12 +1,17 @@
 namespace FormCraft.UnitTests.Ci;
 
 /// <summary>
-/// Guards the NuGet Trusted Publishing wiring (#173). The publish path runs only on a version
-/// tag — a handful of times a year — so a regression here is invisible until a release breaks.
-/// These tests fail if the OIDC exchange is removed from the workflow, if any workflow starts
-/// referencing the long-lived key again, or if build/Build.cs loses the gate that keeps branch
-/// and pull-request runs from publishing.
+/// Guards the NuGet Trusted Publishing wiring (#173, #198). The publish path runs only when a
+/// release-please release PR is merged — a handful of times a year — so a regression here is
+/// invisible until a release breaks.
 /// </summary>
+/// <remarks>
+/// Since #197 the OIDC exchange lives in <c>release-please.yml</c>, not <c>continuous.yml</c>:
+/// release-please creates the tag with <c>GITHUB_TOKEN</c>, and GitHub does not fire
+/// <c>on: push: tags</c> for that token, so publishing has to happen inside release-please's own
+/// run. These tests therefore assert two complementary things — that release-please still performs
+/// the exchange, and that continuous.yml still performs no publishing at all.
+/// </remarks>
 public class TrustedPublishingWorkflowTests
 {
     private static readonly string RepoRoot = LocateRepoRoot();
@@ -27,15 +32,15 @@ public class TrustedPublishingWorkflowTests
 
     private static string WorkflowsDirectory => Path.Combine(RepoRoot, ".github", "workflows");
 
-    private static string ReadWorkflow() =>
-        File.ReadAllText(Path.Combine(WorkflowsDirectory, "continuous.yml"));
+    private static string ReadWorkflow(string fileName) =>
+        File.ReadAllText(Path.Combine(WorkflowsDirectory, fileName));
 
     private static string ReadBuildScript() =>
         File.ReadAllText(Path.Combine(RepoRoot, "build", "Build.cs"));
 
     /// <summary>
     /// Drops whole-line comments so a "not referenced" assertion fires on wiring rather than on
-    /// prose. Both files carry long explanatory comment blocks about this very key, so without
+    /// prose. These files carry long explanatory comment blocks about this very key, so without
     /// this a documentation-only edit would turn the suite red — and the natural repair under
     /// time pressure is to delete the assertion. Only leading-<paramref name="marker"/> lines are
     /// stripped: a trailing-comment strip would also mangle the "https://" in a URL.
@@ -46,15 +51,15 @@ public class TrustedPublishingWorkflowTests
             text.Split('\n').Where(line => !line.TrimStart().StartsWith(marker, StringComparison.Ordinal)));
 
     /// <summary>
-    /// The `nuget-login` step alone, so an assertion about its `if:` cannot be satisfied by the
-    /// same expression sitting on some other step. Runs from the `id:` line to the start of the
-    /// next list item, which covers the step's `if:`, `uses:` and `with:`.
+    /// A single step of a workflow, so an assertion about its <c>if:</c> cannot be satisfied by the
+    /// same expression sitting on some other step. Runs from the <c>id:</c> line to the start of the
+    /// next list item, which covers the step's <c>if:</c>, <c>uses:</c> and <c>with:</c>.
     /// </summary>
-    private static string NuGetLoginStep()
+    private static string StepWithId(string workflowFile, string stepId)
     {
-        var lines = ReadWorkflow().Split('\n');
-        var start = Array.FindIndex(lines, l => l.Contains("id: nuget-login", StringComparison.Ordinal));
-        start.ShouldBeGreaterThanOrEqualTo(0, "continuous.yml no longer has a step with `id: nuget-login`");
+        var lines = ReadWorkflow(workflowFile).Split('\n');
+        var start = Array.FindIndex(lines, l => l.Contains($"id: {stepId}", StringComparison.Ordinal));
+        start.ShouldBeGreaterThanOrEqualTo(0, $"{workflowFile} no longer has a step with `id: {stepId}`");
 
         var end = Array.FindIndex(lines, start + 1, l => l.TrimStart().StartsWith("- ", StringComparison.Ordinal));
         if (end < 0)
@@ -66,43 +71,55 @@ public class TrustedPublishingWorkflowTests
     }
 
     [Fact]
-    public void Continuous_Workflow_Should_Request_The_OidcToken()
+    public void ReleaseWorkflow_Should_Request_The_OidcToken()
     {
-        WithoutComments(ReadWorkflow(), "#").ShouldContain("id-token: write");
+        WithoutComments(ReadWorkflow("release-please.yml"), "#").ShouldContain("id-token: write");
     }
 
     [Fact]
-    public void Continuous_Workflow_Should_Exchange_The_OidcToken_For_A_ShortLived_Key()
+    public void ReleaseWorkflow_Should_Exchange_The_OidcToken_For_A_ShortLived_Key()
     {
-        var step = NuGetLoginStep();
+        var step = StepWithId("release-please.yml", "login");
 
         // Pinned by digest, never by a moving tag — asserted as a shape rather than as one literal
         // SHA, so a legitimate Renovate digest bump does not turn this suite red for a reason that
         // has nothing to do with the wiring. `NuGet/login@v1` still fails.
         step.ShouldMatch(@"uses:\s*NuGet/login@[0-9a-f]{40}\b");
-        step.ShouldContain("secrets.NUGET_USER");
+        step.ShouldContain("NUGET_USER");
 
         // The minted key has to actually reach the build; this lives on the later `Run` step.
-        WithoutComments(ReadWorkflow(), "#").ShouldContain("steps.nuget-login.outputs.NUGET_API_KEY");
+        WithoutComments(ReadWorkflow("release-please.yml"), "#")
+            .ShouldContain("steps.login.outputs.NUGET_API_KEY");
     }
 
     [Fact]
-    public void Continuous_Workflow_Should_Gate_The_Login_On_A_Version_Tag()
+    public void ReleaseWorkflow_Should_Gate_The_Login_On_A_Created_Release()
     {
-        // Gating on the TRIGGER, not on NUGET_USER: a fork's PR cannot obtain this repo's OIDC
-        // token, and a secret-based guard would turn a missing policy into a green build with an
-        // unpublished version. Do not "simplify" this to `if: env.NUGET_USER != ''`.
-        // Scoped to the login step: the same expression on an unrelated step would leave a real
-        // nuget.org key minted on every push and pull request.
-        NuGetLoginStep().ShouldMatch(@"if:\s*startsWith\(github\.ref, 'refs/tags/v'\)");
+        // Scoped to the login step: the same condition on an unrelated step would leave a real
+        // nuget.org key minted on runs that publish nothing.
+        StepWithId("release-please.yml", "login").ShouldContain("release_created");
+    }
+
+    [Fact]
+    public void Continuous_Workflow_Should_Not_Publish_Anything()
+    {
+        // The counterpart invariant to the three above, and the reason the tag trigger was removed
+        // in #197: release-please creates the tag with GITHUB_TOKEN, which never fires
+        // `on: push: tags`, so a publish path here could not run — but it could still mint a key.
+        // Two workflows able to push the same version is the failure this prevents.
+        var continuous = WithoutComments(ReadWorkflow("continuous.yml"), "#");
+
+        continuous.ShouldNotContain("NuGet/login@");
+        continuous.ShouldNotContain("id-token");
+        continuous.ShouldNotContain("tags:");
     }
 
     [Fact]
     public void No_Workflow_Should_Reference_The_LongLived_NuGetApiKey_Secret()
     {
-        // Every workflow, not just continuous.yml: release.yml fires on the same `v*` tag, so a
-        // publish step added there with ${{ secrets.NUGET_API_KEY }} would re-arm exactly the
-        // credential #198 exists to retire, with continuous.yml still perfectly clean.
+        // Every workflow, not just the publishing one: any workflow that added
+        // ${{ secrets.NUGET_API_KEY }} would re-arm exactly the credential #198 exists to retire,
+        // with release-please.yml still perfectly clean.
         var workflows = Directory
             .EnumerateFiles(WorkflowsDirectory, "*.*")
             .Where(f => f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase)
@@ -131,19 +148,20 @@ public class TrustedPublishingWorkflowTests
     [Fact]
     public void BuildScript_Should_Keep_The_Continuous_Workflow_HandMaintained()
     {
-        // The [GitHubActions] attribute cannot express the OIDC exchange, so continuous.yml is
-        // written by hand. Flipping this to true regenerates the file and silently deletes the
-        // NuGet/login block — the wipe lands on the next ./build.cmd, long after the edit, so
-        // assert the flag itself rather than trusting the tests to run after a regeneration.
+        // The [GitHubActions] attribute is the only in-repo declaration of continuous.yml's shape.
+        // Flipping this to true regenerates the file — and a stale attribute would reinstate the
+        // tag-triggered publish path that #197 deliberately removed. The wipe lands on the next
+        // ./build.cmd, long after the edit, so assert the flag itself rather than trusting the
+        // tests to run after a regeneration.
         WithoutComments(ReadBuildScript(), "//").ShouldContain("AutoGenerate = false");
     }
 
     [Fact]
     public void BuildScript_Should_Gate_Publishing_On_A_Version_Tag()
     {
-        // The workflow leaves NUGET_API_KEY empty on branch and PR runs, but a skipped step yields
-        // an empty string rather than an unset variable — so this static gate, not the emptiness of
-        // the key, is what keeps a push to dev from reaching DotNetNuGetPush.
+        // release-please.yml leaves NUGET_API_KEY empty on a dry run, but a skipped step yields an
+        // empty string rather than an unset variable — so this static gate, not the emptiness of
+        // the key, is what keeps a non-release run from reaching DotNetNuGetPush.
         var build = WithoutComments(ReadBuildScript(), "//");
         build.ShouldMatch(@"OnlyWhenStatic\(\(\) => IsOnVersionTag\(\)\)");
         build.ShouldMatch(@"OnlyWhenStatic\(\(\) => IsServerBuild\)");
