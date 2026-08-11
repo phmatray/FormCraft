@@ -60,6 +60,14 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 - **Configurable MudBlazor ShrinkLabel** — `.WithShrinkLabel(false)` per field and a `DefaultShrinkLabel` parameter on `FormCraftComponent`, completing the `Variant` work from v3.1.0: `Variant.Text` can now let its label float instead of pinning it above a borderless input. Field-level wins over form-level; the default stays `true`, so **no existing form changes appearance** (#177)
   - Caveat, inherited from MudBlazor: `ShrinkLabel="false"` is only visible on an **empty field with no placeholder and no start adornment**. MudBlazor ORs `ShrinkLabel` with those conditions, so a field with a placeholder keeps its label pinned whatever you pass. To get a floating label on a `Variant.Text` field, leave its placeholder unset.
+- **⚠️ Breaking — `LovBuilder.WithDisplay(Expression<Func<TItem, string>>)` removed.** It was redundant: it only called `.Compile()` and assigned the same `Func<TItem, string>` the remaining overload takes directly. Having both made every bare lambda ambiguous (`CS0121`) — so `.WithDisplay(c => c.Name)`, the form shown throughout our own documentation, did not compile. It does now (#180)
+
+  ```csharp
+  .WithDisplay(c => c.Name)                   // simple property
+  .WithDisplay(c => $"{c.Code} - {c.Name}")   // complex formatting
+  ```
+
+  **Migration:** delete any `(Expression<Func<T, string>>)` or `(Func<T, string>)` cast you added to work around the ambiguity and pass the lambda directly. If you genuinely hold an `Expression<Func<T, string>>`, pass `expr.Compile()`.
 
 ## 🎉 What's New in v3.1.0
 
