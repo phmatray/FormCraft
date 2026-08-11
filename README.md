@@ -58,6 +58,8 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **The `ShrinkLabel` diagnostic no longer warns about an adornment the field never draws.** It judged the *configured* `Adornment` attribute regardless of whether the component binds one — so date, select, autocomplete, lookup and file-upload fields told you to remove a `ShrinkLabel=false` that was in fact being honoured. It now judges what the component actually **renders**, which is the rule the collection item path has followed since #183. Text and numeric fields do render their adornment, so their (correct) warnings are unchanged (#212)
+
 - **`Format` and `ShowSpinButtons` now take effect on numeric fields — on both render paths.** Both were resolved in the numeric components' `OnInitialized` and then never bound, so `.WithAttribute("Format", "N2")` and `.WithAttribute("ShowSpinButtons", false)` were silently discarded. `ShowSpinButtons` is part of the public `INumericFieldComponent<TModel, TValue>` contract, so the library advertised a setting it dropped. The collection item path never forwarded either, and now does (#208)
 
   **This is a behaviour change** for any form already passing them: they start working. `ShowSpinButtons` defaults to `true`, matching MudBlazor, so a field that configures neither renders exactly as before.

@@ -116,6 +116,35 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     protected Color EffectiveAdornmentColor => GetAttribute("AdornmentColor", Color.Default);
 
     /// <summary>
+    /// The adornment this component actually <b>renders</b>, or <c>null</c> when it renders none of
+    /// ours. Defaults to <c>null</c>; only components that bind an adornment override it (#212).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The ShrinkLabel diagnostic judges this rather than <c>GetAttribute&lt;Adornment?&gt;("Adornment")</c>.
+    /// Reading the configured value made date, select, autocomplete, lookup and file-upload fields
+    /// warn about an adornment they never draw — telling the developer to remove a
+    /// <c>ShrinkLabel=false</c> that was being honoured. A diagnostic that is wrong on most field
+    /// types trains people to ignore the channel, which costs more than the warning is worth.
+    /// </para>
+    /// <para>
+    /// This is the component-path half of the rule the collection path already states: *"the
+    /// diagnostic has to judge what this path actually RENDERS, not what was configured"* (#183).
+    /// There it is a per-call-site <c>rendersAdornment</c> flag; here it is this override.
+    /// </para>
+    /// <para>
+    /// <c>null</c> and <see cref="Adornment.None"/> are equally harmless —
+    /// <c>ShrinkLabelDiagnostic.Conflict</c> reacts only to <see cref="Adornment.Start"/>, since only
+    /// a start adornment sits where a floating label would go.
+    /// </para>
+    /// <para>
+    /// ⛔ Defaulting to <c>null</c> is deliberate: a newly added component type is silent until it
+    /// opts in. Warning wrongly is the defect this exists to fix, so the safe default is quiet.
+    /// </para>
+    /// </remarks>
+    protected virtual Adornment? RenderedAdornment => null;
+
+    /// <summary>
     /// Whether the field opted into MudBlazor's native required decoration via
     /// <c>.WithNativeRequired()</c> (or the equivalent raw <c>"Required"</c> attribute). Defaults to
     /// <c>false</c> (#204).
@@ -238,7 +267,7 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// null when the setting will be honoured.
     /// </summary>
     private string? ShrinkLabelConflict() =>
-        ShrinkLabelDiagnostic.Conflict(Placeholder, GetAttribute<Adornment?>("Adornment"));
+        ShrinkLabelDiagnostic.Conflict(Placeholder, RenderedAdornment);
 }
 
 /// <summary>

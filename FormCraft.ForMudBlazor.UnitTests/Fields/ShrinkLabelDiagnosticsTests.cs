@@ -420,10 +420,84 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
         });
     }
 
+    [Fact]
+    public void Should_Not_Warn_For_A_Date_Field_That_Renders_No_Adornment()
+    {
+        // Arrange - #212. MudDatePicker keeps its own calendar adornment and FormCraft's date
+        // components deliberately bind none of ours (#184, #191), so a configured start adornment is
+        // dropped. The label therefore floats exactly as asked — and the diagnostic used to tell the
+        // developer to remove a setting that was working.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.When, f => f
+                .WithLabel("When")
+                .WithAttribute("Adornment", Adornment.Start)
+                .WithShrinkLabel(false))
+            .Build();
+
+        // Act - through the popover-providing host: MudDatePicker logs its own unrelated
+        // "Missing <MudPopoverProvider />" warning otherwise, which this logger would capture and
+        // which has nothing to do with ShrinkLabel.
+        RenderFormWithPopover(config);
+
+        // Assert
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Should_Not_Warn_For_A_Select_Field_That_Renders_No_Adornment()
+    {
+        // Arrange - a second component type that binds no adornment, so the fix is shown to be about
+        // the rule rather than about one special-cased component.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Name, f => f
+                .WithLabel("City")
+                .WithSelectOptions([
+                    new SelectOption<string>("paris", "Paris"),
+                    new SelectOption<string>("london", "London")
+                ])
+                .WithAttribute("Adornment", Adornment.Start)
+                .WithShrinkLabel(false))
+            .Build();
+
+        // Act - MudSelect also needs the popover provider; same reasoning as the date case above.
+        RenderFormWithPopover(config);
+
+        // Assert
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Should_Still_Warn_For_A_Numeric_Field_That_Does_Render_The_Adornment()
+    {
+        // Arrange - the guard on the fix. #191 made numeric adornments real, so this warning is
+        // CORRECT and must survive the removal of the false ones. Silencing everything would have
+        // been an easy way to make the negative tests above pass.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.CityId, f => f
+                .WithLabel("City id")
+                .WithAttribute("Adornment", Adornment.Start)
+                .WithAttribute("AdornmentIcon", Icons.Material.Filled.Search)
+                .WithShrinkLabel(false))
+            .Build();
+
+        // Act
+        RenderForm(config);
+
+        // Assert
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("City id");
+        warnings[0].ShouldContain("Adornment");
+    }
+
     private class TestModel
     {
         public string Name { get; set; } = string.Empty;
         public int CityId { get; set; }
+        public DateTime? When { get; set; }
     }
 
     /// <summary>
