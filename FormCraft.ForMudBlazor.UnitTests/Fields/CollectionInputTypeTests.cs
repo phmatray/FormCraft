@@ -10,6 +10,12 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// rendered its characters in clear text on screen while the identical field outside a collection
 /// masked them. That is the case these tests exist to pin.
 /// </para>
+/// <para>
+/// The unset-value assertions below deliberately assert what the COMPONENT path renders rather than
+/// MudBlazor's own component default. The two differ for <c>MaxLength</c> (524288 vs the component
+/// path's <c>int.MaxValue</c>), and parity between FormCraft's two paths is the property this issue
+/// is about.
+/// </para>
 /// </summary>
 public class CollectionInputTypeTests : MudBlazorTestBase
 {
@@ -92,6 +98,106 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.InputType
             .ShouldBe(InputType.Password);
+    }
+
+    [Fact]
+    public void ItemField_Should_Render_Its_Configured_Lines()
+    {
+        // Arrange & Act
+        var component = RenderOrderForm(BuildConfiguration(field => field.AsTextArea(lines: 4)));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(4);
+    }
+
+    [Fact]
+    public void ItemField_Without_Lines_Should_Render_A_Single_Line()
+    {
+        // Arrange & Act - measured, not assumed: MudTextField's own default is 1, and the component
+        // path's fallback is also 1, so the two agree and forwarding changes nothing when unset.
+        var component = RenderOrderForm(BuildConfiguration(_ => { }));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(1);
+    }
+
+    [Fact]
+    public void ItemField_Should_Render_Its_Configured_MaxLength()
+    {
+        // Arrange & Act
+        var component = RenderOrderForm(BuildConfiguration(field =>
+            field.AsTextArea(lines: 3, maxLength: 500)));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.MaxLength.ShouldBe(500);
+    }
+
+    [Fact]
+    public void ItemField_Without_MaxLength_Should_Render_Unbounded_Like_A_Standalone_Field()
+    {
+        // Arrange & Act - this is the one place the "use MudBlazor's own default" rule does NOT
+        // apply. MudTextField defaults MaxLength to 524288, but the component path deliberately
+        // renders int.MaxValue when nothing is configured. Parity is with the component path, so
+        // that is the value to match — copying MudBlazor's bare default here would make the two
+        // paths disagree by exactly the amount this issue exists to remove.
+        var component = RenderOrderForm(BuildConfiguration(_ => { }));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.MaxLength.ShouldBe(int.MaxValue);
+    }
+
+    [Fact]
+    public void ItemField_With_A_Non_Positive_MaxLength_Should_Render_Unbounded()
+    {
+        // Arrange & Act - the component path treats a zero/negative MaxLength as "no limit"; the
+        // item path must not turn it into a field that accepts nothing.
+        var component = RenderOrderForm(BuildConfiguration(field =>
+            field.WithAttribute("MaxLength", 0)));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.MaxLength.ShouldBe(int.MaxValue);
+    }
+
+    [Fact]
+    public void ItemField_Should_Render_Its_Configured_Autocomplete()
+    {
+        // Arrange & Act - MudTextField has no Autocomplete parameter at all (verified by
+        // reflection), so the component path emits a raw lowercase "autocomplete" HTML attribute
+        // that lands in the unmatched-attribute bag. The item path has to do the same.
+        var component = RenderOrderForm(BuildConfiguration(field =>
+            field.WithAutocomplete("current-password")));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance
+            .UserAttributes["autocomplete"].ShouldBe("current-password");
+    }
+
+    [Fact]
+    public void ItemField_Autocomplete_Should_Reach_The_Rendered_Input()
+    {
+        // Arrange & Act - guard the guard: UserAttributes is only a staging dictionary. Assert the
+        // attribute actually survives onto the <input>, which is what a password manager reads.
+        var component = RenderOrderForm(BuildConfiguration(field =>
+            field.WithAutocomplete("current-password")));
+
+        // Assert
+        component.Find("input").GetAttribute("autocomplete").ShouldBe("current-password");
+    }
+
+    [Fact]
+    public void ItemField_With_A_Mask_Should_Render_No_Mask_Exactly_Like_A_Standalone_Field()
+    {
+        // Arrange & Act - deliberately NOT forwarded. FormCraft stores "Mask" as a string, while
+        // MudBlazor's Mask parameter takes an IMask; the component path reads the string into a
+        // property and then drops it (its GetMask() is an unimplemented stub that always returns
+        // null and is never called). So neither path supports masks today. Forwarding the string
+        // here would make the item path differ from the standalone one — the opposite of this
+        // issue's goal. Pinned so that whoever implements masks does it on both paths at once.
+        var component = RenderOrderForm(BuildConfiguration(field =>
+            field.WithAttribute("Mask", "0000-0000")));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
     }
 
     private IRenderedComponent<FormCraftComponent<CredentialsModel>> RenderOrderForm(

@@ -317,11 +317,25 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// its characters in clear text.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Deliberately NOT part of <see cref="AddCommonFieldAttributes"/>, which all three item
     /// renderers call. <c>MudNumericField</c> derives its own <c>InputType</c> and forwarding one
     /// would override it, and <c>MudDatePicker</c> has no such parameter at all — the value would
     /// fall through to its unmatched-attribute bag and be emitted as raw HTML. The #184
     /// calendar-icon lesson, applied before the fact rather than after.
+    /// </para>
+    /// <para>
+    /// Each fallback is the value the COMPONENT path renders when nothing is configured, which is
+    /// not always MudBlazor's own default — see <see cref="GetItemFieldMaxLength"/>. Parity between
+    /// FormCraft's two render paths is the point; matching MudBlazor's bare defaults instead would
+    /// leave the very gap this issue exists to close.
+    /// </para>
+    /// <para>
+    /// <c>Mask</c> is deliberately absent. FormCraft stores it as a string and MudBlazor's
+    /// parameter takes an <c>IMask</c>; the component path reads the string into a property and
+    /// then drops it, so neither path masks anything today. Forwarding it here would introduce a
+    /// divergence rather than remove one.
+    /// </para>
     /// </remarks>
     /// <param name="builder">The render tree builder for the open item-field component.</param>
     /// <param name="field">The item field's configuration.</param>
@@ -331,7 +345,32 @@ public partial class CollectionFieldComponent<TModel, TItem>
         IFieldConfiguration<TItem, object> field,
         int startIndex)
     {
-        builder.AddAttribute(startIndex, "InputType", GetItemFieldInputType(field));
+        builder.AddAttribute(startIndex++, "InputType", GetItemFieldInputType(field));
+        builder.AddAttribute(startIndex++, "Lines", GetItemFieldAttribute(field, "Lines", 1));
+        builder.AddAttribute(startIndex++, "MaxLength", GetItemFieldMaxLength(field));
+
+        // Lowercase on purpose: MudTextField has no Autocomplete parameter, so this rides through
+        // its unmatched-attribute bag onto the rendered <input> exactly as the component path's
+        // `autocomplete="@Autocomplete"` does. A capitalised name would emit a different attribute
+        // and no browser or password manager would read it.
+        builder.AddAttribute(startIndex, "autocomplete",
+            GetItemFieldAttribute<string?>(field, "autocomplete", null));
+    }
+
+    /// <summary>
+    /// Resolves the maximum length for an item field, mirroring the component path: a configured
+    /// positive value, otherwise unbounded.
+    /// </summary>
+    /// <remarks>
+    /// The fallback is <see cref="int.MaxValue"/> rather than MudBlazor's own 524288 default,
+    /// because that is what the component path renders for an unconfigured field. A non-positive
+    /// configured value means "no limit" there too — treating it literally would render an item
+    /// field that accepts no input at all.
+    /// </remarks>
+    private static int GetItemFieldMaxLength(IFieldConfiguration<TItem, object> field)
+    {
+        var configured = GetItemFieldAttribute(field, "MaxLength", 0);
+        return configured > 0 ? configured : int.MaxValue;
     }
 
     /// <summary>
