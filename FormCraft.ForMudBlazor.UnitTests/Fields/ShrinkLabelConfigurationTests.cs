@@ -318,10 +318,12 @@ public class ShrinkLabelConfigurationTests : MudBlazorTestBase
     [InlineData(false, false)]
     public void LovField_Should_Honor_ShrinkLabel(bool? fieldLevel, bool expected)
     {
-        // The LOV field was the one variant-aware component that never set ShrinkLabel at
-        // all, so it rendered with MudBlazor's false while its 11 siblings pinned the label.
-        // Its input always shows text (DisplayText, else the "Click to select..."
-        // placeholder), which an unshrunk label would sit on top of.
+        // The LOV field was the one variant-aware component that never passed ShrinkLabel at
+        // all; it now does, for consistency with its 11 siblings. This asserts the value
+        // reaching the component only. It does NOT imply a visible change: the LOV input
+        // always supplies a "Click to select..." placeholder, and MudBlazor's placeholder
+        // rule pins the label on its own — see ShrinkLabelRenderingTests, which measures the
+        // rendered outcome and shows it is identical with and without this setting.
         var config = FormBuilder<TestModel>.Create()
             .AddField(x => x.CityId, f => ApplyShrinkLabel(
                 f.WithLabel("City").AsLov<TestModel, int, CityDto>(lov => lov

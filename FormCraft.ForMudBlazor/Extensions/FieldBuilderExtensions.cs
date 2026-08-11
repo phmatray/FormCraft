@@ -145,9 +145,19 @@ public static class MudBlazorFieldBuilderExtensions
     /// shrunk position above the input.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Pass <c>false</c> when using <see cref="MudBlazor.Variant.Text"/>: that variant has no
     /// border for a shrunk label to sit in, so the label should float up from inside the input
     /// on focus instead of being permanently pinned above it.
+    /// </para>
+    /// <para>
+    /// <b>Setting this to <c>false</c> only has a visible effect on an empty field with no
+    /// placeholder and no start adornment.</b> MudBlazor combines <c>ShrinkLabel</c> with those
+    /// conditions using OR, so a field that has a value, a placeholder (see
+    /// <c>WithPlaceholder</c>) or a start adornment (see <c>WithAdornment</c>) keeps its label
+    /// pinned regardless. This is MudBlazor's behaviour, not FormCraft's — to get a floating
+    /// label on a <see cref="MudBlazor.Variant.Text"/> field, leave its placeholder unset.
+    /// </para>
     /// </remarks>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
     /// <typeparam name="TValue">The type of the field value.</typeparam>

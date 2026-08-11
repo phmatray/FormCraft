@@ -58,9 +58,17 @@ public partial class FormCraftComponent<TModel>
     /// Defaults to <c>true</c>, which keeps each label pinned above its input.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Set this to <c>false</c> alongside <see cref="DefaultVariant"/> =
     /// <see cref="Variant.Text"/>: that variant draws no border for a shrunk label to sit
     /// in, so the label should float up from inside the input on focus instead.
+    /// </para>
+    /// <para>
+    /// <b><c>false</c> only has a visible effect on empty fields with no placeholder and no
+    /// start adornment.</b> MudBlazor ORs <c>ShrinkLabel</c> with those conditions, so fields
+    /// that have a value, a placeholder or a start adornment keep their label pinned
+    /// regardless. Fields configured with a placeholder are unaffected by this parameter.
+    /// </para>
     /// </remarks>
     [Parameter]
     public bool DefaultShrinkLabel { get; set; } = true;
