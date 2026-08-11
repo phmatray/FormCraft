@@ -262,11 +262,12 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void Should_Not_Warn_About_An_Adornment_On_A_Collection_Item_Field()
+    public void Should_Warn_About_A_Start_Adornment_On_A_Collection_Item_Field()
     {
-        // Arrange - the collection render path never emits an Adornment attribute, so the
-        // adornment is dropped and ShrinkLabel=false IS honoured there. Warning would push the
-        // developer to remove a setting that was working.
+        // Arrange - #183 suppressed this warning because the collection path dropped the adornment
+        // entirely, so ShrinkLabel=false WAS honoured and warning would have pushed the developer
+        // to remove a setting that worked. Since #184 the adornment really is rendered there, so
+        // the same conflict as the component path applies and the diagnostic must say so.
         var config = FormBuilder<OrderModel>
             .Create()
             .AddCollectionField(x => x.Items, collection => collection
@@ -282,6 +283,67 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
         Render<FormCraftComponent<OrderModel>>(parameters => parameters
             .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
             .Add(p => p.Configuration, config));
+
+        // Assert
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("Product");
+        warnings[0].ShouldContain("Adornment");
+    }
+
+    [Fact]
+    public void Should_Not_Warn_About_An_End_Adornment_On_A_Collection_Item_Field()
+    {
+        // Arrange - only a START adornment competes with the label, on either render path
+        var config = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field
+                        .WithLabel("Product")
+                        .WithAdornment(Icons.Material.Filled.Search, Adornment.End)
+                        .WithShrinkLabel(false))))
+            .Build();
+
+        // Act
+        Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Should_Not_Warn_About_An_Adornment_On_A_Collection_Date_Item_Field()
+    {
+        // Arrange - the date path deliberately keeps MudDatePicker's own calendar adornment rather
+        // than taking #184's forward, so a configured start adornment is still dropped there and
+        // ShrinkLabel=false IS honoured. This is #183's rule, now scoped to the one path that still
+        // needs it — the diagnostic must see what each path actually renders, not what was asked.
+        var config = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.OrderedOn, field => field
+                        .WithLabel("Ordered on")
+                        .WithAttribute("Adornment", Adornment.Start)
+                        .WithShrinkLabel(false))))
+            .Build();
+
+        // Act - next to a MudPopoverProvider, or MudDatePicker logs a warning of its own that has
+        // nothing to do with this diagnostic
+        Render(builder =>
+        {
+            builder.OpenComponent<MudPopoverProvider>(0);
+            builder.CloseComponent();
+            builder.OpenComponent<FormCraftComponent<OrderModel>>(1);
+            builder.AddComponentParameter(2, "Model", new OrderModel { Items = { new OrderItem() } });
+            builder.AddComponentParameter(3, "Configuration", config);
+            builder.CloseComponent();
+        });
 
         // Assert
         _logs.Warnings.ShouldBeEmpty();
@@ -318,6 +380,8 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
     private class OrderItem
     {
         public string ProductName { get; set; } = string.Empty;
+
+        public DateTime OrderedOn { get; set; }
     }
 
     private IRenderedComponent<FormCraftComponent<TestModel>> RenderFormWithPopover(

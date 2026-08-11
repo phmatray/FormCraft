@@ -336,7 +336,13 @@ public partial class CollectionFieldComponent<TModel, TItem>
             builder.AddAttribute(startIndex++, "AdornmentColor", GetItemFieldAttribute(field, "AdornmentColor", Color.Default));
         }
 
-        WarnIfShrinkLabelUnhonoured(field, shrinkLabel);
+        // The diagnostic has to judge what this path actually RENDERS, not what was configured:
+        // a dropped adornment cannot pin the label, so reporting one would tell the developer to
+        // remove a setting that was working (#183).
+        WarnIfShrinkLabelUnhonoured(
+            field,
+            shrinkLabel,
+            rendersAdornment ? GetItemFieldAdornment(field) : null);
 
         return startIndex;
     }
@@ -346,19 +352,25 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// component render path — <see cref="ShrinkLabelDiagnostic.Conflict"/> is the single
     /// implementation, so the two paths cannot drift apart.
     /// </summary>
-    private void WarnIfShrinkLabelUnhonoured(IFieldConfiguration<TItem, object> field, bool shrinkLabel)
+    /// <param name="field">The item field's configuration.</param>
+    /// <param name="shrinkLabel">The ShrinkLabel value this field renders with.</param>
+    /// <param name="renderedAdornment">
+    /// The adornment this render path actually draws, or <c>null</c> when it draws none — which is
+    /// not the same as the field's configured adornment. Item fields whose component takes the
+    /// forward (#184) pass the real value; the date path, which keeps MudDatePicker's own calendar
+    /// adornment instead, passes null so that a configured-but-dropped adornment is not reported.
+    /// </param>
+    private void WarnIfShrinkLabelUnhonoured(
+        IFieldConfiguration<TItem, object> field,
+        bool shrinkLabel,
+        Adornment? renderedAdornment)
     {
         if (shrinkLabel || !_warnedItemFields.Add(field.FieldName))
         {
             return;
         }
 
-        // Adornment is deliberately passed as null: AddCommonFieldAttributes above does not emit
-        // an Adornment attribute, so this render path never draws one. Reading the field's
-        // configured adornment here would warn that the label "will not float" when in fact the
-        // adornment is dropped and ShrinkLabel=false IS honoured — pushing the developer to
-        // remove a setting that was working. Same rule, different inputs per render path.
-        var conflict = ShrinkLabelDiagnostic.Conflict(field.Placeholder, adornment: null);
+        var conflict = ShrinkLabelDiagnostic.Conflict(field.Placeholder, renderedAdornment);
 
         if (conflict is null)
         {
