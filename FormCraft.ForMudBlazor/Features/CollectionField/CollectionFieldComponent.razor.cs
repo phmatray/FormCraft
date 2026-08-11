@@ -236,12 +236,12 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private void RenderTextField(RenderTreeBuilder builder, IFieldConfiguration<TItem, object> field, string? value, int itemIndex)
     {
         builder.OpenComponent<MudTextField<string>>(0);
-        var index = AddCommonFieldAttributes(builder, field, 1, rendersAdornment: true);
-        builder.AddAttribute(index++, "Value", value);
-        builder.AddAttribute(index++, "ValueChanged",
+        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: true);
+        builder.AddAttribute(CallerAttributeStart, "Value", value);
+        builder.AddAttribute(CallerAttributeStart + 1, "ValueChanged",
             EventCallback.Factory.Create<string>(this,
                 newValue => UpdateItemFieldValue(itemIndex, field.FieldName, newValue)));
-        builder.AddAttribute(index, "Immediate", true);
+        builder.AddAttribute(CallerAttributeStart + 2, "Immediate", true);
         builder.CloseComponent();
     }
 
@@ -249,16 +249,16 @@ public partial class CollectionFieldComponent<TModel, TItem>
         where T : struct
     {
         builder.OpenComponent(0, typeof(MudNumericField<>).MakeGenericType(typeof(T)));
-        var index = AddCommonFieldAttributes(builder, field, 1, rendersAdornment: true);
-        builder.AddAttribute(index++, "Value", value);
-        builder.AddAttribute(index++, "ValueChanged",
+        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: true);
+        builder.AddAttribute(CallerAttributeStart, "Value", value);
+        builder.AddAttribute(CallerAttributeStart + 1, "ValueChanged",
             EventCallback.Factory.Create<T>(this,
                 newValue => UpdateItemFieldValue(itemIndex, field.FieldName, newValue)));
-        builder.AddAttribute(index++, "Immediate", true);
+        builder.AddAttribute(CallerAttributeStart + 2, "Immediate", true);
         // MudBlazor appends '*' to Pattern before emitting the HTML attribute, so a
         // fully-anchored regex here becomes invalid (e.g. "...?*"). The component's
         // default pattern already handles decimal input; only Culture is needed.
-        builder.AddAttribute(index, "Culture", System.Globalization.CultureInfo.InvariantCulture);
+        builder.AddAttribute(CallerAttributeStart + 3, "Culture", System.Globalization.CultureInfo.InvariantCulture);
         builder.CloseComponent();
     }
 
@@ -281,17 +281,30 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // rendersAdornment: false — MudDatePicker defaults to Adornment.End with its calendar
         // icon, so forwarding a field's (usually unset) adornment here would silently strip that
         // icon on every date item field. Out of scope for #184; see the issue's non-goals.
-        var index = AddCommonFieldAttributes(builder, field, 1, rendersAdornment: false);
-        builder.AddAttribute(index++, "Date", value);
-        builder.AddAttribute(index, "DateChanged",
+        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: false);
+        builder.AddAttribute(CallerAttributeStart, "Date", value);
+        builder.AddAttribute(CallerAttributeStart + 1, "DateChanged",
             EventCallback.Factory.Create<DateTime?>(this,
                 newValue => UpdateItemFieldValue(itemIndex, field.FieldName, newValue)));
         builder.CloseComponent();
     }
 
     /// <summary>
-    /// Emits the presentation attributes every item field shares, and returns the next free
-    /// RenderTreeBuilder sequence number so the caller can continue from it.
+    /// First sequence number <see cref="AddCommonFieldAttributes"/> may use. It never emits more
+    /// than <see cref="CallerAttributeStart"/> minus this many attributes.
+    /// </summary>
+    private const int CommonAttributeStart = 1;
+
+    /// <summary>
+    /// First sequence number an item-field renderer may use for its own attributes. Deliberately
+    /// well clear of the common block: Blazor requires sequence numbers to be constants tied to a
+    /// source position, never computed, so callers cannot resume from "wherever the shared helper
+    /// stopped" — the gap is what lets the common set grow without every caller moving.
+    /// </summary>
+    private const int CallerAttributeStart = 20;
+
+    /// <summary>
+    /// Emits the presentation attributes every item field shares.
     /// </summary>
     /// <param name="builder">The render tree builder for the open item-field component.</param>
     /// <param name="field">The item field's configuration.</param>
@@ -302,13 +315,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// whose own default is <see cref="Adornment.End"/> with a calendar icon that forwarding would
     /// erase.
     /// </param>
-    /// <returns>The next free sequence number.</returns>
-    /// <remarks>
-    /// The caller and this method share one sequence-number space, so returning the next index —
-    /// rather than having callers resume from a hardcoded offset — is what keeps them from
-    /// colliding as the common set grows.
-    /// </remarks>
-    private int AddCommonFieldAttributes(
+    private void AddCommonFieldAttributes(
         RenderTreeBuilder builder,
         IFieldConfiguration<TItem, object> field,
         int startIndex,
@@ -330,22 +337,22 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // tell apart from "none configured".
         var adornment = rendersAdornment ? GetItemFieldAdornment(field) : (Adornment?)null;
 
+        // The branch is per-CALL-SITE, not per-configuration: `adornment` is null exactly when the
+        // caller passed rendersAdornment: false, so a given renderer always emits the same frames
+        // in the same order. Within the branch all three are emitted whether or not the field
+        // configured one, using the component's own defaults — so an item field with no adornment
+        // renders exactly as it did before #184.
         if (adornment is { } rendered)
         {
-            // Emitted unconditionally (not only when configured) so the frame layout stays the
-            // same on every render of a given field. The defaults below are the component's own,
-            // so an item field with no adornment renders exactly as it did before #184.
             builder.AddAttribute(startIndex++, "Adornment", rendered);
             builder.AddAttribute(startIndex++, "AdornmentIcon", GetItemFieldAttribute<string?>(field, "AdornmentIcon", null));
-            builder.AddAttribute(startIndex++, "AdornmentColor", GetItemFieldAttribute(field, "AdornmentColor", Color.Default));
+            builder.AddAttribute(startIndex, "AdornmentColor", GetItemFieldAttribute(field, "AdornmentColor", Color.Default));
         }
 
         // The diagnostic has to judge what this path actually RENDERS, not what was configured:
         // a dropped adornment cannot pin the label, so reporting one would tell the developer to
         // remove a setting that was working (#183).
         WarnIfShrinkLabelUnhonoured(field, shrinkLabel, adornment);
-
-        return startIndex;
     }
 
     /// <summary>

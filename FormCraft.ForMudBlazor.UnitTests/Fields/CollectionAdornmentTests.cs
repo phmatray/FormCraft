@@ -162,6 +162,64 @@ public class CollectionAdornmentTests : MudBlazorTestBase
         picker.AdornmentIcon.ShouldNotBeNullOrEmpty();
     }
 
+    [Fact]
+    public void Reordering_A_Mixed_Item_Form_Should_Move_Values_With_Their_Rows()
+    {
+        // Arrange - the adornment forward makes a text row emit more render-tree frames than a date
+        // row, so a mixed item form now has rows of differing frame counts in a keyless loop. If the
+        // sequence numbers were computed rather than source-position constants, Blazor would pair
+        // frames positionally across a reorder and a value could stay on the row it was on.
+        var model = new MixedModel
+        {
+            Rows =
+            {
+                new MixedRow { Name = "first", When = new DateTime(2020, 1, 1) },
+                new MixedRow { Name = "second", When = new DateTime(2030, 12, 31) },
+            },
+        };
+
+        var config = FormBuilder<MixedModel>
+            .Create()
+            .AddCollectionField(x => x.Rows, collection => collection
+                .WithLabel("Rows")
+                .AllowReorder()
+                .WithItemForm(item => item
+                    .AddField(x => x.Name, field => field
+                        .WithLabel("Name")
+                        .WithAdornment(Icons.Material.Filled.Search, Adornment.Start))
+                    .AddField(x => x.When, field => field.WithLabel("When"))))
+            .Build();
+
+        var component = Render(builder =>
+        {
+            builder.OpenComponent<MudPopoverProvider>(0);
+            builder.CloseComponent();
+            builder.OpenComponent<FormCraftComponent<MixedModel>>(1);
+            builder.AddComponentParameter(2, "Model", model);
+            builder.AddComponentParameter(3, "Configuration", config);
+            builder.CloseComponent();
+        });
+
+        // Act - move the second row up
+        component.FindAll("button[aria-label='Move up']")[1].Click();
+
+        // Assert - the model reordered, and each rendered row shows its own row's values
+        model.Rows.Select(r => r.Name).ShouldBe(new[] { "second", "first" });
+
+        // MudDatePicker embeds a MudTextField<string> of its own, so select only our name fields
+        var texts = component.FindComponents<MudTextField<string>>()
+            .Select(t => t.Instance)
+            .Where(t => t.Label == "Name")
+            .ToList();
+
+        texts.Select(t => t.Value).ShouldBe(new[] { "second", "first" });
+        texts.Select(t => t.Adornment).ShouldAllBe(a => a == Adornment.Start);
+
+        component.FindComponents<MudDatePicker>()
+            .Select(p => p.Instance.Date)
+            .ShouldBe(new DateTime?[] { new DateTime(2030, 12, 31), new DateTime(2020, 1, 1) });
+    }
+
     private IRenderedComponent<FormCraftComponent<OrderModel>> RenderOrderForm(
         IFormConfiguration<OrderModel> config)
     {
@@ -208,6 +266,18 @@ public class CollectionAdornmentTests : MudBlazorTestBase
         public int Quantity { get; set; }
 
         public bool IsGift { get; set; }
+    }
+
+    private class MixedModel
+    {
+        public List<MixedRow> Rows { get; set; } = new();
+    }
+
+    private class MixedRow
+    {
+        public string Name { get; set; } = string.Empty;
+
+        public DateTime When { get; set; }
     }
 
     private class AppointmentModel

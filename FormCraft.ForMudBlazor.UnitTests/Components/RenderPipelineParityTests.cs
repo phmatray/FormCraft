@@ -395,7 +395,9 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         // field. The two go through different renderers (component vs CollectionFieldComponent's
         // RenderTreeBuilder), and presentation attributes have repeatedly drifted between them:
         // Variant in #146, ShrinkLabel in #177, the adornments in #184 — each found reactively,
-        // years apart. Comparing the whole set here means the NEXT one fails a test instead.
+        // years apart. This pins the set the two paths DO agree on, so a regression in any of them
+        // fails here. It is not a claim that the paths agree on everything: see Presentation()
+        // for the attributes still known to diverge.
         static void Configure<TOwner>(FieldBuilder<TOwner, string> field)
             where TOwner : new()
             => field
@@ -436,8 +438,19 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     }
 
     /// <summary>
-    /// The presentation attributes both render paths are expected to honour identically. Add to
-    /// this list whenever a field component gains one.
+    /// The presentation attributes both render paths are expected to honour identically, and which
+    /// the test above actually configures. Add to this list whenever a field component gains one.
+    /// <para>
+    /// Deliberately NOT compared, because the two paths are known to disagree today — each is
+    /// tracked separately, and listing one here without configuring it would assert nothing while
+    /// looking like coverage:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><c>Required</c> — the collection path emits it, no component-path renderer does.</item>
+    /// <item><c>InputType</c>, <c>Lines</c>, <c>MaxLength</c>, <c>Autocomplete</c> — component path
+    /// only; a <c>.AsPassword()</c> item field still renders as plain text inside a collection.</item>
+    /// <item><c>OnAdornmentClick</c> — component path only (an explicit non-goal of #184).</item>
+    /// </list>
     /// </summary>
     private static object?[] Presentation(MudTextField<string> field) =>
     [
@@ -450,9 +463,6 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         field.Adornment,
         field.AdornmentIcon,
         field.AdornmentColor,
-        field.ReadOnly,
-        field.Disabled,
-        field.Required,
     ];
 
     private class OrderModel
