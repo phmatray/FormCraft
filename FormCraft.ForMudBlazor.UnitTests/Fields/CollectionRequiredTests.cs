@@ -71,6 +71,75 @@ public class CollectionRequiredTests : MudBlazorTestBase
         component.FindComponent<MudNumericField<int>>().Instance.Required.ShouldBeFalse();
     }
 
+    [Fact]
+    public void Required_ItemField_Should_Not_Put_The_Required_Attribute_On_The_Input_Element()
+    {
+        // Arrange & Act - the component property is the cause; this is the effect the convention
+        // actually names ("Required() adds validation but NOT the HTML5 required attribute").
+        // Measured before the fix: the input carried required="" and aria-required="true".
+        var component = RenderOrderForm(BuildConfiguration(field => field
+            .Required("Product name is required")));
+
+        // Assert
+        var input = component.FindAll("input")[0];
+        input.HasAttribute("required").ShouldBeFalse();
+        input.GetAttribute("aria-required").ShouldBe("false");
+    }
+
+    [Fact]
+    public async Task Blank_Required_ItemField_Should_Still_Fail_Validation_With_The_Configured_Message()
+    {
+        // Arrange - dropping the attribute must not drop the validation it never drove.
+        var model = new OrderModel { Items = { new OrderItem() } };
+        EditContext? editContext = null;
+
+        var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, BuildConfiguration(field => field
+                .Required("Product name is required")))
+            .Add(p => p.OnEditContextCreated, ctx => editContext = ctx));
+
+        // Act
+        var isValid = true;
+        await component.InvokeAsync(async () => isValid = await component.Instance.ValidateAsync());
+
+        // Assert - the developer's own wording, on the nested identifier, and in the markup
+        isValid.ShouldBeFalse();
+        editContext.ShouldNotBeNull();
+        editContext!.GetValidationMessages(new FieldIdentifier(model, "Items[0].ProductName"))
+            .ShouldContain("Product name is required");
+        component.WaitForAssertion(() =>
+            component.Markup.ShouldContain("Product name is required"));
+    }
+
+    [Fact]
+    public async Task Blank_Required_ItemField_Should_Surface_Exactly_One_Message()
+    {
+        // Arrange - MudBlazor's Required drives a second, differently-worded required check of its
+        // own. Emitting the attribute was the way that check could ever be armed for an item field,
+        // so this pins the count at one rather than merely asserting the right text is present.
+        var model = new OrderModel { Items = { new OrderItem() } };
+
+        var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, BuildConfiguration(field => field
+                .Required("Product name is required"))));
+
+        // Act
+        await component.InvokeAsync(() => component.Instance.ValidateAsync());
+
+        // Assert - FieldValidationMessage renders one MudText per error for the field
+        component.WaitForAssertion(() =>
+            component.FindComponents<MudText>()
+                .Count(t => t.Instance.Color == Color.Error)
+                .ShouldBe(1));
+
+        // ...and MudBlazor's own error slot stays empty, so nothing is queued behind it
+        var textField = component.FindComponent<MudTextField<string>>().Instance;
+        textField.Error.ShouldBeFalse();
+        textField.ErrorText.ShouldBeNullOrEmpty();
+    }
+
     private IRenderedComponent<FormCraftComponent<OrderModel>> RenderOrderForm(
         IFormConfiguration<OrderModel> config)
     {
