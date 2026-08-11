@@ -70,6 +70,22 @@ public class TrustedPublishingWorkflowTests
         return string.Join('\n', lines[start..end]);
     }
 
+    /// <summary>
+    /// The <c>if:</c> expression of a single step, so a claim about what a step is *gated on* cannot
+    /// be satisfied — or contradicted — by the same name appearing in its <c>with:</c> block. #226
+    /// turns entirely on that distinction: the login step legitimately *reads* <c>NUGET_USER</c>,
+    /// and only *gating* on it is the defect.
+    /// </summary>
+    private static string StepCondition(string workflowFile, string stepId)
+    {
+        var condition = StepWithId(workflowFile, stepId)
+            .Split('\n')
+            .FirstOrDefault(l => l.TrimStart().StartsWith("if:", StringComparison.Ordinal));
+
+        condition.ShouldNotBeNull($"the `{stepId}` step of {workflowFile} no longer has an `if:` condition");
+        return condition;
+    }
+
     [Fact]
     public void ReleaseWorkflow_Should_Request_The_OidcToken()
     {
@@ -98,6 +114,24 @@ public class TrustedPublishingWorkflowTests
         // Scoped to the login step: the same condition on an unrelated step would leave a real
         // nuget.org key minted on runs that publish nothing.
         StepWithId("release-please.yml", "login").ShouldContain("release_created");
+    }
+
+    [Fact]
+    public void ReleaseWorkflow_Should_Not_Gate_The_Login_On_The_NuGetUser_Secret()
+    {
+        // #226. A guard on the *trigger* and a guard on a *secret* fail in opposite directions.
+        // `release_created == false` means nothing was meant to publish, so a skip is correct.
+        // An empty NUGET_USER means a release *was* meant to publish and could not — and skipping
+        // the login there leaves steps.login.outputs.NUGET_API_KEY empty, which gates Nuke's
+        // Publish off while release-please has already cut the tag, the changelog and the GitHub
+        // Release. The run is then GREEN on a version that never reached nuget.org, on a path this
+        // repo exercises a handful of times a year. So the secret must fail the job, not skip it.
+        //
+        // Asserted on the `if:` alone: `with: user: ${{ env.NUGET_USER }}` is the legitimate read.
+        var condition = StepCondition("release-please.yml", "login");
+
+        condition.ShouldContain("release_created");
+        condition.ShouldNotContain("NUGET_USER");
     }
 
     [Fact]
