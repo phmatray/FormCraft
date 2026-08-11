@@ -53,3 +53,81 @@ jobs:
           target-branch: dev
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # Packs and publishes both packages for the release the job above just tagged. Deliberately thin:
+  # because it checks out the tag, Nuke's PublishIfNeeded gate — OnlyWhenStatic(IsOnVersionTag() &&
+  # IsServerBuild) — is already satisfied, so `./build.cmd Continuous` publishes exactly as it did
+  # from the old tag-triggered workflow and build/Build.cs needs no change at all.
+  #
+  # Safety properties this job depends on:
+  #   - No publish path may ever run on `pull_request`. This workflow has no pull_request trigger,
+  #     and a fork could not obtain this repository's OIDC token anyway — minting a key on a PR
+  #     would be both pointless and a hard failure.
+  #   - `release_created` is false on a workflow_dispatch, which is what makes the dry-run safe:
+  #     every publish step below is gated on it, so a dispatch exercises the build/pack path and
+  #     sends nothing to nuget.org.
+  #   - Publishing requires a nuget.org Trusted Publishing policy for BOTH the FormCraft and
+  #     FormCraft.ForMudBlazor packages, naming this repository and THIS workflow file
+  #     (release-please.yml — it named continuous.yml until this change), plus the NUGET_USER
+  #     secret holding the nuget.org profile name.
+  nupkg:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # upload the .nupkg files as release assets
+      id-token: write # request the GitHub OIDC token for NuGet Trusted Publishing
+    # Job-level so the login step's own `if` can read it — a STEP-level env is NOT visible to that
+    # same step's `if` conditional.
+    env:
+      NUGET_USER: ${{ secrets.NUGET_USER }}
+    steps:
+      # `ref` and `fetch-depth: 0` are BOTH required: MinVer derives the package version from the
+      # git tag, so without the tag checked out and the full history fetched it resolves no tag and
+      # both packages would pack as 0.0.0-alpha.0.N. On a workflow_dispatch dry-run tag_name is
+      # empty and checkout falls back to the default ref, which is the intent.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+          fetch-depth: 0
+
+      - name: 'Setup: .NET SDK'
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      # Trusted Publishing: exchanges the OIDC token for a NuGet key valid ~1 hour, so no long-lived
+      # secret is stored. Nuke reads it from the NUGET_API_KEY environment variable exactly as
+      # before, so build/Build.cs is unchanged — it neither knows nor cares that the key expires.
+      # Kept adjacent to the run step below so the ~1h key cannot expire before it is used.
+      - name: NuGet login (OIDC -> short-lived key)
+        id: login
+        if: ${{ needs.release-please.outputs.release_created == 'true' && env.NUGET_USER != '' }}
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ env.NUGET_USER }}
+
+      # Test, Pack, then PublishIfNeeded -> Publish. On a dry-run NUGET_API_KEY is empty and the
+      # tag is absent, so PublishIfNeeded's static gate skips the push.
+      # `dotnet nuget push` runs with --skip-duplicate (EnableSkipDuplicate in build/Build.cs), so
+      # re-running a release is idempotent.
+      - name: 'Run: Continuous'
+        run: ./build.cmd Continuous
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 'Publish: test-results'
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: test-results
+
+      - name: Attach packages to the GitHub Release
+        if: ${{ needs.release-please.outputs.release_created == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: gh release upload "$TAG" ./artifacts/*.nupkg --clobber
