@@ -10,4 +10,7 @@ riderModule.iml
 
 # Build artifacts
 /artifacts/
-/test-results/.claude/worktrees/
+/test-results/
+
+# Agent worktrees
+.claude/worktrees/
