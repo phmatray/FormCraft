@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Rendering;
@@ -337,7 +338,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // MudBlazor appends '*' to Pattern before emitting the HTML attribute, so a
         // fully-anchored regex here becomes invalid (e.g. "...?*"). The component's
         // default pattern already handles decimal input; only Culture is needed.
-        builder.AddAttribute(CallerAttributeStart + 3, "Culture", System.Globalization.CultureInfo.InvariantCulture);
+        builder.AddAttribute(CallerAttributeStart + 3, "Culture", GetItemFieldCulture(field));
 
         // #208. The component path resolved Format and ShowSpinButtons and then never bound them;
         // this path never forwarded them at all. Fixing only the component path would have opened a
@@ -451,6 +452,25 @@ public partial class CollectionFieldComponent<TModel, TItem>
         builder.AddAttribute(startIndex, "autocomplete",
             GetItemFieldAttribute<string?>(field, "autocomplete", null));
     }
+
+    /// <summary>
+    /// Resolves the culture a numeric item field parses and formats with: the configured
+    /// <c>"Culture"</c> attribute, otherwise <see cref="CultureInfo.InvariantCulture"/> (#218).
+    /// </summary>
+    /// <remarks>
+    /// Mirrors the component path's
+    /// <c>GetAttribute&lt;CultureInfo&gt;("Culture") ?? CultureInfo.InvariantCulture</c>. This value
+    /// used to be hard-coded here, so the same model with the same configuration parsed decimals
+    /// differently inside and outside <c>.WithItemForm(...)</c> — a user typing <c>1,5</c> in a French
+    /// locale got different results depending on where the field sat.
+    /// <para>
+    /// Invariant stays the DEFAULT, not merely a fallback of convenience: it is what both paths have
+    /// always rendered for an unconfigured field, and making the value configurable must not change
+    /// what existing forms do.
+    /// </para>
+    /// </remarks>
+    private static CultureInfo GetItemFieldCulture(IFieldConfiguration<TItem, object> field)
+        => GetItemFieldAttribute<CultureInfo?>(field, "Culture", null) ?? CultureInfo.InvariantCulture;
 
     /// <summary>
     /// Resolves the rendered line count for an item field: the configured value, forced back to 1
