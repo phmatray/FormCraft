@@ -56,11 +56,20 @@ jobs:
         run: ./build.cmd Pack
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # See ci.yml's copy of this step for the full rationale (#225). Two things matter here:
+      # `if: always()` — without it a failed `Run: Pack` skips this step and the only record of which
+      # tests failed dies with the runner — and the `**/TestResults/*.log` path, because Nuke's
+      # `test-results/` is never created: MTP ignores the VSTest results-directory/logger properties
+      # Build.cs sets (warning MTP0001), which is why this step has never yet produced an artifact.
       - name: 'Publish: test-results'
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: test-results
-          path: test-results
+          path: |
+            **/TestResults/*.log
+            test-results
+          if-no-files-found: ignore
       - name: 'Publish: artifacts'
         uses: actions/upload-artifact@v7
         with:

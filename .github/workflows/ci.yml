@@ -16,3 +16,30 @@ jobs:
       - run: ./build.cmd Test
         env:
           DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+      # Microsoft.Testing.Platform prints only a summary line to stdout and writes every per-assertion
+      # detail — failing test names, Shouldly messages, stack traces — to
+      # <project>/bin/<cfg>/<tfm>/TestResults/*.log. Without this upload a red run here is
+      # undiagnosable remotely: `gh run view --log` yields a count and a path to a file that died with
+      # the runner. That cost was paid for real during #200. (#225)
+      #
+      # `if: always()` is the entire point — the failure path is the only one worth preserving, and it
+      # is exactly the path a bare step skips.
+      #
+      # ⚠️ The path deliberately does NOT rely on Nuke's `test-results/` directory. Build.cs asks for it
+      # via DotNetTest's --results-directory/--logger, but `dotnet test` passes those as the VSTest
+      # properties VSTestResultsDirectory/VSTestLogger, which Microsoft.Testing.Platform ignores
+      # outright (warning MTP0001). So `test-results/` is never created, and an upload pointed only at
+      # it produces an empty artifact that merely looks like a fix. Measured, not assumed:
+      # continuous.yml has carried such a step for some time and no run of it has ever produced a
+      # test-results artifact. `test-results` is still listed so the artifact gains the trx/html the
+      # day the build actually emits them.
+      - name: 'Publish: test-results'
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: |
+            **/TestResults/*.log
+            test-results
+          if-no-files-found: ignore
