@@ -313,6 +313,30 @@ public class ShrinkLabelConfigurationTests : MudBlazorTestBase
             .Instance.ShrinkLabel.ShouldBe(expected);
     }
 
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData(false, false)]
+    public void LovField_Should_Honor_ShrinkLabel(bool? fieldLevel, bool expected)
+    {
+        // The LOV field was the one variant-aware component that never set ShrinkLabel at
+        // all, so it rendered with MudBlazor's false while its 11 siblings pinned the label.
+        // Its input always shows text (DisplayText, else the "Click to select..."
+        // placeholder), which an unshrunk label would sit on top of.
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.CityId, f => ApplyShrinkLabel(
+                f.WithLabel("City").AsLov<TestModel, int, CityDto>(lov => lov
+                    .WithDataSource(() => new[] { new CityDto { Id = 1, Name = "Paris" } })
+                    .WithKey(c => c.Id)
+                    // Cast required: WithDisplay has both Expression<Func<>> and Func<>
+                    // overloads, so a bare lambda is ambiguous (CS0121).
+                    .WithDisplay((Expression<Func<CityDto, string>>)(c => c.Name))),
+                fieldLevel))
+            .Build();
+
+        RenderForm(config).FindComponent<MudTextField<string>>()
+            .Instance.ShrinkLabel.ShouldBe(expected);
+    }
+
     /// <summary>
     /// Applies <c>.WithShrinkLabel(value)</c> only when the case supplies one, so the
     /// "null" case exercises the genuinely-unconfigured path rather than an explicit true.
