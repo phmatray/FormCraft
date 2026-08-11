@@ -170,6 +170,68 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
         _logs.Warnings.ShouldBeEmpty();
     }
 
+    [Fact]
+    public void Should_Warn_For_A_Collection_Item_Field()
+    {
+        // Arrange - collection item fields render through CollectionFieldComponent's imperative
+        // RenderTreeBuilder path, which resolves presentation attributes itself and so needs the
+        // diagnostic wired separately from the component path.
+        var config = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field
+                        .WithLabel("Product")
+                        .WithPlaceholder("e.g. Widget")
+                        .WithShrinkLabel(false))))
+            .Build();
+
+        // Act
+        Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("Product");
+        warnings[0].ShouldContain("Placeholder");
+    }
+
+    [Fact]
+    public void Should_Not_Warn_For_A_Collection_Item_Field_Without_A_Conflict()
+    {
+        // Arrange
+        var config = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field
+                        .WithLabel("Product")
+                        .WithShrinkLabel(false))))
+            .Build();
+
+        // Act
+        Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    private class OrderModel
+    {
+        public List<OrderItem> Items { get; set; } = new();
+    }
+
+    private class OrderItem
+    {
+        public string ProductName { get; set; } = string.Empty;
+    }
+
     private IRenderedComponent<FormCraftComponent<TestModel>> RenderFormWithPopover(
         IFormConfiguration<TestModel> config)
     {

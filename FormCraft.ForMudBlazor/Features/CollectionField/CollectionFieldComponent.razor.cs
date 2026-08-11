@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Rendering;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using MudBlazor;
 
 namespace FormCraft.ForMudBlazor;
@@ -46,6 +48,19 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// </summary>
     [CascadingParameter(Name = FormCraftCascadingValues.DefaultShrinkLabel)]
     public bool? FormDefaultShrinkLabel { get; set; }
+
+    /// <summary>
+    /// Service provider used to resolve an optional <see cref="ILoggerFactory"/> for the
+    /// ShrinkLabel diagnostic (#181). Degrades silently when no logger is registered.
+    /// </summary>
+    [Inject]
+    private IServiceProvider? DiagnosticServices { get; set; }
+
+    /// <summary>
+    /// Item fields already reported, so the diagnostic fires once per field rather than once
+    /// per row — a collection of 50 items must not produce 50 identical warnings.
+    /// </summary>
+    private readonly HashSet<string> _warnedItemFields = [];
 
     /// <summary>
     /// Gets or sets the parent form's EditContext, cascaded from the surrounding EditForm.
@@ -275,7 +290,53 @@ public partial class CollectionFieldComponent<TModel, TItem>
         builder.AddAttribute(startIndex++, "Disabled", field.IsDisabled);
         builder.AddAttribute(startIndex++, "Variant", GetItemFieldVariant(field));
         builder.AddAttribute(startIndex++, "Margin", Margin.Dense);
-        builder.AddAttribute(startIndex, "ShrinkLabel", GetItemFieldShrinkLabel(field));
+
+        var shrinkLabel = GetItemFieldShrinkLabel(field);
+        builder.AddAttribute(startIndex, "ShrinkLabel", shrinkLabel);
+
+        WarnIfShrinkLabelUnhonoured(field, shrinkLabel);
+    }
+
+    /// <summary>
+    /// Reports a ShrinkLabel conflict for an item field (#181), using the same rule as the
+    /// component render path — <see cref="ShrinkLabelDiagnostic.Conflict"/> is the single
+    /// implementation, so the two paths cannot drift apart.
+    /// </summary>
+    private void WarnIfShrinkLabelUnhonoured(IFieldConfiguration<TItem, object> field, bool shrinkLabel)
+    {
+        if (shrinkLabel || !_warnedItemFields.Add(field.FieldName))
+        {
+            return;
+        }
+
+        field.AdditionalAttributes.TryGetValue("Adornment", out var adornmentValue);
+        var conflict = ShrinkLabelDiagnostic.Conflict(
+            field.Placeholder,
+            adornmentValue as Adornment?);
+
+        if (conflict is null)
+        {
+            return;
+        }
+
+        // A diagnostic must never break a render, so a logger that throws is swallowed.
+        try
+        {
+            var logger = DiagnosticServices?
+                .GetService<ILoggerFactory>()?
+                .CreateLogger(ShrinkLabelDiagnostic.Category);
+
+            logger?.LogWarning(
+                "Field '{Field}' sets ShrinkLabel=false but also has {Conflict}, which MudBlazor " +
+                "lets win — the label stays pinned and will not float. Remove that property to get " +
+                "a floating label, or drop ShrinkLabel=false.",
+                field.Label ?? field.FieldName,
+                conflict);
+        }
+        catch
+        {
+            // Ignored: a failing diagnostic must not take the form down with it.
+        }
     }
 
     /// <summary>
