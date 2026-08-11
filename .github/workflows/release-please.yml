@@ -138,11 +138,34 @@ jobs:
         with:
           user: ${{ env.NUGET_USER }}
 
-      # Test, Pack, then PublishIfNeeded -> Publish. On a dry-run NUGET_API_KEY is empty and the
-      # tag is absent, so PublishIfNeeded's static gate skips the push.
+      # The run step is split in two on `release_created`, and the split is the guarantee (#221).
+      #
+      # A non-releasing run invokes `Pack`, a target that has no path to `Publish` at all — the same
+      # reason continuous.yml invokes `Pack` rather than `Continuous`. Previously a single
+      # unconditional `./build.cmd Continuous` ran on every invocation, and `Continuous` triggers
+      # `PublishIfNeeded`, so nothing structural stopped a dispatch from reaching the publish target:
+      # safety rested entirely on PublishIfNeeded's `OnlyWhenStatic(IsOnVersionTag() && IsServerBuild)`
+      # gate holding. That gate is real, but it is a runtime check on the tag rather than an absence
+      # of the code path, and `origin/main` IS the v3.1.0 commit — so a dispatch that happened to
+      # check out a tagged commit satisfied it. One target that cannot publish is a stronger claim
+      # than one that is expected not to.
+      #
+      # The two conditions are exhaustive and mutually exclusive, so exactly one step runs on every
+      # invocation and the job can never silently do neither.
+      #
+      # ⛔ The publishing step below is byte-identical to the step this replaced, apart from its `if:`
+      # — the real release path is deliberately unchanged.
+      - name: 'Run: Pack (no release — cannot publish)'
+        if: ${{ needs.release-please.outputs.release_created != 'true' }}
+        run: ./build.cmd Pack
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Test, Pack, then PublishIfNeeded -> Publish.
       # `dotnet nuget push` runs with --skip-duplicate (EnableSkipDuplicate in build/Build.cs), so
       # re-running a release is idempotent.
       - name: 'Run: Continuous'
+        if: ${{ needs.release-please.outputs.release_created == 'true' }}
         run: ./build.cmd Continuous
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
