@@ -389,6 +389,83 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void CollectionItemField_Should_Honour_The_Same_Presentation_Attributes_As_A_Standalone_Field()
+    {
+        // Arrange - the SAME builder calls applied to a standalone field and to a collection item
+        // field. The two go through different renderers (component vs CollectionFieldComponent's
+        // RenderTreeBuilder), and presentation attributes have repeatedly drifted between them:
+        // Variant in #146, ShrinkLabel in #177, the adornments in #184 — each found reactively,
+        // years apart. Comparing the whole set here means the NEXT one fails a test instead.
+        static void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field
+                .WithLabel("Product")
+                .WithPlaceholder("e.g. Widget")
+                .WithHelpText("The catalogue name")
+                .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, Color.Secondary)
+                .WithVariant(Variant.Filled);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act
+        var standalone = RenderForm(standaloneConfig)
+            .FindComponent<MudTextField<string>>().Instance;
+
+        var itemField = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+                .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+                .Add(p => p.Configuration, collectionConfig))
+            .FindComponent<MudTextField<string>>().Instance;
+
+        // Assert - compared as one set, so a newly-honoured attribute on the component path that
+        // the collection path ignores shows up here rather than in a bug report
+        Presentation(itemField).ShouldBe(Presentation(standalone));
+
+        // Guard the guard: a comparison of two all-default fields would pass while proving nothing.
+        standalone.Adornment.ShouldBe(Adornment.Start);
+        standalone.Variant.ShouldBe(Variant.Filled);
+    }
+
+    /// <summary>
+    /// The presentation attributes both render paths are expected to honour identically. Add to
+    /// this list whenever a field component gains one.
+    /// </summary>
+    private static object?[] Presentation(MudTextField<string> field) =>
+    [
+        field.Label,
+        field.Placeholder,
+        field.HelperText,
+        field.Variant,
+        field.Margin,
+        field.ShrinkLabel,
+        field.Adornment,
+        field.AdornmentIcon,
+        field.AdornmentColor,
+        field.ReadOnly,
+        field.Disabled,
+        field.Required,
+    ];
+
+    private class OrderModel
+    {
+        public List<OrderItem> Items { get; set; } = new();
+    }
+
+    private class OrderItem
+    {
+        public string ProductName { get; set; } = string.Empty;
+    }
+
+    [Fact]
     public void CustomTemplate_Should_Take_Precedence_Over_Options()
     {
         // Arrange - custom templates beat every built-in renderer, including selects
