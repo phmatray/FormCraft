@@ -117,6 +117,79 @@ public class FieldBuilderExtensionsTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void WithAdornment_Should_Set_The_Three_Attributes_On_A_Numeric_Field()
+    {
+        // Arrange - WithAdornment was declared on FieldBuilder<TModel, string> only, so a numeric
+        // field could not call it at all and had to fall back to raw WithAttribute (#191).
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Quantity, field => field
+                .WithLabel("Quantity")
+                .WithAdornment(Icons.Material.Filled.Numbers, Adornment.End, Color.Primary))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var numeric = component.FindComponent<MudNumericField<int>>().Instance;
+        numeric.Adornment.ShouldBe(Adornment.End);
+        numeric.AdornmentIcon.ShouldBe(Icons.Material.Filled.Numbers);
+        numeric.AdornmentColor.ShouldBe(Color.Primary);
+    }
+
+    [Fact]
+    public void WithAdornment_Should_Set_The_Three_Attributes_On_A_Nullable_Numeric_Field()
+    {
+        // Arrange - the `struct` constraint excludes nullable value types, so int?/decimal? need
+        // their own overload rather than falling out of the non-nullable one.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Discount, field => field
+                .WithLabel("Discount")
+                .WithAdornment(Icons.Material.Filled.Percent, Adornment.Start, Color.Secondary))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var numeric = component.FindComponent<MudNumericField<decimal?>>().Instance;
+        numeric.Adornment.ShouldBe(Adornment.Start);
+        numeric.AdornmentIcon.ShouldBe(Icons.Material.Filled.Percent);
+        numeric.AdornmentColor.ShouldBe(Color.Secondary);
+    }
+
+    [Fact]
+    public void WithAdornment_Should_Default_Its_Position_And_Colour_On_A_Numeric_Field()
+    {
+        // Arrange - same defaults as the string overload: Start, Color.Default.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Rating, field => field
+                .WithLabel("Rating")
+                .WithAdornment(Icons.Material.Filled.Star))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var numeric = component.FindComponent<MudNumericField<double>>().Instance;
+        numeric.Adornment.ShouldBe(Adornment.Start);
+        numeric.AdornmentColor.ShouldBe(Color.Default);
+    }
+
+    [Fact]
     public void AsSlider_Should_Configure_Slider_Field()
     {
         // Arrange
@@ -170,5 +243,7 @@ public class FieldBuilderExtensionsTests : MudBlazorTestBase
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public double Rating { get; set; }
+        public int Quantity { get; set; }
+        public decimal? Discount { get; set; }
     }
 }
