@@ -180,6 +180,19 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private FieldIdentifier GetItemFieldIdentifier(int itemIndex, string fieldName)
         => new(Model!, $"{Configuration.FieldName}[{itemIndex}].{fieldName}");
 
+    /// <summary>
+    /// The identity an item field is reported under by the form-wide diagnostic collectors (#213):
+    /// <c>&lt;collection&gt;[].&lt;field&gt;</c>.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately row-agnostic — the <c>[]</c> carries no index. These diagnostics describe a
+    /// field's *configuration*, so they are emitted once per field however many rows exist;
+    /// <see cref="GetItemFieldIdentifier"/>'s row-specific form is for `EditContext` notifications,
+    /// where the row genuinely matters, and would be wrong here.
+    /// </remarks>
+    private string ItemFieldDiagnosticKey(IFieldConfiguration<TItem, object> field)
+        => $"{Configuration.FieldName}[].{field.FieldName}";
+
     private RenderFragment RenderItemFields(int itemIndex)
     {
         return builder =>
@@ -551,7 +564,19 @@ public partial class CollectionFieldComponent<TModel, TItem>
         bool shrinkLabel,
         Adornment? renderedAdornment)
     {
-        if (shrinkLabel || !_warnedItemFields.Add(field.FieldName))
+        // Qualified with the owning collection's name (#213). The collector is FORM-wide and keys by
+        // field identity, but a bare FieldName is unique only inside one item form — so a top-level
+        // "Name" and an item "Name" overwrote each other, and so did item fields of the same name in
+        // two different collections. Each CollectionFieldComponent has its own _warnedItemFields
+        // latch, so nothing local could catch that second case; the clash existed only in the
+        // collector.
+        //
+        // Row-agnostic on purpose: NOT GetItemFieldIdentifier's "Items[0].Name". The warning is about
+        // a field's configuration and is emitted once per field, so keying it to whichever row
+        // rendered first would read as though row 0 were special.
+        var diagnosticKey = ItemFieldDiagnosticKey(field);
+
+        if (shrinkLabel || !_warnedItemFields.Add(diagnosticKey))
         {
             return;
         }
@@ -566,7 +591,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // Prefer the form's collector so item fields join the single aggregated warning.
         if (ShrinkLabelDiagnostics is not null)
         {
-            ShrinkLabelDiagnostics.Report(field.FieldName, field.Label, conflict);
+            ShrinkLabelDiagnostics.Report(diagnosticKey, field.Label, conflict);
             return;
         }
 
