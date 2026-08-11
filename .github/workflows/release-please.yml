@@ -94,8 +94,8 @@ jobs:
     permissions:
       contents: write # upload the .nupkg files as release assets
       id-token: write # request the GitHub OIDC token for NuGet Trusted Publishing
-    # Job-level so the login step's own `if` can read it — a STEP-level env is NOT visible to that
-    # same step's `if` conditional.
+    # Feeds the login step's `user:` input below. Job-level rather than step-level so the name is
+    # declared once, next to the job that needs it.
     env:
       NUGET_USER: ${{ secrets.NUGET_USER }}
     steps:
@@ -117,9 +117,23 @@ jobs:
       # secret is stored. Nuke reads it from the NUGET_API_KEY environment variable exactly as
       # before, so build/Build.cs is unchanged — it neither knows nor cares that the key expires.
       # Kept adjacent to the run step below so the ~1h key cannot expire before it is used.
+      #
+      # Gated on `release_created` ONLY, and deliberately NOT on `env.NUGET_USER != ''` (#226).
+      # Those two guards fail in opposite directions. `release_created == false` means nothing was
+      # meant to publish, so skipping is correct. A missing NUGET_USER means a release WAS meant to
+      # publish and could not — and skipping there would leave the key output empty, gate Nuke's
+      # Publish off, and still report this run green, on a version whose tag, changelog and GitHub
+      # Release already exist. Silently released-but-unpublished is the worst outcome for a path
+      # exercised a handful of times a year, so a missing secret must fail this step instead.
+      # The dry-run ergonomics a NUGET_USER guard would buy are already bought by `release_created`,
+      # which is false on every workflow_dispatch that has no merged release PR to finish.
+      # Failing after the tag exists is safe: Publish uses --skip-duplicate (EnableSkipDuplicate in
+      # build/Build.cs), so re-running this job once the secret is restored is idempotent.
+      # ⛔ Do not "simplify" the NUGET_USER clause back in — pinned by
+      # TrustedPublishingWorkflowTests.ReleaseWorkflow_Should_Not_Gate_The_Login_On_The_NuGetUser_Secret.
       - name: NuGet login (OIDC -> short-lived key)
         id: login
-        if: ${{ needs.release-please.outputs.release_created == 'true' && env.NUGET_USER != '' }}
+        if: ${{ needs.release-please.outputs.release_created == 'true' }}
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         with:
           user: ${{ env.NUGET_USER }}
