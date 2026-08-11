@@ -236,12 +236,12 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private void RenderTextField(RenderTreeBuilder builder, IFieldConfiguration<TItem, object> field, string? value, int itemIndex)
     {
         builder.OpenComponent<MudTextField<string>>(0);
-        AddCommonFieldAttributes(builder, field, 1);
-        builder.AddAttribute(2, "Value", value);
-        builder.AddAttribute(3, "ValueChanged",
+        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: true);
+        builder.AddAttribute(CallerAttributeStart, "Value", value);
+        builder.AddAttribute(CallerAttributeStart + 1, "ValueChanged",
             EventCallback.Factory.Create<string>(this,
                 newValue => UpdateItemFieldValue(itemIndex, field.FieldName, newValue)));
-        builder.AddAttribute(4, "Immediate", true);
+        builder.AddAttribute(CallerAttributeStart + 2, "Immediate", true);
         builder.CloseComponent();
     }
 
@@ -249,16 +249,16 @@ public partial class CollectionFieldComponent<TModel, TItem>
         where T : struct
     {
         builder.OpenComponent(0, typeof(MudNumericField<>).MakeGenericType(typeof(T)));
-        AddCommonFieldAttributes(builder, field, 1);
-        builder.AddAttribute(2, "Value", value);
-        builder.AddAttribute(3, "ValueChanged",
+        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: true);
+        builder.AddAttribute(CallerAttributeStart, "Value", value);
+        builder.AddAttribute(CallerAttributeStart + 1, "ValueChanged",
             EventCallback.Factory.Create<T>(this,
                 newValue => UpdateItemFieldValue(itemIndex, field.FieldName, newValue)));
-        builder.AddAttribute(4, "Immediate", true);
+        builder.AddAttribute(CallerAttributeStart + 2, "Immediate", true);
         // MudBlazor appends '*' to Pattern before emitting the HTML attribute, so a
         // fully-anchored regex here becomes invalid (e.g. "...?*"). The component's
         // default pattern already handles decimal input; only Culture is needed.
-        builder.AddAttribute(5, "Culture", System.Globalization.CultureInfo.InvariantCulture);
+        builder.AddAttribute(CallerAttributeStart + 3, "Culture", System.Globalization.CultureInfo.InvariantCulture);
         builder.CloseComponent();
     }
 
@@ -278,15 +278,48 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private void RenderDateTimeField(RenderTreeBuilder builder, IFieldConfiguration<TItem, object> field, DateTime? value, int itemIndex)
     {
         builder.OpenComponent<MudDatePicker>(0);
-        AddCommonFieldAttributes(builder, field, 1);
-        builder.AddAttribute(2, "Date", value);
-        builder.AddAttribute(3, "DateChanged",
+        // rendersAdornment: false — MudDatePicker defaults to Adornment.End with its calendar
+        // icon, so forwarding a field's (usually unset) adornment here would silently strip that
+        // icon on every date item field. Out of scope for #184; see the issue's non-goals.
+        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: false);
+        builder.AddAttribute(CallerAttributeStart, "Date", value);
+        builder.AddAttribute(CallerAttributeStart + 1, "DateChanged",
             EventCallback.Factory.Create<DateTime?>(this,
                 newValue => UpdateItemFieldValue(itemIndex, field.FieldName, newValue)));
         builder.CloseComponent();
     }
 
-    private void AddCommonFieldAttributes(RenderTreeBuilder builder, IFieldConfiguration<TItem, object> field, int startIndex)
+    /// <summary>
+    /// First sequence number <see cref="AddCommonFieldAttributes"/> may use. It never emits more
+    /// than <see cref="CallerAttributeStart"/> minus this many attributes.
+    /// </summary>
+    private const int CommonAttributeStart = 1;
+
+    /// <summary>
+    /// First sequence number an item-field renderer may use for its own attributes. Deliberately
+    /// well clear of the common block: Blazor requires sequence numbers to be constants tied to a
+    /// source position, never computed, so callers cannot resume from "wherever the shared helper
+    /// stopped" — the gap is what lets the common set grow without every caller moving.
+    /// </summary>
+    private const int CallerAttributeStart = 20;
+
+    /// <summary>
+    /// Emits the presentation attributes every item field shares.
+    /// </summary>
+    /// <param name="builder">The render tree builder for the open item-field component.</param>
+    /// <param name="field">The item field's configuration.</param>
+    /// <param name="startIndex">The first sequence number this method may use.</param>
+    /// <param name="rendersAdornment">
+    /// Whether the target component takes MudBlazor's three adornment parameters and defaults them
+    /// to "no adornment" (#184). True for MudTextField and MudNumericField. False for MudDatePicker,
+    /// whose own default is <see cref="Adornment.End"/> with a calendar icon that forwarding would
+    /// erase.
+    /// </param>
+    private void AddCommonFieldAttributes(
+        RenderTreeBuilder builder,
+        IFieldConfiguration<TItem, object> field,
+        int startIndex,
+        bool rendersAdornment)
     {
         builder.AddAttribute(startIndex++, "Label", field.Label);
         builder.AddAttribute(startIndex++, "Placeholder", field.Placeholder);
@@ -298,9 +331,28 @@ public partial class CollectionFieldComponent<TModel, TItem>
         builder.AddAttribute(startIndex++, "Margin", Margin.Dense);
 
         var shrinkLabel = GetItemFieldShrinkLabel(field);
-        builder.AddAttribute(startIndex, "ShrinkLabel", shrinkLabel);
+        builder.AddAttribute(startIndex++, "ShrinkLabel", shrinkLabel);
 
-        WarnIfShrinkLabelUnhonoured(field, shrinkLabel);
+        // Null on a path that draws no adornment of ours — which the diagnostic below needs to
+        // tell apart from "none configured".
+        var adornment = rendersAdornment ? GetItemFieldAdornment(field) : (Adornment?)null;
+
+        // The branch is per-CALL-SITE, not per-configuration: `adornment` is null exactly when the
+        // caller passed rendersAdornment: false, so a given renderer always emits the same frames
+        // in the same order. Within the branch all three are emitted whether or not the field
+        // configured one, using the component's own defaults — so an item field with no adornment
+        // renders exactly as it did before #184.
+        if (adornment is { } rendered)
+        {
+            builder.AddAttribute(startIndex++, "Adornment", rendered);
+            builder.AddAttribute(startIndex++, "AdornmentIcon", GetItemFieldAttribute<string?>(field, "AdornmentIcon", null));
+            builder.AddAttribute(startIndex, "AdornmentColor", GetItemFieldAttribute(field, "AdornmentColor", Color.Default));
+        }
+
+        // The diagnostic has to judge what this path actually RENDERS, not what was configured:
+        // a dropped adornment cannot pin the label, so reporting one would tell the developer to
+        // remove a setting that was working (#183).
+        WarnIfShrinkLabelUnhonoured(field, shrinkLabel, adornment);
     }
 
     /// <summary>
@@ -308,19 +360,25 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// component render path — <see cref="ShrinkLabelDiagnostic.Conflict"/> is the single
     /// implementation, so the two paths cannot drift apart.
     /// </summary>
-    private void WarnIfShrinkLabelUnhonoured(IFieldConfiguration<TItem, object> field, bool shrinkLabel)
+    /// <param name="field">The item field's configuration.</param>
+    /// <param name="shrinkLabel">The ShrinkLabel value this field renders with.</param>
+    /// <param name="renderedAdornment">
+    /// The adornment this render path actually draws, or <c>null</c> when it draws none — which is
+    /// not the same as the field's configured adornment. Item fields whose component takes the
+    /// forward (#184) pass the real value; the date path, which keeps MudDatePicker's own calendar
+    /// adornment instead, passes null so that a configured-but-dropped adornment is not reported.
+    /// </param>
+    private void WarnIfShrinkLabelUnhonoured(
+        IFieldConfiguration<TItem, object> field,
+        bool shrinkLabel,
+        Adornment? renderedAdornment)
     {
         if (shrinkLabel || !_warnedItemFields.Add(field.FieldName))
         {
             return;
         }
 
-        // Adornment is deliberately passed as null: AddCommonFieldAttributes above does not emit
-        // an Adornment attribute, so this render path never draws one. Reading the field's
-        // configured adornment here would warn that the label "will not float" when in fact the
-        // adornment is dropped and ShrinkLabel=false IS honoured — pushing the developer to
-        // remove a setting that was working. Same rule, different inputs per render path.
-        var conflict = ShrinkLabelDiagnostic.Conflict(field.Placeholder, adornment: null);
+        var conflict = ShrinkLabelDiagnostic.Conflict(field.Placeholder, renderedAdornment);
 
         if (conflict is null)
         {
@@ -367,6 +425,27 @@ public partial class CollectionFieldComponent<TModel, TItem>
 
         return FormDefaultVariant ?? Variant.Outlined;
     }
+
+    /// <summary>
+    /// Resolves the adornment position for an item field (#184): the field-level "Adornment"
+    /// attribute when present, otherwise none. There is no form-level default for adornments.
+    /// </summary>
+    private static Adornment GetItemFieldAdornment(IFieldConfiguration<TItem, object> field)
+        => GetItemFieldAttribute(field, "Adornment", Adornment.None);
+
+    /// <summary>
+    /// Reads a strongly-typed item-field attribute, returning <paramref name="fallback"/> when it
+    /// is absent or holds a value of another type.
+    /// </summary>
+    /// <remarks>
+    /// <c>WithAdornment(...)</c> always writes all three adornment attributes together, but a field
+    /// that set only "Adornment" through raw <c>WithAttribute(...)</c> has no icon or colour to
+    /// read — so each is resolved independently rather than assuming the others are present.
+    /// </remarks>
+    private static T GetItemFieldAttribute<T>(IFieldConfiguration<TItem, object> field, string name, T fallback)
+        => field.AdditionalAttributes.TryGetValue(name, out var value) && value is T typed
+            ? typed
+            : fallback;
 
     /// <summary>
     /// Resolves ShrinkLabel for an item field: the field-level "ShrinkLabel" attribute when

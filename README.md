@@ -58,6 +58,19 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **`.WithAdornment(...)` now renders inside collection item forms.** A field configured with an adornment inside `.WithItemForm(...)` had the setting accepted and then silently discarded — no icon, no exception, no warning — while the identical call on an ordinary field rendered fine. Text and numeric item fields now forward `Adornment`, `AdornmentIcon` and `AdornmentColor` (#184)
+
+  ```csharp
+  .AddCollectionField(x => x.Items, c => c.WithItemForm(item => item
+      .AddField(x => x.ProductName, f => f
+          .WithLabel("Product")
+          .WithAdornment(Icons.Material.Filled.Search, Adornment.Start))))   // ← now renders
+  ```
+
+  **Two behaviour changes to be aware of.** Forms that already call `.WithAdornment(...)` inside a collection start showing the icon they asked for. And because the adornment is now really drawn there, the `ShrinkLabel` diagnostic added in v3.2 stops suppressing itself on that path: a collection item field combining a **start** adornment with `ShrinkLabel="false"` now logs the same warning an ordinary field would. That warning is correct — the label was never going to float — but it is new output on the diagnostics channel.
+
+  **Scope.** Date item fields are unchanged: they keep MudBlazor's own calendar adornment, which a blanket forward would erase. Standalone (non-collection) numeric fields still do not render adornments at all, so a numeric field configured through raw `.WithAttribute("Adornment", …)` renders differently inside and outside a collection — tracked separately. A parity test now pins the presentation attributes the two render paths **do** agree on; it names the ones still known to diverge rather than implying there are none.
+
 - **Configurable MudBlazor ShrinkLabel** — `.WithShrinkLabel(false)` per field and a `DefaultShrinkLabel` parameter on `FormCraftComponent`, completing the `Variant` work from v3.1.0: `Variant.Text` can now let its label float instead of pinning it above a borderless input. Field-level wins over form-level; the default stays `true`, so **no existing form changes appearance** (#177)
   - Caveat, inherited from MudBlazor: `ShrinkLabel="false"` is only visible on an **empty field with no placeholder and no start adornment**. MudBlazor ORs `ShrinkLabel` with those conditions, so a field with a placeholder keeps its label pinned whatever you pass. To get a floating label on a `Variant.Text` field, leave its placeholder unset.
 - **`LovBuilder.WithDisplay` / `WithKey` accept a plain lambda again — no cast, no breaking change.** `.WithDisplay(c => c.Name)`, the form shown throughout our own documentation, did not compile: each method had an `Expression<Func<…>>` overload alongside a `Func<…>` one, and an expression-bodied lambda converts to both (`CS0121`). The `Func` overloads now carry `[OverloadResolutionPriority(1)]`, so a lambda binds to them unambiguously (#180)
