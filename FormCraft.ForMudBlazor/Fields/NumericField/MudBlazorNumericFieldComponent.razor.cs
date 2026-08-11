@@ -1,4 +1,6 @@
 using System.Globalization;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 
 namespace FormCraft.ForMudBlazor;
@@ -13,6 +15,31 @@ public partial class MudBlazorNumericFieldComponent<TModel, TValue>
     /// (#212).
     /// </summary>
     protected override Adornment? RenderedAdornment => EffectiveAdornment;
+
+    /// <summary>
+    /// The adornment click handler configured by <c>WithAdornment(..., onClick:)</c>, or null (#215).
+    /// </summary>
+    /// <remarks>
+    /// Typed <c>Action&lt;TValue?&gt;</c> rather than the string overload's <c>Action&lt;string?&gt;</c>:
+    /// that shape is right there only because the field's value is a string. Resolved defensively —
+    /// <c>AdditionalAttributes</c> is untyped, so a value of another shape reads back as "no handler"
+    /// rather than throwing at click time.
+    /// </remarks>
+    private Action<TValue?>? OnAdornmentClick =>
+        GetAttribute<Action<TValue?>?>(MudBlazorFieldBuilderExtensions.AdornmentClickAttribute);
+
+    /// <summary>
+    /// The callback bound to MudBlazor, or <c>default</c> when no handler is configured (#216).
+    /// </summary>
+    /// <remarks>
+    /// Returning <c>default</c> matters: binding a method group gives an <c>EventCallback</c> whose
+    /// <c>HasDelegate</c> is always true, and MudBlazor draws a real <c>&lt;button&gt;</c> for that —
+    /// turning a decorative icon into a focus stop for keyboard and screen-reader users.
+    /// </remarks>
+    private EventCallback<MouseEventArgs> AdornmentClick =>
+        OnAdornmentClick is null
+            ? default
+            : EventCallback.Factory.Create<MouseEventArgs>(this, () => OnAdornmentClick(CurrentValue));
 
     public TValue? Min { get; set; }
     public TValue? Max { get; set; }

@@ -283,6 +283,11 @@ public static class MudBlazorFieldBuilderExtensions
     /// <param name="icon">The MudBlazor icon to display (e.g., Icons.Material.Filled.Numbers).</param>
     /// <param name="position">The position of the adornment (Start or End, default: Start).</param>
     /// <param name="color">The color of the adornment icon (default: Default).</param>
+    /// <param name="onClick">
+    /// Optional click handler for the adornment icon. It receives the field's current value, typed
+    /// to the field's own value type rather than the string overload's <c>string?</c> (#215), and
+    /// fires on both render paths — an ordinary field and one inside <c>.WithItemForm(...)</c>.
+    /// </param>
     /// <returns>The FieldBuilder instance for method chaining.</returns>
     /// <remarks>
     /// <para>
@@ -317,14 +322,18 @@ public static class MudBlazorFieldBuilderExtensions
         this FieldBuilder<TModel, TValue> builder,
         string icon,
         MudBlazor.Adornment position = MudBlazor.Adornment.Start,
-        MudBlazor.Color color = MudBlazor.Color.Default)
+        MudBlazor.Color color = MudBlazor.Color.Default,
+        Action<TValue?>? onClick = null)
         where TModel : new()
         where TValue : struct, INumber<TValue>
     {
         return builder
             .WithAttribute("Adornment", position)
             .WithAttribute("AdornmentIcon", icon)
-            .WithAttribute("AdornmentColor", color);
+            .WithAttribute("AdornmentColor", color)
+            // Written unconditionally, for the reason spelled out on the string overload: a null must
+            // OVERWRITE a handler an earlier call left behind, not be skipped.
+            .WithAttribute(AdornmentClickAttribute, onClick!);
     }
 
     /// <summary>
@@ -336,6 +345,11 @@ public static class MudBlazorFieldBuilderExtensions
     /// <param name="icon">The MudBlazor icon to display (e.g., Icons.Material.Filled.Percent).</param>
     /// <param name="position">The position of the adornment (Start or End, default: Start).</param>
     /// <param name="color">The color of the adornment icon (default: Default).</param>
+    /// <param name="onClick">
+    /// Optional click handler for the adornment icon. It receives the field's current value, typed
+    /// to the field's own value type rather than the string overload's <c>string?</c> (#215), and
+    /// fires on both render paths — an ordinary field and one inside <c>.WithItemForm(...)</c>.
+    /// </param>
     /// <returns>The FieldBuilder instance for method chaining.</returns>
     /// <remarks>
     /// A separate overload because the <c>struct</c> constraint excludes nullable value types, so
@@ -353,14 +367,17 @@ public static class MudBlazorFieldBuilderExtensions
         this FieldBuilder<TModel, TValue?> builder,
         string icon,
         MudBlazor.Adornment position = MudBlazor.Adornment.Start,
-        MudBlazor.Color color = MudBlazor.Color.Default)
+        MudBlazor.Color color = MudBlazor.Color.Default,
+        Action<TValue?>? onClick = null)
         where TModel : new()
         where TValue : struct, INumber<TValue>
     {
         return builder
             .WithAttribute("Adornment", position)
             .WithAttribute("AdornmentIcon", icon)
-            .WithAttribute("AdornmentColor", color);
+            .WithAttribute("AdornmentColor", color)
+            // Unconditional, as on the sibling overloads.
+            .WithAttribute(AdornmentClickAttribute, onClick!);
     }
 
     /// <summary>

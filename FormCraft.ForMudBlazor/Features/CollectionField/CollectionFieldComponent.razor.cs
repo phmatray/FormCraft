@@ -302,10 +302,8 @@ public partial class CollectionFieldComponent<TModel, TItem>
         where T : struct
     {
         builder.OpenComponent(0, typeof(MudNumericField<>).MakeGenericType(typeof(T)));
-        // WithAdornment — and so its handler — is declared on string fields only, leaving a numeric
-        // item field's adornment inert. Numeric adornment support is tracked separately (#191).
         AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: true,
-            adornmentClick: default);
+            adornmentClick: BuildNumericAdornmentClick<T>(field, itemIndex));
         builder.AddAttribute(CallerAttributeStart, "Value", value);
         builder.AddAttribute(CallerAttributeStart + 1, "ValueChanged",
             EventCallback.Factory.Create<T>(this,
@@ -677,6 +675,60 @@ public partial class CollectionFieldComponent<TModel, TItem>
         var fieldName = field.FieldName;
         return EventCallback.Factory.Create<MouseEventArgs>(
             this, () => handler(ReadItemFieldText(itemIndex, fieldName)));
+    }
+
+    /// <summary>
+    /// Builds the adornment click callback for a numeric item field (#215), or <c>default</c> when
+    /// the field configured no handler.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The numeric handler is <c>Action&lt;T?&gt;</c>, not the string path's <c>Action&lt;string?&gt;</c>:
+    /// a numeric field's handler should receive the number. Both shapes live under the same attribute
+    /// key, and both readers resolve defensively — a value of the other shape reads back as "no
+    /// handler" rather than throwing at click time.
+    /// </para>
+    /// <para>
+    /// <c>default</c> when unconfigured is load-bearing (#216): an <c>EventCallback</c> with a
+    /// delegate makes MudBlazor draw a real <c>&lt;button&gt;</c>, putting a focus stop on a
+    /// decorative icon.
+    /// </para>
+    /// <para>
+    /// The value is read at CLICK time, not captured at render time — the string path does the same,
+    /// because a captured value goes stale as soon as the user types.
+    /// </para>
+    /// </remarks>
+    private EventCallback<MouseEventArgs> BuildNumericAdornmentClick<T>(
+        IFieldConfiguration<TItem, object> field,
+        int itemIndex)
+        where T : struct
+    {
+        var handler = GetItemFieldAttribute<Action<T?>?>(
+            field, MudBlazorFieldBuilderExtensions.AdornmentClickAttribute, null);
+
+        if (handler is null)
+        {
+            return default;
+        }
+
+        var fieldName = field.FieldName;
+        return EventCallback.Factory.Create<MouseEventArgs>(
+            this, () => handler(ReadItemFieldValue<T>(itemIndex, fieldName)));
+    }
+
+    /// <summary>
+    /// Reads an item field's current value as <typeparamref name="T"/>, or <c>null</c> when the row
+    /// is gone or the property does not hold one.
+    /// </summary>
+    private T? ReadItemFieldValue<T>(int itemIndex, string fieldName)
+        where T : struct
+    {
+        if (itemIndex < 0 || itemIndex >= Items.Count)
+        {
+            return null;
+        }
+
+        return typeof(TItem).GetProperty(fieldName)?.GetValue(Items[itemIndex]) as T?;
     }
 
     /// <summary>
