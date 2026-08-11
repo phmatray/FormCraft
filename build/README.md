@@ -35,8 +35,9 @@ On Windows use `build.cmd` / `build.ps1`; `build.cmd` also works on macOS and Li
 - **Restore** — restores NuGet packages
 - **Compile** — builds the solution (default target)
 - **Test** — runs the unit tests, writing TRX and HTML results to `test-results/`
-- **Pack** — creates the NuGet packages (`.nupkg` + `.snupkg`) in `artifacts/`, and mirrors the
-  committed root `CHANGELOG.md` into the two package directories so it ships inside the package
+- **Pack** — creates the NuGet packages (`.nupkg` + `.snupkg`) in `artifacts/`. It copies nothing:
+  `FormCraft.csproj` packs `../CHANGELOG.md` **by link**, so the packaged changelog is the root file
+  itself (#222)
 
 ### Publishing
 
@@ -78,7 +79,16 @@ packages would pack as `0.0.0-alpha.0.N`.
 `CHANGELOG.md` is generated and owned by release-please, in the standing release PR. **Nothing in
 this build generates it** — the former `GenerateChangelog` target, `cliff.toml` and the git-cliff
 dependency were removed, because a second generator would rewrite the file out from under the open
-release PR. `Pack` only *copies* the committed file into the package directories.
+release PR.
+
+The root file is the only copy. `FormCraft.csproj` packs it **by link**
+(`<None Include="../CHANGELOG.md" Pack="true" PackagePath="\" />`), so what ships in the package *is*
+the root file and cannot lag behind it. Until #222 `Pack` copied it into `FormCraft/` and
+`FormCraft.ForMudBlazor/`, which made two **git-tracked** files build outputs — stale after every
+release until someone ran `Pack`, and then showing up in `git status` as two modified files nobody
+edited. `FormCraft.ForMudBlazor`'s copy was packed by nothing at all. Both are gone.
+
+Only the `FormCraft` package carries a changelog; `FormCraft.ForMudBlazor` never did.
 
 Do not hand-edit `CHANGELOG.md`. Your PR title is the changelog entry.
 
