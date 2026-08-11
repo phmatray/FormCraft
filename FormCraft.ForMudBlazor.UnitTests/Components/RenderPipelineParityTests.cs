@@ -398,10 +398,16 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         // years apart. This pins the set the two paths DO agree on, so a regression in any of them
         // fails here. It is not a claim that the paths agree on everything: see Presentation()
         // for the attributes still known to diverge.
-        // The combination is deliberately unrealistic — one field carrying every compared attribute
-        // at once, so a single comparison covers the whole set. AsPassword's visibility toggle is
-        // switched off on purpose: it is component-path-only and would replace the start adornment
-        // below with its own eye icon, making this test fail for a reason it does not exist to test.
+        // One field carrying every compared attribute at once, so a single comparison covers the
+        // whole set. Two deliberate exclusions:
+        //
+        // - AsPassword's visibility toggle is off: it is component-path-only and would replace the
+        //   start adornment below with its own eye icon, failing this test for a reason it does not
+        //   exist to test.
+        // - Lines stays at its default 1, and is covered by the multiline test below instead.
+        //   MudBlazor renders a <textarea> once Lines > 1, and a textarea has no `type` attribute —
+        //   so combining Lines with AsPassword would make InputType inert and this test's headline
+        //   masking assertion vacuous: it would compare a parameter that changes nothing.
         static void Configure<TOwner>(FieldBuilder<TOwner, string> field)
             where TOwner : new()
             => field
@@ -411,7 +417,7 @@ public class RenderPipelineParityTests : MudBlazorTestBase
                 .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, Color.Secondary)
                 .WithVariant(Variant.Filled)
                 .AsPassword(enableVisibilityToggle: false)
-                .AsTextArea(lines: 3, maxLength: 500)
+                .WithAttribute("MaxLength", 500)
                 .WithAutocomplete("current-password");
 
         var standaloneConfig = FormBuilder<TestModel>
@@ -427,13 +433,13 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .Build();
 
         // Act
-        var standalone = RenderForm(standaloneConfig)
-            .FindComponent<MudTextField<string>>().Instance;
+        var standaloneRender = RenderForm(standaloneConfig);
+        var standalone = standaloneRender.FindComponent<MudTextField<string>>().Instance;
 
-        var itemField = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-                .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-                .Add(p => p.Configuration, collectionConfig))
-            .FindComponent<MudTextField<string>>().Instance;
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+        var itemField = itemRender.FindComponent<MudTextField<string>>().Instance;
 
         // Assert - compared as one set, so a newly-honoured attribute on the component path that
         // the collection path ignores shows up here rather than in a bug report
@@ -443,9 +449,53 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         standalone.Adornment.ShouldBe(Adornment.Start);
         standalone.Variant.ShouldBe(Variant.Filled);
         standalone.InputType.ShouldBe(InputType.Password);
-        standalone.Lines.ShouldBe(3);
         standalone.MaxLength.ShouldBe(500);
         standalone.UserAttributes.GetValueOrDefault("autocomplete").ShouldBe("current-password");
+
+        // And guard against the subtler failure the parameter comparison cannot see: a value that
+        // is forwarded but has no effect on the rendered element. `type="password"` is what masks
+        // the characters, so assert the DOM, on both paths.
+        standaloneRender.Find("input").GetAttribute("type").ShouldBe("password");
+        itemRender.Find("input").GetAttribute("type").ShouldBe("password");
+    }
+
+    [Fact]
+    public void MultilineCollectionItemField_Should_Render_The_Same_Element_As_A_Standalone_One()
+    {
+        // Arrange - Lines is split out of the test above because it changes the element MudBlazor
+        // renders rather than an attribute on it: past 1 line the input becomes a <textarea>. That
+        // makes it the one forwarded attribute whose parity cannot be judged by comparing
+        // parameters, and the reason it must not share a field with AsPassword — a textarea has no
+        // `type`, so the two together would silently unmask while every parameter still matched.
+        static void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field.WithLabel("Notes").AsTextArea(lines: 4, maxLength: 2000);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act
+        var standaloneRender = RenderForm(standaloneConfig);
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+
+        // Assert - same parameters, and the same element actually rendered
+        Presentation(itemRender.FindComponent<MudTextField<string>>().Instance)
+            .ShouldBe(Presentation(standaloneRender.FindComponent<MudTextField<string>>().Instance));
+
+        standaloneRender.FindAll("textarea").Count.ShouldBe(1);
+        itemRender.FindAll("textarea").Count.ShouldBe(1);
+        standaloneRender.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(4);
     }
 
     /// <summary>
