@@ -236,12 +236,12 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private void RenderTextField(RenderTreeBuilder builder, IFieldConfiguration<TItem, object> field, string? value, int itemIndex)
     {
         builder.OpenComponent<MudTextField<string>>(0);
-        AddCommonFieldAttributes(builder, field, 1);
-        builder.AddAttribute(2, "Value", value);
-        builder.AddAttribute(3, "ValueChanged",
+        var index = AddCommonFieldAttributes(builder, field, 1, rendersAdornment: true);
+        builder.AddAttribute(index++, "Value", value);
+        builder.AddAttribute(index++, "ValueChanged",
             EventCallback.Factory.Create<string>(this,
                 newValue => UpdateItemFieldValue(itemIndex, field.FieldName, newValue)));
-        builder.AddAttribute(4, "Immediate", true);
+        builder.AddAttribute(index, "Immediate", true);
         builder.CloseComponent();
     }
 
@@ -249,16 +249,16 @@ public partial class CollectionFieldComponent<TModel, TItem>
         where T : struct
     {
         builder.OpenComponent(0, typeof(MudNumericField<>).MakeGenericType(typeof(T)));
-        AddCommonFieldAttributes(builder, field, 1);
-        builder.AddAttribute(2, "Value", value);
-        builder.AddAttribute(3, "ValueChanged",
+        var index = AddCommonFieldAttributes(builder, field, 1, rendersAdornment: false);
+        builder.AddAttribute(index++, "Value", value);
+        builder.AddAttribute(index++, "ValueChanged",
             EventCallback.Factory.Create<T>(this,
                 newValue => UpdateItemFieldValue(itemIndex, field.FieldName, newValue)));
-        builder.AddAttribute(4, "Immediate", true);
+        builder.AddAttribute(index++, "Immediate", true);
         // MudBlazor appends '*' to Pattern before emitting the HTML attribute, so a
         // fully-anchored regex here becomes invalid (e.g. "...?*"). The component's
         // default pattern already handles decimal input; only Culture is needed.
-        builder.AddAttribute(5, "Culture", System.Globalization.CultureInfo.InvariantCulture);
+        builder.AddAttribute(index, "Culture", System.Globalization.CultureInfo.InvariantCulture);
         builder.CloseComponent();
     }
 
@@ -278,15 +278,41 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private void RenderDateTimeField(RenderTreeBuilder builder, IFieldConfiguration<TItem, object> field, DateTime? value, int itemIndex)
     {
         builder.OpenComponent<MudDatePicker>(0);
-        AddCommonFieldAttributes(builder, field, 1);
-        builder.AddAttribute(2, "Date", value);
-        builder.AddAttribute(3, "DateChanged",
+        // rendersAdornment: false — MudDatePicker defaults to Adornment.End with its calendar
+        // icon, so forwarding a field's (usually unset) adornment here would silently strip that
+        // icon on every date item field. Out of scope for #184; see the issue's non-goals.
+        var index = AddCommonFieldAttributes(builder, field, 1, rendersAdornment: false);
+        builder.AddAttribute(index++, "Date", value);
+        builder.AddAttribute(index, "DateChanged",
             EventCallback.Factory.Create<DateTime?>(this,
                 newValue => UpdateItemFieldValue(itemIndex, field.FieldName, newValue)));
         builder.CloseComponent();
     }
 
-    private void AddCommonFieldAttributes(RenderTreeBuilder builder, IFieldConfiguration<TItem, object> field, int startIndex)
+    /// <summary>
+    /// Emits the presentation attributes every item field shares, and returns the next free
+    /// RenderTreeBuilder sequence number so the caller can continue from it.
+    /// </summary>
+    /// <param name="builder">The render tree builder for the open item-field component.</param>
+    /// <param name="field">The item field's configuration.</param>
+    /// <param name="startIndex">The first sequence number this method may use.</param>
+    /// <param name="rendersAdornment">
+    /// Whether the target component takes MudBlazor's three adornment parameters and defaults them
+    /// to "no adornment" (#184). True for MudTextField and MudNumericField. False for MudDatePicker,
+    /// whose own default is <see cref="Adornment.End"/> with a calendar icon that forwarding would
+    /// erase.
+    /// </param>
+    /// <returns>The next free sequence number.</returns>
+    /// <remarks>
+    /// The caller and this method share one sequence-number space, so returning the next index —
+    /// rather than having callers resume from a hardcoded offset — is what keeps them from
+    /// colliding as the common set grows.
+    /// </remarks>
+    private int AddCommonFieldAttributes(
+        RenderTreeBuilder builder,
+        IFieldConfiguration<TItem, object> field,
+        int startIndex,
+        bool rendersAdornment)
     {
         builder.AddAttribute(startIndex++, "Label", field.Label);
         builder.AddAttribute(startIndex++, "Placeholder", field.Placeholder);
@@ -298,9 +324,21 @@ public partial class CollectionFieldComponent<TModel, TItem>
         builder.AddAttribute(startIndex++, "Margin", Margin.Dense);
 
         var shrinkLabel = GetItemFieldShrinkLabel(field);
-        builder.AddAttribute(startIndex, "ShrinkLabel", shrinkLabel);
+        builder.AddAttribute(startIndex++, "ShrinkLabel", shrinkLabel);
+
+        if (rendersAdornment)
+        {
+            // Emitted unconditionally (not only when configured) so the frame layout stays the
+            // same on every render of a given field. The defaults below are the component's own,
+            // so an item field with no adornment renders exactly as it did before #184.
+            builder.AddAttribute(startIndex++, "Adornment", GetItemFieldAdornment(field));
+            builder.AddAttribute(startIndex++, "AdornmentIcon", GetItemFieldAttribute<string?>(field, "AdornmentIcon", null));
+            builder.AddAttribute(startIndex++, "AdornmentColor", GetItemFieldAttribute(field, "AdornmentColor", Color.Default));
+        }
 
         WarnIfShrinkLabelUnhonoured(field, shrinkLabel);
+
+        return startIndex;
     }
 
     /// <summary>
@@ -367,6 +405,27 @@ public partial class CollectionFieldComponent<TModel, TItem>
 
         return FormDefaultVariant ?? Variant.Outlined;
     }
+
+    /// <summary>
+    /// Resolves the adornment position for an item field (#184): the field-level "Adornment"
+    /// attribute when present, otherwise none. There is no form-level default for adornments.
+    /// </summary>
+    private static Adornment GetItemFieldAdornment(IFieldConfiguration<TItem, object> field)
+        => GetItemFieldAttribute(field, "Adornment", Adornment.None);
+
+    /// <summary>
+    /// Reads a strongly-typed item-field attribute, returning <paramref name="fallback"/> when it
+    /// is absent or holds a value of another type.
+    /// </summary>
+    /// <remarks>
+    /// <c>WithAdornment(...)</c> always writes all three adornment attributes together, but a field
+    /// that set only "Adornment" through raw <c>WithAttribute(...)</c> has no icon or colour to
+    /// read — so each is resolved independently rather than assuming the others are present.
+    /// </remarks>
+    private static T GetItemFieldAttribute<T>(IFieldConfiguration<TItem, object> field, string name, T fallback)
+        => field.AdditionalAttributes.TryGetValue(name, out var value) && value is T typed
+            ? typed
+            : fallback;
 
     /// <summary>
     /// Resolves ShrinkLabel for an item field: the field-level "ShrinkLabel" attribute when
