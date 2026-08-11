@@ -117,6 +117,61 @@ public class FieldBuilderExtensionsTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void WithAdornment_Should_Keep_The_OnClick_Handler()
+    {
+        // Arrange - the handler is the one parameter of WithAdornment that was accepted,
+        // documented and then discarded (#192). Configuration is where the loss happened.
+        Action<string?> handler = _ => { };
+
+        // Act
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email")
+                .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, onClick: handler))
+            .Build();
+
+        // Assert - same instance, so the renderer can invoke exactly what the caller passed
+        var attributes = config.Fields[0].AdditionalAttributes;
+        attributes.ShouldContainKey("OnAdornmentClick");
+        attributes["OnAdornmentClick"].ShouldBeSameAs(handler);
+    }
+
+    [Fact]
+    public void WithAdornment_Without_An_OnClick_Handler_Should_Not_Write_One()
+    {
+        // Arrange & Act - a null handler must leave no entry rather than store null, so the
+        // renderer can tell "no handler" from "a handler that does nothing"
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email")
+                .WithAdornment(Icons.Material.Filled.Search, Adornment.Start))
+            .Build();
+
+        // Assert
+        config.Fields[0].AdditionalAttributes.ShouldNotContainKey("OnAdornmentClick");
+    }
+
+    [Fact]
+    public void WithAdornment_Should_Still_Write_The_Three_Presentation_Attributes()
+    {
+        // Arrange & Act - guards the addition above from regressing what #184 made work
+        Action<string?> handler = _ => { };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Email, field => field
+                .WithAdornment(Icons.Material.Filled.Search, Adornment.End, Color.Secondary, handler))
+            .Build();
+
+        // Assert
+        var attributes = config.Fields[0].AdditionalAttributes;
+        attributes["Adornment"].ShouldBe(Adornment.End);
+        attributes["AdornmentIcon"].ShouldBe(Icons.Material.Filled.Search);
+        attributes["AdornmentColor"].ShouldBe(Color.Secondary);
+    }
+
+    [Fact]
     public void AsSlider_Should_Configure_Slider_Field()
     {
         // Arrange

@@ -188,12 +188,18 @@ public static class MudBlazorFieldBuilderExtensions
     /// <param name="icon">The MudBlazor icon to display (e.g., Icons.Material.Filled.Email).</param>
     /// <param name="position">The position of the adornment (Start or End, default: Start).</param>
     /// <param name="color">The color of the adornment icon (default: Default).</param>
-    /// <param name="onClick">Optional click handler for the adornment.</param>
+    /// <param name="onClick">
+    /// Optional click handler for the adornment icon. It receives the field's current value, and
+    /// fires on both render paths — an ordinary field and one inside <c>.WithItemForm(...)</c>.
+    /// </param>
     /// <returns>The FieldBuilder instance for method chaining.</returns>
     /// <example>
     /// <code>
     /// .AddField(x => x.Email)
     ///     .WithAdornment(Icons.Material.Filled.Email, MudBlazor.Adornment.Start)
+    ///
+    /// .AddField(x => x.Query)
+    ///     .WithAdornment(Icons.Material.Filled.Search, onClick: value => Search(value))
     /// </code>
     /// </example>
     public static FieldBuilder<TModel, string> WithAdornment<TModel>(
@@ -204,11 +210,26 @@ public static class MudBlazorFieldBuilderExtensions
         Action<string?>? onClick = null)
         where TModel : new()
     {
-        return builder
+        builder
             .WithAttribute("Adornment", position)
             .WithAttribute("AdornmentIcon", icon)
             .WithAttribute("AdornmentColor", color);
+
+        // Written only when supplied, so the renderers can tell "no handler" from "a handler that
+        // does nothing" — the former leaves the adornment inert, the latter is a real callback.
+        if (onClick is not null)
+        {
+            builder.WithAttribute(AdornmentClickAttribute, onClick);
+        }
+
+        return builder;
     }
+
+    /// <summary>
+    /// Attribute key under which <see cref="WithAdornment{TModel}"/> stores its click handler, and
+    /// which both render paths read it back from. Shared so the two cannot drift apart (#192).
+    /// </summary>
+    internal const string AdornmentClickAttribute = "OnAdornmentClick";
 
     /// <summary>
     /// Configures the field as a lookup table with a modal dialog for selecting items from large datasets.
