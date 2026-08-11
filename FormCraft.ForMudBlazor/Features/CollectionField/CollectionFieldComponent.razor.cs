@@ -249,7 +249,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
         where T : struct
     {
         builder.OpenComponent(0, typeof(MudNumericField<>).MakeGenericType(typeof(T)));
-        var index = AddCommonFieldAttributes(builder, field, 1, rendersAdornment: false);
+        var index = AddCommonFieldAttributes(builder, field, 1, rendersAdornment: true);
         builder.AddAttribute(index++, "Value", value);
         builder.AddAttribute(index++, "ValueChanged",
             EventCallback.Factory.Create<T>(this,

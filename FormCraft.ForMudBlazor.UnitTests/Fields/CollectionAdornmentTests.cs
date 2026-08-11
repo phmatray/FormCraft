@@ -62,6 +62,82 @@ public class CollectionAdornmentTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void NumericItemField_Should_Render_An_End_Adornment()
+    {
+        // Arrange - WithAdornment is declared on FieldBuilder<TModel, string> only, so a numeric
+        // field configures the same three attributes through raw WithAttribute. The renderer must
+        // honour them either way: it reads AdditionalAttributes, not the builder method.
+        var config = FormBuilder<BasketModel>
+            .Create()
+            .AddCollectionField(x => x.Lines, collection => collection
+                .WithLabel("Lines")
+                .WithItemForm(item => item
+                    .AddField(x => x.Quantity, field => field
+                        .WithLabel("Quantity")
+                        .WithAttribute("Adornment", Adornment.End)
+                        .WithAttribute("AdornmentIcon", Icons.Material.Filled.Numbers)
+                        .WithAttribute("AdornmentColor", Color.Primary))))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<BasketModel>>(parameters => parameters
+            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var numeric = component.FindComponent<MudNumericField<int>>().Instance;
+        numeric.Adornment.ShouldBe(Adornment.End);
+        numeric.AdornmentIcon.ShouldBe(Icons.Material.Filled.Numbers);
+        numeric.AdornmentColor.ShouldBe(Color.Primary);
+    }
+
+    [Fact]
+    public void NumericItemField_Without_An_Adornment_Should_Render_None()
+    {
+        // Arrange & Act - unchanged from before #184
+        var config = FormBuilder<BasketModel>
+            .Create()
+            .AddCollectionField(x => x.Lines, collection => collection
+                .WithLabel("Lines")
+                .WithItemForm(item => item
+                    .AddField(x => x.Quantity, field => field.WithLabel("Quantity"))))
+            .Build();
+
+        var component = Render<FormCraftComponent<BasketModel>>(parameters => parameters
+            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudNumericField<int>>().Instance.Adornment.ShouldBe(Adornment.None);
+    }
+
+    [Fact]
+    public void BooleanItemField_With_An_Adornment_Should_Render_Without_One()
+    {
+        // Arrange - MudCheckBox has no adornment concept at all, so RenderBooleanField sets its own
+        // attributes and takes no part in the forward. Configuring one must be inert, not a throw.
+        var config = FormBuilder<BasketModel>
+            .Create()
+            .AddCollectionField(x => x.Lines, collection => collection
+                .WithLabel("Lines")
+                .WithItemForm(item => item
+                    .AddField(x => x.IsGift, field => field
+                        .WithLabel("Gift")
+                        .WithAttribute("Adornment", Adornment.Start)
+                        .WithAttribute("AdornmentIcon", Icons.Material.Filled.Search))))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<BasketModel>>(parameters => parameters
+            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Gift");
+        component.Markup.ShouldNotContain(Icons.Material.Filled.Search);
+    }
+
+    [Fact]
     public void DateItemField_Should_Keep_Its_Calendar_Icon()
     {
         // Arrange - MudDatePicker's own default is Adornment.End with a calendar icon, unlike the
@@ -120,6 +196,18 @@ public class CollectionAdornmentTests : MudBlazorTestBase
     private class OrderItem
     {
         public string ProductName { get; set; } = string.Empty;
+    }
+
+    private class BasketModel
+    {
+        public List<BasketLine> Lines { get; set; } = new();
+    }
+
+    private class BasketLine
+    {
+        public int Quantity { get; set; }
+
+        public bool IsGift { get; set; }
     }
 
     private class AppointmentModel
