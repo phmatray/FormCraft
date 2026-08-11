@@ -335,6 +335,31 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void TextField_Adornment_Reconfigured_Without_A_Handler_Should_Not_Fire_The_Old_One()
+    {
+        // Arrange - the helper-then-refine shape, asserted where it actually matters: clicking.
+        // A partial overwrite would leave a decorative icon still running the first handler.
+        var received = new List<string?>();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Email, field => field
+                .WithLabel("Email")
+                .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, onClick: received.Add)
+                .WithAdornment(Icons.Material.Filled.Email, Adornment.End))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, new TestModel { Email = "someone@example.com" })
+            .Add(p => p.Configuration, config));
+
+        // Act
+        component.Find(AdornmentButton).Click();
+
+        // Assert - the second call described a plain icon, so nothing runs
+        received.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void TextField_Password_Toggle_Should_Keep_Its_Own_Adornment_Handler()
     {
         // Arrange - the password toggle owns the adornment slot and must not be displaced by the

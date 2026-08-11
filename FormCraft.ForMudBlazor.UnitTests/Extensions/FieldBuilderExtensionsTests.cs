@@ -138,10 +138,9 @@ public class FieldBuilderExtensionsTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void WithAdornment_Without_An_OnClick_Handler_Should_Not_Write_One()
+    public void WithAdornment_Without_An_OnClick_Handler_Should_Resolve_To_None()
     {
-        // Arrange & Act - a null handler must leave no entry rather than store null, so the
-        // renderer can tell "no handler" from "a handler that does nothing"
+        // Arrange & Act
         var config = FormBuilder<TestModel>
             .Create()
             .AddField(x => x.Email, field => field
@@ -149,8 +148,54 @@ public class FieldBuilderExtensionsTests : MudBlazorTestBase
                 .WithAdornment(Icons.Material.Filled.Search, Adornment.Start))
             .Build();
 
+        // Assert - the entry may exist, but it must not resolve to a handler; both render paths
+        // read it with `is Action<string?>`, which a null fails exactly as an absent key would
+        config.Fields[0].AdditionalAttributes
+            .GetValueOrDefault("OnAdornmentClick")
+            .ShouldBeNull();
+    }
+
+    [Fact]
+    public void WithAdornment_Called_Again_Without_A_Handler_Should_Clear_The_Earlier_One()
+    {
+        // Arrange - the documented "reusable field configurations" pattern: a helper configures a
+        // searching adornment, and a caller re-configures the field with a plain decorative icon.
+        // WithAdornment must overwrite ALL FOUR of its settings, not three of them — otherwise the
+        // caller gets an icon that silently still runs the helper's handler.
+        Action<string?> helperHandler = _ => { };
+
+        // Act
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Email, field => field
+                .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, onClick: helperHandler)
+                .WithAdornment(Icons.Material.Filled.Email, Adornment.End))
+            .Build();
+
+        // Assert - the second call wins on every parameter, the handler included
+        var attributes = config.Fields[0].AdditionalAttributes;
+        attributes["Adornment"].ShouldBe(Adornment.End);
+        attributes["AdornmentIcon"].ShouldBe(Icons.Material.Filled.Email);
+        attributes.GetValueOrDefault("OnAdornmentClick").ShouldBeNull();
+    }
+
+    [Fact]
+    public void WithAdornment_Called_Again_With_A_Handler_Should_Replace_The_Earlier_One()
+    {
+        // Arrange - the mirror case: last call wins, so the second handler is the live one
+        Action<string?> first = _ => { };
+        Action<string?> second = _ => { };
+
+        // Act
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Email, field => field
+                .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, onClick: first)
+                .WithAdornment(Icons.Material.Filled.Email, Adornment.End, onClick: second))
+            .Build();
+
         // Assert
-        config.Fields[0].AdditionalAttributes.ShouldNotContainKey("OnAdornmentClick");
+        config.Fields[0].AdditionalAttributes["OnAdornmentClick"].ShouldBeSameAs(second);
     }
 
     [Fact]

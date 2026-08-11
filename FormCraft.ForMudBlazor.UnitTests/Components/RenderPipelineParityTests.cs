@@ -504,6 +504,15 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     /// <see cref="CollectionItemField_Should_Fire_The_Adornment_Handler_Like_A_Standalone_Field"/>,
     /// which asserts each path actually invokes the configured handler.
     /// </para>
+    /// <para>
+    /// That parity holds when a handler IS configured. Without one the paths still differ in
+    /// MARKUP, though not in behaviour: <c>MudBlazorTextFieldComponent.razor</c> binds
+    /// <c>OnAdornmentClick</c> unconditionally, so an ordinary field's adornment is always a
+    /// focusable <c>&lt;button&gt;</c> — inert, but in the tab order — while the collection path
+    /// emits an empty callback and MudBlazor draws a plain icon. Predates #192 on the component
+    /// side and is left alone rather than change an unrelated render path; both are click-inert,
+    /// which is what the two "…Without_A_Handler_Should_Stay_Inert" tests pin down.
+    /// </para>
     /// </summary>
     private static object?[] Presentation(MudTextField<string> field) =>
     [

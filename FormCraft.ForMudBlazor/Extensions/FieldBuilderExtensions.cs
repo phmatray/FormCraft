@@ -210,19 +210,17 @@ public static class MudBlazorFieldBuilderExtensions
         Action<string?>? onClick = null)
         where TModel : new()
     {
-        builder
+        return builder
             .WithAttribute("Adornment", position)
             .WithAttribute("AdornmentIcon", icon)
-            .WithAttribute("AdornmentColor", color);
-
-        // Written only when supplied, so the renderers can tell "no handler" from "a handler that
-        // does nothing" — the former leaves the adornment inert, the latter is a real callback.
-        if (onClick is not null)
-        {
-            builder.WithAttribute(AdornmentClickAttribute, onClick);
-        }
-
-        return builder;
+            .WithAttribute("AdornmentColor", color)
+            // Written unconditionally — a null handler must OVERWRITE one an earlier call left
+            // behind, not be skipped. Writing it only when supplied made this method a partial
+            // overwrite: a reusable helper that set a handler, refined by a caller asking for a
+            // plain decorative icon, would keep firing the helper's handler from an icon the
+            // caller believes is inert. Both readers resolve the value with `is Action<string?>`,
+            // so a stored null reads back as "no handler" exactly like an absent key would.
+            .WithAttribute(AdornmentClickAttribute, onClick!);
     }
 
     /// <summary>

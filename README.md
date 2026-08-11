@@ -66,9 +66,11 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
           onClick: value => Search(value)))   // ← now runs
   ```
 
-  **Behaviour change.** Code that already passed a handler starts executing it. That is the fix — a handler was never meant to be inert — but it is a real change for any form that has been passing one since v3.x. An adornment configured *without* a handler is unaffected: it stays a plain, inert icon.
+  **Behaviour change.** Code that already passed a handler starts executing it. That is the fix — a handler was never meant to be inert — but it is a real change for any form that has been passing one since v3.x. An adornment configured *without* a handler does nothing when clicked, exactly as before; its markup is also unchanged on both paths (an ordinary field has always rendered its adornment as a button, a collection item field as a plain icon).
 
-  **Scope.** The handler is typed `Action<string?>` and declared on string fields, so numeric item-field adornments remain inert; date item fields are unchanged, keeping MudBlazor's own calendar adornment.
+  Note that `.WithAdornment(...)` overwrites **all four** of its settings, the handler included. Re-configuring a field that a shared helper already gave a searching adornment — `.WithAdornment(Icons.Material.Filled.Email, Adornment.End)` — yields a plain decorative icon, not one that quietly still runs the helper's handler.
+
+  **Scope.** The handler is typed `Action<string?>` and declared on string fields, so numeric item-field adornments remain inert; date item fields are unchanged, keeping MudBlazor's own calendar adornment. One combination still discards the handler: `.AsPassword(enableVisibilityToggle: true)` claims the adornment slot for its own show/hide toggle, so a handler passed alongside it does not run — a field can only have one adornment.
 
 - **`.WithAdornment(...)` now renders inside collection item forms.** A field configured with an adornment inside `.WithItemForm(...)` had the setting accepted and then silently discarded — no icon, no exception, no warning — while the identical call on an ordinary field rendered fine. Text and numeric item fields now forward `Adornment`, `AdornmentIcon` and `AdornmentColor` (#184)
 
