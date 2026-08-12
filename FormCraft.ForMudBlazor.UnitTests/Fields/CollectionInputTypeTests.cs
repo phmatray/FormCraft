@@ -204,16 +204,30 @@ public class CollectionInputTypeTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void ItemField_With_A_Mask_Should_Render_No_Mask_Exactly_Like_A_Standalone_Field()
+    public void ItemField_With_A_Mask_Should_Bind_The_Configured_Pattern_Mask()
     {
-        // Arrange & Act - deliberately NOT forwarded. FormCraft stores "Mask" as a string, while
-        // MudBlazor's Mask parameter takes an IMask; the component path reads the string into a
-        // property and then drops it (its GetMask() is an unimplemented stub that always returns
-        // null and is never called). So neither path supports masks today. Forwarding the string
-        // here would make the item path differ from the standalone one — the opposite of this
-        // issue's goal. Pinned so that whoever implements masks does it on both paths at once.
+        // Arrange & Act - #211. This test used to pin the opposite: masks were forwarded by neither
+        // path, so it asserted null and said "pinned so that whoever implements masks does it on both
+        // paths at once". That is now done — FormCraft's mask string is resolved to a MudBlazor IMask
+        // through the shared TextMaskMap, so the item path and the standalone path agree.
         var component = RenderOrderForm(BuildConfiguration(field =>
             field.WithAttribute("Mask", "0000-0000")));
+
+        // Assert - the pattern rather than the instance: each path builds its own IMask, so the
+        // objects are never equal and only the configured pattern is comparable.
+        var mask = component.FindComponent<MudTextField<string>>().Instance.Mask;
+        mask.ShouldBeOfType<PatternMask>();
+        mask.Mask.ShouldBe("0000-0000");
+    }
+
+    [Fact]
+    public void ItemField_Without_A_Mask_Should_Bind_No_Mask()
+    {
+        // Arrange & Act - the guard on the guard, and the reason TextMaskMap.Resolve returns null for
+        // an empty pattern rather than PatternMask(""). MudTextField swaps its input implementation
+        // for a MudMask as soon as Mask is non-null, so a non-null empty mask would reroute every
+        // unmasked item field through a different component and quietly drop MaxLines with it.
+        var component = RenderOrderForm(BuildConfiguration(field => field.WithLabel("Product")));
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
