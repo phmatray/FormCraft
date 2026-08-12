@@ -75,8 +75,9 @@ public class TestReportingTests
     /// contract on the day it lands, which is the failure mode this issue is about —
     /// <c>release-please.yml</c> was left behind by #225 and nobody noticed for two releases.
     /// </summary>
-    private static List<string> WorkflowsThatRunTests() =>
-        Directory
+    private static List<string> WorkflowsThatRunTests()
+    {
+        var workflows = Directory
             .EnumerateFiles(WorkflowsDirectory, "*.*")
             .Where(f => f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase)
                      || f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase))
@@ -87,6 +88,16 @@ public class TestReportingTests
             .OfType<string>()
             .Order(StringComparer.Ordinal)
             .ToList();
+
+        // The vacuity guard lives here rather than in one caller: every assertion below is of the
+        // form "no workflow in this set offends", which an empty set satisfies trivially. A rename,
+        // a reformatted `run:` line or a switch to .yaml would empty it and turn the whole class
+        // green while checking nothing.
+        workflows.ShouldNotBeEmpty(
+            "no workflow invokes ./build.cmd Test|Pack|Continuous — every assertion over this set would pass vacuously");
+
+        return workflows;
+    }
 
     /// <summary>
     /// A single step of a workflow, so an assertion about its <c>if:</c> or <c>path:</c> cannot be
@@ -178,12 +189,7 @@ public class TestReportingTests
     [Fact]
     public void Every_Workflow_That_Runs_Tests_Should_Upload_The_TestResults_Artifact()
     {
-        var workflows = WorkflowsThatRunTests();
-
-        workflows.ShouldNotBeEmpty(
-            "no workflow invokes ./build.cmd Test|Pack|Continuous — every assertion below would pass vacuously");
-
-        var missing = workflows
+        var missing = WorkflowsThatRunTests()
             .Where(w => !ReadWorkflow(w).Contains($"- name: '{UploadStepName}'", StringComparison.Ordinal))
             .ToList();
 

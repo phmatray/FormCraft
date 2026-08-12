@@ -115,6 +115,14 @@ class Build : NukeBuild
             // Report file names are left at their defaults (<user>_<machine>_<timestamp>): the
             // solution has two test assemblies writing into one directory, and a fixed
             // --report-xunit-trx-filename would have the second silently overwrite the first.
+            //
+            // Which is also why the directory is emptied first. Timestamped names never collide, so
+            // nothing overwrites a previous run's reports — they simply accumulate, and a red run
+            // followed by a green one would leave a trx recording failures that no longer exist,
+            // published under an artifact the next reader takes for the current result. CI checks
+            // out fresh so it never sees this; a local `./build.sh Test` loop does, immediately.
+            TestResultsDirectory.CreateOrCleanDirectory();
+
             DotNetTest(s => s
                 .SetProjectFile(Solution)
                 .SetConfiguration(Configuration)

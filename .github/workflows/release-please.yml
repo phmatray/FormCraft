@@ -178,11 +178,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # See ci.yml's copy of this step for the full rationale (#225, #231). This is the copy #225
-      # deliberately left alone — its Global Constraints forbade touching this file — so it spent two
-      # releases uploading a `test-results` directory that Build.cs never created, running on
-      # `if: always()` and faithfully producing nothing. #231 fixed the emitting end rather than the
-      # path, so this step became correct without moving; `if-no-files-found: ignore` is what it was
-      # still missing, and it matters most here, where the publish job can fail long before Test.
+      # deliberately left alone — its Global Constraints forbade touching this file — so it was left
+      # uploading a `test-results` directory that Build.cs never created: running on `if: always()`
+      # and faithfully producing nothing. #231 fixed the emitting end rather than the path, so this
+      # step became correct without moving; `if-no-files-found: ignore` is what it was still missing,
+      # and it matters most here, where the publish job can fail long before Test.
       - name: 'Publish: test-results'
         if: always()
         uses: actions/upload-artifact@v7
