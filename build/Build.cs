@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using FormCraft.Build;
 using Nuke.Common;
 using Nuke.Common.CI;
@@ -49,6 +51,7 @@ class Build : NukeBuild
 
     AbsolutePath SourceDirectory => RootDirectory / "FormCraft";
     AbsolutePath MudBlazorDirectory => RootDirectory / "FormCraft.ForMudBlazor";
+    AbsolutePath FluentUIDirectory => RootDirectory / "FormCraft.ForFluentUI";
     AbsolutePath TestsDirectory => RootDirectory / "FormCraft.UnitTests";
     AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
     AbsolutePath TestResultsDirectory => RootDirectory / "test-results";
@@ -90,9 +93,9 @@ class Build : NukeBuild
 
     Target Test => _ => _
         .DependsOn(Compile)
-        .Produces(TestResultsDirectory / "*.trx")
-        .Produces(TestResultsDirectory / "*.html")
-        .Produces(TestResultsDirectory / "*.log")
+        .Produces(TestResultsDirectory / "**/*.trx")
+        .Produces(TestResultsDirectory / "**/*.html")
+        .Produces(TestResultsDirectory / "**/*.log")
         .Executes(() =>
         {
             // Both test projects run on Microsoft.Testing.Platform (UseMicrosoftTestingPlatformRunner),
@@ -112,10 +115,57 @@ class Build : NukeBuild
             // <project>/bin/<cfg>/<tfm>/TestResults/ and into test-results/. That is why all three
             // workflows can now upload one directory and get both.
             //
-            // Report file names are left at their defaults (<user>_<machine>_<timestamp>): the
-            // solution has two test assemblies writing into one directory, and a fixed
-            // --report-xunit-trx-filename would have the second silently overwrite the first.
+            // One invocation PER TEST PROJECT, each into test-results/<project>/ (#256). A single
+            // solution-wide `dotnet test` sent both assemblies' reports to one directory under the
+            // runner's default names — <user>_<machine>_<timestamp> — where the two trx files
+            // differed only in the microsecond field. The per-assembly .log files in the same
+            // artifact were named properly, so half of it said where it came from and half did not,
+            // and a reader who downloaded it after a red run had to open both to learn which suite
+            // broke. Identity now comes from the path.
             //
+            // Report file names are still left at their defaults rather than pinned with
+            // --report-xunit-trx-filename. That option sets a FIXED name, so under the old single
+            // invocation the second assembly would have silently overwritten the first — losing a
+            // whole suite's report, which is strictly worse than an opaque name. One directory per
+            // assembly already makes the defaults unique, so the directory is what carries the
+            // identity and the filename is left to the runner.
+            //
+            // Discovered by the property that MAKES a project an MTP test application — the same
+            // property that gives the `--` arguments below their meaning — rather than by a name
+            // convention. The solution-wide invocation this replaced ran every test project in the
+            // solution whatever it was called; matching on "*Tests" would quietly narrow that, so a
+            // suite added later as FormCraft.AcceptanceTest or FormCraft.E2E would simply stop being
+            // run, green and unremarked. That is the silent-omission shape #231 was filed about
+            // (release-please.yml left behind by #225), and the assert below does not catch it: it
+            // fires only when *nothing* matches, so one-of-three matching passes it happily.
+            // Read from the project FILE, not through Project.GetProperty(). That helper evaluates
+            // the csproj with MSBuild inside this process, and on CI (ubuntu, SDK 10.0.400) the
+            // evaluation dies before it can answer:
+            //
+            //   InvalidProjectFileException: The expression
+            //   "[MSBuild]::GetTargetFrameworkIdentifier(net10.0)" cannot be evaluated. Could not
+            //   load file or assembly 'NuGet.Frameworks, Version=7.9.0.0' — the located assembly's
+            //   manifest definition does not match the assembly reference.
+            //
+            // Nuke's embedded MSBuild and the installed SDK disagree about NuGet.Frameworks. It
+            // reproduces on no developer machine tried so far and fails every CI run, which is the
+            // #231 lesson in miniature: a local green is not a CI green. A text read needs no
+            // evaluation and cannot acquire that dependency.
+            var testProjects = Solution.AllProjects
+                .Where(project => project.Path.FileExists())
+                .Where(project => Regex.IsMatch(
+                    project.Path.ReadAllText(),
+                    @"<UseMicrosoftTestingPlatformRunner>\s*true\s*</UseMicrosoftTestingPlatformRunner>",
+                    RegexOptions.IgnoreCase))
+                .OrderBy(project => project.Name, StringComparer.Ordinal)
+                .ToList();
+
+            Assert.NotEmpty(
+                testProjects,
+                "No project in the solution sets UseMicrosoftTestingPlatformRunner. Discovery reads "
+                + "that property, so a suite that stopped setting it would be skipped without a word "
+                + "— which is the regression this guards.");
+
             // Which is also why the directory is emptied first. Timestamped names never collide, so
             // nothing overwrites a previous run's reports — they simply accumulate, and a red run
             // followed by a green one would leave a trx recording failures that no longer exist,
@@ -124,18 +174,54 @@ class Build : NukeBuild
             // copy them out first if a flaky failure is what you are chasing. "This directory is the
             // last run" is the less surprising of the two contracts, and `Clean` already reads that
             // way. CI checks out fresh, so only a local `./build.sh Test` loop ever notices.
+            //
+            // Emptied only AFTER discovery has proved the run can proceed: wiping first would
+            // destroy the previous run's reports on a misconfiguration that then produces none of
+            // its own, and the local loop is the only place that has anything to lose.
             TestResultsDirectory.CreateOrCleanDirectory();
 
-            DotNetTest(s => s
-                .SetProjectFile(Solution)
-                .SetConfiguration(Configuration)
-                .EnableNoRestore()
-                .EnableNoBuild()
-                .SetProcessAdditionalArguments(
-                    "--",
-                    "--results-directory", TestResultsDirectory,
-                    "--report-xunit-trx",
-                    "--report-xunit-html"));
+            // Every project runs before any failure is surfaced. A bare foreach would let the first
+            // red suite's exception abort the loop, hiding a second broken suite until the first was
+            // fixed — one red run per bug instead of one red run naming both. The solution-wide
+            // invocation this replaced ran both assemblies and reported both, so failing fast here
+            // would be a real regression in diagnosis rather than a stylistic choice. Recorded and
+            // re-thrown below.
+            var failed = new List<string>();
+
+            // One home for the path, because the run and the guard below have to agree on it: if
+            // they ever computed it differently the guard would inspect a directory nothing wrote
+            // to, and fail every run for a reason that has nothing to do with the reporters.
+            AbsolutePath ResultsDirectoryFor(Project project) => TestResultsDirectory / project.Name;
+
+            foreach (var project in testProjects)
+            {
+                try
+                {
+                    DotNetTest(s => s
+                        .SetProjectFile(project)
+                        .SetConfiguration(Configuration)
+                        .EnableNoRestore()
+                        .EnableNoBuild()
+                        .SetProcessAdditionalArguments(
+                            "--",
+                            "--results-directory", ResultsDirectoryFor(project),
+                            "--report-xunit-trx",
+                            "--report-xunit-html"));
+                }
+                catch (Exception exception)
+                {
+                    // Recorded rather than thrown, so the remaining suites still run. The exception
+                    // is logged WHOLE: this catch is deliberately broad and will also see failures
+                    // that are nothing to do with a red test — an SDK that cannot launch the test
+                    // host, an unwritable results directory, a project that turns out not to be a
+                    // test application at all — and reducing those to `exception.Message` discards
+                    // the only evidence of which kind it was. Hence "did not complete" rather than
+                    // "tests failed" in the summary below: this list cannot tell the two apart, and
+                    // claiming the narrower one sends the reader to the wrong place.
+                    failed.Add(project.Name);
+                    Serilog.Log.Error(exception, "{Project} did not complete", project.Name);
+                }
+            }
 
             // Enforce the contract rather than merely declaring it — the whole point of #231. The
             // defect it was filed about produced no error of any kind: `dotnet test` succeeded, the
@@ -145,12 +231,62 @@ class Build : NukeBuild
             // VSTestResultsDirectory. Then the workflows would upload an empty directory under
             // `if-no-files-found: ignore` and nothing anywhere would say so. Cheapest possible guard,
             // and it turns that whole class of regression into a failed build on the next run.
-            var reports = TestResultsDirectory.GlobFiles("*.trx");
-            Assert.NotEmpty(
-                reports,
-                $"The test run produced no *.trx under {TestResultsDirectory}. The reporters are "
-                + "wired but emitted nothing — check whether the runner still honours "
-                + "--results-directory / --report-xunit-trx (see #231).");
+            //
+            // Asked PER PROJECT rather than over the directory as a whole (#256). "Some suite
+            // emitted a trx" is a strictly weaker claim than "each did", and the gap is not
+            // hypothetical: one reporting suite is enough to keep a whole-directory glob green
+            // while the other emits nothing, which is half an artifact and no warning anywhere —
+            // the same silence at half scale. Each project owns a subdirectory now, so each can be
+            // asked directly, and the message names the one that came up empty. An artifact reader
+            // told only "no trx was produced" is no better off, because the suite that should have
+            // written one is precisely what they are trying to identify.
+            //
+            // Asked only of the projects that actually COMPLETED. A suite that died — a crashed test
+            // host, a rejected argument, an SDK that could not launch it — writes no trx either, and
+            // blaming that on the reporters would send the reader off to audit MTP wiring for a
+            // failure that has nothing to do with it. Its own entry in `failed` already says what
+            // happened, accurately. What is left is the case this guard is actually for: a project
+            // that ran, passed, and silently produced no report.
+            //
+            // Note this still runs on red runs, which the old single invocation did not — it threw
+            // from DotNetTest the moment any suite went red, skipping the guard on exactly the runs
+            // whose artifact someone was about to download. A sibling suite going red no longer
+            // stops a genuine reporter regression from being reported.
+            var missingReports = testProjects
+                .Where(project => !failed.Contains(project.Name))
+                .Where(project => !ResultsDirectoryFor(project).GlobFiles("*.trx").Any())
+                .Select(project => $"{project.Name} (nothing in {ResultsDirectoryFor(project)})")
+                .ToList();
+
+            // Both lists surfaced together, in one throw — the same "one red run naming both" rule
+            // the run loop follows, and for the same reason. They are independent: a suite can fail
+            // its tests while a different, passing suite quietly stops emitting a report, and
+            // whichever threw first would hide the other. Each entry carries its per-project
+            // directory, so the failure summary points at the artifact #256 just made attributable
+            // rather than making the reader go find it.
+            var problems = new List<string>();
+
+            if (missingReports.Count > 0)
+            {
+                problems.Add(
+                    $"produced no *.trx: {string.Join(", ", missingReports)} — the reporters are "
+                    + "wired but emitted nothing, so check whether the runner still honours "
+                    + "--results-directory / --report-xunit-trx (see #231)");
+            }
+
+            if (failed.Count > 0)
+            {
+                problems.Add(
+                    "did not complete: "
+                    + string.Join(
+                        ", ",
+                        failed.Select(name => $"{name} (reports, if any, in {TestResultsDirectory / name})")));
+            }
+
+            if (problems.Count > 0)
+            {
+                Assert.Fail($"Test target failed. Projects that {string.Join("; and that ", problems)}.");
+            }
         });
 
     Target Pack => _ => _
@@ -190,6 +326,17 @@ class Build : NukeBuild
                 .SetOutputDirectory(ArtifactsDirectory)
                 .EnableIncludeSymbols()
                 .SetSymbolPackageFormat(DotNetSymbolPackageFormat.snupkg));
+
+            // Pack FormCraft.ForFluentUI package (#260). Each package is named explicitly rather
+            // than globbed, so a new adapter project is NOT picked up until it is added here.
+            DotNetPack(s => s
+                .SetProject(FluentUIDirectory)
+                .SetConfiguration(Configuration)
+                .EnableNoRestore()
+                .EnableNoBuild()
+                .SetOutputDirectory(ArtifactsDirectory)
+                .EnableIncludeSymbols()
+                .SetSymbolPackageFormat(DotNetSymbolPackageFormat.snupkg));
         });
 
     Target Publish => _ => _
@@ -217,8 +364,10 @@ class Build : NukeBuild
             Serilog.Log.Information("🎉 Version {Version} has been successfully published!", CurrentVersion);
             Serilog.Log.Information("📦 Package: FormCraft {Version}", CurrentVersion);
             Serilog.Log.Information("📦 Package: FormCraft.ForMudBlazor {Version}", CurrentVersion);
+            Serilog.Log.Information("📦 Package: FormCraft.ForFluentUI {Version}", CurrentVersion);
             Serilog.Log.Information("🔗 NuGet: https://www.nuget.org/packages/FormCraft/{Version}", CurrentVersion);
             Serilog.Log.Information("🔗 NuGet: https://www.nuget.org/packages/FormCraft.ForMudBlazor/{Version}", CurrentVersion);
+            Serilog.Log.Information("🔗 NuGet: https://www.nuget.org/packages/FormCraft.ForFluentUI/{Version}", CurrentVersion);
         });
 
     Target Continuous => _ => _

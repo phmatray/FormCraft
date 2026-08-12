@@ -1,0 +1,26 @@
+@namespace FormCraft.ForFluentUI
+@typeparam TModel
+@inherits FluentUIFieldComponentBase<TModel, bool>
+
+@if (DisplayStyle == BooleanDisplayStyle.Switch)
+{
+    <FluentSwitch @bind-Value="@_localValue"
+                  @bind-Value:after="OnLocalValueChanged"
+                  Label="@Label"
+                  Required="@EffectiveNativeRequired"
+                  Disabled="@IsDisabled"
+                  ReadOnly="@IsReadOnly"
+                  aria-describedby="@AriaDescribedBy"
+                  aria-required="@AriaRequired" />
+}
+else
+{
+    <FluentCheckbox @bind-Value="@_localValue"
+                    @bind-Value:after="OnLocalValueChanged"
+                    Label="@Label"
+                    Required="@EffectiveNativeRequired"
+                    Disabled="@IsDisabled"
+                    ReadOnly="@IsReadOnly"
+                    aria-describedby="@AriaDescribedBy"
+                    aria-required="@AriaRequired" />
+}

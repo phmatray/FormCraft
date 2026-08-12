@@ -88,10 +88,16 @@ jobs:
   #     fails, the release exists with no packages attached. Recover with **Re-run failed jobs** —
   #     "Re-run all jobs" re-runs release-please, which now sees the release already created,
   #     reports `release_created: false`, and skips this job entirely.
-  #   - Publishing requires a nuget.org Trusted Publishing policy for BOTH the FormCraft and
-  #     FormCraft.ForMudBlazor packages, naming this repository and THIS workflow file
-  #     (release-please.yml — it named continuous.yml until this change), plus the NUGET_USER
+  #   - Publishing requires a nuget.org Trusted Publishing policy for EACH package — FormCraft,
+  #     FormCraft.ForMudBlazor and FormCraft.ForFluentUI — naming this repository and THIS workflow
+  #     file (release-please.yml — it named continuous.yml until this change), plus the NUGET_USER
   #     secret holding the nuget.org profile name.
+  #     ⚠️ FormCraft.ForFluentUI is NEW as of #260 and has never been published, so it has no policy
+  #     until someone creates one. `Publish` globs artifacts/*.nupkg and will pick it up, and
+  #     `--skip-duplicate` does NOT cover a 403 — an unregistered package id fails the push. That
+  #     failure lands in the worst possible position (see the bullet above: the tag and GitHub
+  #     Release already exist). Create the policy BEFORE the first release that includes it. A new
+  #     package also needs its first push made by an account allowed to claim the id.
   nupkg:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' || github.event_name == 'workflow_dispatch' }}

@@ -1,0 +1,19 @@
+@namespace FormCraft.ForFluentUI
+@typeparam TModel
+@typeparam TValue
+@inherits FluentUIFieldComponentBase<TModel, TValue>
+
+<FluentSelect TOption="SelectOption<TValue>"
+              TValue="TValue"
+              Items="@Options"
+              OptionValue="@(option => option.Value)"
+              OptionText="@(option => option.Label)"
+              @bind-Value="@_localValue"
+              @bind-Value:after="OnLocalValueChanged"
+              Label="@Label"
+              Placeholder="@Placeholder"
+              Required="@EffectiveNativeRequired"
+              Disabled="@IsDisabled"
+              ReadOnly="@IsReadOnly"
+              aria-describedby="@AriaDescribedBy"
+              aria-required="@AriaRequired" />
