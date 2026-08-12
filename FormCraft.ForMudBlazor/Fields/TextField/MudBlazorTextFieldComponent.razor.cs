@@ -95,6 +95,12 @@ public partial class MudBlazorTextFieldComponent<TModel>
         MaskCleanDelimiters = GetAttribute(TextMaskMap.CleanDelimitersAttribute, false);
         MaskFactory = GetAttribute<Func<IMask>?>(TextMaskMap.MaskFactoryAttribute);
 
+        // After the two mask options above, deliberately. The diagnostic judges the mask that will
+        // actually render — which since #265 may come from a factory rather than the pattern string
+        // — so it cannot run until both are loaded, or it would report on a mask the field does not
+        // use.
+        WarnIfMaskBlanksTheStoredValue();
+
         // Load adornment configuration
         var customAdornment = GetAttribute<Adornment?>("Adornment");
         var customAdornmentIcon = GetAttribute<string?>("AdornmentIcon");
@@ -144,6 +150,110 @@ public partial class MudBlazorTextFieldComponent<TModel>
                 MudBlazorFieldBuilderExtensions.AdornmentClickAttribute);
         }
     }
+
+    /// <summary>
+    /// Reports a stored value that the configured mask rejects outright (#266).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Called from <see cref="OnInitialized"/>, so it judges the value the field was *given* rather
+    /// than one the user has since edited. That framing is what keeps it quiet when someone
+    /// legitimately clears a field: the emptiness that matters is the one that was there before
+    /// anyone touched it.
+    /// </para>
+    /// <para>
+    /// The masked result is computed the same way <c>MudBaseInput</c> is about to compute it — run
+    /// the value through a resolved mask and read the text back — so the two cannot disagree about
+    /// what will render. It resolves through <see cref="GetMask"/> rather than the pattern string
+    /// for exactly that reason: since #265 a mask can come from a caller-supplied factory with no
+    /// pattern configured at all, and judging <see cref="Mask"/> would both miss those fields and
+    /// ignore <c>CleanDelimiters</c>, reporting on a mask the field does not use.
+    /// </para>
+    /// <para>
+    /// The blank-value test comes first so the cost profile holds: a field with nothing stored
+    /// resolves no mask and allocates nothing, and an unmasked field's <see cref="GetMask"/> returns
+    /// <c>null</c> without constructing one.
+    /// </para>
+    /// </remarks>
+    private void WarnIfMaskBlanksTheStoredValue()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentValue))
+        {
+            return;
+        }
+
+        string? maskedResult;
+        string? pattern;
+        try
+        {
+            var mask = GetMask();
+            if (mask is null)
+            {
+                return;
+            }
+
+            // Read off the resolved mask, not from the Mask property: a factory-supplied mask has
+            // its own pattern and no configured string to quote back.
+            pattern = mask.Mask;
+            mask.SetText(CurrentValue);
+            maskedResult = mask.Text;
+        }
+        catch
+        {
+            // Ignored, on the same terms as the emitter's own guard: this mask instance exists ONLY
+            // to compute a diagnostic. Letting MudBlazor's pattern parsing or alignment — or a
+            // caller-supplied mask factory (#265), which is arbitrary user code — throw from here
+            // would take down a field render for a warning nobody asked for, the exact failure
+            // MaskedValueDiagnostic.Warn wraps its own body to avoid. This instance is discarded;
+            // the mask that renders the field is a separate GetMask() call at binding time.
+            return;
+        }
+
+        if (!MaskedValueDiagnostic.Applies(CurrentValue, maskedResult))
+        {
+            return;
+        }
+
+        // Latched per field, and latched AFTER the rule rather than before it. A collection renders
+        // one instance per row, so an unlatched warning fires once per ROW about a single field.
+        // But rows hold different values, and ShouldWarnOnce has a side effect: consulting it for a
+        // row whose value conforms would burn the latch on a row that had nothing to report, and
+        // whether the field ever got reported would then depend on row order.
+        //
+        // The key carries the diagnostic's category, so this cannot silence a different diagnostic
+        // that the same field also trips — the property the two separate HashSets used to provide.
+        if (!(ItemFieldScope?.ShouldWarnOnce(MaskedValueDiagnostic.Category, DiagnosticFieldKey) ?? true))
+        {
+            return;
+        }
+
+        // Reported under the collection-qualified identity, not the bare field name — the same
+        // reason the LATCH keys on it. A form with Contacts[].Phone and Suppliers[].Phone masked
+        // over legacy data correctly emits two warnings, and naming both of them 'Phone' would
+        // leave the developer unable to tell which collection to audit.
+        MaskedValueDiagnostic.Warn(
+            DiagnosticServiceProvider,
+            DiagnosticFieldKey,
+            QualifiedLabel,
+            pattern);
+    }
+
+    /// <summary>
+    /// <see cref="FieldComponentBase{TModel, TValue}.Label"/>, qualified by the owning collection
+    /// when this is an item field, or <c>null</c> when the field has no label.
+    /// </summary>
+    /// <remarks>
+    /// A label is chosen for how it reads to an end user in one row, so it is no more unique across
+    /// collections than a bare field name is — two collections both labelling a field "Phone" is the
+    /// normal case, not a contrived one. Qualifying it keeps the message readable *and* unambiguous;
+    /// returning <c>null</c> for an unlabelled field lets the emitter fall back to
+    /// <see cref="MudBlazorFieldComponentBase{TModel, TValue}.DiagnosticFieldKey"/>, which is already
+    /// qualified.
+    /// </remarks>
+    private string? QualifiedLabel =>
+        ItemFieldScope is null || string.IsNullOrWhiteSpace(Label)
+            ? Label
+            : $"{ItemFieldScope.CollectionName}[].{Label}";
 
     protected override void OnParametersSet()
     {

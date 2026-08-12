@@ -43,6 +43,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      Test-only. The diagnostics are internal by design (they are implementation detail, not package
+      API), but their rules are pure functions whose edge cases are worth pinning directly rather
+      than only through a rendered component — see MaskedValueDiagnostic.Applies (#266).
+    -->
+    <InternalsVisibleTo Include="FormCraft.ForMudBlazor.UnitTests"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
     <PackageReference Include="MudBlazor" />
   </ItemGroup>
