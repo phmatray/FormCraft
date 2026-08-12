@@ -122,7 +122,7 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   ⚠️ **A regex mask is matched against *partial* input**, so its pattern must accept prefixes: `^[0-9]{0,4}$`, never `^[0-9]{4}$`, which never matches a shorter prefix and so blocks every keystroke.
 
-  `.WithAttribute("Mask", "…")` keeps working and is unchanged — this is additive, not a migration. Both render paths resolve all of it through the same `TextMaskMap.Resolve`, so an ordinary field and one inside `.WithItemForm(...)` agree by construction.
+  `.WithAttribute("Mask", "…")` keeps working and is unchanged — this is additive, not a migration. Both render paths resolve all of it through the same `TextMaskMap.Resolve`, so an ordinary field and one inside `.WithItemForm(...)` agree by construction. One wrinkle if you *mix* the two on a single field: the raw form sets only the pattern, so a `cleanDelimiters: true` from an earlier `.WithMask(...)` call on that field stays in effect. Prefer `.WithMask(...)`, which clears whatever the other overload configured.
 
 - **Required fields are now announced to assistive technology, on both render paths.** A `.Required("…")` field rendered `aria-required="false"` — not merely silent, but an affirmatively wrong statement to a screen reader — so a screen-reader user got no indication which fields were mandatory until submission failed. That is a WCAG 2.1 **3.3.2 Labels or Instructions** (Level A) failure. Both the ordinary field path and the collection item path now resolve MudBlazor's `Required` from `.Required(...)`, so the field is announced identically inside and outside `.WithItemForm(...)` (#199)
 
