@@ -54,8 +54,62 @@ public class TestReportingTests
         return dir.FullName;
     }
 
+    /// <summary>
+    /// The one step name all three workflows use for this upload. Asserted as a literal because it
+    /// is also how a human finds the step in a run's log.
+    /// </summary>
+    private const string UploadStepName = "Publish: test-results";
+
     private static string ReadBuildScript() =>
         File.ReadAllText(Path.Combine(RepoRoot, "build", "Build.cs"));
+
+    private static string WorkflowsDirectory => Path.Combine(RepoRoot, ".github", "workflows");
+
+    private static string ReadWorkflow(string fileName) =>
+        File.ReadAllText(Path.Combine(WorkflowsDirectory, fileName));
+
+    /// <summary>
+    /// Every workflow that reaches Nuke's <c>Test</c> target, discovered rather than listed: `Pack`
+    /// and `Continuous` both `DependsOn(Test)`, so all three run the suite and all three therefore
+    /// owe the artifact. Deriving the set means a fourth workflow added later is held to the same
+    /// contract on the day it lands, which is the failure mode this issue is about —
+    /// <c>release-please.yml</c> was left behind by #225 and nobody noticed for two releases.
+    /// </summary>
+    private static List<string> WorkflowsThatRunTests() =>
+        Directory
+            .EnumerateFiles(WorkflowsDirectory, "*.*")
+            .Where(f => f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase)
+                     || f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase))
+            .Where(f => Regex.IsMatch(
+                WithoutComments(File.ReadAllText(f), "#"),
+                @"run:\s*\./build\.cmd\s+(Test|Pack|Continuous)\b"))
+            .Select(Path.GetFileName)
+            .OfType<string>()
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+    /// <summary>
+    /// A single step of a workflow, so an assertion about its <c>if:</c> or <c>path:</c> cannot be
+    /// satisfied by the same text sitting on some other step. Runs from the <c>- name:</c> line to
+    /// the start of the next list item, which covers the step's <c>if:</c>, <c>uses:</c> and
+    /// <c>with:</c>.
+    /// </summary>
+    private static string StepNamed(string workflowFile, string stepName)
+    {
+        var lines = ReadWorkflow(workflowFile).Split('\n');
+        var start = Array.FindIndex(
+            lines,
+            l => l.TrimStart().StartsWith($"- name: '{stepName}'", StringComparison.Ordinal));
+        start.ShouldBeGreaterThanOrEqualTo(0, $"{workflowFile} no longer has a step named '{stepName}'");
+
+        var end = Array.FindIndex(lines, start + 1, l => l.TrimStart().StartsWith("- ", StringComparison.Ordinal));
+        if (end < 0)
+        {
+            end = lines.Length;
+        }
+
+        return string.Join('\n', lines[start..end]);
+    }
 
     /// <summary>
     /// Drops whole-line comments so a "not referenced" assertion fires on wiring rather than on
@@ -119,5 +173,79 @@ public class TestReportingTests
             .ToList();
 
         unbacked.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Every_Workflow_That_Runs_Tests_Should_Upload_The_TestResults_Artifact()
+    {
+        var workflows = WorkflowsThatRunTests();
+
+        workflows.ShouldNotBeEmpty(
+            "no workflow invokes ./build.cmd Test|Pack|Continuous — every assertion below would pass vacuously");
+
+        var missing = workflows
+            .Where(w => !ReadWorkflow(w).Contains($"- name: '{UploadStepName}'", StringComparison.Ordinal))
+            .ToList();
+
+        missing.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Every_TestResults_Upload_Should_Run_On_Failure()
+    {
+        // `if: always()` is the entire point of the artifact (#225): the failure path is the only
+        // one worth preserving, and it is exactly the path a bare step skips. Microsoft.Testing.
+        // Platform prints only a summary line to stdout, so without this a red CI run leaves no
+        // record of *which* assertion failed — a cost that was paid for real during #200.
+        var offenders = WorkflowsThatRunTests()
+            .Where(w => !StepNamed(w, UploadStepName).Contains("if: always()", StringComparison.Ordinal))
+            .ToList();
+
+        offenders.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Every_TestResults_Upload_Should_Point_At_The_Directory_The_Build_Fills()
+    {
+        // Scoped to a path *line* rather than a substring search: `name: test-results` names the
+        // artifact and would otherwise satisfy an assertion about where it is read from.
+        var offenders = WorkflowsThatRunTests()
+            .Where(w => !StepNamed(w, UploadStepName)
+                .Split('\n')
+                .Select(line => line.Trim())
+                .Any(line => line is "path: test-results" or "test-results"))
+            .ToList();
+
+        offenders.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void No_TestResults_Upload_Should_Point_At_A_Path_The_Build_No_Longer_Fills()
+    {
+        // Until #231 the MTP logs landed in <project>/bin/<cfg>/<tfm>/TestResults/, and ci.yml and
+        // continuous.yml globbed for them there because Nuke's test-results/ was never created.
+        // --results-directory moved them, so that glob now matches nothing on every run — the same
+        // declared-and-inert shape this issue exists to remove, just one file over. Every path in
+        // the build reaches the Test target, so there is no run in which it could match again.
+        var offenders = WorkflowsThatRunTests()
+            .Where(w => StepNamed(w, UploadStepName).Contains("**/TestResults/", StringComparison.Ordinal))
+            .ToList();
+
+        offenders.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Every_TestResults_Upload_Should_Tolerate_A_Missing_Path()
+    {
+        // These steps run under `if: always()`, which includes runs that failed in Compile — before
+        // any test executed and therefore before test-results/ existed. Without this, upload-artifact
+        // warns on a condition that is entirely expected, and a warning nobody can act on is how a
+        // real one gets missed.
+        var offenders = WorkflowsThatRunTests()
+            .Where(w => !StepNamed(w, UploadStepName)
+                .Contains("if-no-files-found: ignore", StringComparison.Ordinal))
+            .ToList();
+
+        offenders.ShouldBeEmpty();
     }
 }
