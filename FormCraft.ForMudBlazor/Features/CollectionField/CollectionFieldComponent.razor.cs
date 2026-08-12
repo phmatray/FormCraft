@@ -458,10 +458,12 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// leave the very gap this issue exists to close.
     /// </para>
     /// <para>
-    /// <c>Mask</c> is deliberately absent. FormCraft stores it as a string and MudBlazor's
-    /// parameter takes an <c>IMask</c>; the component path reads the string into a property and
-    /// then drops it, so neither path masks anything today. Forwarding it here would introduce a
-    /// divergence rather than remove one.
+    /// <c>Mask</c> used to be deliberately absent here: FormCraft stores it as a string and
+    /// MudBlazor's parameter takes an <c>IMask</c>, and since the component path read the string
+    /// into a property and then dropped it, forwarding it here would have introduced a divergence
+    /// rather than removed one. #211 closed that by writing the missing conversion
+    /// (<see cref="TextMaskMap"/>) and binding it on both paths in the same change, so the
+    /// attribute is now forwarded like the others.
     /// </para>
     /// </remarks>
     /// <param name="builder">The render tree builder for the open item-field component.</param>
@@ -475,6 +477,15 @@ public partial class CollectionFieldComponent<TModel, TItem>
         builder.AddAttribute(startIndex++, "InputType", GetItemFieldInputType(field));
         builder.AddAttribute(startIndex++, "Lines", GetItemFieldLines(field));
         builder.AddAttribute(startIndex++, "MaxLength", GetItemFieldMaxLength(field));
+
+        // Resolved through the same TextMaskMap the component path uses (#211), so the two cannot
+        // disagree about what a given pattern means. Emitted unconditionally like everything else
+        // here: the value is null for an unmasked field, which is what MudTextField already
+        // defaults to, and keeping the frame layout per-CALL-SITE rather than per-configuration is
+        // what makes the sequence numbers safe.
+        builder.AddAttribute(startIndex++, "Mask",
+            TextMaskMap.Resolve(
+                GetItemFieldAttribute<string?>(field, TextMaskMap.AttributeName, null)));
 
         // Lowercase on purpose: MudTextField has no Autocomplete parameter, so this rides through
         // its unmatched-attribute bag onto the rendered <input> exactly as the component path's
