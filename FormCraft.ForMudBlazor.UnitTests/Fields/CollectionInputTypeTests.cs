@@ -2,9 +2,10 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
 /// Tests that collection item fields honour the text-input attributes the component render path
-/// forwards (#189). These render through CollectionFieldComponent's imperative RenderTreeBuilder
-/// path, which resolves presentation attributes in AddCommonFieldAttributes / RenderTextField
-/// rather than through MudBlazorFieldComponentBase — so it needs its own coverage.
+/// forwards (#189). Written when item fields rendered through CollectionFieldComponent's imperative
+/// RenderTreeBuilder path, which resolved these in its own <c>AddTextInputAttributes</c> rather than
+/// through <c>MudBlazorTextFieldComponent</c> — so it needed coverage of its own. #203 deleted that
+/// path; these now exercise the same component a standalone field uses, and pass unmodified.
 /// <para>
 /// Before #189 the text path never emitted <c>InputType</c>, so a <c>.AsPassword()</c> item field
 /// rendered its characters in clear text on screen while the identical field outside a collection

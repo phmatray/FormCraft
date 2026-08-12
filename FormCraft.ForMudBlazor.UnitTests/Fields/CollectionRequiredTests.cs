@@ -66,8 +66,10 @@ public class CollectionRequiredTests : MudBlazorTestBase
     [Fact]
     public void Required_NumericItemField_Should_Not_Render_The_Html5_Required_Attribute()
     {
-        // Arrange - AddCommonFieldAttributes feeds three renderers (text, numeric and date), so the
-        // numeric one must lose the forward too rather than being fixed only where it was measured.
+        // Arrange - the shared attribute block fed three renderers (text, numeric and date), so the
+        // numeric one had to lose the forward too rather than being fixed only where it was
+        // measured. Since #203 all three resolve it through one component property, so the "three
+        // renderers" are three components reading the same rule.
         var config = FormBuilder<BasketModel>
             .Create()
             .AddCollectionField(x => x.Lines, collection => collection
@@ -119,7 +121,7 @@ public class CollectionRequiredTests : MudBlazorTestBase
     [Fact]
     public void DateItemField_Should_Not_Render_The_Html5_Required_Attribute()
     {
-        // Arrange - MudDatePicker is the THIRD renderer fed by AddCommonFieldAttributes, and it
+        // Arrange - MudDatePicker was the THIRD renderer fed by the shared attribute block, and it
         // derives from MudFormComponent too, so it took the same forward. Its sibling suite covers
         // the date path for adornments (#184); this keeps that parity for Required.
         var config = FormBuilder<AppointmentModel>
@@ -169,10 +171,15 @@ public class CollectionRequiredTests : MudBlazorTestBase
     [Fact]
     public void BooleanItemField_With_An_Explicit_Required_Attribute_Should_Be_Inert()
     {
-        // Arrange - RenderBooleanField sets its own attributes and never calls
-        // AddCommonFieldAttributes, so the opt-in is silently inert here. Pinned rather than fixed,
-        // exactly as CollectionAdornmentTests pins the same inertness for adornments (#184): the
-        // point is that configuring it is harmless, not that it works.
+        // Arrange - MudCheckBox has no Required parameter, and MudBlazorBooleanFieldComponent binds
+        // none, so the opt-in is inert here. Pinned rather than fixed, exactly as
+        // CollectionAdornmentTests pins the same inertness for adornments (#184): the point is that
+        // configuring it is harmless, not that it works.
+        //
+        // Before #203 this was inert because RenderBooleanField was a bespoke renderer that never
+        // called the shared attribute block — inert on the item path while a standalone bool field
+        // was inert for its own separate reason. Both are now the SAME reason, so this can no longer
+        // drift into a divergence the way the adornment case did.
         var config = FormBuilder<BasketModel>
             .Create()
             .AddCollectionField(x => x.Lines, collection => collection
@@ -257,8 +264,8 @@ public class CollectionRequiredTests : MudBlazorTestBase
     public void TextItemField_With_WithNativeRequired_Should_Render_The_Decoration()
     {
         // Arrange & Act - #204. The same opt-in as the raw string above, through the typed method.
-        // Asserted on all three renderers fed by AddCommonFieldAttributes, because the escape hatch
-        // being text-only would be the exact divergence class this library keeps re-filing.
+        // Asserted on all three field kinds that bind Required, because the escape hatch being
+        // text-only would be the exact divergence class this library keeps re-filing.
         var component = RenderOrderForm(BuildConfiguration(field => field.WithNativeRequired()));
 
         // Assert - the component property, and the class MudBlazor's asterisk hangs off.
@@ -316,10 +323,10 @@ public class CollectionRequiredTests : MudBlazorTestBase
     [Fact]
     public void BooleanItemField_With_WithNativeRequired_Should_Be_Inert()
     {
-        // Arrange - RenderBooleanField sets its own attributes and never calls
-        // AddCommonFieldAttributes, so the opt-in is inert here through the typed method exactly as
-        // through the raw string. Pinned rather than fixed, mirroring the adornment inertness test
-        // (#184): the claim is that configuring it is harmless, not that it works.
+        // Arrange - MudBlazorBooleanFieldComponent binds no Required, so the opt-in is inert here
+        // through the typed method exactly as through the raw string. Pinned rather than fixed,
+        // mirroring the adornment inertness test (#184): the claim is that configuring it is
+        // harmless, not that it works. Inert identically on both placements since #203.
         var config = FormBuilder<BasketModel>
             .Create()
             .AddCollectionField(x => x.Lines, collection => collection
