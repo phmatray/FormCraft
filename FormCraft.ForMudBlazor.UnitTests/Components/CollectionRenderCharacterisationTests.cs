@@ -1,3 +1,5 @@
+using FormCraft.ForMudBlazor.UnitTests.Fields;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Components;
 
 /// <summary>
@@ -482,16 +484,6 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
         });
 
         return (host.FindComponent<FormCraftComponent<MixedModel>>(), editContext);
-    }
-
-    private class OrderModel
-    {
-        public List<OrderItem> Items { get; set; } = new();
-    }
-
-    private class OrderItem
-    {
-        public string ProductName { get; set; } = string.Empty;
     }
 
     private class MixedModel
