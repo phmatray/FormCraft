@@ -160,6 +160,39 @@ public class CollectionAdornmentTests : MudBlazorTestBase
         var picker = component.FindComponent<MudDatePicker>().Instance;
         picker.Adornment.ShouldBe(Adornment.End);
         picker.AdornmentIcon.ShouldNotBeNullOrEmpty();
+        picker.AdornmentIcon.ShouldBe(Icons.Material.Filled.Event);
+    }
+
+    [Fact]
+    public void DateItemField_Should_Honour_A_Configured_Adornment()
+    {
+        // Arrange - #217. The date path used to pass `rendersAdornment: false`, so `.WithAdornment(...)`
+        // on a date item field was accepted and silently dropped — the same class of silent discard
+        // #184, #191 and #192 each closed elsewhere. It now forwards a configured adornment while
+        // keeping MudDatePicker's own End + calendar icon as the DEFAULT (pinned above), so the two
+        // cases no longer trade off against each other.
+        var config = FormBuilder<AppointmentModel>
+            .Create()
+            .AddCollectionField(x => x.Slots, collection => collection
+                .WithLabel("Slots")
+                .WithItemForm(item => item
+                    .AddField(x => x.When, field => field
+                        .WithLabel("When")
+                        .WithAttribute("Adornment", Adornment.Start)
+                        .WithAttribute("AdornmentIcon", Icons.Material.Filled.Search)
+                        .WithAttribute("AdornmentColor", Color.Secondary))))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<AppointmentModel>>(parameters => parameters
+            .Add(p => p.Model, new AppointmentModel { Slots = { new AppointmentSlot() } })
+            .Add(p => p.Configuration, config));
+
+        // Assert - the configured adornment wins over MudDatePicker's default.
+        var picker = component.FindComponent<MudDatePicker>().Instance;
+        picker.Adornment.ShouldBe(Adornment.Start);
+        picker.AdornmentIcon.ShouldBe(Icons.Material.Filled.Search);
+        picker.AdornmentColor.ShouldBe(Color.Secondary);
     }
 
     [Fact]

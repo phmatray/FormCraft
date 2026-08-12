@@ -374,11 +374,29 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private void RenderDateTimeField(RenderTreeBuilder builder, IFieldConfiguration<TItem, object> field, DateTime? value, int itemIndex)
     {
         builder.OpenComponent<MudDatePicker>(0);
-        // rendersAdornment: false — MudDatePicker defaults to Adornment.End with its calendar
-        // icon, so forwarding a field's (usually unset) adornment here would silently strip that
-        // icon on every date item field. Out of scope for #184; see the issue's non-goals.
-        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: false,
-            adornmentClick: default);
+        // The date path DOES take the forward now (#217), with MudDatePicker's own defaults supplied
+        // rather than the text/numeric ones.
+        //
+        // It used to pass `rendersAdornment: false`, because MudDatePicker defaults to Adornment.End
+        // with a calendar icon and forwarding a field's usually-unset adornment would have stripped
+        // that icon from every date item field. The cost was that `.WithAdornment(...)` on a date item
+        // field was accepted and silently dropped — the same class of silent discard #184, #191 and
+        // #192 each closed elsewhere.
+        //
+        // Supplying the defaults resolves both: an unconfigured field still renders End + the calendar
+        // icon (measured from MudDatePicker itself, and pinned by
+        // CollectionAdornmentTests.DateItemField_Should_Keep_Its_Calendar_Icon), while a configured
+        // adornment now wins. Crucially the trio is still emitted unconditionally, so the frame layout
+        // stays per-CALL-SITE rather than per-configuration — the invariant the comment below relies on.
+        //
+        // This also settles the ShrinkLabel pairing the issue flagged: the diagnostic is handed the
+        // adornment this path RENDERS, which for a date field is now real. An unconfigured field
+        // reports End, which never conflicts with a floating label; a field that really did configure
+        // a Start adornment now warns, correctly.
+        AddCommonFieldAttributes(builder, field, CommonAttributeStart, rendersAdornment: true,
+            adornmentClick: default,
+            defaultAdornment: Adornment.End,
+            defaultAdornmentIcon: Icons.Material.Filled.Event);
         builder.AddAttribute(CallerAttributeStart, "Date", value);
         builder.AddAttribute(CallerAttributeStart + 1, "DateChanged",
             EventCallback.Factory.Create<DateTime?>(this,
@@ -534,12 +552,22 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// that forwards no handler. It is emitted with the other three adornment attributes so the set
     /// stays together; a callback with no delegate leaves the adornment a plain, inert icon.
     /// </param>
+    /// <param name="defaultAdornment">
+    /// The adornment to render when the field configures none — the target component's own default
+    /// (#217). <see cref="Adornment.None"/> for MudTextField and MudNumericField;
+    /// <see cref="Adornment.End"/> for MudDatePicker, which draws a calendar icon there.
+    /// </param>
+    /// <param name="defaultAdornmentIcon">
+    /// The icon to render when the field configures none, for the same reason.
+    /// </param>
     private void AddCommonFieldAttributes(
         RenderTreeBuilder builder,
         IFieldConfiguration<TItem, object> field,
         int startIndex,
         bool rendersAdornment,
-        EventCallback<MouseEventArgs> adornmentClick)
+        EventCallback<MouseEventArgs> adornmentClick,
+        Adornment defaultAdornment = Adornment.None,
+        string? defaultAdornmentIcon = null)
     {
         builder.AddAttribute(startIndex++, "Label", field.Label);
         builder.AddAttribute(startIndex++, "Placeholder", field.Placeholder);
@@ -563,7 +591,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
 
         // Null on a path that draws no adornment of ours — which the diagnostic below needs to
         // tell apart from "none configured".
-        var adornment = rendersAdornment ? GetItemFieldAdornment(field) : (Adornment?)null;
+        var adornment = rendersAdornment ? GetItemFieldAdornment(field, defaultAdornment) : (Adornment?)null;
 
         // The branch is per-CALL-SITE, not per-configuration: `adornment` is null exactly when the
         // caller passed rendersAdornment: false, so a given renderer always emits the same frames
@@ -573,7 +601,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
         if (adornment is { } rendered)
         {
             builder.AddAttribute(startIndex++, "Adornment", rendered);
-            builder.AddAttribute(startIndex++, "AdornmentIcon", GetItemFieldAttribute<string?>(field, "AdornmentIcon", null));
+            builder.AddAttribute(startIndex++, "AdornmentIcon", GetItemFieldAttribute(field, "AdornmentIcon", defaultAdornmentIcon));
             builder.AddAttribute(startIndex++, "AdornmentColor", GetItemFieldAttribute(field, "AdornmentColor", Color.Default));
 
             // Emitted unconditionally inside the branch, like the three above: the frame layout is
@@ -676,8 +704,10 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// Resolves the adornment position for an item field (#184): the field-level "Adornment"
     /// attribute when present, otherwise none. There is no form-level default for adornments.
     /// </summary>
-    private static Adornment GetItemFieldAdornment(IFieldConfiguration<TItem, object> field)
-        => GetItemFieldAttribute(field, "Adornment", Adornment.None);
+    private static Adornment GetItemFieldAdornment(
+        IFieldConfiguration<TItem, object> field,
+        Adornment fallback)
+        => GetItemFieldAttribute(field, "Adornment", fallback);
 
     /// <summary>
     /// Reads a strongly-typed item-field attribute, returning <paramref name="fallback"/> when it

@@ -316,12 +316,19 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void Should_Not_Warn_About_An_Adornment_On_A_Collection_Date_Item_Field()
+    public void Should_Warn_About_An_Adornment_On_A_Collection_Date_Item_Field()
     {
-        // Arrange - the date path deliberately keeps MudDatePicker's own calendar adornment rather
-        // than taking #184's forward, so a configured start adornment is still dropped there and
-        // ShrinkLabel=false IS honoured. This is #183's rule, now scoped to the one path that still
-        // needs it — the diagnostic must see what each path actually renders, not what was asked.
+        // Arrange - inverted by #217, and the inversion is the point rather than a concession.
+        //
+        // This test used to assert SILENCE, and was right to: the date path passed
+        // `rendersAdornment: false`, so a configured start adornment was dropped and ShrinkLabel=false
+        // really was honoured. #183's rule — the diagnostic must judge what a path RENDERS, not what
+        // was configured — pointed at silence given that behaviour.
+        //
+        // #217 made the date path forward a configured adornment (while keeping MudDatePicker's
+        // calendar icon as the default). The rule has not changed; what the path renders has. A start
+        // adornment is now really drawn, it really does pin the label, and warning is now the correct
+        // answer under exactly the same rule.
         var config = FormBuilder<OrderModel>
             .Create()
             .AddCollectionField(x => x.Items, collection => collection
@@ -346,7 +353,10 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
         });
 
         // Assert
-        _logs.Warnings.ShouldBeEmpty();
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("Ordered on");
+        warnings[0].ShouldContain("Adornment");
     }
 
     [Fact]
