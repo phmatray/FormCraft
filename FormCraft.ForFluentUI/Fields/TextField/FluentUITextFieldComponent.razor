@@ -1,0 +1,28 @@
+@namespace FormCraft.ForFluentUI
+@typeparam TModel
+@inherits FluentUIFieldComponentBase<TModel, string>
+
+@if (Lines > 1)
+{
+    <FluentTextArea @bind-Value="@_localValue"
+                    @bind-Value:after="OnLocalValueChanged"
+                    Label="@Label"
+                    Placeholder="@Placeholder"
+                    Required="@EffectiveNativeRequired"
+                    Disabled="@IsDisabled"
+                    ReadOnly="@IsReadOnly"
+                    Rows="@Lines"
+                    aria-required="@AriaRequired" />
+}
+else
+{
+    <FluentTextInput @bind-Value="@_localValue"
+                     @bind-Value:after="OnLocalValueChanged"
+                     Label="@Label"
+                     Placeholder="@Placeholder"
+                     Required="@EffectiveNativeRequired"
+                     Disabled="@IsDisabled"
+                     ReadOnly="@IsReadOnly"
+                     TextInputType="@InputType"
+                     aria-required="@AriaRequired" />
+}

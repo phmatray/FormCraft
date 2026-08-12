@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!--
+      Fluent UI Blazor v5 is still an RC. MinVer stamps this package with a stable version, and
+      NU5104 flags a stable package that depends on a prerelease one. With TreatWarningsAsErrors
+      (Directory.Build.props) that is a build break, so it is suppressed until v5 goes GA - at which
+      point this line and the pin in Directory.Packages.props come out together.
+    -->
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
+
+    <!-- Package Information -->
+    <PackageId>FormCraft.ForFluentUI</PackageId>
+    <Title>FormCraft for Fluent UI Blazor</Title>
+    <Description>Fluent UI Blazor v5 implementation for FormCraft dynamic forms. Renders your dynamic forms with Microsoft's Fluent design language.</Description>
+    <Authors>phmatray</Authors>
+    <Company>phmatray</Company>
+    <Copyright>Copyright © 2026 phmatray</Copyright>
+
+    <!-- Package URLs -->
+    <PackageProjectUrl>https://github.com/phmatray/FormCraft</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/phmatray/FormCraft</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+
+    <!-- Package Tags -->
+    <PackageTags>blazor;forms;dynamic;fluentui;fluent;ui;form-builder</PackageTags>
+
+    <!-- Additional Package Metadata -->
+    <PackageReleaseNotes>https://github.com/phmatray/FormCraft/releases</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+
+    <!-- Build Settings -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
+    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FormCraft\FormCraft.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Include README and icon in package -->
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="icon.png" Pack="true" PackagePath="\" Condition="Exists('icon.png')" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Versioning and Source Link -->
+    <PackageReference Include="Microsoft.SourceLink.GitHub">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>
