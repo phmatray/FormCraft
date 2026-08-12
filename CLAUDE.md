@@ -249,10 +249,17 @@ public interface IUIFrameworkAdapter
   FormCraft passes it via `UserAttributes` — which lands there because nothing downstream re-emits
   it. Do **not** copy that trick to `MudInput`-based fields: there MudBlazor's own later write always
   wins, which is the whole reason `Required` had to be the mechanism (see `EffectiveNativeRequired`)
-- **File upload is the one deliberate exclusion**, pinned by
-  `AriaRequiredTests.Required_FileUpload_Field_Should_Stay_Unannotated`. Its `<input type="file">`
-  carries `tabindex="-1"` behind a custom drop zone, so annotating it would satisfy a DOM assertion
-  while reaching no user. Needs a label-level answer, not another binding
+- **File upload is covered too, but NOT by the `Required` binding alone** (#262). Its
+  `<input type="file">` carries `tabindex="-1"` behind a custom drop zone, so annotating only that
+  input satisfies a DOM assertion while reaching no user who navigates by focus. Both upload
+  components therefore mark the requirement on two reachable channels: a visible `*` in the field's
+  own `<MudText>` label, and `aria-describedby` on the **Browse** `MudButton` pointing at a
+  visually-hidden description. Shared by `MudBlazorFileUploadComponentBase`, so the single- and
+  multiple-file components cannot drift. `Required` **is** also bound on `MudFileUpload` as
+  belt-and-braces for AT that walks the accessibility tree rather than the tab order — additive
+  only. ⚠️ That binding also puts the bare `mud-input-required` class on MudBlazor's own
+  input-control `<div>`, so a test asserting FormCraft's visible marker must select
+  `span.mud-input-required`; the bare selector would pass with the marker deleted
 
 #### Testing Patterns
 ```csharp

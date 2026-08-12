@@ -338,8 +338,13 @@ public class AriaRequiredTests : MudBlazorTestBase
         // Act
         var component = RenderConfig(config);
 
-        // Assert - the visible marker, in the label FormCraft itself renders
-        component.FindAll(".mud-input-required").ShouldNotBeEmpty();
+        // Assert - the visible marker, in the label FormCraft itself renders.
+        //
+        // `span` is load-bearing, not decoration. Task 3 also binds Required on MudFileUpload, which
+        // puts the bare `mud-input-required` class on MudBlazor's own input-control <div> — so a
+        // selector of `.mud-input-required` alone would pass even with FormCraft's marker deleted,
+        // i.e. it would assert nothing. The <span> is FormCraft's, and only FormCraft's.
+        component.FindAll("span.mud-input-required").ShouldNotBeEmpty();
 
         // Assert - the programmatic association, on the element that actually receives focus
         var browse = component.FindAll(".mud-toolbar button")[0];
@@ -370,8 +375,9 @@ public class AriaRequiredTests : MudBlazorTestBase
         // Act
         var component = RenderConfig(config);
 
-        // Assert - no label, so no visible marker to render...
-        component.FindAll(".mud-input-required").ShouldBeEmpty();
+        // Assert - no label, so no visible marker to render. Scoped to the <span> because MudBlazor's
+        // input-control <div> carries the bare class once Required is bound (see the labelled test).
+        component.FindAll("span.mud-input-required").ShouldBeEmpty();
 
         // ...but the requirement still reaches the element that receives focus
         var browse = component.FindAll(".mud-toolbar button")[0];
@@ -391,7 +397,9 @@ public class AriaRequiredTests : MudBlazorTestBase
 
         var component = RenderConfig(config);
 
-        // Assert - no marker, and no dangling aria-describedby pointing at nothing
+        // Assert - no marker, and no dangling aria-describedby pointing at nothing. The selector is
+        // deliberately the BARE class here: on an optional field neither FormCraft's <span> nor
+        // MudBlazor's input-control <div> may carry it, and asserting both at once is stronger.
         component.FindAll(".mud-input-required").ShouldBeEmpty();
         component.FindAll(".mud-toolbar button")[0].HasAttribute("aria-describedby").ShouldBeFalse();
     }
@@ -412,8 +420,8 @@ public class AriaRequiredTests : MudBlazorTestBase
         // Act
         var component = RenderConfig(config);
 
-        // Assert - the visible marker
-        component.FindAll(".mud-input-required").ShouldNotBeEmpty();
+        // Assert - the visible marker (the <span> is FormCraft's own; see the single-file test)
+        component.FindAll("span.mud-input-required").ShouldNotBeEmpty();
 
         // Assert - and the programmatic association on the focusable button
         var browse = component.FindAll(".mud-toolbar button")[0];
@@ -473,9 +481,86 @@ public class AriaRequiredTests : MudBlazorTestBase
         // Act
         var component = RenderConfig(config);
 
-        // Assert - neither the visible marker nor the announced description
+        // Assert - all THREE channels suppressed: the visible marker, the announced description,
+        // and the belt-and-braces flag on the hidden input. The bare class covers the first two
+        // sources at once (FormCraft's <span> and MudBlazor's input-control <div>).
         component.FindAll(".mud-input-required").ShouldBeEmpty();
         component.FindAll(".mud-toolbar button")[0].HasAttribute("aria-describedby").ShouldBeFalse();
+        component.FindComponent<MudFileUpload<IBrowserFile>>().Instance.Required.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Required_FileUpload_Should_Also_Flag_The_Hidden_Input_As_Belt_And_Braces()
+    {
+        // Arrange - THE DECIDED "also bind Required" QUESTION (#262 Task 3), settled as YES.
+        //
+        // This is deliberately NOT the mechanism the issue relies on: the input it annotates is
+        // opacity-0 and tabindex="-1", so no keyboard or screen-reader user navigating by focus
+        // order ever lands on it. The label marker and the button's aria-describedby remain the
+        // answer. But some assistive technology walks the accessibility TREE rather than the tab
+        // order — a screen reader's forms/controls list is the common case — and for those the flag
+        // on the real input is free extra signal.
+        //
+        // It is safe here for two measured reasons: FormCraft forms render `novalidate` (#206), so
+        // the HTML5 `required` that comes with the flag is inert, and MudFileUpload's own error slot
+        // stays empty (pinned by the sibling test below), so no second message appears.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan").Required("A scan is required"))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert - the flag reached the component, and the attribute reached the element
+        component.FindComponent<MudFileUpload<IBrowserFile>>().Instance.Required.ShouldBeTrue();
+        component.Find("input[type=file]").GetAttribute("aria-required").ShouldBe("true");
+    }
+
+    [Fact]
+    public void Optional_FileUpload_Should_Not_Flag_The_Hidden_Input()
+    {
+        // Arrange & Act - the opt-out and the plain optional field must both leave it alone
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan"))
+            .Build();
+
+        var component = RenderConfig(config);
+
+        // Assert
+        component.FindComponent<MudFileUpload<IBrowserFile>>().Instance.Required.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Blank_Required_FileUpload_Should_Surface_Exactly_One_Message()
+    {
+        // Arrange - the same behavioural risk Blank_Required_Field_Should_Surface_Exactly_One_Message
+        // pins for text fields, re-asked for the field type this issue newly sets the flag on.
+        // MudFormComponent can run a required check of its OWN, differently worded; if binding
+        // Required woke that up, every required upload would report twice.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan").Required("A scan is required"))
+            .Build();
+
+        var component = RenderConfig(config);
+
+        // Act
+        await component.InvokeAsync(() => component.Instance.ValidateAsync());
+
+        // Assert - exactly one error message, and it is the developer's own wording
+        component.WaitForAssertion(() =>
+            component.FindComponents<FieldValidationMessage>()
+                .Single(m => m.Instance.FieldName == nameof(TestModel.Upload))
+                .FindComponents<MudText>()
+                .Count(t => t.Instance.Color == Color.Error)
+                .ShouldBe(1));
+
+        // ...and MudBlazor's own error slot stays empty, so nothing is queued behind it
+        var upload = component.FindComponent<MudFileUpload<IBrowserFile>>().Instance;
+        upload.Error.ShouldBeFalse();
+        upload.ErrorText.ShouldBeNullOrEmpty();
     }
 
     private static Task<IEnumerable<SelectOption<string>>> SearchAsync(
