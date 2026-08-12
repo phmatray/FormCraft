@@ -1,0 +1,190 @@
+/* ==========================================================================
+   FormCraft — design tokens
+
+   Colour discipline:
+     violet  = structure. Headings, primary actions, dark bands, links.
+     bind    = binding + validity ONLY. It marks where a line of C# is tied to
+               the control it produced, and where a field is valid. It is never
+               used for decoration. If you are reaching for it and nothing is
+               being bound or validated, reach for violet instead.
+   ========================================================================== */
+
+:root {
+    /* --- Core ramp (light) ------------------------------------------------ */
+    --fc-ink: #16141F;
+    --fc-ink-soft: #2A2637;
+
+    --fc-violet: #512BD4;          /* the .NET platform violet */
+    --fc-violet-hover: #4423B8;
+    --fc-violet-deep: #2C1866;     /* dark band ground */
+    --fc-violet-wash: #EFEAFC;     /* tint for quiet fills */
+
+    --fc-bind: #14A06B;            /* binding + valid, and nothing else */
+    --fc-bind-wash: #E3F5EE;
+
+    --fc-focus: #7C4DFF;           /* keyboard focus ring, on light or dark */
+
+    --fc-paper: #F5F4F8;           /* page ground */
+    --fc-surface: #FFFFFF;
+    --fc-muted: #6A6580;
+    --fc-rule: #E1DFEA;            /* hairlines */
+
+    /* --- Typography ------------------------------------------------------- */
+    --fc-font-display: 'Bricolage Grotesque', 'Helvetica Neue', sans-serif;
+    --fc-font-body: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --fc-font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+    /* Display sizes clamp so the hero never overflows a phone. */
+    --fc-size-display: clamp(2.4rem, 5.4vw, 4rem);
+    --fc-size-section: clamp(1.75rem, 3vw, 2.5rem);
+    --fc-size-eyebrow: 0.75rem;
+
+    /* --- Spacing rhythm --------------------------------------------------- */
+    --fc-band: clamp(3.5rem, 7vw, 6.5rem);   /* vertical padding between bands */
+    --fc-radius: 10px;
+    --fc-radius-lg: 16px;
+
+    /* --- Code surface (constant across themes: code reads as an artifact) -- */
+    --fc-code-bg: #1B1730;
+    --fc-code-fg: #D9D4EC;
+    --fc-code-dim: #8A82AD;
+    --fc-code-key: #C4A5FF;        /* keywords */
+    --fc-code-type: #7FD8C0;       /* types */
+    --fc-code-call: #FFCF8B;       /* method calls */
+    --fc-code-str: #F5A9B8;        /* strings */
+}
+
+/* Dark theme. MudBlazor stamps .mud-theme-dark on <body>; we also honour a
+   .fc-dark class so plain (non-Mud) markup can be styled before Mud boots. */
+body.mud-theme-dark,
+body.fc-dark {
+    --fc-ink: #E9E6F2;
+    --fc-ink-soft: #C3BEDA;
+
+    --fc-violet: #A78BFA;
+    --fc-violet-hover: #BFA6FF;
+    --fc-violet-deep: #1E1636;
+    --fc-violet-wash: #241C3D;
+
+    --fc-bind: #34D399;
+    --fc-bind-wash: #14301F;
+
+    --fc-focus: #A78BFA;
+
+    --fc-paper: #131120;
+    --fc-surface: #1C1930;
+    --fc-muted: #A29CBD;
+    --fc-rule: #322C4E;
+
+    /* Darker than the page ground so the code panel still reads as its own
+       artifact once the whole site goes dark. */
+    --fc-code-bg: #09070F;
+}
+
+/* ==========================================================================
+   Base typography
+   ========================================================================== */
+
+body {
+    font-family: var(--fc-font-body);
+    font-feature-settings: 'ss01', 'cv05';
+}
+
+.fc-display {
+    font-family: var(--fc-font-display);
+    font-weight: 800;
+    font-variation-settings: 'wdth' 100, 'opsz' 40;
+    letter-spacing: -0.03em;
+    line-height: 0.98;
+    color: var(--fc-ink);
+}
+
+.fc-section-title {
+    font-family: var(--fc-font-display);
+    font-weight: 700;
+    font-size: var(--fc-size-section);
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+    color: var(--fc-ink);
+    margin: 0;
+}
+
+/* Eyebrow: mono, because every label on this site that names a *thing in the
+   API* is set in mono. It is a naming convention, not a texture. */
+.fc-eyebrow {
+    font-family: var(--fc-font-mono);
+    font-size: var(--fc-size-eyebrow);
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--fc-muted);
+    display: block;
+}
+
+.fc-lede {
+    font-family: var(--fc-font-body);
+    font-size: clamp(1rem, 1.6vw, 1.2rem);
+    line-height: 1.55;
+    color: var(--fc-muted);
+    max-width: 46ch;
+}
+
+.fc-mono { font-family: var(--fc-font-mono); }
+
+/* ==========================================================================
+   Quality floor: focus, skip link, motion
+   ========================================================================== */
+
+/* Focus is structure, not validity, so the ring is violet — green stays reserved
+   for bindings. --fc-focus is a brighter violet than --fc-violet so one value
+   clears 3:1 against both the page ground and the dark code panel.
+
+   MudBlazor ships `button:focus { outline: none }` at (0,1,1); a bare
+   `:focus-visible` at (0,1,0) loses to it, which left buttons with no visible
+   focus at all. The element-qualified selectors below match or beat it. */
+:focus-visible,
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible,
+.mud-button-root:focus-visible,
+.mud-nav-link:focus-visible,
+.mud-icon-button:focus-visible,
+.mud-tab:focus-visible {
+    outline: 2px solid var(--fc-focus);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+.fc-skip-link {
+    position: absolute;
+    left: 8px;
+    top: -60px;
+    z-index: 2000;
+    padding: 0.65rem 1.1rem;
+    background: var(--fc-violet);
+    color: #fff;
+    font-family: var(--fc-font-mono);
+    font-size: 0.8rem;
+    border-radius: var(--fc-radius);
+    text-decoration: none;
+    transition: top 0.15s ease;
+}
+
+.fc-skip-link:focus {
+    top: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}

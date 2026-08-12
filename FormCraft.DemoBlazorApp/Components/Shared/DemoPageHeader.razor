@@ -1,11 +1,13 @@
 @namespace FormCraft.DemoBlazorApp.Components.Shared
 
-<PageTitle>@Title</PageTitle>
+<PageTitle>@Title — FormCraft</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true" Class="mb-2">
-    <MudIcon Icon="@Icon" Style="vertical-align: middle; font-size: 3rem" />
-    @Title
-</MudText>
-<MudText Typo="Typo.body1" GutterBottom="true" Class="mb-6">
-    @Description
-</MudText>
+<header class="fc-demo-head">
+    <div class="fc-demo-head__icon" aria-hidden="true">
+        <MudIcon Icon="@Icon" />
+    </div>
+    <div>
+        <h1 class="fc-demo-head__title">@Title</h1>
+        <p class="fc-demo-head__desc">@Description</p>
+    </div>
+</header>

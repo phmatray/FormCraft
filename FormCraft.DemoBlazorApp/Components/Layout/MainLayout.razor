@@ -1,100 +1,103 @@
 @inherits LayoutComponentBase
+@using FormCraft.DemoBlazorApp.Components.Shared.Navigation
 @inject IVersionService VersionService
 @inject IDemoRegistry DemoRegistry
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <MudThemeProvider Theme="_theme" IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
+<a class="fc-skip-link" href="#main-content">Skip to content</a>
+
 <MudLayout>
-    <MudAppBar Elevation="1" Dense="false">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
-        <MudLink Class="d-flex align-center" Style="text-decoration: none; color: inherit; cursor: pointer;" @onclick="NavigateToHome">
-            <MudIcon Icon="@Icons.Material.Filled.DynamicForm" Class="ml-3 me-2" Size="Size.Large" Style="color: white;" />
-            <MudText Typo="Typo.h5" Class="font-weight-bold" Style="color: white;">
-                FormCraft
-            </MudText>
+    <MudAppBar Elevation="0" Dense="false" Class="fc-appbar">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                       Color="Color.Inherit"
+                       Edge="Edge.Start"
+                       aria-label="Toggle navigation"
+                       OnClick="@ToggleDrawer" />
+
+        <MudLink Class="d-flex align-center ml-2 me-2"
+                 Style="text-decoration: none; cursor: pointer;"
+                 @onclick="NavigateToHome">
+            <span class="fc-wordmark">FormCraft</span>
         </MudLink>
-        <MudChip T="string" Text="@($"v{_version}")" Size="Size.Small" Color="Color.Primary" Class="ml-2 mt-1" />
+        <span class="fc-version">v@_version</span>
+
         <MudSpacer />
-        
-        <MudTooltip Text="Toggle light/dark mode">
-            <MudIconButton
-                Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
-                Color="Color.Inherit" 
-                OnClick="@ToggleTheme" />
+
+        <button type="button" class="fc-search-trigger" @onclick="OpenPaletteFromToolbar">
+            <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" />
+            <span class="fc-search-trigger__label">Search demos</span>
+            <kbd class="fc-kbd">⌘K</kbd>
+        </button>
+
+        <MudTooltip Text="@(_isDarkMode ? "Switch to light theme" : "Switch to dark theme")">
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                           Color="Color.Inherit"
+                           aria-label="@(_isDarkMode ? "Switch to light theme" : "Switch to dark theme")"
+                           Class="ml-1"
+                           OnClick="@ToggleTheme" />
         </MudTooltip>
-        
-        <MudDivider Vertical="true" FlexItem="true" Class="mx-2 my-2" />
-        
-        <MudButton
-            Variant="Variant.Text" 
-            Color="Color.Inherit" 
-            StartIcon="@Icons.Material.Filled.MenuBook"
-            Href="docs/getting-started">
-            Docs
-        </MudButton>
-        
-        <MudButton
-            Variant="Variant.Text" 
-            Color="Color.Inherit" 
-            StartIcon="@Icons.Custom.Brands.GitHub" 
-            Href="https://github.com/phmatray/FormCraft" 
-            Target="_blank">
-            GitHub
-        </MudButton>
-        
-        <MudButton
-            Variant="Variant.Filled" 
-            Color="Color.Primary" 
-            StartIcon="@Icons.Material.Filled.GetApp"
-            Href="https://www.nuget.org/packages/FormCraft"
-            Target="_blank"
-            Class="ml-2">
-            Get Started
+
+        <MudTooltip Text="FormCraft on GitHub">
+            <MudIconButton Icon="@Icons.Custom.Brands.GitHub"
+                           Color="Color.Inherit"
+                           aria-label="FormCraft on GitHub"
+                           Href="https://github.com/phmatray/FormCraft"
+                           Target="_blank" />
+        </MudTooltip>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Href="docs/getting-started"
+                   Class="ml-2 d-none d-sm-flex">
+            Get started
         </MudButton>
     </MudAppBar>
-    
-    <MudDrawer @bind-Open="@_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Breakpoint="Breakpoint.Md" Variant="DrawerVariant.Responsive">
+
+    <MudDrawer @bind-Open="@_drawerOpen"
+               ClipMode="DrawerClipMode.Always"
+               Elevation="0"
+               Breakpoint="Breakpoint.Md"
+               Variant="DrawerVariant.Responsive"
+               Class="fc-drawer">
         <MudNavMenu>
-            <MudNavLink Href="home" Icon="@Icons.Material.Filled.Home">
-                Welcome
+            <MudNavLink Href="home" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
+                Overview
             </MudNavLink>
 
-            <MudNavGroup Title="Demos" Icon="@Icons.Material.Filled.Dashboard" Expanded="true">
-                @foreach (var level in _levels)
-                {
-                    var levelInfo = DemoRegistry.GetLevelInfo(level);
-                    var demos = DemoRegistry.GetDemosByLevel(level);
+            @foreach (var level in _levels)
+            {
+                var levelInfo = DemoRegistry.GetLevelInfo(level);
+                var demos = DemoRegistry.GetDemosByLevel(level);
 
-                    <MudNavGroup Title="@levelInfo.Name" Icon="@levelInfo.Icon" Expanded="@(level == Services.DemoRegistry.Levels.Beginner)">
-                        <div class="d-flex align-center mb-1 px-4">
-                            <MudChip T="string" Size="Size.Small" Color="@levelInfo.Color" Class="me-2">@demos.Count demos</MudChip>
-                            <MudText Typo="Typo.caption" Class="text-muted">@GetLevelSubtitle(level)</MudText>
-                        </div>
-                        @foreach (var demo in demos)
-                        {
-                            <MudNavLink Href="@demo.Id" Icon="@demo.Icon">
-                                <div class="d-flex align-center">
-                                    <span>@demo.Title</span>
-                                    @if (demo.IsLevelEntryPoint && level == Services.DemoRegistry.Levels.Beginner)
-                                    {
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="ms-2" Style="font-size: 0.65rem; height: 18px;">START</MudChip>
-                                    }
-                                    else if (demo.IsLevelEntryPoint)
-                                    {
-                                        <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Color="@levelInfo.Color" Class="ms-2" />
-                                    }
-                                </div>
-                            </MudNavLink>
-                        }
-                    </MudNavGroup>
-                }
-            </MudNavGroup>
+                <MudNavGroup Title="@levelInfo.Name"
+                             Icon="@levelInfo.Icon"
+                             Expanded="@(level == Services.DemoRegistry.Levels.Beginner)">
+                    <div class="fc-drawer-heading">
+                        <span class="fc-drawer-heading__sub">@GetLevelSubtitle(level)</span>
+                        <span class="fc-drawer-heading__count">@demos.Count</span>
+                    </div>
+                    @foreach (var demo in demos)
+                    {
+                        <MudNavLink Href="@demo.Id" Icon="@demo.Icon">
+                            <div class="d-flex align-center justify-space-between" style="gap: .5rem;">
+                                <span>@demo.Title</span>
+                                @if (demo.IsLevelEntryPoint && level == Services.DemoRegistry.Levels.Beginner)
+                                {
+                                    <span class="fc-start-tag">Start</span>
+                                }
+                            </div>
+                        </MudNavLink>
+                    }
+                </MudNavGroup>
+            }
 
-            <MudNavGroup Title="Documentation" Icon="@Icons.Material.Filled.MenuBook" Expanded="true">
+            <MudNavGroup Title="Documentation" Icon="@Icons.Material.Filled.MenuBook" Expanded="false">
                 @foreach (var doc in DemoRegistry.GetDemosByCategory("documentation"))
                 {
                     <MudNavLink Href="@doc.Id" Icon="@doc.Icon">
@@ -104,35 +107,41 @@
             </MudNavGroup>
         </MudNavMenu>
     </MudDrawer>
-    
+
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="my-4">
+        <div id="main-content" tabindex="-1">
             @Body
-        </MudContainer>
-        
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-4">
-            <MudDivider />
-            <div class="d-flex justify-center align-center py-4">
-                <MudText Typo="Typo.body2" Align="Align.Center" Class="text-muted">
-                    Made with <MudIcon Icon="@Icons.Material.Filled.Favorite" Size="Size.Small" Color="Color.Error" Style="vertical-align: middle;" /> for Blazor
-                </MudText>
-            </div>
-        </MudContainer>
+        </div>
+
+        <footer class="fc-footer">
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+                <div class="fc-footer__inner">
+                    <div>
+                        <div class="fc-footer__mark">FormCraft</div>
+                        <div class="fc-footer__meta">v@_version · MIT · net8.0 · net10.0</div>
+                    </div>
+                    <nav class="fc-footer__links" aria-label="Footer">
+                        <a href="docs/getting-started">Documentation</a>
+                        <a href="https://github.com/phmatray/FormCraft" target="_blank" rel="noopener">GitHub</a>
+                        <a href="https://www.nuget.org/packages/FormCraft" target="_blank" rel="noopener">NuGet</a>
+                        <a href="https://github.com/phmatray/FormCraft/issues" target="_blank" rel="noopener">Report an issue</a>
+                    </nav>
+                </div>
+            </MudContainer>
+        </footer>
     </MudMainContent>
 
     <MudScrollToTop>
-        <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.KeyboardArrowUp" />
+        <MudFab Color="Color.Primary"
+                StartIcon="@Icons.Material.Filled.KeyboardArrowUp"
+                aria-label="Back to top" />
     </MudScrollToTop>
 </MudLayout>
+
+<CommandPalette @bind-Open="_paletteOpen" />
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
-
-<style>
-    .text-muted {
-        opacity: 0.7;
-    }
-</style>

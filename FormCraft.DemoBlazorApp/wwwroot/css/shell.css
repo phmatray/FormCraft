@@ -1,0 +1,366 @@
+/* ==========================================================================
+   FormCraft — app chrome: app bar, drawer, command palette, footer
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   App bar
+   -------------------------------------------------------------------------- */
+
+.fc-appbar .mud-toolbar {
+    gap: 0.35rem;
+}
+
+.fc-wordmark {
+    font-family: var(--fc-font-display);
+    font-weight: 800;
+    font-size: 1.35rem;
+    letter-spacing: -0.03em;
+    color: #F5F4F8;
+    line-height: 1;
+    text-decoration: none;
+}
+
+/* The version sits in mono, like every other API-shaped label on the site. */
+.fc-version {
+    font-family: var(--fc-font-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #A29CBD;
+    padding: 0.15rem 0.4rem;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 5px;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+/* Search trigger doubles as the shortcut's discoverability: the hint is the
+   affordance, so nobody has to guess that Cmd+K exists. */
+.fc-search-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 210px;
+    padding: 0.4rem 0.5rem 0.4rem 0.7rem;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    color: #A29CBD;
+    font-family: var(--fc-font-body);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.fc-search-trigger:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.26);
+    color: #E9E6F2;
+}
+
+.fc-search-trigger__label {
+    flex: 1;
+    text-align: left;
+}
+
+.fc-kbd {
+    font-family: var(--fc-font-mono);
+    font-size: 0.68rem;
+    line-height: 1;
+    padding: 0.25rem 0.35rem;
+    border-radius: 4px;
+    border: 1px solid var(--fc-rule);
+    background: var(--fc-paper);
+    color: var(--fc-muted);
+    white-space: nowrap;
+}
+
+.fc-search-trigger .fc-kbd {
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.06);
+    color: #A29CBD;
+}
+
+@media (max-width: 900px) {
+    .fc-search-trigger { min-width: 0; }
+    .fc-search-trigger__label,
+    .fc-search-trigger .fc-kbd { display: none; }
+    .fc-search-trigger { padding: 0.45rem; }
+}
+
+/* --------------------------------------------------------------------------
+   Drawer
+   -------------------------------------------------------------------------- */
+
+.fc-drawer .mud-navmenu .mud-nav-link {
+    font-size: 0.875rem;
+    border-radius: 8px;
+    margin: 1px 8px;
+    min-height: 38px;
+}
+
+.fc-drawer .mud-navmenu .mud-nav-link.active {
+    background: var(--fc-violet-wash);
+    color: var(--fc-violet);
+    font-weight: 600;
+}
+
+/* The active page gets a solid violet marker on the leading edge — one page is
+   current, and it should be findable without reading. */
+.fc-drawer .mud-navmenu .mud-nav-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--fc-violet);
+}
+
+.fc-drawer-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.35rem 1.25rem 0.5rem;
+}
+
+.fc-drawer-heading__sub {
+    font-family: var(--fc-font-body);
+    font-size: 0.78rem;
+    color: var(--fc-muted);
+}
+
+.fc-drawer-heading__count {
+    font-family: var(--fc-font-mono);
+    font-size: 0.7rem;
+    color: var(--fc-muted);
+}
+
+/* "Start here" marker on the recommended first demo. */
+.fc-start-tag {
+    font-family: var(--fc-font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    background: var(--fc-bind-wash);
+    color: var(--fc-bind);
+    border: 1px solid color-mix(in srgb, var(--fc-bind) 35%, transparent);
+    white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   Command palette
+   -------------------------------------------------------------------------- */
+
+.fc-palette {
+    width: min(640px, calc(100vw - 2rem));
+    max-height: min(560px, calc(100vh - 8rem));
+    margin: 0 auto;
+    position: fixed;
+    top: 12vh;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    background: var(--fc-surface);
+    border: 1px solid var(--fc-rule);
+    border-radius: var(--fc-radius-lg);
+    box-shadow: 0 24px 60px -12px rgba(22, 20, 31, 0.35);
+    overflow: hidden;
+}
+
+.fc-palette__search {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--fc-rule);
+    flex-shrink: 0;
+}
+
+.fc-palette__search-icon {
+    color: var(--fc-muted);
+    flex-shrink: 0;
+}
+
+.fc-palette__input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: var(--fc-font-body);
+    font-size: 1rem;
+    color: var(--fc-ink);
+    min-width: 0;
+}
+
+.fc-palette__input::placeholder {
+    color: var(--fc-muted);
+}
+
+.fc-palette__results {
+    overflow-y: auto;
+    padding: 0.5rem 0;
+    flex: 1;
+}
+
+.fc-palette__group-label {
+    font-family: var(--fc-font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--fc-muted);
+    padding: 0.65rem 1rem 0.35rem;
+}
+
+.fc-palette__row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.55rem 1rem;
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--fc-ink);
+    border-left: 3px solid transparent;
+}
+
+.fc-palette__row.is-selected {
+    background: var(--fc-violet-wash);
+    border-left-color: var(--fc-violet);
+}
+
+.fc-palette__row-icon {
+    color: var(--fc-muted);
+    flex-shrink: 0;
+}
+
+.fc-palette__row.is-selected .fc-palette__row-icon {
+    color: var(--fc-violet);
+}
+
+.fc-palette__row-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.fc-palette__row-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.fc-palette__row-desc {
+    font-size: 0.78rem;
+    color: var(--fc-muted);
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fc-palette__row-level {
+    font-family: var(--fc-font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fc-muted);
+    flex-shrink: 0;
+}
+
+.fc-palette__empty {
+    padding: 1.75rem 1rem;
+    text-align: center;
+    color: var(--fc-muted);
+    font-size: 0.875rem;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.fc-palette__empty .fc-mono {
+    color: var(--fc-ink);
+}
+
+.fc-palette__footer {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 1rem;
+    border-top: 1px solid var(--fc-rule);
+    font-size: 0.72rem;
+    color: var(--fc-muted);
+    flex-shrink: 0;
+}
+
+.fc-palette__footer .fc-kbd {
+    margin-right: 0.2rem;
+}
+
+.fc-palette__count {
+    margin-left: auto;
+    font-family: var(--fc-font-mono);
+}
+
+@media (max-width: 600px) {
+    .fc-palette { top: 4vh; max-height: calc(100vh - 6rem); }
+    .fc-palette__footer span:not(.fc-palette__count) { display: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+
+/* No top margin: every page already ends with its own band padding, and adding
+   another gap here left a dead strip above the footer. */
+.fc-footer {
+    border-top: 1px solid var(--fc-rule);
+    padding: 2rem 0 2.5rem;
+}
+
+.fc-footer__inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2rem;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+.fc-footer__mark {
+    font-family: var(--fc-font-display);
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: -0.02em;
+    color: var(--fc-ink);
+}
+
+.fc-footer__meta {
+    font-family: var(--fc-font-mono);
+    font-size: 0.75rem;
+    color: var(--fc-muted);
+}
+
+.fc-footer__links {
+    display: flex;
+    gap: 1.25rem;
+    font-size: 0.82rem;
+}
+
+.fc-footer__links a {
+    color: var(--fc-muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+}
+
+.fc-footer__links a:hover {
+    color: var(--fc-violet);
+    border-bottom-color: var(--fc-violet);
+}

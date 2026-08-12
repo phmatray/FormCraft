@@ -1,0 +1,383 @@
+/* ==========================================================================
+   FormCraft — home page
+   ========================================================================== */
+
+.fc-page { max-width: 1240px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2.5rem); }
+
+.fc-band { padding-block: var(--fc-band); }
+
+.fc-band--tint {
+    background: var(--fc-violet-wash);
+    border-block: 1px solid var(--fc-rule);
+}
+
+/* --------------------------------------------------------------------------
+   Hero
+   -------------------------------------------------------------------------- */
+
+.fc-hero { padding-top: clamp(2.5rem, 5vw, 4.5rem); padding-bottom: 0; }
+
+.fc-hero__intro { margin-bottom: clamp(2rem, 4vw, 3rem); }
+
+/* 26ch lets each clause hold its own line at the largest size, so the headline
+   reads as two statements rather than four ragged fragments. */
+.fc-hero__title {
+    font-family: var(--fc-font-display);
+    font-weight: 800;
+    font-size: var(--fc-size-display);
+    letter-spacing: -0.035em;
+    line-height: 0.98;
+    color: var(--fc-ink);
+    margin: 0.75rem 0 1.25rem;
+    max-width: 26ch;
+}
+
+/* The second clause is the payoff, so it carries the platform colour. */
+.fc-hero__title em {
+    font-style: normal;
+    color: var(--fc-violet);
+    display: block;
+}
+
+.fc-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.75rem;
+}
+
+/* Install line: the first thing an evaluating developer copies. */
+.fc-install {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+    background: var(--fc-surface);
+    border: 1px solid var(--fc-rule);
+    border-radius: var(--fc-radius);
+    font-family: var(--fc-font-mono);
+    font-size: 0.82rem;
+    color: var(--fc-ink);
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.fc-install__prompt { color: var(--fc-muted); user-select: none; }
+
+.fc-install button { flex-shrink: 0; }
+
+/* --------------------------------------------------------------------------
+   The binding — the one thing this page is remembered by
+   -------------------------------------------------------------------------- */
+
+.fc-binding {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: 0;
+    border: 1px solid var(--fc-rule);
+    border-radius: var(--fc-radius-lg);
+    overflow: hidden;
+    background: var(--fc-surface);
+    box-shadow: 0 18px 44px -24px rgba(22, 20, 31, 0.28);
+}
+
+.fc-binding__panel { display: flex; flex-direction: column; min-width: 0; }
+
+.fc-binding__panel--render { border-left: 1px solid var(--fc-rule); }
+
+.fc-binding__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.8rem 1.1rem;
+    border-bottom: 1px solid var(--fc-rule);
+    min-height: 46px;
+}
+
+/* Code panel keeps its dark ground in both themes: code is an artifact, and it
+   should look the same here as it does in an editor. */
+.fc-binding__panel:first-child { background: var(--fc-code-bg); }
+.fc-binding__panel:first-child .fc-binding__head { border-bottom-color: rgba(255, 255, 255, 0.09); }
+.fc-binding__panel:first-child .fc-eyebrow { color: var(--fc-code-dim); }
+
+.fc-code {
+    padding: 1.1rem 0;
+    font-family: var(--fc-font-mono);
+    font-size: 0.83rem;
+    line-height: 1.85;
+    color: var(--fc-code-fg);
+    overflow-x: auto;
+    flex: 1;
+}
+
+.fc-code-line {
+    padding: 0 1.1rem;
+    white-space: pre;
+    border-left: 3px solid transparent;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.fc-code-line--field { cursor: default; }
+
+.fc-code-indent { color: transparent; }
+
+.t-key  { color: var(--fc-code-key); }
+.t-type { color: var(--fc-code-type); }
+.t-call { color: var(--fc-code-call); }
+.t-str  { color: var(--fc-code-str); }
+.t-prop { color: var(--fc-code-fg); }
+
+/* The tie. Green here means exactly one thing: this line and that control are
+   the same field. The identical mark appears on both sides at once. */
+.fc-code-line.is-bound {
+    background: rgba(52, 211, 153, 0.1);
+    border-left-color: var(--fc-bind);
+}
+
+.fc-binding__render {
+    padding: 1.25rem 1.1rem;
+    flex: 1;
+    background: var(--fc-surface);
+}
+
+/* Light up the control belonging to the hovered line. FormCraft renders each
+   field as a direct child of the form, in chain order, so position is the tie. */
+.fc-binding__render form > div {
+    border-left: 3px solid transparent;
+    padding-left: 0.6rem;
+    margin-left: -0.9rem;
+    border-radius: 2px;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.fc-binding[data-active-index="1"] .fc-binding__render form > div:nth-of-type(1),
+.fc-binding[data-active-index="2"] .fc-binding__render form > div:nth-of-type(2),
+.fc-binding[data-active-index="3"] .fc-binding__render form > div:nth-of-type(3),
+.fc-binding[data-active-index="4"] .fc-binding__render form > div:nth-of-type(4),
+.fc-binding[data-active-index="5"] .fc-binding__render form > div:nth-of-type(5) {
+    background: var(--fc-bind-wash);
+    border-left-color: var(--fc-bind);
+}
+
+/* The one orchestrated moment: a new line and its new control flash together. */
+@keyframes fcBindFlash {
+    0%, 100% { background-color: transparent; }
+    30%      { background-color: rgba(52, 211, 153, 0.22); }
+}
+
+.fc-code-line.is-new { animation: fcBindFlash 0.9s ease-out; }
+
+/* Toggles */
+.fc-binding__toggles {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.85rem 1.1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.fc-binding__toggles-label {
+    font-family: var(--fc-font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--fc-code-dim);
+    margin-right: 0.35rem;
+}
+
+.fc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: transparent;
+    color: var(--fc-code-dim);
+    font-family: var(--fc-font-body);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.fc-chip:hover { color: #FFF; border-color: rgba(255, 255, 255, 0.4); }
+
+.fc-chip.is-on {
+    color: var(--fc-bind);
+    border-color: color-mix(in srgb, var(--fc-bind) 55%, transparent);
+    background: rgba(52, 211, 153, 0.1);
+}
+
+.fc-chip__mark { font-family: var(--fc-font-mono); font-weight: 600; }
+
+.fc-valid-tag {
+    font-family: var(--fc-font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fc-bind);
+    padding: 0.15rem 0.45rem;
+    border: 1px solid color-mix(in srgb, var(--fc-bind) 40%, transparent);
+    border-radius: 4px;
+}
+
+@media (max-width: 900px) {
+    .fc-binding { grid-template-columns: minmax(0, 1fr); }
+    .fc-binding__panel--render { border-left: none; border-top: 1px solid var(--fc-rule); }
+}
+
+/* --------------------------------------------------------------------------
+   Spec strip — verified package facts, not a gradient of round numbers
+   -------------------------------------------------------------------------- */
+
+.fc-spec {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2.25rem;
+    padding: 1.1rem 0 0;
+    margin-top: 1.5rem;
+    border-top: 1px solid var(--fc-rule);
+    font-family: var(--fc-font-mono);
+    font-size: 0.78rem;
+    color: var(--fc-muted);
+}
+
+.fc-spec__item { display: flex; align-items: baseline; gap: 0.5rem; }
+
+.fc-spec__value { color: var(--fc-ink); font-weight: 500; }
+
+/* --------------------------------------------------------------------------
+   Capability list — replaces six identical cards with a scannable table
+   -------------------------------------------------------------------------- */
+
+.fc-section-head { max-width: 60ch; margin-bottom: clamp(1.75rem, 3vw, 2.75rem); }
+
+.fc-section-head .fc-lede { margin-top: 0.75rem; }
+
+.fc-caps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0;
+    border-top: 1px solid var(--fc-rule);
+}
+
+.fc-cap {
+    display: block;
+    padding: 1.5rem 1.5rem 1.5rem 0;
+    border-bottom: 1px solid var(--fc-rule);
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    transition: background-color 0.18s ease;
+}
+
+.fc-cap:hover { background: var(--fc-violet-wash); }
+
+.fc-cap:hover .fc-cap__title { color: var(--fc-violet); }
+
+.fc-cap__api {
+    font-family: var(--fc-font-mono);
+    font-size: 0.75rem;
+    color: var(--fc-violet);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.fc-cap__title {
+    font-family: var(--fc-font-body);
+    font-size: 1.02rem;
+    font-weight: 600;
+    color: var(--fc-ink);
+    margin: 0 0 0.35rem;
+    line-height: 1.3;
+    transition: color 0.18s ease;
+}
+
+.fc-cap__body {
+    font-size: 0.875rem;
+    color: var(--fc-muted);
+    line-height: 1.55;
+    margin: 0;
+    max-width: 40ch;
+}
+
+/* Rules on every cell, not just the container's edge, so the columns read as a
+   table of capabilities rather than a set of floating paragraphs. */
+@media (min-width: 700px) {
+    .fc-cap { padding-left: 1.5rem; border-left: 1px solid var(--fc-rule); }
+}
+
+/* --------------------------------------------------------------------------
+   Quick start — numbered, because installing really is a sequence
+   -------------------------------------------------------------------------- */
+
+.fc-steps { display: grid; gap: 1px; background: var(--fc-rule); border: 1px solid var(--fc-rule); border-radius: var(--fc-radius-lg); overflow: hidden; }
+
+.fc-step {
+    display: grid;
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+    gap: 0 1rem;
+    padding: 1.5rem;
+    background: var(--fc-surface);
+    align-items: start;
+}
+
+.fc-step__num {
+    font-family: var(--fc-font-mono);
+    font-size: 0.8rem;
+    color: var(--fc-violet);
+    padding-top: 0.15rem;
+}
+
+.fc-step__title {
+    font-family: var(--fc-font-body);
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0 0 0.75rem;
+    color: var(--fc-ink);
+}
+
+.fc-step pre {
+    margin: 0;
+    padding: 0.85rem 1rem;
+    background: var(--fc-code-bg);
+    color: var(--fc-code-fg);
+    border-radius: var(--fc-radius);
+    font-family: var(--fc-font-mono);
+    font-size: 0.8rem;
+    line-height: 1.7;
+    overflow-x: auto;
+}
+
+@media (max-width: 600px) {
+    .fc-step { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+}
+
+/* --------------------------------------------------------------------------
+   Closing call to action
+   -------------------------------------------------------------------------- */
+
+.fc-cta {
+    background: var(--fc-violet-deep);
+    border-radius: var(--fc-radius-lg);
+    padding: clamp(2.25rem, 5vw, 3.5rem);
+    color: #F5F4F8;
+}
+
+.fc-cta__title {
+    font-family: var(--fc-font-display);
+    font-weight: 800;
+    font-size: clamp(1.75rem, 3.4vw, 2.6rem);
+    letter-spacing: -0.028em;
+    line-height: 1.05;
+    margin: 0 0 0.85rem;
+    color: #FFF;
+    max-width: 20ch;
+}
+
+.fc-cta__body { color: #C3BEDA; max-width: 52ch; margin: 0 0 1.75rem; line-height: 1.6; }
+
+.fc-cta__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }

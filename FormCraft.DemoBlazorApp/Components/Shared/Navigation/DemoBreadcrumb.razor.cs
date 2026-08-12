@@ -12,7 +12,6 @@ public partial class DemoBreadcrumb
 
     private List<BreadcrumbItem> _items = new();
     private DemoMetadata? _currentDemo;
-    private (string Name, string Icon, Color Color)? _levelInfo;
 
     protected override void OnParametersSet()
     {
@@ -23,7 +22,6 @@ public partial class DemoBreadcrumb
     {
         _items.Clear();
         _currentDemo = null;
-        _levelInfo = null;
 
         // Always start with Home
         _items.Add(new BreadcrumbItem("Home", "home", icon: Icons.Material.Filled.Home));
@@ -41,12 +39,8 @@ public partial class DemoBreadcrumb
         var categoryName = DemoRegistry.GetCategoryDisplayName(demo.Category);
         _items.Add(new BreadcrumbItem(categoryName, null, disabled: true));
 
-        // For form examples, add the level
-        if (demo.Category == "form-examples" && !string.IsNullOrEmpty(demo.Level))
-        {
-            _levelInfo = DemoRegistry.GetLevelInfo(demo.Level);
-            _items.Add(new BreadcrumbItem(_levelInfo.Value.Name, null, disabled: true));
-        }
+        // The level is deliberately not a crumb: the LevelMeter beside the trail already
+        // states it, and carrying both made the same word appear twice on one line.
 
         // Add current demo (no link since we're on it)
         _items.Add(new BreadcrumbItem(demo.Title, null, disabled: true));
