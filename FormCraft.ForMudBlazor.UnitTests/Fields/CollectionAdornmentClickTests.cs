@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components.Web;
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
@@ -61,6 +62,9 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
         var config = BuildConfiguration(field => field
             .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, onClick: received.Add));
 
+        // Two rows: the fixture's factories seed a single item, and a second row is this test's own
+        // requirement rather than a shape other suites share, so it is built here from the fixture's
+        // models rather than added to the fixture.
         var model = new OrderModel
         {
             Items =
@@ -70,9 +74,7 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
             },
         };
 
-        var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
+        var component = this.RenderItemForm(model, config);
 
         // Act - click the second row's adornment
         component.FindAll(AdornmentButton)[1].Click();
@@ -116,21 +118,12 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
         // Arrange - WithAdornment is declared on string fields only, so a numeric item field has no
         // handler to forward. Rendering its adornment must not throw or invent one (#191 tracks
         // numeric adornment support in its own right).
-        var config = FormBuilder<BasketModel>
-            .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.Quantity, field => field
-                        .WithLabel("Quantity")
-                        .WithAttribute("Adornment", Adornment.End)
-                        .WithAttribute("AdornmentIcon", Icons.Material.Filled.Numbers))))
-            .Build();
+        var config = NumericItemForm(field => field
+            .WithAttribute("Adornment", Adornment.End)
+            .WithAttribute("AdornmentIcon", Icons.Material.Filled.Numbers));
 
         // Act
-        var component = Render<FormCraftComponent<BasketModel>>(parameters => parameters
-            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
-            .Add(p => p.Configuration, config));
+        var component = this.RenderItemForm(NewBasket(), config);
 
         // Assert
         var numeric = component.FindComponent<MudNumericField<int>>().Instance;
@@ -157,50 +150,17 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
         textField.OnAdornmentClick.HasDelegate.ShouldBeFalse();
     }
 
+    /// <summary>
+    /// Renders the fixture's text item form (#205) seeded with <paramref name="productName"/>. The
+    /// seed is a per-test choice here — one test types over it, another asserts the handler receives
+    /// it — so it stays an explicit parameter rather than a default.
+    /// </summary>
     private IRenderedComponent<FormCraftComponent<OrderModel>> RenderOrderForm(
         IFormConfiguration<OrderModel> config,
-        string productName)
-    {
-        var model = new OrderModel { Items = { new OrderItem { ProductName = productName } } };
-
-        return Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
-    }
+        string productName) =>
+        this.RenderItemForm(NewOrder(productName), config);
 
     private static IFormConfiguration<OrderModel> BuildConfiguration(
-        Action<FieldBuilder<OrderItem, string>> configureItemField)
-    {
-        return FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.ProductName, field =>
-                    {
-                        field.WithLabel("Product");
-                        configureItemField(field);
-                    })))
-            .Build();
-    }
-
-    private class OrderModel
-    {
-        public List<OrderItem> Items { get; set; } = new();
-    }
-
-    private class OrderItem
-    {
-        public string ProductName { get; set; } = string.Empty;
-    }
-
-    private class BasketModel
-    {
-        public List<BasketLine> Lines { get; set; } = new();
-    }
-
-    private class BasketLine
-    {
-        public int Quantity { get; set; }
-    }
+        Action<FieldBuilder<OrderItem, string>> configureItemField) =>
+        TextItemForm(configureItemField);
 }

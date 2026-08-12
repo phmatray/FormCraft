@@ -1,3 +1,6 @@
+using FormCraft.ForMudBlazor.UnitTests.Fields;
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Components;
 
 /// <summary>
@@ -12,7 +15,7 @@ public class CollectionFieldEditContextTests : MudBlazorTestBase
     public void Editing_Item_Field_Should_Mark_Nested_FieldIdentifier_As_Modified()
     {
         // Arrange
-        var model = new OrderModel { Items = { new OrderItem() } };
+        var model = NewOrder();
         EditContext? editContext = null;
 
         var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
@@ -34,7 +37,7 @@ public class CollectionFieldEditContextTests : MudBlazorTestBase
     public async Task ValidateAsync_Should_Attach_Messages_To_Nested_FieldIdentifiers()
     {
         // Arrange - one item with an empty required ProductName
-        var model = new OrderModel { Items = { new OrderItem() } };
+        var model = NewOrder();
         EditContext? editContext = null;
 
         var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
@@ -59,7 +62,7 @@ public class CollectionFieldEditContextTests : MudBlazorTestBase
     public async Task Correcting_Item_Field_Should_Clear_Nested_Validation_Message()
     {
         // Arrange - start invalid and validate to populate nested messages
-        var model = new OrderModel { Items = { new OrderItem() } };
+        var model = NewOrder();
         EditContext? editContext = null;
 
         var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
@@ -84,7 +87,7 @@ public class CollectionFieldEditContextTests : MudBlazorTestBase
     {
         // Arrange - nested identifiers are ADDITIVE: the existing flat messages on the
         // collection field name must keep working (no regression)
-        var model = new OrderModel { Items = { new OrderItem() } };
+        var model = NewOrder();
         EditContext? editContext = null;
 
         var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
@@ -105,37 +108,17 @@ public class CollectionFieldEditContextTests : MudBlazorTestBase
     public void Collection_Field_Should_Render_Items_Without_Regression()
     {
         // Arrange / Act - the component must keep rendering item sub-forms as before
-        var model = new OrderModel { Items = { new OrderItem { ProductName = "Widget" } } };
-
-        var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, BuildConfiguration()));
+        var component = this.RenderItemForm(NewOrder("Widget"), BuildConfiguration());
 
         // Assert
         component.Markup.ShouldContain("Item 1");
         component.FindAll("input")[0].GetAttribute("value").ShouldBe("Widget");
     }
 
-    private static IFormConfiguration<OrderModel> BuildConfiguration()
-    {
-        return FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.ProductName, field => field
-                        .WithLabel("Product")
-                        .Required("Product name is required"))))
-            .Build();
-    }
-
-    private class OrderModel
-    {
-        public List<OrderItem> Items { get; set; } = new();
-    }
-
-    private class OrderItem
-    {
-        public string ProductName { get; set; } = string.Empty;
-    }
+    /// <summary>
+    /// The fixture's text item form (#205) with this suite's own required message — the message is
+    /// asserted verbatim below, so it stays here rather than moving into the shared builder.
+    /// </summary>
+    private static IFormConfiguration<OrderModel> BuildConfiguration() =>
+        TextItemForm(field => field.Required("Product name is required"));
 }

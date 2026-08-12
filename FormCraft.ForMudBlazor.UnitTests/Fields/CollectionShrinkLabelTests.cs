@@ -1,3 +1,5 @@
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
@@ -13,6 +15,11 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// including the form-level cascade fallback these tests exercise. They pass unmodified and are kept
 /// as the guard that the item placement keeps inheriting it.
 /// </para>
+/// <para>
+/// Models and the item-form builder come from <see cref="CollectionItemFixture"/> (#205). Every test
+/// renders the <c>"Widget"</c> seed the local model used to hard-code, so a populated field is what
+/// the ShrinkLabel assertions see — the same thing they saw before the migration.
+/// </para>
 /// </remarks>
 public class CollectionShrinkLabelTests : MudBlazorTestBase
 {
@@ -20,7 +27,7 @@ public class CollectionShrinkLabelTests : MudBlazorTestBase
     public void ItemField_Should_Default_To_ShrinkLabel_True()
     {
         // Arrange & Act
-        var component = RenderOrderForm(BuildConfiguration(itemShrinkLabel: null));
+        var component = this.RenderItemForm(NewOrder("Widget"), TextItemForm());
 
         // Assert - unchanged from before #177
         component.FindComponent<MudTextField<string>>().Instance.ShrinkLabel.ShouldBeTrue();
@@ -30,7 +37,8 @@ public class CollectionShrinkLabelTests : MudBlazorTestBase
     public void ItemField_Should_Honor_FieldLevel_WithShrinkLabel()
     {
         // Arrange & Act
-        var component = RenderOrderForm(BuildConfiguration(itemShrinkLabel: false));
+        var component = this.RenderItemForm(
+            NewOrder("Widget"), TextItemForm(field => field.WithShrinkLabel(false)));
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.ShrinkLabel.ShouldBeFalse();
@@ -40,8 +48,7 @@ public class CollectionShrinkLabelTests : MudBlazorTestBase
     public void ItemField_Should_Honor_FormLevel_DefaultShrinkLabel()
     {
         // Arrange & Act - the cascade has to reach into the collection component too
-        var component = RenderOrderForm(
-            BuildConfiguration(itemShrinkLabel: null), defaultShrinkLabel: false);
+        var component = RenderWithFormDefault(TextItemForm(), defaultShrinkLabel: false);
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.ShrinkLabel.ShouldBeFalse();
@@ -51,54 +58,23 @@ public class CollectionShrinkLabelTests : MudBlazorTestBase
     public void ItemField_FieldLevel_Should_Override_FormLevel()
     {
         // Arrange & Act
-        var component = RenderOrderForm(
-            BuildConfiguration(itemShrinkLabel: true), defaultShrinkLabel: false);
+        var component = RenderWithFormDefault(
+            TextItemForm(field => field.WithShrinkLabel(true)), defaultShrinkLabel: false);
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.ShrinkLabel.ShouldBeTrue();
     }
 
-    private IRenderedComponent<FormCraftComponent<OrderModel>> RenderOrderForm(
-        IFormConfiguration<OrderModel> config, bool? defaultShrinkLabel = null)
-    {
-        var model = new OrderModel { Items = { new OrderItem { ProductName = "Widget" } } };
-
-        return Render<FormCraftComponent<OrderModel>>(parameters =>
-        {
-            parameters.Add(p => p.Model, model);
-            parameters.Add(p => p.Configuration, config);
-            if (defaultShrinkLabel is { } shrink)
-            {
-                parameters.Add(p => p.DefaultShrinkLabel, shrink);
-            }
-        });
-    }
-
-    private static IFormConfiguration<OrderModel> BuildConfiguration(bool? itemShrinkLabel)
-    {
-        return FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.ProductName, field =>
-                    {
-                        field.WithLabel("Product");
-                        if (itemShrinkLabel is { } shrink)
-                        {
-                            field.WithShrinkLabel(shrink);
-                        }
-                    })))
-            .Build();
-    }
-
-    private class OrderModel
-    {
-        public List<OrderItem> Items { get; set; } = new();
-    }
-
-    private class OrderItem
-    {
-        public string ProductName { get; set; } = string.Empty;
-    }
+    /// <summary>
+    /// The two form-level tests need a <c>DefaultShrinkLabel</c> parameter that the fixture's
+    /// <c>RenderItemForm</c> does not set — it renders Model and Configuration only, deliberately, so
+    /// it stays the shape every suite shares. This local helper adds just that one parameter; the
+    /// model and the item form still come from the fixture.
+    /// </summary>
+    private IRenderedComponent<FormCraftComponent<OrderModel>> RenderWithFormDefault(
+        IFormConfiguration<OrderModel> config, bool defaultShrinkLabel) =>
+        Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, NewOrder("Widget"))
+            .Add(p => p.Configuration, config)
+            .Add(p => p.DefaultShrinkLabel, defaultShrinkLabel));
 }

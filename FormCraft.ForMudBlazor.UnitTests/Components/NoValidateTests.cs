@@ -1,3 +1,6 @@
+using FormCraft.ForMudBlazor.UnitTests.Fields;
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Components;
 
 /// <summary>
@@ -105,24 +108,13 @@ public class NoValidateTests : MudBlazorTestBase
     [Fact]
     public void An_Opt_In_Required_Item_Field_Should_Still_Render_Required_Inside_A_NoValidate_Form()
     {
-        // Arrange - #193's documented escape hatch must keep working: the attribute is still emitted,
-        // it is the *form* that neutralises browser enforcement. Asserting both halves together is
-        // the point — this is the exact combination that made #206 worth fixing rather than merely
-        // tidying, because on a page where the script missed, this input really was browser-enforced.
-        var config = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.ProductName, field => field
-                        .WithLabel("Product")
-                        .WithAttribute("Required", true))))
-            .Build();
-
-        // Act
-        var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, config));
+        // Arrange & Act - #193's documented escape hatch must keep working: the attribute is still
+        // emitted, it is the *form* that neutralises browser enforcement. Asserting both halves
+        // together is the point — this is the exact combination that made #206 worth fixing rather
+        // than merely tidying, because on a page where the script missed, this input really was
+        // browser-enforced. The blank seed matches the model this test used to declare locally.
+        var component = this.RenderItemForm(NewOrder(), TextItemForm(field => field
+            .WithAttribute("Required", true)));
 
         // Assert
         component.Find("form").HasAttribute("novalidate").ShouldBeTrue();
@@ -132,15 +124,5 @@ public class NoValidateTests : MudBlazorTestBase
     private class TestModel
     {
         public string Name { get; set; } = string.Empty;
-    }
-
-    private class OrderModel
-    {
-        public List<OrderItem> Items { get; set; } = new();
-    }
-
-    private class OrderItem
-    {
-        public string ProductName { get; set; } = string.Empty;
     }
 }
