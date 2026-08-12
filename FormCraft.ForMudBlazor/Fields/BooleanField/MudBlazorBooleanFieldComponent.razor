@@ -12,6 +12,8 @@
         @bind-Value:after="OnLocalValueChanged"
         ReadOnly="@IsReadOnly"
         Disabled="@IsDisabled"
+        Required="@NativeRequiredValue"
+        aria-required="@AriaRequiredValue"
         Color="Color.Primary" />
 }
 else
@@ -22,5 +24,7 @@ else
         @bind-Value="@_localValue"
         @bind-Value:after="OnLocalValueChanged"
         ReadOnly="@IsReadOnly"
-        Disabled="@IsDisabled" />
+        Disabled="@IsDisabled"
+        Required="@NativeRequiredValue"
+        aria-required="@AriaRequiredValue" />
 }

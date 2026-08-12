@@ -4,6 +4,32 @@ public partial class MudBlazorBooleanFieldComponent<TModel>
 {
     private bool _localValue;
 
+    /// <summary>
+    /// Whether this field renders MudBlazor's native required decoration (#199), resolved by the
+    /// same rule as every other field type — see <see cref="NativeRequired.Resolve"/>.
+    /// </summary>
+    /// <remarks>
+    /// Declared here rather than inherited because this component derives from
+    /// <c>FieldComponentBase</c> directly, not from <c>MudBlazorFieldComponentBase</c>, so it has no
+    /// <c>EffectiveNativeRequired</c>. Rebasing it would drag in the variant cascade and the
+    /// ShrinkLabel diagnostic, neither of which a checkbox has any use for.
+    /// </remarks>
+    private bool NativeRequiredValue =>
+        NativeRequired.Resolve(Context.Field.AdditionalAttributes, IsRequired);
+
+    /// <summary>
+    /// <c>aria-required</c> as MudBlazor would spell it, for the <c>UserAttributes</c> splat below.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ Passed explicitly because <c>MudCheckBox</c> and <c>MudSwitch</c> emit <b>no</b>
+    /// <c>aria-required</c> of their own — unlike <c>MudInput</c>, whose own write overrides the
+    /// caller's. Their <c>GetInputAttributes()</c> copies <c>UserAttributes</c> onto the rendered
+    /// <c>&lt;input&gt;</c> and nothing downstream re-emits this key, so here the splat really does
+    /// land. That asymmetry is the whole reason a checkbox can be announced correctly while a text
+    /// field cannot (measured on MudBlazor 9.8.0).
+    /// </remarks>
+    private string AriaRequiredValue => NativeRequiredValue ? "true" : "false";
+
     public BooleanDisplayStyle DisplayStyle { get; set; } = BooleanDisplayStyle.Checkbox;
     public string? TrueText { get; set; }
     public string? FalseText { get; set; }

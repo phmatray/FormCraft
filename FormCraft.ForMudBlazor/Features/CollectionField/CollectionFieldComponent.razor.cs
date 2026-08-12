@@ -360,6 +360,8 @@ public partial class CollectionFieldComponent<TModel, TItem>
 
     private void RenderBooleanField(RenderTreeBuilder builder, IFieldConfiguration<TItem, object> field, object value, int itemIndex)
     {
+        var required = GetItemFieldRequired(field);
+
         builder.OpenComponent<MudCheckBox<bool>>(0);
         builder.AddAttribute(1, "Label", field.Label);
         builder.AddAttribute(2, "Value", value);
@@ -368,6 +370,17 @@ public partial class CollectionFieldComponent<TModel, TItem>
                 newValue => UpdateItemFieldValue(itemIndex, field.FieldName, newValue)));
         builder.AddAttribute(4, "ReadOnly", field.IsReadOnly);
         builder.AddAttribute(5, "Disabled", field.IsDisabled);
+
+        // #199. This renderer deliberately takes none of AddCommonFieldAttributes' set — MudCheckBox
+        // shares almost none of those parameters — but the required annotation is resolved by the
+        // same rule, so a required consent checkbox is announced inside an item form exactly as it is
+        // outside one. Emitted unconditionally, keeping the frame layout per-CALL-SITE.
+        //
+        // aria-required is passed explicitly because MudCheckBox emits none of its own: its
+        // GetInputAttributes() splats UserAttributes onto the <input> and nothing re-emits this key.
+        // That is the opposite of MudInput, where the component's own later write always wins.
+        builder.AddAttribute(6, "Required", required);
+        builder.AddAttribute(7, "aria-required", required ? "true" : "false");
         builder.CloseComponent();
     }
 
@@ -572,15 +585,18 @@ public partial class CollectionFieldComponent<TModel, TItem>
         builder.AddAttribute(startIndex++, "Label", field.Label);
         builder.AddAttribute(startIndex++, "Placeholder", field.Placeholder);
         builder.AddAttribute(startIndex++, "HelperText", field.HelpText);
-        // Resolved from an explicit attribute, NOT from field.IsRequired (#190). Validation here is
-        // server-side — messages come from the configured validator and no component-path renderer
-        // emits Required — so driving this from IsRequired put required and aria-required="true" on
-        // the rendered input of a .Required("…") item field, and MudBlazor's required asterisk with
-        // them, while the same call on an ordinary field produced none of it. Measured: it armed no
-        // second validator (item fields have no MudForm and no For), so what this restores is
-        // consistency and what it costs is the asterisk — see the release note.
-        // Reading the attribute keeps .WithAttribute("Required", true) working as the opt-in.
-        builder.AddAttribute(startIndex++, "Required", GetItemFieldAttribute(field, "Required", false));
+        // An explicit attribute wins; otherwise field.IsRequired decides (#199). #190 had removed
+        // that forward, because the same .Required("…") call decorated an item field and not an
+        // ordinary one. The DIVERGENCE was the defect and it stays fixed — MudBlazorFieldComponentBase
+        // .EffectiveNativeRequired now resolves the component path by this identical rule, and
+        // RenderPipelineParityTests compares the result. What #190 also did, and what #199 undoes, is
+        // level both paths down to silence: a required field that never says so fails WCAG 2.1 3.3.2
+        // (Level A), and MudBlazor 9.8.0 offers no way to say it except this flag (see
+        // EffectiveNativeRequired for the measurement). The HTML5 attribute that returns with it is
+        // inert for validation here — FormCraft forms render novalidate (#206).
+        //
+        // Reuses the existing slot, so no sequence number moves.
+        builder.AddAttribute(startIndex++, "Required", GetItemFieldRequired(field));
         builder.AddAttribute(startIndex++, "ReadOnly", field.IsReadOnly);
         builder.AddAttribute(startIndex++, "Disabled", field.IsDisabled);
         builder.AddAttribute(startIndex++, "Variant", GetItemFieldVariant(field));
@@ -722,6 +738,20 @@ public partial class CollectionFieldComponent<TModel, TItem>
         => field.AdditionalAttributes.TryGetValue(name, out var value) && value is T typed
             ? typed
             : fallback;
+
+    /// <summary>
+    /// Resolves MudBlazor's <c>Required</c> for an item field (#199) through
+    /// <see cref="NativeRequired.Resolve"/> — the same single implementation the component path
+    /// uses, so the two cannot drift.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not routed through <see cref="GetItemFieldAttribute{T}"/>: that helper collapses
+    /// "not configured" and "configured false" into one fallback, which would make
+    /// <c>.WithNativeRequired(false)</c> on a <c>.Required(...)</c> field silently re-acquire the
+    /// decoration it was written to suppress.
+    /// </remarks>
+    private static bool GetItemFieldRequired(IFieldConfiguration<TItem, object> field)
+        => NativeRequired.Resolve(field.AdditionalAttributes, field.IsRequired);
 
     /// <summary>
     /// Builds the adornment click callback for a text item field (#192), or <c>default</c> when the
