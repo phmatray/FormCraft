@@ -3,27 +3,37 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// <summary>
 /// The canonical models and item-form builders the collection-item attribute suites share (#205).
 /// <para>
-/// Every such suite exercises the same handful of render paths through
-/// <c>CollectionFieldComponent</c>'s imperative RenderTreeBuilder path, and each one used to carry
-/// its own copy of the same model pairs and the same two helpers. The copies drifted in incidentals
-/// (whether <c>ProductName</c> was seeded, whether <c>BasketLine</c> declared <c>IsGift</c>) and
-/// they propagated mistakes as faithfully as they propagated code — a miscounted comment claiming
-/// <c>AddCommonFieldAttributes</c> fed "the text and numeric paths" survived a copy and hid the date
-/// path from coverage until review caught it.
+/// Every such suite exercises the same handful of field types inside <c>.WithItemForm(...)</c>, and
+/// each one used to carry its own copy of the same model pairs and the same two helpers. The copies
+/// drifted in incidentals (whether <c>ProductName</c> was seeded, whether <c>BasketLine</c> declared
+/// <c>IsGift</c>) and they propagated mistakes as faithfully as they propagated code — a miscounted
+/// comment claiming the shared attribute block fed "the text and numeric paths" survived a copy and
+/// hid the date path from coverage until review caught it.
 /// </para>
 /// <para>
-/// <b>The four paths.</b> The models are chosen so that a suite using this fixture covers all of them
-/// by default rather than by remembering to:
+/// <b>The four field types.</b> The models are chosen so that a suite using this fixture covers all
+/// of them by default rather than by remembering to:
 /// <list type="bullet">
-/// <item><description><see cref="OrderItem"/> — <c>string</c>, the text path (<c>MudTextField</c>).</description></item>
-/// <item><description><see cref="BasketLine"/> — <c>int</c>, the numeric path (<c>MudNumericField</c>).</description></item>
-/// <item><description><see cref="AppointmentSlot"/> — <c>DateTime</c>, the date path (<c>MudDatePicker</c>).</description></item>
-/// <item><description><see cref="BasketLine"/> again — <c>bool</c>, the checkbox path
-/// (<c>MudCheckBox</c>), which is the one that <b>bypasses</b> <c>AddCommonFieldAttributes</c> and
-/// where attributes are therefore pinned as inert.</description></item>
+/// <item><description><see cref="OrderItem"/> — <c>string</c>, rendered by <c>MudTextField</c>.</description></item>
+/// <item><description><see cref="BasketLine"/> — <c>int</c>, rendered by <c>MudNumericField</c>.</description></item>
+/// <item><description><see cref="AppointmentSlot"/> — <c>DateTime</c>, rendered by <c>MudDatePicker</c>.</description></item>
+/// <item><description><see cref="BasketLine"/> again — <c>bool</c>, rendered by <c>MudCheckBox</c>,
+/// which binds neither adornments nor <c>Required</c> and where those are therefore pinned as
+/// inert.</description></item>
 /// </list>
-/// The first three are fed by <c>AddCommonFieldAttributes</c>; the fourth is not. That asymmetry is
+/// The first three bind the shared presentation attributes; the fourth does not. That asymmetry is
 /// the whole reason the boolean model lives here rather than being left to each suite.
+/// </para>
+/// <para>
+/// ⚠️ <b>These were four separate render paths when this fixture was written (#205).</b> Item fields
+/// went through a hand-written <c>RenderTreeBuilder</c> in <c>CollectionFieldComponent</c>, with a
+/// shared <c>AddCommonFieldAttributes</c> feeding the first three and a bespoke method for the
+/// fourth — so a suite could pass for a standalone field and fail for the same field in an item
+/// form. #203 deleted that renderer: every field now goes through <c>IFieldRendererService</c> and
+/// the same per-type component regardless of placement. The four groupings above survive because
+/// they are still the four <i>components</i>, but they are no longer four <i>paths</i>, and a suite
+/// built on this fixture is now checking that the item placement keeps inheriting the component's
+/// behaviour rather than that a second implementation matches it.
 /// </para>
 /// <para>
 /// <b>Seeds are the caller's choice.</b> The factories default to the model's own default and take an
@@ -103,8 +113,8 @@ internal static class CollectionItemFixture
             .Build();
 
     /// <summary>
-    /// A collection whose item form holds one <c>bool</c> field labelled "Gift" — the checkbox path,
-    /// the one that never reaches <c>AddCommonFieldAttributes</c>.
+    /// A collection whose item form holds one <c>bool</c> field labelled "Gift" — the checkbox, the
+    /// one component that binds neither adornments nor <c>Required</c>.
     /// </summary>
     internal static IFormConfiguration<BasketModel> BooleanItemForm(
         Action<FieldBuilder<BasketLine, bool>>? configure = null) =>
@@ -140,8 +150,9 @@ internal sealed class BasketModel
 }
 
 /// <summary>
-/// Item for the numeric and boolean paths. It carries both so a single suite can compare a field fed
-/// by <c>AddCommonFieldAttributes</c> against one that bypasses it, without a second model pair.
+/// Item for the numeric and boolean field types. It carries both so a single suite can compare a
+/// field that binds the shared presentation attributes against one that binds none, without a second
+/// model pair.
 /// </summary>
 internal sealed class BasketLine
 {

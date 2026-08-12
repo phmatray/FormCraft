@@ -59,7 +59,13 @@ public partial class MudBlazorTextFieldComponent<TModel>
 
         // Emitted from OnInitialized, so once per component instance: the conflict is a
         // configuration fact and re-reporting it on every keystroke would drown the console.
-        if (MaskedLinesDiagnostic.Applies(configuredInputType, ConfiguredLines))
+        //
+        // Once per component instance is not once per FIELD inside a collection, though — there is
+        // one instance per row, so a 50-item collection would emit 50 identical warnings about a
+        // single field's configuration. The scope's latch is what the hand-rolled collection path
+        // used to do with a HashSet of its own before #203 routed item fields through here.
+        if (MaskedLinesDiagnostic.Applies(configuredInputType, ConfiguredLines)
+            && (ItemFieldScope?.ShouldWarnOnce(MaskedLinesDiagnostic.Category, DiagnosticFieldKey) ?? true))
         {
             MaskedLinesDiagnostic.Warn(
                 DiagnosticServiceProvider,
@@ -92,7 +98,12 @@ public partial class MudBlazorTextFieldComponent<TModel>
             var displacedHandler = GetAttribute<Action<string?>?>(
                 MudBlazorFieldBuilderExtensions.AdornmentClickAttribute);
 
-            if (customAdornment.HasValue || customAdornmentIcon is not null || displacedHandler is not null)
+            // Latched per field for the same reason the masked-lines warning above is: one component
+            // instance per row means an unlatched warning fires once per ROW. This one is newly
+            // reachable from a collection since #203 — the hand-rolled path had no password toggle
+            // at all, so it could never displace an adornment and never took this branch.
+            if ((customAdornment.HasValue || customAdornmentIcon is not null || displacedHandler is not null)
+                && (ItemFieldScope?.ShouldWarnOnce(PasswordAdornmentDiagnostic.Category, DiagnosticFieldKey) ?? true))
             {
                 PasswordAdornmentDiagnostic.Warn(
                     DiagnosticServiceProvider,
@@ -163,9 +174,11 @@ public partial class MudBlazorTextFieldComponent<TModel>
     /// Binding <see cref="HandleAdornmentClick"/> directly would hand MudBlazor a method group, whose
     /// <c>EventCallback.HasDelegate</c> is always <c>true</c> — and MudBlazor draws a real
     /// <c>&lt;button&gt;</c> for that. A decorative icon then becomes a focus stop for keyboard and
-    /// screen-reader users, even though clicking it does nothing. Returning <c>default</c> mirrors
-    /// <c>CollectionFieldComponent.BuildAdornmentClick</c>, which has always done this, and is what
-    /// closes the last markup divergence between the two render paths.
+    /// screen-reader users, even though clicking it does nothing. Returning <c>default</c> was how
+    /// #216 closed the last markup divergence with the imperative collection path, which had always
+    /// done it this way; that path is gone since #203, but the accessibility reason stands on its
+    /// own and is pinned by
+    /// <c>TextField_Adornment_Without_A_Handler_Should_Render_A_Plain_Icon</c>.
     /// </remarks>
     private EventCallback<MouseEventArgs> AdornmentClick =>
         OnAdornmentClick is null
@@ -189,14 +202,18 @@ public partial class MudBlazorTextFieldComponent<TModel>
 
 /// <summary>
 /// The single implementation of FormCraft's input-type string to <see cref="InputType"/> mapping,
-/// shared by the component render path (<see cref="MudBlazorTextFieldComponent{TModel}"/>) and the
-/// imperative RenderTreeBuilder path used for collection item fields.
+/// used by <see cref="MudBlazorTextFieldComponent{TModel}"/>.
 /// </summary>
 /// <remarks>
-/// Extracted in #189. The collection path previously emitted no input type at all, so a
-/// <c>.AsPassword()</c> field inside <c>.WithItemForm(...)</c> rendered its characters in clear
-/// text. Duplicating the mapping to fix that would have set up the next divergence, so both paths
-/// resolve through here instead.
+/// Extracted in #189, when there were two render paths and the collection one emitted no input type
+/// at all — so a <c>.AsPassword()</c> field inside <c>.WithItemForm(...)</c> rendered its characters
+/// in clear text. Duplicating the mapping to fix that would have set up the next divergence, so both
+/// paths were pointed here instead.
+/// <para>
+/// #203 removed the second path entirely, so this is now simply where the text component resolves
+/// its input type. It stays a separate type because <c>EffectiveLines</c> below encodes a rule
+/// (masking beats a multi-line request, #207) that is worth stating and testing on its own.
+/// </para>
 /// </remarks>
 internal static class TextInputTypeMap
 {
