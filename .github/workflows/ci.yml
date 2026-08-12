@@ -39,19 +39,32 @@ jobs:
       # `if-no-files-found: ignore` covers the one legitimate miss: a run that fails in Compile,
       # before any test executes and therefore before `test-results/` exists.
       #
-      # Reading it (measured against a deliberately reddened run, #231). The log is UTF-16LE and
-      # carries ANSI colour escapes, so a plain `grep '^failed '` matches nothing and looks exactly
-      # like an empty artifact. And it must be ONE iconv PER FILE: the artifact holds one log per
-      # test assembly, and concatenating them leaves the second file's BOM inline immediately before
-      # its first line — which is the line naming the first failure — so `^failed ` cannot match it
-      # either. Both traps fail the same silent way, which is why the loop is spelled out:
+      # Reading it. Every clause below was measured against a deliberately reddened run and against a
+      # real downloaded artifact (#231) — the naive form of this command silently prints nothing,
+      # which is indistinguishable from "the suite passed".
+      #
+      #  - The log is UTF-16LE, one file per test assembly, each starting with a BOM.
+      #  - It carries ANSI colour escapes ON CI and not locally: MTP colourises the status word, so a
+      #    failure line arrives as ESC[31mfailed ESC[m<test>. Measured on a downloaded artifact,
+      #    which is the only copy this recipe is ever pointed at. Hence the escape strip.
+      #  - The BOM has to be stripped explicitly, because grep implementations disagree about it:
+      #    BSD grep drops one at the START of the stream, GNU grep drops none. A failing assembly's
+      #    log can open with its `failed <test>` line, so an unstripped BOM makes `^failed ` miss the
+      #    first failure — on Linux always, and on macOS as soon as more than one file is piped in.
+      #  - `-A30`, not `-A5`: Shouldly's difference table alone runs past twenty lines, so a smaller
+      #    window cuts off the `at ...` stack frames — the part naming the offending line.
+      #
       #   gh run download <run-id> -n test-results -D /tmp/tr
       #   for f in /tmp/tr/*.log; do
-      #     iconv -f UTF-16LE -t UTF-8 "$f" | sed $'s/\\x1b\\[[0-9;]*m//g' | grep -A5 '^failed '
+      #     echo "== $f"
+      #     iconv -f UTF-16LE -t UTF-8 "$f" \
+      #       | sed $'s/\\xef\\xbb\\xbf//g; s/\\x1b\\[[0-9;]*m//g' \
+      #       | grep -A30 '^failed '
       #   done
-      # That prints the failing test names with their Shouldly detail and stack traces. The same
-      # run's *.trx carries each failure as outcome="Failed" under its fully-qualified testName, and
-      # the *.html is the same report rendered for a browser.
+      #
+      # That prints each failing test with its Shouldly detail and stack trace. The same run's *.trx
+      # carries each failure as outcome="Failed" under its fully-qualified testName, and the *.html
+      # is the same report rendered for a browser.
       - name: 'Publish: test-results'
         if: always()
         uses: actions/upload-artifact@v7
