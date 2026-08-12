@@ -160,6 +160,11 @@ class Build : NukeBuild
             // re-thrown below.
             var failed = new List<string>();
 
+            // One home for the path, because the run and the guard below have to agree on it: if
+            // they ever computed it differently the guard would inspect a directory nothing wrote
+            // to, and fail every run for a reason that has nothing to do with the reporters.
+            AbsolutePath ResultsDirectoryFor(Project project) => TestResultsDirectory / project.Name;
+
             foreach (var project in testProjects)
             {
                 try
@@ -171,7 +176,7 @@ class Build : NukeBuild
                         .EnableNoBuild()
                         .SetProcessAdditionalArguments(
                             "--",
-                            "--results-directory", TestResultsDirectory / project.Name,
+                            "--results-directory", ResultsDirectoryFor(project),
                             "--report-xunit-trx",
                             "--report-xunit-html"));
                 }
@@ -191,16 +196,29 @@ class Build : NukeBuild
             // `if-no-files-found: ignore` and nothing anywhere would say so. Cheapest possible guard,
             // and it turns that whole class of regression into a failed build on the next run.
             //
+            // Asked PER PROJECT rather than over the directory as a whole (#256). "Some suite
+            // emitted a trx" is a strictly weaker claim than "each did", and the gap is not
+            // hypothetical: one reporting suite is enough to keep a whole-directory glob green
+            // while the other emits nothing, which is half an artifact and no warning anywhere —
+            // the same silence at half scale. Each project owns a subdirectory now, so each can be
+            // asked directly, and the message names the one that came up empty. An artifact reader
+            // told only "no trx was produced" is no better off, because the suite that should have
+            // written one is precisely what they are trying to identify.
+            //
             // Checked BEFORE the failures collected above are re-thrown, so it runs on red runs too
             // rather than only on green ones. The old single invocation threw from DotNetTest itself
             // the moment a suite went red, which meant this guard was skipped on exactly the runs
             // whose artifact someone was about to download. Strictly stronger, never weaker.
-            var reports = TestResultsDirectory.GlobFiles("**/*.trx");
-            Assert.NotEmpty(
-                reports,
-                $"The test run produced no *.trx under {TestResultsDirectory}. The reporters are "
-                + "wired but emitted nothing — check whether the runner still honours "
-                + "--results-directory / --report-xunit-trx (see #231).");
+            foreach (var project in testProjects)
+            {
+                var projectResults = ResultsDirectoryFor(project);
+
+                Assert.NotEmpty(
+                    projectResults.GlobFiles("*.trx"),
+                    $"{project.Name} produced no *.trx in {projectResults}. Its reporters are wired "
+                    + "but emitted nothing — check whether the runner still honours "
+                    + "--results-directory / --report-xunit-trx (see #231).");
+            }
 
             if (failed.Count > 0)
             {

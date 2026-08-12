@@ -241,6 +241,28 @@ public class TestReportingTests
     }
 
     [Fact]
+    public void BuildScript_Should_Assert_A_Report_Per_Test_Project()
+    {
+        // "Some project emitted a trx" is a strictly weaker claim than "each did", and the gap is
+        // not hypothetical: with one suite reporting and the other silent, a whole-directory glob
+        // stays green while half the artifact is missing — the same nothing-happens silence #231
+        // was filed about, just at half scale. Since #256 each project owns a subdirectory, so the
+        // guard can and must be asked per project.
+        var build = WithoutComments(ReadBuildScript(), "//");
+
+        build.ShouldNotMatch(
+            @"TestResultsDirectory\.GlobFiles\(",
+            "the report guard still globs the whole results directory, so one silent suite passes it");
+
+        // Naming the project is the point of the exercise: an artifact reader who is told only
+        // "no trx was produced" is no better off than before, because the directory that should
+        // have held one is exactly what they are trying to identify.
+        build.ShouldMatch(
+            @"Assert\.NotEmpty\([^;]*\{project\.Name\}",
+            "the per-project report assertion does not name the project that emitted nothing");
+    }
+
+    [Fact]
     public void Test_Target_Should_Only_Promise_Artifacts_The_Runner_Is_Asked_To_Write()
     {
         // The defect this pins is not "the wrong glob", it is a .Produces(...) contract that named
