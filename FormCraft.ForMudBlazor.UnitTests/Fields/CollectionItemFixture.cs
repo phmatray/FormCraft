@@ -11,7 +11,7 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// hid the date path from coverage until review caught it.
 /// </para>
 /// <para>
-/// <b>The four field types.</b> The models are chosen so that a suite using this fixture covers all
+/// <b>The five field types.</b> The models are chosen so that a suite using this fixture covers all
 /// of them by default rather than by remembering to:
 /// <list type="bullet">
 /// <item><description><see cref="OrderItem"/> — <c>string</c>, rendered by <c>MudTextField</c>.</description></item>
@@ -20,9 +20,12 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// <item><description><see cref="BasketLine"/> again — <c>bool</c>, rendered by <c>MudCheckBox</c>,
 /// which binds neither adornments nor <c>Required</c> and where those are therefore pinned as
 /// inert.</description></item>
+/// <item><description><see cref="PricedLine"/> — <c>decimal</c>, rendered by
+/// <c>MudNumericField&lt;decimal&gt;</c>. A distinct closed generic from the <c>int</c> one, and the
+/// only one where culture-sensitive parsing is observable (#218, #258).</description></item>
 /// </list>
-/// The first three bind the shared presentation attributes; the fourth does not. That asymmetry is
-/// the whole reason the boolean model lives here rather than being left to each suite.
+/// All but the boolean bind the shared presentation attributes; the checkbox does not. That asymmetry
+/// is the whole reason the boolean model lives here rather than being left to each suite.
 /// </para>
 /// <para>
 /// ⚠️ <b>These were four separate render paths when this fixture was written (#205).</b> Item fields
@@ -30,10 +33,11 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// shared <c>AddCommonFieldAttributes</c> feeding the first three and a bespoke method for the
 /// fourth — so a suite could pass for a standalone field and fail for the same field in an item
 /// form. #203 deleted that renderer: every field now goes through <c>IFieldRendererService</c> and
-/// the same per-type component regardless of placement. The four groupings above survive because
-/// they are still the four <i>components</i>, but they are no longer four <i>paths</i>, and a suite
-/// built on this fixture is now checking that the item placement keeps inheriting the component's
-/// behaviour rather than that a second implementation matches it.
+/// the same per-type component regardless of placement. The groupings above survive because they are
+/// still distinct <i>components</i>, but they are no longer distinct <i>paths</i>, and a suite built
+/// on this fixture is now checking that the item placement keeps inheriting the component's
+/// behaviour rather than that a second implementation matches it. The decimal pair was added in #258
+/// under that later reading — not a fifth path, a fifth component a real suite needed to name.
 /// </para>
 /// <para>
 /// <b>Seeds are the caller's choice.</b> The factories default to the model's own default and take an
@@ -60,6 +64,10 @@ internal static class CollectionItemFixture
     /// <summary>Creates an appointment with a single slot, blank unless a <paramref name="when"/> is given.</summary>
     internal static AppointmentModel NewAppointment(DateTime when = default) =>
         new() { Slots = { new AppointmentSlot { When = when } } };
+
+    /// <summary>Creates a priced basket with a single line, blank unless a <paramref name="price"/> is given.</summary>
+    internal static PricedBasketModel NewPricedBasket(decimal price = 0m) =>
+        new() { Lines = { new PricedLine { Price = price } } };
 
     /// <summary>
     /// A collection whose item form holds one <c>string</c> field labelled "Product" — the text path.
@@ -129,6 +137,26 @@ internal static class CollectionItemFixture
                         configure?.Invoke(field);
                     })))
             .Build();
+
+    /// <summary>
+    /// A collection whose item form holds one <c>decimal</c> field labelled "Price" — the decimal
+    /// component. <c>MudNumericField&lt;decimal&gt;</c> is a different closed generic from
+    /// <c>MudNumericField&lt;int&gt;</c>, so a suite that asserts on one has said nothing about the
+    /// other; culture-sensitive parsing in particular only shows up on the decimal one.
+    /// </summary>
+    internal static IFormConfiguration<PricedBasketModel> DecimalItemForm(
+        Action<FieldBuilder<PricedLine, decimal>>? configure = null) =>
+        FormBuilder<PricedBasketModel>
+            .Create()
+            .AddCollectionField(x => x.Lines, collection => collection
+                .WithLabel("Lines")
+                .WithItemForm(item => item
+                    .AddField(x => x.Price, field =>
+                    {
+                        field.WithLabel("Price");
+                        configure?.Invoke(field);
+                    })))
+            .Build();
 }
 
 /// <summary>Root model for the text path.</summary>
@@ -171,6 +199,23 @@ internal sealed class AppointmentModel
 internal sealed class AppointmentSlot
 {
     public DateTime When { get; set; }
+}
+
+/// <summary>Root model for the decimal path.</summary>
+internal sealed class PricedBasketModel
+{
+    public List<PricedLine> Lines { get; set; } = new();
+}
+
+/// <summary>
+/// Item for the decimal field type — one <c>decimal</c>, nothing else. A separate pair rather than a
+/// <c>Price</c> added to <see cref="BasketLine"/>: growing a shared model one field per consumer is
+/// how a fixture becomes load-bearing and frightening to touch, which is the property #205 set out
+/// to protect.
+/// </summary>
+internal sealed class PricedLine
+{
+    public decimal Price { get; set; }
 }
 
 /// <summary>

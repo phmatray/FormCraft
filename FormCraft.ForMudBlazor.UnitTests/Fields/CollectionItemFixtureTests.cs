@@ -74,6 +74,36 @@ public class CollectionItemFixtureTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void DecimalItemForm_Should_Render_The_Decimal_Path()
+    {
+        // Arrange & Act - a fourth *type*, not a fourth path: MudNumericField<decimal> is a distinct
+        // closed generic from MudNumericField<int>, so a suite asserting on one says nothing about
+        // the other. CollectionCultureTests is the named consumer (#218 is about decimal parsing).
+        var component = this.RenderItemForm(
+            CollectionItemFixture.NewPricedBasket(),
+            CollectionItemFixture.DecimalItemForm());
+
+        // Assert
+        component.FindComponent<MudNumericField<decimal>>().Instance.Label.ShouldBe("Price");
+    }
+
+    [Fact]
+    public void NewPricedBasket_Should_Default_Blank_And_Honour_Its_Seed()
+    {
+        // Arrange & Act
+        var blank = CollectionItemFixture.NewPricedBasket();
+        var seeded = CollectionItemFixture.NewPricedBasket(12.5m);
+
+        // Assert - in the model, and in what the field actually renders
+        blank.Lines.ShouldHaveSingleItem();
+        blank.Lines[0].Price.ShouldBe(0m);
+        seeded.Lines[0].Price.ShouldBe(12.5m);
+
+        var component = this.RenderItemForm(seeded, CollectionItemFixture.DecimalItemForm());
+        component.FindComponent<MudNumericField<decimal>>().Instance.Value.ShouldBe(12.5m);
+    }
+
+    [Fact]
     public void Each_Item_Form_Should_Apply_The_Callers_Configuration()
     {
         // Arrange & Act - the callback is how a suite declares the behaviour it is testing, so it
@@ -91,12 +121,16 @@ public class CollectionItemFixtureTests : MudBlazorTestBase
         var boolean = this.RenderItemForm(
             CollectionItemFixture.NewBasket(),
             CollectionItemFixture.BooleanItemForm(field => field.WithLabel("Renamed")));
+        var dec = this.RenderItemForm(
+            CollectionItemFixture.NewPricedBasket(),
+            CollectionItemFixture.DecimalItemForm(field => field.WithLabel("Renamed")));
 
         // Assert - the callback runs after the default label, so it can override it
         text.FindComponent<MudTextField<string>>().Instance.Label.ShouldBe("Renamed");
         numeric.FindComponent<MudNumericField<int>>().Instance.Label.ShouldBe("Renamed");
         date.FindComponent<MudDatePicker>().Instance.Label.ShouldBe("Renamed");
         boolean.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Renamed");
+        dec.FindComponent<MudNumericField<decimal>>().Instance.Label.ShouldBe("Renamed");
     }
 
     [Fact]

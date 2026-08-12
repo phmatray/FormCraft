@@ -1,4 +1,5 @@
 using System.Globalization;
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
@@ -63,36 +64,19 @@ public class CollectionCultureTests : MudBlazorTestBase
             .ShouldBe(standalone.FindComponent<MudNumericField<decimal>>().Instance.Culture);
     }
 
-    private IRenderedComponent<FormCraftComponent<BasketModel>> RenderBasket(
-        Action<FieldBuilder<BasketLine, decimal>> configure)
-    {
-        var config = FormBuilder<BasketModel>
-            .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.Price, field =>
-                    {
-                        field.WithLabel("Price");
-                        configure(field);
-                    })))
-            .Build();
+    /// <summary>
+    /// The decimal item form comes from <see cref="CollectionItemFixture"/> (#258); the blank seed
+    /// matches the unseeded <c>Price</c> this suite used to declare locally, and the assertions here
+    /// are about <c>Culture</c> rather than about any value.
+    /// </summary>
+    private IRenderedComponent<FormCraftComponent<PricedBasketModel>> RenderBasket(
+        Action<FieldBuilder<PricedLine, decimal>> configure) =>
+        this.RenderItemForm(NewPricedBasket(), DecimalItemForm(configure));
 
-        return Render<FormCraftComponent<BasketModel>>(parameters => parameters
-            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
-            .Add(p => p.Configuration, config));
-    }
-
-    private class BasketModel
-    {
-        public List<BasketLine> Lines { get; set; } = new();
-    }
-
-    private class BasketLine
-    {
-        public decimal Price { get; set; }
-    }
-
+    /// <summary>
+    /// Stays local: it is a non-collection model, used only for the standalone half of the parity
+    /// comparison below, so the fixture has no reason to carry it.
+    /// </summary>
     private class PriceModel
     {
         public decimal Amount { get; set; }
