@@ -1,0 +1,20 @@
+@namespace FormCraft.ForFluentUI
+
+@* Help text is rendered here, by the container, rather than bound to each input's own `Message`
+   parameter.
+
+   `Message` looked like the natural slot - Fluent documents it as "the message to display below the
+   field" - but it is owned by the input's validation display: measured on v5 RC5, FluentTextInput
+   and FluentNumberInput overwrite a caller-supplied Message with their own validation string
+   ("This field is required"), while FluentCheckbox, FluentDatePicker and FluentSelect leave it
+   alone. Binding it would give help text that appears on three field types and silently vanishes on
+   the other two - which is worse than a uniform mechanism, because the gap is invisible until a
+   user needs the instruction.
+
+   Per-field instructions are the WCAG 2.1 3.3.2 mechanism this adapter otherwise honours through
+   `aria-required`, so it gets a slot the adapter controls. `aria-describedby` wires it to the input
+   for assistive technology. *@
+@if (!string.IsNullOrWhiteSpace(Text))
+{
+    <div id="@Id" class="formcraft-field-help">@Text</div>
+}

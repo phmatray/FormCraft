@@ -43,15 +43,43 @@ Then render a form exactly as you would with any other FormCraft adapter:
 | `DateTime`, `DateOnly` (and nullable forms) | `FluentDatePicker<T>` |
 | `TimeOnly`, `TimeOnly?` | `FluentTimePicker<T>` |
 
-Collection/item-form fields, lookup and LOV dialogs, autocomplete, multi-select and file upload are
-not yet implemented for Fluent — see the follow-ups on
-[#260](https://github.com/phmatray/FormCraft/issues/260).
+## Not yet covered
+
+- Collection/item-form fields, lookup and LOV dialogs, autocomplete, multi-select, file upload, and
+  custom renderers.
+- **Field groups** — `.AddFieldGroup(...)` fields render, but ungrouped and without the card/column
+  layout the MudBlazor adapter gives them.
+- **`.WithSecurity(...)`** — rate limiting, CSRF protection, audit logging and field encryption are
+  *not* enforced. Rather than drop them silently, a form configured with security **throws** at
+  render time. Use `FormCraft.ForMudBlazor` for forms that need them.
+
+See the follow-ups on [#260](https://github.com/phmatray/FormCraft/issues/260).
 
 ## One adapter at a time
 
 `AddFormCraftFluentUI()` and `AddFormCraftMudBlazor()` are **mutually exclusive**. Renderer selection
-is first-match-wins, so a container holding both would render a form that is partly Material and
-partly Fluent with no error to point at. Registering both throws instead.
+is first-match-wins, so a container holding both renders a form that is partly Material and partly
+Fluent, with no error to point at.
+
+`AddFormCraftFluentUI()` throws when the MudBlazor adapter is **already** registered:
+
+```csharp
+builder.Services.AddFormCraft();
+builder.Services.AddFormCraftMudBlazor();
+builder.Services.AddFormCraftFluentUI();   // throws InvalidOperationException
+```
+
+⚠️ **The guard is one-directional.** It inspects the container at the moment it runs, so the reverse
+order slips through and produces exactly the mixed container it exists to prevent:
+
+```csharp
+builder.Services.AddFormCraft();
+builder.Services.AddFormCraftFluentUI();
+builder.Services.AddFormCraftMudBlazor();  // does NOT throw — mixed renderers
+```
+
+Closing that needs a matching check on the MudBlazor side, which belongs to that package. Until then,
+register exactly one adapter and prefer putting `AddFormCraftFluentUI()` last if you are unsure.
 
 ## Accessibility
 

@@ -67,8 +67,30 @@ public partial class FormCraftComponent<TModel> where TModel : new()
     private FluentUIDynamicFormValidator<TModel>? _validator;
 
     /// <inheritdoc />
+    /// <exception cref="NotSupportedException">
+    /// Thrown when the configuration carries <c>.WithSecurity(...)</c> settings, which this adapter
+    /// does not yet enforce.
+    /// </exception>
     protected override async Task OnInitializedAsync()
     {
+        // ⛔ Fail closed. The MudBlazor container enforces WithSecurity(...) - rate limiting, CSRF
+        // generation and validation, audit logging - in HandleSubmit before the submit handler
+        // runs. This adapter implements none of it yet, and rendering the form anyway would accept
+        // unlimited submissions with no CSRF check and no audit trail, silently: no exception, no
+        // warning, and a form that LOOKS protected because the configuration says so.
+        //
+        // A security feature that quietly does nothing is worse than one that is absent, so an
+        // unsupported configuration is refused outright rather than ignored. Removing this guard
+        // without implementing enforcement re-opens exactly that hole.
+        if (Configuration?.Security is not null)
+        {
+            throw new NotSupportedException(
+                "FormCraft.ForFluentUI does not yet enforce .WithSecurity(...) (rate limiting, CSRF " +
+                "protection, audit logging, field encryption). Rendering this form would silently " +
+                "drop those protections. Use FormCraft.ForMudBlazor for forms that need them, or " +
+                "remove the security configuration. Tracked on issue #260.");
+        }
+
         if (Model is not null)
         {
             _editContext = new EditContext(Model);

@@ -65,4 +65,30 @@ public abstract class FluentUIFieldComponentBase<TModel, TValue> : FieldComponen
     /// </para>
     /// </remarks>
     protected string? AriaRequired => EffectiveNativeRequired ? "true" : null;
+
+    /// <summary>
+    /// Whether the bound model property is a nullable value type.
+    /// </summary>
+    /// <remarks>
+    /// Components whose <c>TValue</c> is a non-nullable value type still have to round-trip a
+    /// cleared input as <c>null</c> when the underlying property is nullable (#150). Writing
+    /// <c>default</c> instead is not cosmetic: <c>0001-01-01</c> satisfies a <c>Required</c>
+    /// validator, so a cleared mandatory field passes validation, and it is outside the SQL
+    /// <c>datetime</c> range, so the mistake surfaces at persistence rather than at the point the
+    /// user made it. Mirrors <c>MudBlazorDateOnlyFieldComponent.IsNullableField</c>.
+    /// </remarks>
+    protected bool IsNullableField => Nullable.GetUnderlyingType(Context.ActualFieldType) != null;
+
+    /// <summary>
+    /// The id of this field's help-text element, or <c>null</c> when the field configures none.
+    /// </summary>
+    /// <remarks>
+    /// Help text is rendered by the container rather than bound to the input's own <c>Message</c>
+    /// parameter - see <see cref="FieldHelpText"/> for why - so the association an assistive
+    /// technology needs has to be made explicitly with <c>aria-describedby</c>. Without it the text
+    /// is visible but unannounced, which is the failure mode this adapter already refuses to accept
+    /// for <c>aria-required</c>.
+    /// </remarks>
+    protected string? AriaDescribedBy =>
+        string.IsNullOrWhiteSpace(HelpText) ? null : FieldHelpText.IdFor(Context.Field.FieldName);
 }

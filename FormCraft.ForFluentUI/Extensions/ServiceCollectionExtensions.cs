@@ -21,8 +21,14 @@ public static class ServiceCollectionExtensions
         /// </summary>
         /// <returns>The IServiceCollection for method chaining.</returns>
         /// <exception cref="InvalidOperationException">
-        /// Thrown when the MudBlazor adapter is already registered.
+        /// Thrown when the MudBlazor adapter is <b>already</b> registered.
         /// </exception>
+        /// <remarks>
+        /// ⚠️ The guard is one-directional: it inspects the container at the moment it runs, so
+        /// calling <c>AddFormCraftFluentUI()</c> and <b>then</b> <c>AddFormCraftMudBlazor()</c>
+        /// throws nothing and produces exactly the mixed container it exists to prevent. Closing
+        /// that needs a matching check in the MudBlazor package.
+        /// </remarks>
         /// <example>
         /// <code>
         /// // In Program.cs

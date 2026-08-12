@@ -26,6 +26,7 @@
             {
                 <div>
                     @RenderField(field)
+                    <FieldHelpText Text="@field.HelpText" Id="@FieldHelpText.IdFor(field.FieldName)" />
                     <FieldValidationMessage FieldName="@field.FieldName" />
                 </div>
             }

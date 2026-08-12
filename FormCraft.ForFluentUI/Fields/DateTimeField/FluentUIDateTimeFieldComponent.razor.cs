@@ -36,8 +36,13 @@ public partial class FluentUIDateTimeFieldComponent<TModel>
 
     private async Task OnLocalValueChanged()
     {
-        var value = _localValue ?? default;
-        SetValueWithoutNotification(value);
-        await Context.OnValueChanged.InvokeAsync(value);
+        SetValueWithoutNotification(_localValue ?? default);
+
+        // A cleared picker on a nullable property round-trips as null, not default (#150).
+        object? notified = _localValue.HasValue
+            ? _localValue.Value
+            : IsNullableField ? null : default(DateTime);
+
+        await Context.OnValueChanged.InvokeAsync(notified);
     }
 }
