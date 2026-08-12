@@ -27,15 +27,22 @@ public class WorkflowSourceTests
         // The enumeration is the foundation every "no workflow offends" assertion rests on, and each
         // of those is satisfied trivially by a set that is missing the offender. A workflow added as
         // .yaml, or one this reader silently failed to pick up, would leave the whole family green.
+        //
+        // Compared against an UNFILTERED listing on purpose. Re-stating the reader's own `.yml`/
+        // `.yaml` predicate here would make the two sides move together — drop `.yaml` from the
+        // reader and the copy drops it too, so the assertion stays green while the guard family
+        // quietly stops seeing those files. That is the one regression this test exists to catch,
+        // so the expectation has to come from somewhere the reader does not decide: the directory.
         var onDisk = Directory
-            .EnumerateFiles(WorkflowSource.WorkflowsDirectory, "*.*")
-            .Where(f => f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase)
-                     || f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase))
+            .EnumerateFiles(WorkflowSource.WorkflowsDirectory)
             .Select(f => Path.GetFileName(f))
             .Order(StringComparer.Ordinal)
             .ToList();
 
         onDisk.ShouldNotBeEmpty("no workflow files found — the comparison would pass vacuously");
+
+        // Every file in .github/workflows is a workflow; if a non-YAML file is ever added there,
+        // this is meant to go red so a human decides whether the reader should skip it.
         WorkflowSource.All.Keys.Order(StringComparer.Ordinal).ShouldBe(onDisk);
     }
 
@@ -105,6 +112,26 @@ public class WorkflowSourceTests
 
         step.ShouldContain("uses: NuGet/login@");
         step.ShouldNotContain("- name: 'Run: Pack");
+    }
+
+    [Fact]
+    public void Matching_Should_Find_The_Workflows_That_Invoke_The_Build()
+    {
+        // The discovery primitive the whole TestReportingTests family rests on: it decides which
+        // workflows are held to the artifact contract, so a regression here does not redden
+        // anything — it just quietly shrinks the set being checked.
+        var matched = WorkflowSource.Matching(@"\./build\.(cmd|sh|ps1)\s+(Test|Pack|Continuous)\b");
+
+        matched.ShouldBe(["ci.yml", "continuous.yml", "release-please.yml"]);
+    }
+
+    [Fact]
+    public void Matching_Should_Not_Be_Satisfied_By_A_Commented_Out_Invocation()
+    {
+        // The other half of the same decision, and the reason Matching strips before it matches.
+        // release-please.yml discusses `./build.cmd Continuous` in prose; ci.yml's comment block
+        // names `**/TestResults/`, a glob its wiring deliberately no longer uses. Neither may count.
+        WorkflowSource.Matching(@"\*\*/TestResults/").ShouldBeEmpty();
     }
 
     [Fact]

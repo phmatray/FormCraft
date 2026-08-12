@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
 namespace FormCraft.UnitTests.Ci;
@@ -37,10 +38,37 @@ internal static class WorkflowSource
     /// </summary>
     internal static IReadOnlyDictionary<string, string> All { get; } = ReadAllWorkflows();
 
-    internal static string Read(string fileName) => All[fileName];
+    /// <summary>
+    /// One workflow's raw text. Asserts rather than throwing a bare <c>KeyNotFoundException</c>:
+    /// these suites exist to tell a reader *which* CI file broke, and a dictionary miss that names
+    /// neither the file nor the directory is the one failure message that cannot do that.
+    /// </summary>
+    internal static string Read(string fileName)
+    {
+        All.TryGetValue(fileName, out var text).ShouldBeTrue(
+            $"{fileName} is not in {WorkflowsDirectory} — found: {string.Join(", ", All.Keys.Order(StringComparer.Ordinal))}");
 
-    internal static string ReadBuildScript() =>
-        File.ReadAllText(Path.Combine(RepoRoot, "build", "Build.cs"));
+        return text!;
+    }
+
+    /// <summary>
+    /// One workflow, comment-stripped and cached — the text nearly every assertion actually reads.
+    /// Stripping is not free (a <c>Split</c>/<c>Where</c>/<c>Join</c> over the whole file) and was
+    /// being repeated per call site, per assertion, over text that cannot change during a run.
+    /// Going through here also keeps the <c>"#"</c> marker in one place instead of at every caller.
+    /// </summary>
+    internal static string Stripped(string fileName) =>
+        StrippedCache.GetOrAdd(fileName, name => WithoutComments(Read(name), "#"));
+
+    private static readonly ConcurrentDictionary<string, string> StrippedCache = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// <c>build/Build.cs</c>, comment-stripped and cached — the text every <c>Build.cs</c> claim in
+    /// either suite reads. Shared rather than copied: both suites had a byte-identical private
+    /// helper for this, which is the duplication class #255 exists to remove.
+    /// </summary>
+    internal static string BuildScript { get; } =
+        WithoutComments(File.ReadAllText(Path.Combine(RepoRoot, "build", "Build.cs")), "//");
 
     /// <summary>
     /// Drops whole-line comments so a "not referenced" assertion fires on wiring rather than on
@@ -62,9 +90,8 @@ internal static class WorkflowSource
     /// <c>release-please.yml</c> was left behind by #225 and nobody noticed.
     /// </summary>
     internal static IReadOnlyList<string> Matching(string pattern) =>
-        All
-            .Where(entry => Regex.IsMatch(WithoutComments(entry.Value, "#"), pattern))
-            .Select(entry => entry.Key)
+        All.Keys
+            .Where(fileName => Regex.IsMatch(Stripped(fileName), pattern))
             .Order(StringComparer.Ordinal)
             .ToList();
 
@@ -97,13 +124,21 @@ internal static class WorkflowSource
     internal static IReadOnlyDictionary<string, string> JobsOf(string fileName)
     {
         var jobs = new Dictionary<string, string>(StringComparer.Ordinal);
-        var lines = WithoutComments(Read(fileName), "#").Split('\n');
+        var lines = Stripped(fileName).Split('\n');
 
-        var index = Array.FindIndex(lines, l => l.TrimEnd() == "jobs:");
+        // Tolerates a trailing comment (`jobs: # …`), which WithoutComments deliberately leaves
+        // alone — it only drops whole-line comments, so that a URL's "//" survives.
+        var index = Array.FindIndex(lines, l => JobsKey.IsMatch(l));
         if (index < 0)
         {
-            // No `jobs:` key at all (no workflow here has one today). An empty map contributes no
-            // pairs; the caller's vacuity guard is what stops that from silently emptying the set.
+            // This workflow declares no `jobs:` key, so it contributes no pairs.
+            //
+            // ⚠️ An empty map is NOT caught by a caller's whole-set vacuity guard: that only fires
+            // when *every* workflow yields nothing. A single file dropping out is exactly what such
+            // a guard cannot see, so a caller that needs each matched workflow represented has to
+            // assert that per workflow — TestReportingTests.Every_Workflow_That_Runs_Tests_Should_
+            // Contribute_A_Job does, and is what turns a split this reader botched into a red run
+            // rather than a quietly smaller guard set.
             return jobs;
         }
 
@@ -143,10 +178,19 @@ internal static class WorkflowSource
         return jobs;
     }
 
+    /// <summary>The top-level <c>jobs:</c> key, with or without a trailing comment.</summary>
+    private static readonly Regex JobsKey = new(@"^jobs:\s*(#.*)?$", RegexOptions.Compiled);
+
     /// <summary>
     /// A job's key: exactly two spaces, then a name. Anchored at two so it cannot match the deeper
     /// keys that make up a job's body — <c>runs-on:</c>, <c>steps:</c>, every <c>with:</c> entry.
     /// </summary>
+    /// <remarks>
+    /// Recognises the convention every workflow in this repo (and GitHub's own documentation) uses:
+    /// two-space indentation and an unquoted name. A four-space or quoted layout is legal YAML and
+    /// would not split — which is why the caller asserts that each matched workflow contributes a
+    /// job, so an unrecognised layout fails loudly instead of shrinking the guard set.
+    /// </remarks>
     private static readonly Regex JobHeader = new(@"^  (?<name>[A-Za-z0-9_-]+):", RegexOptions.Compiled);
 
     /// <summary>

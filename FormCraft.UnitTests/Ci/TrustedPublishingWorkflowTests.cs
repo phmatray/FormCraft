@@ -14,14 +14,6 @@ namespace FormCraft.UnitTests.Ci;
 /// </remarks>
 public class TrustedPublishingWorkflowTests
 {
-    /// <summary>The build script, comment-stripped — the text every <c>Build.cs</c> claim below reads.</summary>
-    private static string BuildScript() =>
-        WorkflowSource.WithoutComments(WorkflowSource.ReadBuildScript(), "//");
-
-    /// <summary>One workflow, comment-stripped — the text every whole-file claim below reads.</summary>
-    private static string Workflow(string fileName) =>
-        WorkflowSource.WithoutComments(WorkflowSource.Read(fileName), "#");
-
     /// <summary>
     /// A single step of a workflow, so an assertion about its <c>if:</c> cannot be satisfied by the
     /// same expression sitting on some other step.
@@ -54,7 +46,7 @@ public class TrustedPublishingWorkflowTests
     [Fact]
     public void ReleaseWorkflow_Should_Request_The_OidcToken()
     {
-        Workflow("release-please.yml").ShouldContain("id-token: write");
+        WorkflowSource.Stripped("release-please.yml").ShouldContain("id-token: write");
     }
 
     [Fact]
@@ -69,7 +61,7 @@ public class TrustedPublishingWorkflowTests
         step.ShouldContain("NUGET_USER");
 
         // The minted key has to actually reach the build; this lives on the later `Run` step.
-        Workflow("release-please.yml").ShouldContain("steps.login.outputs.NUGET_API_KEY");
+        WorkflowSource.Stripped("release-please.yml").ShouldContain("steps.login.outputs.NUGET_API_KEY");
     }
 
     [Fact]
@@ -105,7 +97,7 @@ public class TrustedPublishingWorkflowTests
         // in #197: release-please creates the tag with GITHUB_TOKEN, which never fires
         // `on: push: tags`, so a publish path here could not run — but it could still mint a key.
         // Two workflows able to push the same version is the failure this prevents.
-        var continuous = Workflow("continuous.yml");
+        var continuous = WorkflowSource.Stripped("continuous.yml");
 
         continuous.ShouldNotContain("NuGet/login@");
         continuous.ShouldNotContain("id-token");
@@ -118,14 +110,14 @@ public class TrustedPublishingWorkflowTests
         // Every workflow, not just the publishing one: any workflow that added
         // ${{ secrets.NUGET_API_KEY }} would re-arm exactly the credential #198 exists to retire,
         // with release-please.yml still perfectly clean.
-        var workflows = WorkflowSource.All;
+        var workflows = WorkflowSource.All.Keys;
 
         workflows.ShouldNotBeEmpty("no workflow files found — the scan would pass vacuously");
 
         var offenders = workflows
-            .Where(entry => WorkflowSource.WithoutComments(entry.Value, "#")
+            .Where(fileName => WorkflowSource.Stripped(fileName)
                 .Contains("secrets.NUGET_API_KEY", StringComparison.Ordinal))
-            .Select(entry => entry.Key)
+            .Order(StringComparer.Ordinal)
             .ToList();
 
         // Shouldly prints the collection on failure, so this names the workflow that re-armed it.
@@ -136,7 +128,7 @@ public class TrustedPublishingWorkflowTests
     public void BuildScript_Should_Not_Import_The_LongLived_NuGetApiKey_Secret()
     {
         // The key arrives as a step output now, not as an imported secret.
-        BuildScript().ShouldNotContain("ImportSecrets");
+        WorkflowSource.BuildScript.ShouldNotContain("ImportSecrets");
     }
 
     [Fact]
@@ -147,7 +139,7 @@ public class TrustedPublishingWorkflowTests
         // tag-triggered publish path that #197 deliberately removed. The wipe lands on the next
         // ./build.cmd, long after the edit, so assert the flag itself rather than trusting the
         // tests to run after a regeneration.
-        BuildScript().ShouldContain("AutoGenerate = false");
+        WorkflowSource.BuildScript.ShouldContain("AutoGenerate = false");
     }
 
     [Fact]
@@ -156,7 +148,7 @@ public class TrustedPublishingWorkflowTests
         // release-please.yml leaves NUGET_API_KEY empty on a dry run, but a skipped step yields an
         // empty string rather than an unset variable — so this static gate, not the emptiness of
         // the key, is what keeps a non-release run from reaching DotNetNuGetPush.
-        var build = BuildScript();
+        var build = WorkflowSource.BuildScript;
         build.ShouldMatch(@"OnlyWhenStatic\(\(\) => IsOnVersionTag\(\)\)");
         build.ShouldMatch(@"OnlyWhenStatic\(\(\) => IsServerBuild\)");
     }

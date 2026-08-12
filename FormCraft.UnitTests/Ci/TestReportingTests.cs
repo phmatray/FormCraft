@@ -64,10 +64,6 @@ public class TestReportingTests
         ["log"] = "--results-directory",
     };
 
-    /// <summary>The build script, comment-stripped — the text every <c>Build.cs</c> claim below reads.</summary>
-    private static string BuildScript() =>
-        WorkflowSource.WithoutComments(WorkflowSource.ReadBuildScript(), "//");
-
     /// <summary>
     /// The wrapper invocation that means a job runs the suite. Matched anywhere in the job's
     /// comment-stripped text rather than on a <c>run:</c> prefix: a <c>run: |</c> block puts the
@@ -111,12 +107,36 @@ public class TestReportingTests
     {
         // The vacuity guard lives here rather than in one caller: every assertion below is of the
         // form "no job in this set offends", which an empty set satisfies trivially. A rename, a
-        // reformatted invocation, a switch to .yaml — or a job layout this reader failed to split —
-        // would empty it and turn the whole class green while checking nothing.
+        // reformatted invocation or a switch to .yaml would empty it and turn the whole class green
+        // while checking nothing.
+        //
+        // It is deliberately only half the protection — it fires when the set is *entirely* empty,
+        // and cannot see one workflow dropping out. That case is covered by the test below.
         TestRunningJobs.ShouldNotBeEmpty(
             $"no job invokes ./build.[cmd|sh|ps1] ({TargetsThatRunTests}) — every assertion over this set would pass vacuously");
 
         return TestRunningJobs;
+    }
+
+    [Fact]
+    public void Every_Workflow_That_Runs_Tests_Should_Contribute_A_Job()
+    {
+        // Job scoping is strictly stronger than the file scoping it replaced — except in one way,
+        // which this closes. File scoping could not lose a workflow: the file either matched or it
+        // did not. Job scoping can, because a file that matches still contributes nothing when
+        // JobsOf fails to split it (an unrecognised `jobs:` layout, a quoted or differently indented
+        // job key). The whole-set vacuity guard cannot see that — the set is still non-empty from
+        // the other workflows — so the assertions would simply stop covering that file, green.
+        //
+        // Asserted as an equality against the file-level discovery, which is the one thing known to
+        // be complete: every workflow whose text invokes the build must appear in the pair set.
+        var covered = JobsThatRunTests()
+            .Select(j => j.Workflow)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        covered.ShouldBe(WorkflowSource.Matching(InvocationPattern));
     }
 
     /// <summary>
@@ -144,7 +164,7 @@ public class TestReportingTests
         // Microsoft.Testing.Platform they are not merely ineffective, they are announced as
         // ignored (MTP0001) on every single run — warning noise in a repo whose entire build runs
         // under TreatWarningsAsErrors, which is exactly how readers get trained past warnings.
-        var build = BuildScript();
+        var build = WorkflowSource.BuildScript;
 
         build.ShouldNotContain("SetResultsDirectory");
         build.ShouldNotContain("SetLoggers");
@@ -156,7 +176,7 @@ public class TestReportingTests
         // The native equivalents, which the runner does honour. --results-directory carries the
         // most weight of the three: it is what puts the reports *and* the per-assembly diagnostic
         // log under test-results/, which is the single path all three workflows upload.
-        var build = BuildScript();
+        var build = WorkflowSource.BuildScript;
 
         Enables(build, "--results-directory").ShouldBeTrue();
         Enables(build, "--report-xunit-trx").ShouldBeTrue();
@@ -170,7 +190,7 @@ public class TestReportingTests
         // honoured today and silently dropped tomorrow, exactly as VSTestResultsDirectory was. #231
         // existed because nothing anywhere noticed months of empty output, so the build itself has
         // to notice.
-        var build = BuildScript();
+        var build = WorkflowSource.BuildScript;
 
         build.ShouldContain("Assert.NotEmpty");
         build.ShouldMatch(@"GlobFiles\(""\*\.trx""\)");
@@ -184,7 +204,7 @@ public class TestReportingTests
         // MTP world. Cross-checking the promise against the flags means the assertion cannot be
         // satisfied by copying a literal list, and a future format switch that updates one half
         // without the other turns red here.
-        var build = BuildScript();
+        var build = WorkflowSource.BuildScript;
 
         var promised = Regex
             .Matches(build, """\.Produces\(TestResultsDirectory\s*/\s*"\*\.(?<ext>[A-Za-z]+)"\)""")
