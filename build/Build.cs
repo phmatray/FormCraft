@@ -91,18 +91,40 @@ class Build : NukeBuild
     Target Test => _ => _
         .DependsOn(Compile)
         .Produces(TestResultsDirectory / "*.trx")
-        .Produces(TestResultsDirectory / "*.xml")
+        .Produces(TestResultsDirectory / "*.html")
+        .Produces(TestResultsDirectory / "*.log")
         .Executes(() =>
         {
+            // Both test projects run on Microsoft.Testing.Platform (UseMicrosoftTestingPlatformRunner),
+            // which ignores DotNetTest's VSTest surface. This target used to call
+            // .SetResultsDirectory()/.SetLoggers(); `dotnet test` forwards those as the MSBuild
+            // properties VSTestResultsDirectory/VSTestLogger, and MTP drops both with warning
+            // MTP0001. So the target produced nothing at all while its .Produces(...) lines claimed
+            // otherwise — and `*.xml` named a file neither runner has ever written (#231).
+            //
+            // The options below are MTP's own and are honoured. Everything after `--` is forwarded
+            // verbatim to each test application, which is where xunit.v3's reporters live; they ship
+            // with the runner, so none of this needs an extra package reference.
+            //
+            // --results-directory carries the most weight of the three: besides the reports, it
+            // relocates MTP's per-assembly diagnostic log — the artifact #225 added, carrying the
+            // failing test names and Shouldly detail that never reach stdout — out of
+            // <project>/bin/<cfg>/<tfm>/TestResults/ and into test-results/. That is why all three
+            // workflows can now upload one directory and get both.
+            //
+            // Report file names are left at their defaults (<user>_<machine>_<timestamp>): the
+            // solution has two test assemblies writing into one directory, and a fixed
+            // --report-xunit-trx-filename would have the second silently overwrite the first.
             DotNetTest(s => s
                 .SetProjectFile(Solution)
                 .SetConfiguration(Configuration)
                 .EnableNoRestore()
                 .EnableNoBuild()
-                .SetResultsDirectory(TestResultsDirectory)
-                .SetLoggers(
-                    "trx",
-                    $"html;LogFileName={TestResultsDirectory / "test-results.html"}"));
+                .SetProcessAdditionalArguments(
+                    "--",
+                    "--results-directory", TestResultsDirectory,
+                    "--report-xunit-trx",
+                    "--report-xunit-html"));
         });
 
     Target Pack => _ => _
