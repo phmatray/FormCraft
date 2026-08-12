@@ -1,0 +1,14 @@
+@namespace FormCraft.ForFluentUI
+
+@* A plain element rather than FluentLabel: v5's FluentLabel exposes no colour parameter, so the
+   error styling would have to be smuggled in anyway. The Fluent design token keeps it on-palette
+   in both themes, and the class gives applications something to restyle. *@
+@if (HasValidationErrors)
+{
+    <div class="formcraft-field-validation" style="color: var(--error, #d13438); font-size: var(--type-ramp-minus-1-font-size, 0.75rem);">
+        @foreach (var error in ValidationErrors)
+        {
+            <div>@error</div>
+        }
+    </div>
+}

@@ -1,0 +1,51 @@
+@namespace FormCraft.ForFluentUI
+@typeparam TModel where TModel : new()
+@inject IFieldRendererService FieldRendererService
+
+@if (BeforeForm != null)
+{
+    @BeforeForm
+}
+
+@* `novalidate` is rendered here, as a real attribute on the form EditForm emits (#206).
+
+   It must not be bolted on afterwards by script, the way this library used to do it: that marked
+   the FIRST form in the document rather than this component's, never ran during prerender because
+   OnAfterRenderAsync does not execute on the server pass, failed silently through `?.`, and was
+   `eval`, which a strict CSP blocks outright.
+
+   FormCraft validates server-side and documents that the browser produces no native validation
+   bubbles. That guarantee is only as good as this attribute. *@
+<EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit" novalidate="novalidate">
+    <FluentUIDynamicFormValidator TModel="TModel" Configuration="@Configuration" @ref="_validator" />
+
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+        @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
+        {
+            if (ShouldShowField(field))
+            {
+                <div>
+                    @RenderField(field)
+                    <FieldValidationMessage FieldName="@field.FieldName" />
+                </div>
+            }
+        }
+
+        @if (ShowSubmitButton)
+        {
+            <div>
+                <FluentButton Type="ButtonType.Submit"
+                              Appearance="ButtonAppearance.Primary"
+                              Disabled="@IsSubmitting"
+                              Class="@SubmitButtonClass">
+                    @(IsSubmitting ? SubmittingText : SubmitButtonText)
+                </FluentButton>
+            </div>
+        }
+    </FluentStack>
+</EditForm>
+
+@if (AfterForm != null)
+{
+    @AfterForm
+}
