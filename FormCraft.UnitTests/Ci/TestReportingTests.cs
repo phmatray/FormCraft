@@ -140,6 +140,25 @@ public class TestReportingTests
         Regex.IsMatch(build, Regex.Escape(option) + "(?![-A-Za-z])");
 
     /// <summary>
+    /// Every glob the <c>Test</c> target promises under <c>TestResultsDirectory</c>, as written —
+    /// e.g. <c>**/*.trx</c>. Shared so the "is recursive" and "is backed by a reporter" assertions
+    /// read one list: a glob only one of them could see would let the pair disagree about what the
+    /// target actually promises.
+    /// </summary>
+    private static List<string> PromisedGlobs(string build) =>
+        Regex
+            .Matches(build, """\.Produces\(TestResultsDirectory\s*/\s*"(?<glob>[^"]+)"\)""")
+            .Select(match => match.Groups["glob"].Value)
+            .ToList();
+
+    /// <summary>
+    /// The extension a promised glob resolves to — <c>trx</c> for both <c>*.trx</c> and
+    /// <c>**/*.trx</c>, so the reporter cross-check reads the same answer either side of #256's
+    /// move to per-project subdirectories.
+    /// </summary>
+    private static string ExtensionOf(string glob) => glob[(glob.LastIndexOf('.') + 1)..];
+
+    /// <summary>
     /// Drops whole-line comments so a "not referenced" assertion fires on wiring rather than on
     /// prose — these files carry long explanatory blocks about this very wiring, and without this a
     /// documentation-only edit would turn the suite red for a reason unrelated to the build. Only
@@ -214,7 +233,11 @@ public class TestReportingTests
         var build = WithoutComments(ReadBuildScript(), "//");
 
         build.ShouldContain("Assert.NotEmpty");
-        build.ShouldMatch(@"GlobFiles\(""\*\.trx""\)");
+
+        // `**/` optional: the reports moved into per-project subdirectories in #256, so the guard's
+        // own glob had to recurse to keep finding them. What is pinned is that the guard still
+        // counts *.trx files — not the depth it counts them at.
+        build.ShouldMatch(@"GlobFiles\(""(\*\*/)?\*\.trx""\)");
     }
 
     [Fact]
@@ -227,19 +250,39 @@ public class TestReportingTests
         // without the other turns red here.
         var build = WithoutComments(ReadBuildScript(), "//");
 
-        var promised = Regex
-            .Matches(build, """\.Produces\(TestResultsDirectory\s*/\s*"\*\.(?<ext>[A-Za-z]+)"\)""")
-            .Select(match => match.Groups["ext"].Value)
-            .ToList();
+        var promised = PromisedGlobs(build);
 
         promised.ShouldNotBeEmpty("the Test target promises no test-results artifact at all");
 
         // Shouldly prints the collection on failure, so this names the offending extension.
         var unbacked = promised
+            .Select(ExtensionOf)
             .Where(ext => !ReporterForExtension.TryGetValue(ext, out var option) || !Enables(build, option))
             .ToList();
 
         unbacked.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Test_Target_Should_Promise_Its_Artifacts_Recursively()
+    {
+        // Each test project now writes into its own test-results/<project>/ subdirectory (#256), so
+        // the reports sit one level below where a flat `*.trx` glob looks. Nuke resolves .Produces
+        // globs against the filesystem when it collects artifacts, so a non-recursive glob here
+        // matches nothing on every run while still reading like a promise — the declared-and-inert
+        // shape #231 was filed about, reintroduced by the very change that fixed the naming.
+        var build = WithoutComments(ReadBuildScript(), "//");
+
+        var promised = PromisedGlobs(build);
+
+        promised.ShouldNotBeEmpty("the Test target promises no test-results artifact at all");
+
+        // Shouldly prints the collection on failure, so this names the offending glob.
+        var flat = promised
+            .Where(glob => !glob.StartsWith("**/", StringComparison.Ordinal))
+            .ToList();
+
+        flat.ShouldBeEmpty();
     }
 
     [Fact]

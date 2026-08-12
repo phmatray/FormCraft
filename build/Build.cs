@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using FormCraft.Build;
 using Nuke.Common;
@@ -90,9 +91,9 @@ class Build : NukeBuild
 
     Target Test => _ => _
         .DependsOn(Compile)
-        .Produces(TestResultsDirectory / "*.trx")
-        .Produces(TestResultsDirectory / "*.html")
-        .Produces(TestResultsDirectory / "*.log")
+        .Produces(TestResultsDirectory / "**/*.trx")
+        .Produces(TestResultsDirectory / "**/*.html")
+        .Produces(TestResultsDirectory / "**/*.log")
         .Executes(() =>
         {
             // Both test projects run on Microsoft.Testing.Platform (UseMicrosoftTestingPlatformRunner),
@@ -112,9 +113,20 @@ class Build : NukeBuild
             // <project>/bin/<cfg>/<tfm>/TestResults/ and into test-results/. That is why all three
             // workflows can now upload one directory and get both.
             //
-            // Report file names are left at their defaults (<user>_<machine>_<timestamp>): the
-            // solution has two test assemblies writing into one directory, and a fixed
-            // --report-xunit-trx-filename would have the second silently overwrite the first.
+            // One invocation PER TEST PROJECT, each into test-results/<project>/ (#256). A single
+            // solution-wide `dotnet test` sent both assemblies' reports to one directory under the
+            // runner's default names — <user>_<machine>_<timestamp> — where the two trx files
+            // differed only in the microsecond field. The per-assembly .log files in the same
+            // artifact were named properly, so half of it said where it came from and half did not,
+            // and a reader who downloaded it after a red run had to open both to learn which suite
+            // broke. Identity now comes from the path.
+            //
+            // Report file names are still left at their defaults rather than pinned with
+            // --report-xunit-trx-filename. That option sets a FIXED name, so under the old single
+            // invocation the second assembly would have silently overwritten the first — losing a
+            // whole suite's report, which is strictly worse than an opaque name. One directory per
+            // assembly already makes the defaults unique, so the directory is what carries the
+            // identity and the filename is left to the runner.
             //
             // Which is also why the directory is emptied first. Timestamped names never collide, so
             // nothing overwrites a previous run's reports — they simply accumulate, and a red run
@@ -126,16 +138,49 @@ class Build : NukeBuild
             // way. CI checks out fresh, so only a local `./build.sh Test` loop ever notices.
             TestResultsDirectory.CreateOrCleanDirectory();
 
-            DotNetTest(s => s
-                .SetProjectFile(Solution)
-                .SetConfiguration(Configuration)
-                .EnableNoRestore()
-                .EnableNoBuild()
-                .SetProcessAdditionalArguments(
-                    "--",
-                    "--results-directory", TestResultsDirectory,
-                    "--report-xunit-trx",
-                    "--report-xunit-html"));
+            // Discovered from the solution rather than listed literally, so a third suite is held to
+            // the same contract on the day it lands instead of being skipped in silence — the shape
+            // of the miss #231 found, where release-please.yml was left behind by #225.
+            var testProjects = Solution
+                .GetAllProjects("*Tests")
+                .OrderBy(project => project.Name, StringComparer.Ordinal)
+                .ToList();
+
+            Assert.NotEmpty(
+                testProjects,
+                "No project matching \"*Tests\" was found in the solution. Discovery is by project "
+                + "name, so a suite named to some other pattern would be skipped without a word — "
+                + "which is the regression this guards.");
+
+            // Every project runs before any failure is surfaced. A bare foreach would let the first
+            // red suite's exception abort the loop, hiding a second broken suite until the first was
+            // fixed — one red run per bug instead of one red run naming both. The solution-wide
+            // invocation this replaced ran both assemblies and reported both, so failing fast here
+            // would be a real regression in diagnosis rather than a stylistic choice. Recorded and
+            // re-thrown below.
+            var failed = new List<string>();
+
+            foreach (var project in testProjects)
+            {
+                try
+                {
+                    DotNetTest(s => s
+                        .SetProjectFile(project)
+                        .SetConfiguration(Configuration)
+                        .EnableNoRestore()
+                        .EnableNoBuild()
+                        .SetProcessAdditionalArguments(
+                            "--",
+                            "--results-directory", TestResultsDirectory / project.Name,
+                            "--report-xunit-trx",
+                            "--report-xunit-html"));
+                }
+                catch (Exception exception)
+                {
+                    failed.Add(project.Name);
+                    Serilog.Log.Error("{Project} failed: {Message}", project.Name, exception.Message);
+                }
+            }
 
             // Enforce the contract rather than merely declaring it — the whole point of #231. The
             // defect it was filed about produced no error of any kind: `dotnet test` succeeded, the
@@ -145,12 +190,22 @@ class Build : NukeBuild
             // VSTestResultsDirectory. Then the workflows would upload an empty directory under
             // `if-no-files-found: ignore` and nothing anywhere would say so. Cheapest possible guard,
             // and it turns that whole class of regression into a failed build on the next run.
-            var reports = TestResultsDirectory.GlobFiles("*.trx");
+            //
+            // Checked BEFORE the failures collected above are re-thrown, so it runs on red runs too
+            // rather than only on green ones. The old single invocation threw from DotNetTest itself
+            // the moment a suite went red, which meant this guard was skipped on exactly the runs
+            // whose artifact someone was about to download. Strictly stronger, never weaker.
+            var reports = TestResultsDirectory.GlobFiles("**/*.trx");
             Assert.NotEmpty(
                 reports,
                 $"The test run produced no *.trx under {TestResultsDirectory}. The reporters are "
                 + "wired but emitted nothing — check whether the runner still honours "
                 + "--results-directory / --report-xunit-trx (see #231).");
+
+            if (failed.Count > 0)
+            {
+                Assert.Fail($"Test suites failed: {string.Join(", ", failed)}.");
+            }
         });
 
     Target Pack => _ => _
