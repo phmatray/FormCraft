@@ -91,8 +91,16 @@ public class NativeRequiredBuilderTests
     [Fact]
     public void Required_Alone_Should_Not_Write_The_Native_Attribute()
     {
-        // Arrange & Act - the #190 invariant, restated here so a regression names itself: validation
-        // is server-side, and `.Required(...)` must never start emitting the HTML5 decoration again.
+        // Arrange & Act - `.Required(...)` writes a VALIDATOR, not an attribute. The distinction
+        // survives #199 and is what this pins: the decoration is now inferred from IsRequired at
+        // RENDER time, so the attribute bag must stay clean for `.WithNativeRequired(...)` to remain
+        // distinguishable from it. If `.Required(...)` started writing "Required" into the bag, the
+        // explicit override could no longer be told apart from the inference and
+        // `.WithNativeRequired(false)` would stop working.
+        //
+        // ⚠️ Not the #190 invariant any more. That was "`.Required(...)` must never emit the HTML5
+        // decoration", which #199 deliberately reversed — see AriaRequiredTests, which asserts the
+        // decoration IS emitted. Only the builder-level fact is pinned here.
         var config = FormBuilder<TestModel>
             .Create()
             .AddField(x => x.Name, f => f.Required("Name is required"))
@@ -125,13 +133,19 @@ public class NativeRequiredBuilderTests
     }
 
     [Fact]
-    public void A_Field_Without_The_Opt_In_Should_Not_Be_Decorated_On_The_Component_Path()
+    public void A_Field_With_Neither_Required_Nor_The_Opt_In_Should_Not_Be_Decorated_On_The_Component_Path()
     {
-        // Arrange - the guard on the guard: `.Required(...)` must still emit nothing (#190), and an
-        // unconfigured field must be untouched. This is the overwhelmingly common case.
+        // Arrange - the guard on the guard: a field that asked for nothing must be untouched. This
+        // is the overwhelmingly common case, and it is what keeps #199's inference from becoming
+        // "decorate everything".
+        //
+        // This test used to configure `.Required("…")` here and assert the same emptiness, pinning
+        // the #190 invariant. #199 reverses that deliberately — a required field is now announced to
+        // assistive technology — so the `.Required(...)` case moved to AriaRequiredTests, which
+        // asserts the opposite, and this one narrowed to the genuinely unconfigured field.
         var config = FormBuilder<TestModel>
             .Create()
-            .AddField(x => x.Name, f => f.WithLabel("Name").Required("Name is required"))
+            .AddField(x => x.Name, f => f.WithLabel("Name"))
             .Build();
 
         // Act

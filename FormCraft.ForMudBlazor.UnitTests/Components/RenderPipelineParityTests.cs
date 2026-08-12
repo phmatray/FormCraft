@@ -475,12 +475,23 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         standaloneRender.Find("input").GetAttribute("type").ShouldBe("password");
         itemRender.Find("input").GetAttribute("type").ShouldBe("password");
 
-        // Required is compared here at its agreed DEFAULT (#190): both paths must render false for a
-        // .Required(...) field, because validation here is server-side. Its bite comes from the
-        // collection path, which used to render true off field.IsRequired and would diverge from
-        // this standalone false the moment that emission came back. The non-default direction — the
-        // explicit .WithNativeRequired() opt-in — is guarded by the test below (#204).
-        standalone.Required.ShouldBeFalse();
+        // Required is compared here for a .Required(...) field, which since #199 renders TRUE on both
+        // paths so the field is announced to assistive technology. This assertion used to read
+        // ShouldBeFalse (#190); the value flipped, the guard did not. Its bite is unchanged and
+        // symmetric — Presentation() above compares the two paths, and this line pins WHICH of the
+        // two agreed values they settled on, so levelling both back down to silence fails here
+        // rather than passing as a vacuous agreement. The explicit .WithNativeRequired() opt-in is
+        // guarded by the test below (#204), and the opt-OUT by AriaRequiredTests.
+        standalone.Required.ShouldBeTrue();
+
+        // And the accessibility attribute itself, on both paths (#199). The parameter comparison
+        // above cannot see this: Required is what FormCraft sets, aria-required is what MudBlazor
+        // derives from it and what a screen reader actually reads. Asserting only the parameter
+        // would stay green if the value stopped reaching the element — the same "forwarded but
+        // inert" failure the InputType assertions above exist to catch.
+        standaloneRender.Find("input").GetAttribute("aria-required").ShouldBe("true");
+        itemRender.Find("input").GetAttribute("aria-required")
+            .ShouldBe(standaloneRender.Find("input").GetAttribute("aria-required"));
     }
 
     [Theory]
@@ -536,9 +547,12 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     {
         // Arrange - #204. `.WithNativeRequired()` (and the raw "Required" attribute it replaces) used
         // to be read ONLY by CollectionFieldComponent, so the escape hatch worked inside an item form
-        // and was silently ignored outside one. This is the non-default direction of the Required
-        // comparison: the test above pins that both paths agree on `false` for `.Required(...)`,
-        // this one pins that both agree on `true` when the decoration is explicitly asked for.
+        // and was silently ignored outside one. This pins the EXPLICIT direction of the Required
+        // comparison: the test above pins that both paths agree for a plain `.Required(...)` field
+        // (`true` since #199 — it read `false` under #190), this one pins that both agree on `true`
+        // when the decoration is asked for without `.Required(...)` at all. The remaining
+        // combination, an explicit `false` overriding `.Required(...)`, is covered on both paths by
+        // AriaRequiredTests.
         static void Configure<TOwner>(FieldBuilder<TOwner, string> field)
             where TOwner : new()
             => field.WithLabel("Product").WithNativeRequired();
@@ -584,7 +598,11 @@ public class RenderPipelineParityTests : MudBlazorTestBase
                 .WithPlaceholder("e.g. 3")
                 .WithHelpText("Units to order")
                 .WithAdornment(Icons.Material.Filled.Numbers, Adornment.End, Color.Secondary)
-                .WithVariant(Variant.Filled);
+                .WithVariant(Variant.Filled)
+                // #199. Required joined the numeric compared set here; it was already in the string
+                // one. Configured rather than left default so the comparison is of the interesting
+                // value — two fields agreeing on `false` would pass while proving nothing.
+                .Required("Quantity is required");
 
         var standaloneConfig = FormBuilder<TestModel>
             .Create()
@@ -598,14 +616,15 @@ public class RenderPipelineParityTests : MudBlazorTestBase
                 .WithItemForm(item => item.AddField(x => x.Quantity, Configure)))
             .Build();
 
-        // Act
-        var standalone = RenderForm(standaloneConfig)
-            .FindComponent<MudNumericField<int>>().Instance;
+        // Act - the rendered components are kept, not just their instances, so the DOM assertions
+        // below can read the element MudBlazor actually produced.
+        var standaloneRender = RenderForm(standaloneConfig);
+        var standalone = standaloneRender.FindComponent<MudNumericField<int>>().Instance;
 
-        var itemField = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-                .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-                .Add(p => p.Configuration, collectionConfig))
-            .FindComponent<MudNumericField<int>>().Instance;
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+        var itemField = itemRender.FindComponent<MudNumericField<int>>().Instance;
 
         // Assert
         Presentation(itemField).ShouldBe(Presentation(standalone));
@@ -614,6 +633,12 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         standalone.Adornment.ShouldBe(Adornment.End);
         standalone.AdornmentIcon.ShouldBe(Icons.Material.Filled.Numbers);
         standalone.Variant.ShouldBe(Variant.Filled);
+        standalone.Required.ShouldBeTrue();
+
+        // The accessibility attribute a screen reader reads, on both paths (#199)
+        standaloneRender.Find("input").GetAttribute("aria-required").ShouldBe("true");
+        itemRender.Find("input").GetAttribute("aria-required")
+            .ShouldBe(standaloneRender.Find("input").GetAttribute("aria-required"));
     }
 
     /// <summary>
@@ -626,6 +651,10 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         field.Label,
         field.Placeholder,
         field.HelperText,
+        // Joined the numeric set in #199, matching the string one. Both paths resolve it by the
+        // same rule now (explicit "Required" attribute, else IsRequired), so a change to one alone
+        // fails here.
+        field.Required,
         field.Variant,
         field.Margin,
         field.ShrinkLabel,
@@ -832,11 +861,13 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     /// The presentation attributes both render paths are expected to honour identically, and which
     /// the test above actually configures. Add to this list whenever a field component gains one.
     /// <para>
-    /// <c>Required</c> joined the set in #190: both paths must render it <c>false</c> even for a
-    /// <c>.Required(...)</c> field, because validation is server-side and forms render
-    /// <c>novalidate</c>. It was previously listed as a known divergence while the test never
-    /// configured it — so the comparison passed vacuously over a real disagreement, which is the
-    /// trap the list below warns about.
+    /// <c>Required</c> joined the compared set in #190, which pinned both paths to <c>false</c> even
+    /// for a <c>.Required(...)</c> field. #199 reversed the VALUE — both now render <c>true</c>, so a
+    /// required field is announced to assistive technology (WCAG 2.1 3.3.2, Level A) — while keeping
+    /// the agreement that made #190 worth filing. What mattered then and still matters is that the
+    /// two agree; before #190 the attribute was listed as a known divergence while the test never
+    /// configured it, so the comparison passed vacuously over a real disagreement. That is the trap
+    /// the list below warns about.
     /// </para>
     /// <para>
     /// <b>The divergence list is empty.</b> It used to name the attributes the two paths were known
@@ -851,10 +882,15 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     /// What survives is not a divergence but a shared gap, and one measurement note:
     /// </para>
     /// <list type="bullet">
-    /// <item>✅ <b>Resolved in #204</b> — the native-required opt-in was once collection-path only.
-    /// Both paths read it (via the typed <c>.WithNativeRequired()</c>) and <c>Required</c> is
-    /// compared in <c>Presentation()</c> below. <c>.Required(...)</c> alone still renders
-    /// <c>false</c>, which is the #190 invariant.</item>
+    /// <item>✅ <b>Resolved in #204, generalised by #199</b> — the native-required opt-in used to be
+    /// collection-path only: <c>.WithAttribute("Required", true)</c> was read solely by
+    /// <c>CollectionFieldComponent</c>, so it was honoured inside an item form and silently ignored
+    /// outside one. Both placements read it (via the typed <c>.WithNativeRequired()</c>), and
+    /// <c>Required</c> is compared in <c>Presentation()</c> below — in the string overload since
+    /// #204 and in the numeric one since #199. Since #199 <c>.Required(...)</c> alone renders
+    /// <c>true</c>, so the field is announced to assistive technology; #190's <c>false</c>-on-both
+    /// invariant was the same agreement one value lower, and reversing it is what that issue asked
+    /// for.</item>
     /// <item>✅ <b>Resolved in #203</b> — <c>EnablePasswordToggle</c>. Not by implementing it for
     /// item fields, but by deleting the renderer that lacked it; covered by
     /// <see cref="PasswordToggleCollectionItemField_Should_Offer_The_Same_Toggle_As_A_Standalone_Field"/>,
