@@ -193,26 +193,162 @@ public class AriaRequiredTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void Required_Boolean_Item_Field_Should_Stay_Inert()
+    public void Required_Boolean_Item_Field_Should_Announce_Itself()
     {
-        // Arrange - THE DECIDED BOOLEAN CASE (#199 Task 3 Step 1), pinned rather than fixed, exactly
-        // as CollectionAdornmentTests and CollectionRequiredTests pin the same inertness for
-        // adornments and for the explicit opt-in. RenderBooleanField builds MudCheckBox's attributes
-        // itself and never calls AddCommonFieldAttributes, so the flag does not reach it.
+        // Arrange - THE DECIDED BOOLEAN CASE (#199 Task 3 Step 1): announced, not pinned inert.
+        // RenderBooleanField takes none of AddCommonFieldAttributes' set (MudCheckBox shares almost
+        // none of those parameters), so it resolves the flag itself by the same rule.
         //
-        // Deliberate, not an oversight: MudCheckBox renders <input type="checkbox">, and a checkbox
-        // is the one control where "required" is genuinely ambiguous — a required BOOLEAN usually
-        // means "must be ticked" (consent), which aria-required alone does not express and which
-        // FormCraft's validator, not the markup, decides. Announcing it here would also break the
-        // parity claim in the opposite direction, since the component path has no MudCheckBox
-        // binding either. Both paths are silent, together, and that agreement is what is pinned.
+        // A required consent checkbox is the single most common required control that is NOT a text
+        // field, so leaving it silent would have left the headline case of this issue unfixed —
+        // and worse than silent once every required text field carries an asterisk, because absence
+        // would then read as "optional".
         var component = RenderBasketItem(item => item
             .AddField(x => x.IsGift, f => f.WithLabel("Gift").Required("Gift is required")));
 
-        // Assert - renders, does not throw, and takes no notice of the flag
+        // Assert - the parameter, the asterisk class, and the attribute on the real <input>
         component.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Gift");
+        component.FindComponent<MudCheckBox<bool>>().Instance.Required.ShouldBeTrue();
+        component.FindAll(".mud-input-required").ShouldNotBeEmpty();
+        component.Find("input[type=checkbox]").GetAttribute("aria-required").ShouldBe("true");
+    }
+
+    [Fact]
+    public void Required_Boolean_Field_Should_Announce_Itself_On_The_Component_Path_Too()
+    {
+        // Arrange - the ordinary-field half of the same case. MudBlazorBooleanFieldComponent derives
+        // from FieldComponentBase rather than MudBlazorFieldComponentBase, so it has no inherited
+        // EffectiveNativeRequired and had to resolve the rule itself — precisely the shape of
+        // divergence this library keeps re-filing, so both halves are asserted.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Accepted, f => f.WithLabel("Accept").Required("You must accept"))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert
+        component.FindComponent<MudCheckBox<bool>>().Instance.Required.ShouldBeTrue();
+        component.Find("input[type=checkbox]").GetAttribute("aria-required").ShouldBe("true");
+    }
+
+    [Fact]
+    public void Optional_Boolean_Field_Should_Not_Be_Announced_As_Required()
+    {
+        // Arrange & Act - the common case stays untouched on the checkbox path too
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Accepted, f => f.WithLabel("Accept"))
+            .Build();
+
+        var component = RenderConfig(config);
+
+        // Assert
+        component.FindComponent<MudCheckBox<bool>>().Instance.Required.ShouldBeFalse();
+        component.Find("input[type=checkbox]").GetAttribute("aria-required").ShouldBe("false");
         component.FindAll(".mud-input-required").ShouldBeEmpty();
     }
+
+    [Fact]
+    public void Required_Select_Field_Should_Announce_Itself()
+    {
+        // Arrange - a required dropdown is one of the commonest required controls, and was the
+        // headline example of the gap: with every required text field carrying an asterisk, an
+        // unmarked Country select reads as OPTIONAL rather than merely unannounced.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Country, f => f
+                .WithLabel("Country")
+                .WithOptions(("US", "United States"), ("BE", "Belgium"))
+                .Required("Country is required"))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert - MudSelect forwards Required to its inner MudInput, which is what emits the ARIA
+        component.FindComponent<MudSelect<string>>().Instance.Required.ShouldBeTrue();
+        component.Find("input").GetAttribute("aria-required").ShouldBe("true");
+    }
+
+    [Fact]
+    public void Optional_Select_Field_Should_Not_Be_Announced_As_Required()
+    {
+        // Arrange & Act
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Country, f => f
+                .WithLabel("Country")
+                .WithOptions(("US", "United States"), ("BE", "Belgium")))
+            .Build();
+
+        var component = RenderConfig(config);
+
+        // Assert
+        component.FindComponent<MudSelect<string>>().Instance.Required.ShouldBeFalse();
+        component.Find("input").GetAttribute("aria-required").ShouldBe("false");
+    }
+
+    [Fact]
+    public void Required_Autocomplete_Field_Should_Announce_Itself()
+    {
+        // Arrange - MudAutocomplete forwards Required to its inner MudInput like MudSelect does.
+        // Lookup and LOV fields are not separately asserted here: both render a plain MudTextField,
+        // so they are the already-covered text case with an adornment attached.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Country, f => f
+                .WithLabel("City")
+                .AsAutocomplete(SearchAsync)
+                .Required("City is required"))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert
+        component.FindComponent<MudAutocomplete<string>>().Instance.Required.ShouldBeTrue();
+        component.Find("input").GetAttribute("aria-required").ShouldBe("true");
+    }
+
+    [Fact]
+    public void Required_FileUpload_Field_Should_Stay_Unannotated()
+    {
+        // Arrange - THE DECIDED FILE-UPLOAD CASE. Pinned as unannotated rather than fixed, and
+        // unlike the boolean case that is not a reversal waiting to happen.
+        //
+        // MudFileUpload does accept Required and would emit aria-required on its <input
+        // type="file">. But FormCraft renders that input with `tabindex="-1"` and `opacity-0`
+        // beneath a custom drop zone, so it is deliberately OUT of the tab order: a screen-reader
+        // user never lands on the element the annotation would sit on, and the affordance they do
+        // reach is a MudButton that takes no such attribute. Annotating the hidden input would
+        // satisfy a DOM assertion while telling no user anything — the "forwarded but inert" failure
+        // this suite's sibling tests exist to catch.
+        //
+        // Marking a required upload needs a label-level answer (the field's own <MudText> label, or
+        // aria-describedby on the button), which is a design decision rather than one more binding.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan").Required("A scan is required"))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert - renders, does not throw, and carries no required annotation
+        component.FindComponent<MudFileUpload<IBrowserFile>>().Instance.Required.ShouldBeFalse();
+        component.FindAll(".mud-input-required").ShouldBeEmpty();
+    }
+
+    private static Task<IEnumerable<SelectOption<string>>> SearchAsync(
+        string value,
+        CancellationToken cancellationToken) =>
+        Task.FromResult<IEnumerable<SelectOption<string>>>(
+        [
+            new SelectOption<string>("BE", "Brussels"),
+            new SelectOption<string>("FR", "Paris"),
+        ]);
 
     [Fact]
     public async Task Blank_Required_Field_Should_Surface_Exactly_One_Message()
@@ -319,6 +455,12 @@ public class AriaRequiredTests : MudBlazorTestBase
         public int Quantity { get; set; }
 
         public DateTime When { get; set; }
+
+        public bool Accepted { get; set; }
+
+        public string Country { get; set; } = string.Empty;
+
+        public IBrowserFile? Upload { get; set; }
     }
 
     private class OrderModel

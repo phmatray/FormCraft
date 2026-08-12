@@ -240,13 +240,19 @@ public interface IUIFrameworkAdapter
   ran on the server pass, failed silently, and was blocked outright by a strict CSP
 - All validation through FluentValidation
 - Validation messages from server, not browser
-- MudBlazor components DO set `Required` for a `.Required(...)` field since #199 (see above); the
-  field types that bind it are text, numeric and date on both paths. Select, autocomplete, lookup,
-  LOV, file-upload and boolean fields bind none, so they are not announced — a known gap, not a rule.
-  ⚠️ The gap got sharper, not milder: before #199 no field carried an asterisk so absence meant
-  nothing; now that text/numeric/date required fields all show `*`, absence reads as **"optional"**,
-  which actively mis-signals a required select or consent checkbox. Closing it means binding
-  `Required` on those renderers — worth doing, and tracked separately
+- MudBlazor components DO set `Required` for a `.Required(...)` field since #199 (see above), on
+  **every** field type that can carry it: text, numeric, date, select, multi-select, autocomplete,
+  lookup, LOV and boolean, on both render paths. ⛔ Keep it uniform when adding a field type. Once
+  required fields carry an asterisk, absence stops meaning "not annotated" and starts meaning
+  "optional", so a new renderer that skips this actively mis-signals rather than merely omitting
+- **Checkboxes take a different route.** `MudCheckBox`/`MudSwitch` emit no `aria-required`, so
+  FormCraft passes it via `UserAttributes` — which lands there because nothing downstream re-emits
+  it. Do **not** copy that trick to `MudInput`-based fields: there MudBlazor's own later write always
+  wins, which is the whole reason `Required` had to be the mechanism (see `EffectiveNativeRequired`)
+- **File upload is the one deliberate exclusion**, pinned by
+  `AriaRequiredTests.Required_FileUpload_Field_Should_Stay_Unannotated`. Its `<input type="file">`
+  carries `tabindex="-1"` behind a custom drop zone, so annotating it would satisfy a DOM assertion
+  while reaching no user. Needs a label-level answer, not another binding
 
 #### Testing Patterns
 ```csharp

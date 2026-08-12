@@ -187,12 +187,13 @@ public class CollectionRequiredTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void BooleanItemField_With_An_Explicit_Required_Attribute_Should_Be_Inert()
+    public void BooleanItemField_With_An_Explicit_Required_Attribute_Should_Honour_It()
     {
         // Arrange - RenderBooleanField sets its own attributes and never calls
-        // AddCommonFieldAttributes, so the opt-in is silently inert here. Pinned rather than fixed,
-        // exactly as CollectionAdornmentTests pins the same inertness for adornments (#184): the
-        // point is that configuring it is harmless, not that it works.
+        // AddCommonFieldAttributes, so the opt-in used to be silently inert here and was PINNED as
+        // inert, as CollectionAdornmentTests still pins it for adornments (#184). #199 fixed it
+        // rather than pinning it: a required consent checkbox is the commonest required non-text
+        // control, and the renderer resolves the flag by the shared rule now.
         var config = FormBuilder<BasketModel>
             .Create()
             .AddCollectionField(x => x.Lines, collection => collection
@@ -208,9 +209,10 @@ public class CollectionRequiredTests : MudBlazorTestBase
             .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
             .Add(p => p.Configuration, config));
 
-        // Assert - renders, does not throw, and takes no notice of the attribute
+        // Assert - the explicit opt-in reaches the checkbox path like every other
         component.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Gift");
-        component.FindAll(".mud-input-required").ShouldBeEmpty();
+        component.FindComponent<MudCheckBox<bool>>().Instance.Required.ShouldBeTrue();
+        component.FindAll(".mud-input-required").ShouldNotBeEmpty();
     }
 
     [Fact]
@@ -334,12 +336,10 @@ public class CollectionRequiredTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void BooleanItemField_With_WithNativeRequired_Should_Be_Inert()
+    public void BooleanItemField_With_WithNativeRequired_Should_Honour_It()
     {
-        // Arrange - RenderBooleanField sets its own attributes and never calls
-        // AddCommonFieldAttributes, so the opt-in is inert here through the typed method exactly as
-        // through the raw string. Pinned rather than fixed, mirroring the adornment inertness test
-        // (#184): the claim is that configuring it is harmless, not that it works.
+        // Arrange - the typed method reaches the checkbox path exactly as the raw string does.
+        // Was pinned inert before #199 taught RenderBooleanField the shared rule.
         var config = FormBuilder<BasketModel>
             .Create()
             .AddCollectionField(x => x.Lines, collection => collection
@@ -357,7 +357,8 @@ public class CollectionRequiredTests : MudBlazorTestBase
 
         // Assert
         component.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Gift");
-        component.FindAll(".mud-input-required").ShouldBeEmpty();
+        component.FindComponent<MudCheckBox<bool>>().Instance.Required.ShouldBeTrue();
+        component.FindAll(".mud-input-required").ShouldNotBeEmpty();
     }
 
     private IRenderedComponent<FormCraftComponent<OrderModel>> RenderOrderForm(

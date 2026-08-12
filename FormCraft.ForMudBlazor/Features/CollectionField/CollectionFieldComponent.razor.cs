@@ -360,6 +360,8 @@ public partial class CollectionFieldComponent<TModel, TItem>
 
     private void RenderBooleanField(RenderTreeBuilder builder, IFieldConfiguration<TItem, object> field, object value, int itemIndex)
     {
+        var required = GetItemFieldRequired(field);
+
         builder.OpenComponent<MudCheckBox<bool>>(0);
         builder.AddAttribute(1, "Label", field.Label);
         builder.AddAttribute(2, "Value", value);
@@ -368,6 +370,17 @@ public partial class CollectionFieldComponent<TModel, TItem>
                 newValue => UpdateItemFieldValue(itemIndex, field.FieldName, newValue)));
         builder.AddAttribute(4, "ReadOnly", field.IsReadOnly);
         builder.AddAttribute(5, "Disabled", field.IsDisabled);
+
+        // #199. This renderer deliberately takes none of AddCommonFieldAttributes' set — MudCheckBox
+        // shares almost none of those parameters — but the required annotation is resolved by the
+        // same rule, so a required consent checkbox is announced inside an item form exactly as it is
+        // outside one. Emitted unconditionally, keeping the frame layout per-CALL-SITE.
+        //
+        // aria-required is passed explicitly because MudCheckBox emits none of its own: its
+        // GetInputAttributes() splats UserAttributes onto the <input> and nothing re-emits this key.
+        // That is the opposite of MudInput, where the component's own later write always wins.
+        builder.AddAttribute(6, "Required", required);
+        builder.AddAttribute(7, "aria-required", required ? "true" : "false");
         builder.CloseComponent();
     }
 
