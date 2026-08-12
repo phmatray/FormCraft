@@ -138,15 +138,16 @@ public partial class MudBlazorTextFieldComponent<TModel>
         return TextInputTypeMap.Resolve(InputType);
     }
 
-    private IMask? GetMask()
-    {
-        if (string.IsNullOrEmpty(Mask))
-            return null;
-
-        // For now, return null. In a real implementation,
-        // you would parse the mask string and create appropriate IMask
-        return null;
-    }
+    /// <summary>
+    /// The mask this field renders with, or <c>null</c> when it configured none (#211).
+    /// </summary>
+    /// <remarks>
+    /// Until #211 this was a stub that returned <c>null</c> under a "For now" comment, and the
+    /// <c>.razor</c> never bound it — so it was unreachable as well as unimplemented, and
+    /// <c>.WithAttribute("Mask", …)</c> looked supported while doing nothing. The resolution itself
+    /// lives in <see cref="TextMaskMap"/> so the collection render path cannot drift from it.
+    /// </remarks>
+    private IMask? GetMask() => TextMaskMap.Resolve(Mask);
 
     private void TogglePasswordVisibility(string? value = null)
     {
@@ -266,4 +267,52 @@ internal static class TextInputTypeMap
     /// </remarks>
     internal static int EffectiveLines(InputType resolved, int configuredLines) =>
         resolved == InputType.Password ? 1 : configuredLines;
+}
+
+/// <summary>
+/// The single implementation of FormCraft's mask-string to <see cref="IMask"/> mapping, shared by the
+/// component render path (<see cref="MudBlazorTextFieldComponent{TModel}"/>) and the imperative
+/// RenderTreeBuilder path used for collection item fields.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Added in #211. Before it, <c>.WithAttribute("Mask", …)</c> was silently inert on both paths:
+/// the component read the string into a property whose only consumer was a <c>GetMask()</c> stub that
+/// returned <c>null</c> and that nothing called, and the collection path deliberately did not forward
+/// it at all. Masks land through here so the two paths cannot answer the question differently — the
+/// same reason #189 moved the input-type mapping into <see cref="TextInputTypeMap"/>.
+/// </para>
+/// </remarks>
+internal static class TextMaskMap
+{
+    /// <summary>
+    /// Maps a configured mask pattern onto MudBlazor's <see cref="IMask"/>, or <c>null</c> when the
+    /// field configured none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="PatternMask"/> is the implementation because its constructor takes exactly what
+    /// FormCraft stores — a pattern string — so nothing has to be invented to bridge the two. Its
+    /// pattern characters are <c>0</c> (digit), <c>a</c> (letter) and <c>*</c> (letter or digit);
+    /// every other character is a literal that the mask inserts as the user types.
+    /// </para>
+    /// <para>
+    /// A field that configures no mask must resolve to <c>null</c>, not to an empty
+    /// <c>PatternMask("")</c>. <c>MudTextField</c> renders a <c>MudMask</c> instead of its usual
+    /// input as soon as <c>Mask</c> is non-null, and that swap also makes it ignore <c>MaxLines</c>
+    /// and <c>Sizing</c> — so an empty-but-present mask would quietly reroute every unmasked text
+    /// field in the library through a different component.
+    /// </para>
+    /// <para>
+    /// Returns a fresh instance per call, deliberately. A mask is not a value: <see cref="BaseMask"/>
+    /// carries the live <c>Text</c>, <c>CaretPos</c> and <c>Selection</c> of the input it is attached
+    /// to, so one cached instance shared between two fields — or between two rows of the same
+    /// collection — would have them overwrite each other's editing state. Handing MudBlazor a new
+    /// instance on each render is what its API expects in return: <see cref="IMask.UpdateFrom"/>
+    /// copies the mask and its mask characters out of the supplied instance into the one the input
+    /// already owns, leaving that input's own state intact.
+    /// </para>
+    /// </remarks>
+    internal static IMask? Resolve(string? mask) =>
+        string.IsNullOrEmpty(mask) ? null : new PatternMask(mask);
 }

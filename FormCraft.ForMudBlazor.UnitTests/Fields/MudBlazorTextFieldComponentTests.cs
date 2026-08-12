@@ -795,6 +795,54 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
         component.FindAll("textarea").Count.ShouldBe(1);
     }
 
+    [Fact]
+    public void TextField_With_A_Mask_Should_Bind_A_Pattern_Mask()
+    {
+        // Arrange - #211. `GetMask()` was a stub that returned null with a "For now" comment, and the
+        // .razor never bound it, so `.WithAttribute("Mask", …)` was read into a property and dropped.
+        // The attribute looked supported and did nothing.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert - the pattern, not the instance: MudBlazor's IMask carries the mask string, and it
+        // is the only part a caller configured.
+        var mask = component.FindComponent<MudTextField<string>>().Instance.Mask;
+        mask.ShouldBeOfType<PatternMask>();
+        mask.Mask.ShouldBe("(000) 000-0000");
+    }
+
+    [Fact]
+    public void TextField_Without_A_Mask_Should_Bind_No_Mask()
+    {
+        // Arrange - the guard on the guard. MudTextField swaps its whole input implementation for a
+        // MudMask once Mask is non-null, which also makes it ignore MaxLines and Sizing. Resolving an
+        // empty pattern into a PatternMask("") rather than null would therefore reroute every
+        // unmasked field in the library through a different component.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Name, field => field.WithLabel("Name"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
+    }
+
     private class NumericModel
     {
         public int Quantity { get; set; }
