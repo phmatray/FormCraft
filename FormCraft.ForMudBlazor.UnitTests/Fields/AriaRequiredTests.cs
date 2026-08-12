@@ -214,6 +214,42 @@ public class AriaRequiredTests : MudBlazorTestBase
         component.FindAll(".mud-input-required").ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task Blank_Required_Field_Should_Surface_Exactly_One_Message()
+    {
+        // Arrange - the behavioural risk of driving MudBlazor's Required from .Required(...):
+        // MudFormComponent can run a required check of its OWN, differently worded, which would
+        // double every required message on every form in the library. CollectionRequiredTests pins
+        // this for item fields; nothing pinned it for ordinary ones, and ordinary fields are the
+        // ones this issue newly sets the flag on — so the guard belongs here too.
+        //
+        // It does not fire today (fields carry no `For` and sit in no MudForm), but "does not fire
+        // today" is exactly the kind of claim that needs a test rather than a comment.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Name, f => f.WithLabel("Name").Required("Name is required"))
+            .Build();
+
+        var component = RenderConfig(config);
+
+        // Act
+        await component.InvokeAsync(() => component.Instance.ValidateAsync());
+
+        // Assert - exactly one error message, and it is the developer's own wording
+        component.WaitForAssertion(() =>
+            component.FindComponents<FieldValidationMessage>()
+                .Single(m => m.Instance.FieldName == nameof(TestModel.Name))
+                .FindComponents<MudText>()
+                .Count(t => t.Instance.Color == Color.Error)
+                .ShouldBe(1));
+
+        // ...and MudBlazor's own error slot stays empty, so nothing is queued behind it
+        var textField = component.FindComponent<MudTextField<string>>().Instance;
+        textField.Error.ShouldBeFalse();
+        textField.ErrorText.ShouldBeNullOrEmpty();
+    }
+
     private IRenderedComponent<FormCraftComponent<OrderModel>> RenderOrderItem(
         Action<FieldBuilder<OrderItem, string>> configure)
     {
