@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using FormCraft.Build;
 using Nuke.Common;
 using Nuke.Common.CI;
@@ -136,10 +137,25 @@ class Build : NukeBuild
             // run, green and unremarked. That is the silent-omission shape #231 was filed about
             // (release-please.yml left behind by #225), and the assert below does not catch it: it
             // fires only when *nothing* matches, so one-of-three matching passes it happily.
+            // Read from the project FILE, not through Project.GetProperty(). That helper evaluates
+            // the csproj with MSBuild inside this process, and on CI (ubuntu, SDK 10.0.400) the
+            // evaluation dies before it can answer:
+            //
+            //   InvalidProjectFileException: The expression
+            //   "[MSBuild]::GetTargetFrameworkIdentifier(net10.0)" cannot be evaluated. Could not
+            //   load file or assembly 'NuGet.Frameworks, Version=7.9.0.0' — the located assembly's
+            //   manifest definition does not match the assembly reference.
+            //
+            // Nuke's embedded MSBuild and the installed SDK disagree about NuGet.Frameworks. It
+            // reproduces on no developer machine tried so far and fails every CI run, which is the
+            // #231 lesson in miniature: a local green is not a CI green. A text read needs no
+            // evaluation and cannot acquire that dependency.
             var testProjects = Solution.AllProjects
-                .Where(project => project
-                    .GetProperty("UseMicrosoftTestingPlatformRunner")
-                    ?.Equals("true", StringComparison.OrdinalIgnoreCase) == true)
+                .Where(project => project.Path.FileExists())
+                .Where(project => Regex.IsMatch(
+                    project.Path.ReadAllText(),
+                    @"<UseMicrosoftTestingPlatformRunner>\s*true\s*</UseMicrosoftTestingPlatformRunner>",
+                    RegexOptions.IgnoreCase))
                 .OrderBy(project => project.Name, StringComparer.Ordinal)
                 .ToList();
 
