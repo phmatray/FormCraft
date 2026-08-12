@@ -58,6 +58,12 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **New package: `FormCraft.ForFluentUI`** — renders FormCraft forms with **Fluent UI Blazor v5**, alongside the existing MudBlazor adapter. Switching is a two-line change (`AddFormCraftFluentUI()` plus the `@using`), because the Fluent container keeps the same `FormCraftComponent<TModel>` name in its own namespace (#260)
+
+  **Covers** text (including multiline and password), numeric (including nullable, which keeps `null` rather than coercing to `0`), boolean (checkbox or switch via `BooleanDisplayStyle`), `DateTime`/`DateOnly`/`TimeOnly`, and select from `.WithOptions(...)`. Required fields are announced with `aria-required="true"` and the form renders `novalidate`, matching the MudBlazor adapter's guarantees (#199, #206). Fluent v5 does **not** emit `aria-required` from its own `Required` parameter — measured, not assumed — so FormCraft writes it.
+
+  **Not yet covered:** collection/item-form fields (blocked on #203), lookup and LOV dialogs, autocomplete, multi-select, file upload, and custom renderers. **One adapter per application:** `AddFormCraftFluentUI()` throws if the MudBlazor adapter is already registered, because renderer selection is first-match-wins and a mixed container would silently render a half-Material form. Fluent UI Blazor v5 is still an RC, so this package depends on a prerelease.
+
 - **Required fields are now announced to assistive technology, on both render paths.** A `.Required("…")` field rendered `aria-required="false"` — not merely silent, but an affirmatively wrong statement to a screen reader — so a screen-reader user got no indication which fields were mandatory until submission failed. That is a WCAG 2.1 **3.3.2 Labels or Instructions** (Level A) failure. Both the ordinary field path and the collection item path now resolve MudBlazor's `Required` from `.Required(...)`, so the field is announced identically inside and outside `.WithItemForm(...)` (#199)
 
   **What comes with it.** MudBlazor drives three things from one flag, so the visible `*` asterisk and the HTML5 `required` attribute return alongside the ARIA annotation — they are not separable. The asterisk is itself a *visible* WCAG 3.3.2 identification. The HTML5 attribute is **inert for validation**: FormCraft forms render `novalidate` (#206), so the browser runs no constraint validation and messages still come from your validator. This reverses the collection-path half of #190 deliberately; what #190 actually fixed — the two paths disagreeing — stays fixed, and `RenderPipelineParityTests` now compares `aria-required` on both.
@@ -306,7 +312,12 @@ dotnet add package FormCraft
 dotnet add package FormCraft.ForMudBlazor
 ```
 
-> **Note**: FormCraft.ForMudBlazor includes FormCraft as a dependency, so you only need to install the MudBlazor package if you're using MudBlazor components.
+### FormCraft for Fluent UI Blazor
+```bash
+dotnet add package FormCraft.ForFluentUI
+```
+
+> **Note**: each UI package includes FormCraft as a dependency, so you install one adapter and get the core with it. Pick **one** — `AddFormCraftMudBlazor()` and `AddFormCraftFluentUI()` are mutually exclusive and registering both throws.
 
 **Supported frameworks:** .NET 8, .NET 9, and .NET 10.
 

@@ -49,6 +49,7 @@ class Build : NukeBuild
 
     AbsolutePath SourceDirectory => RootDirectory / "FormCraft";
     AbsolutePath MudBlazorDirectory => RootDirectory / "FormCraft.ForMudBlazor";
+    AbsolutePath FluentUIDirectory => RootDirectory / "FormCraft.ForFluentUI";
     AbsolutePath TestsDirectory => RootDirectory / "FormCraft.UnitTests";
     AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
     AbsolutePath TestResultsDirectory => RootDirectory / "test-results";
@@ -190,6 +191,17 @@ class Build : NukeBuild
                 .SetOutputDirectory(ArtifactsDirectory)
                 .EnableIncludeSymbols()
                 .SetSymbolPackageFormat(DotNetSymbolPackageFormat.snupkg));
+
+            // Pack FormCraft.ForFluentUI package (#260). Each package is named explicitly rather
+            // than globbed, so a new adapter project is NOT picked up until it is added here.
+            DotNetPack(s => s
+                .SetProject(FluentUIDirectory)
+                .SetConfiguration(Configuration)
+                .EnableNoRestore()
+                .EnableNoBuild()
+                .SetOutputDirectory(ArtifactsDirectory)
+                .EnableIncludeSymbols()
+                .SetSymbolPackageFormat(DotNetSymbolPackageFormat.snupkg));
         });
 
     Target Publish => _ => _
@@ -217,8 +229,10 @@ class Build : NukeBuild
             Serilog.Log.Information("🎉 Version {Version} has been successfully published!", CurrentVersion);
             Serilog.Log.Information("📦 Package: FormCraft {Version}", CurrentVersion);
             Serilog.Log.Information("📦 Package: FormCraft.ForMudBlazor {Version}", CurrentVersion);
+            Serilog.Log.Information("📦 Package: FormCraft.ForFluentUI {Version}", CurrentVersion);
             Serilog.Log.Information("🔗 NuGet: https://www.nuget.org/packages/FormCraft/{Version}", CurrentVersion);
             Serilog.Log.Information("🔗 NuGet: https://www.nuget.org/packages/FormCraft.ForMudBlazor/{Version}", CurrentVersion);
+            Serilog.Log.Information("🔗 NuGet: https://www.nuget.org/packages/FormCraft.ForFluentUI/{Version}", CurrentVersion);
         });
 
     Target Continuous => _ => _

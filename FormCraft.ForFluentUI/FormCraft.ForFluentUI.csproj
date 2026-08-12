@@ -7,10 +7,18 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <!--
-      Fluent UI Blazor v5 is still an RC. MinVer stamps this package with a stable version, and
-      NU5104 flags a stable package that depends on a prerelease one. With TreatWarningsAsErrors
-      (Directory.Build.props) that is a build break, so it is suppressed until v5 goes GA - at which
-      point this line and the pin in Directory.Packages.props come out together.
+      Fluent UI Blazor v5 is still an RC, and NU5104 flags a stable package that depends on a
+      prerelease one. With TreatWarningsAsErrors (Directory.Build.props) that is a hard build break.
+
+      ⚠️ It does NOT reproduce on an ordinary branch build: MinVer stamps untagged commits as
+      `X.Y.Z-preview.N`, and a prerelease package may depend on a prerelease. It fires only once
+      MinVer produces a STABLE version - i.e. on the release tag. Measured with
+      `dotnet pack -p:MinVerVersionOverride=3.2.0`, which fails with
+      "NU5104: Warning As Error: A stable release of a package should not have a prerelease
+      dependency" without this line and succeeds with it. So removing it looks harmless right up
+      until it breaks the release build.
+
+      This comes out together with the prerelease pin in Directory.Packages.props when v5 ships.
     -->
     <NoWarn>$(NoWarn);NU5104</NoWarn>
 
