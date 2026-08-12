@@ -69,6 +69,87 @@ internal static class WorkflowSource
             .ToList();
 
     /// <summary>
+    /// A workflow's jobs by name, each mapped to that job's own slice of the file — so a claim
+    /// about a step can be held against the job that owns it rather than against the whole file.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Why it matters: every job gets a fresh workspace. A workflow that ran the build in job A and
+    /// uploaded <c>test-results/</c> from job B would satisfy a file-scoped assertion while
+    /// uploading nothing at all, and with <c>if-no-files-found: ignore</c> pinned on every upload
+    /// (#252) that failure is completely silent — the same "declared but inert" shape #231 was filed
+    /// about, moved to the job boundary. <c>release-please.yml</c> is already a two-job workflow; it
+    /// is correct today only because its build and its upload happen to share the <c>nupkg</c> job.
+    /// </para>
+    /// <para>
+    /// Split by indentation rather than by a YAML parser: <c>jobs:</c> is a top-level key and each
+    /// job is its own two-space-indented key beneath it. That is a smaller approximation than the
+    /// step scan already relied on, and it buys the scoping without a parser dependency the project
+    /// deliberately does not take (see the class remarks).
+    /// </para>
+    /// <para>
+    /// ⚠️ Comments are stripped <em>before</em> the split, not after. These files discuss their own
+    /// wiring at length — <c>release-please.yml</c>'s non-publishing job carries a comment block
+    /// mentioning <c>./build.cmd Pack</c> — so splitting raw text would let a commented-out
+    /// invocation mark a job as one that runs the build.
+    /// </para>
+    /// </remarks>
+    internal static IReadOnlyDictionary<string, string> JobsOf(string fileName)
+    {
+        var jobs = new Dictionary<string, string>(StringComparer.Ordinal);
+        var lines = WithoutComments(Read(fileName), "#").Split('\n');
+
+        var index = Array.FindIndex(lines, l => l.TrimEnd() == "jobs:");
+        if (index < 0)
+        {
+            // No `jobs:` key at all (no workflow here has one today). An empty map contributes no
+            // pairs; the caller's vacuity guard is what stops that from silently emptying the set.
+            return jobs;
+        }
+
+        string? current = null;
+        var body = new List<string>();
+
+        for (index++; index < lines.Length; index++)
+        {
+            var line = lines[index];
+
+            if (JobHeader.Match(line) is { Success: true } header)
+            {
+                if (current is not null)
+                {
+                    jobs[current] = string.Join('\n', body);
+                }
+
+                current = header.Groups["name"].Value;
+                body = [];
+                continue;
+            }
+
+            // A non-blank line back at column 0 is a sibling of `jobs:`, so the block has ended.
+            if (line.Length > 0 && !char.IsWhiteSpace(line[0]))
+            {
+                break;
+            }
+
+            body.Add(line);
+        }
+
+        if (current is not null)
+        {
+            jobs[current] = string.Join('\n', body);
+        }
+
+        return jobs;
+    }
+
+    /// <summary>
+    /// A job's key: exactly two spaces, then a name. Anchored at two so it cannot match the deeper
+    /// keys that make up a job's body — <c>runs-on:</c>, <c>steps:</c>, every <c>with:</c> entry.
+    /// </summary>
+    private static readonly Regex JobHeader = new(@"^  (?<name>[A-Za-z0-9_-]+):", RegexOptions.Compiled);
+
+    /// <summary>
     /// A single step of a workflow, so an assertion about its <c>if:</c> or <c>path:</c> cannot be
     /// satisfied by the same text sitting on some other step. Runs from the <c>- name:</c> line to
     /// the start of the next list item, which covers the step's <c>if:</c>, <c>uses:</c> and

@@ -106,4 +106,33 @@ public class WorkflowSourceTests
         step.ShouldContain("uses: NuGet/login@");
         step.ShouldNotContain("- name: 'Run: Pack");
     }
+
+    [Fact]
+    public void JobsOf_Should_Split_A_Multi_Job_Workflow_At_Its_Job_Keys()
+    {
+        // release-please.yml is the fixture because it is a real two-job workflow already in the
+        // repo — the shape that makes a file-scoped assertion a lie. `jobs:` is a top-level key and
+        // each job is a two-space-indented key beneath it, which is the whole rule.
+        var jobs = WorkflowSource.JobsOf("release-please.yml");
+
+        jobs.Keys.Order(StringComparer.Ordinal).ShouldBe(["nupkg", "release-please"]);
+
+        // The point of the split: the build invocation belongs to `nupkg` alone, so an assertion
+        // about the upload can be held against that same job rather than against the whole file.
+        jobs["nupkg"].ShouldContain("./build.cmd Pack");
+
+        // And `release-please` reads as test-running only if comments survive the split — this file
+        // *discusses* `./build.cmd Pack` in a comment block inside that job. Stripping before
+        // splitting is what keeps a commented-out invocation from marking a job as running the build.
+        jobs["release-please"].ShouldNotContain("./build.cmd");
+    }
+
+    [Fact]
+    public void JobsOf_Should_Return_One_Job_For_A_SingleJob_Workflow()
+    {
+        // The other half of the rule: the split must not invent jobs out of the deeper keys that
+        // make up a job's body (`runs-on:`, `steps:`, every `with:` entry), all of which are keys
+        // too — just not at a job's indentation.
+        WorkflowSource.JobsOf("ci.yml").Keys.ShouldBe(["build-and-test"]);
+    }
 }

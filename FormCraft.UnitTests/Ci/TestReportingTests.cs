@@ -19,15 +19,16 @@ namespace FormCraft.UnitTests.Ci;
 /// rather than left to be noticed.
 /// </para>
 /// <para>
-/// ⚠️ Known limitation: the workflow assertions are file-scoped, not job-scoped. A workflow that ran
-/// the build in one job and uploaded the artifact from another would satisfy them while uploading
-/// nothing, because the second job gets a fresh workspace. Catching that needs a real YAML parse,
-/// which this project has no dependency for; the shape is noted in the PR that added these tests.
+/// The workflow assertions are scoped to the <b>job</b> that runs the build (#255), not to the file.
+/// Each job gets a fresh workspace, so a build in one job and an upload in another uploads nothing
+/// at all — silently, since <c>if-no-files-found: ignore</c> is pinned on every upload. Job splitting
+/// is done by indentation in <see cref="WorkflowSource.JobsOf" /> rather than with a YAML parser this
+/// project deliberately takes no dependency on.
 /// </para>
 /// </remarks>
 public class TestReportingTests
 {
-    private static readonly IReadOnlyList<string> TestRunningWorkflows = DiscoverWorkflowsThatRunTests();
+    private static readonly IReadOnlyList<TestRunningJob> TestRunningJobs = DiscoverJobsThatRunTests();
 
     /// <summary>
     /// The one step name all three workflows use for this upload. Asserted as a literal because it
@@ -67,34 +68,55 @@ public class TestReportingTests
     private static string BuildScript() =>
         WorkflowSource.WithoutComments(WorkflowSource.ReadBuildScript(), "//");
 
-    /// <summary>One workflow, comment-stripped — the text every workflow claim below reads.</summary>
-    private static string Workflow(string fileName) =>
-        WorkflowSource.WithoutComments(WorkflowSource.Read(fileName), "#");
+    /// <summary>
+    /// The wrapper invocation that means a job runs the suite. Matched anywhere in the job's
+    /// comment-stripped text rather than on a <c>run:</c> prefix: a <c>run: |</c> block puts the
+    /// command on a later line, and the repo documents <c>./build.sh</c> as the macOS/Linux entry
+    /// point alongside <c>./build.cmd</c>.
+    /// </summary>
+    private static string InvocationPattern => $@"\./build\.(cmd|sh|ps1)\s+({TargetsThatRunTests})\b";
+
+    /// <summary>One job of one workflow — the scope every workflow claim below is held against.</summary>
+    private sealed record TestRunningJob(string Workflow, string Job, string Text)
+    {
+        /// <summary>Names the offending pair when Shouldly prints the collection on failure.</summary>
+        public override string ToString() => $"{Workflow} / {Job}";
+    }
 
     /// <summary>
-    /// Every workflow that reaches Nuke's <c>Test</c> target, discovered rather than listed, so a
-    /// fourth workflow added later is held to the same contract on the day it lands — which is the
-    /// failure mode this issue is about: <c>release-please.yml</c> was left behind by #225 and
-    /// nobody noticed.
+    /// Every (workflow, job) pair that reaches Nuke's <c>Test</c> target, discovered rather than
+    /// listed, so a workflow — or a job — added later is held to the same contract on the day it
+    /// lands, which is the failure mode this guard is about: <c>release-please.yml</c> was left
+    /// behind by #225 and nobody noticed.
     /// </summary>
     /// <remarks>
-    /// Matched on the wrapper invocation anywhere in the comment-stripped file rather than on a
-    /// <c>run:</c> prefix: a <c>run: |</c> block puts the command on a later line, and the repo
-    /// documents <c>./build.sh</c> as the macOS/Linux entry point alongside <c>./build.cmd</c>.
+    /// Scoped to the <b>job</b> rather than the file (#255). Every job gets a fresh workspace, so a
+    /// build in job A leaves nothing for an upload in job B to find — and with
+    /// <c>if-no-files-found: ignore</c> pinned on every upload (#252), that combination uploads
+    /// nothing while satisfying a file-scoped assertion completely silently. Files are narrowed
+    /// first only as a cheap pre-filter: a job that matches implies a file that matches, so it
+    /// cannot drop a pair.
     /// </remarks>
-    private static IReadOnlyList<string> DiscoverWorkflowsThatRunTests() =>
-        WorkflowSource.Matching($@"\./build\.(cmd|sh|ps1)\s+({TargetsThatRunTests})\b");
+    private static IReadOnlyList<TestRunningJob> DiscoverJobsThatRunTests() =>
+        WorkflowSource
+            .Matching(InvocationPattern)
+            .SelectMany(workflow => WorkflowSource
+                .JobsOf(workflow)
+                .OrderBy(job => job.Key, StringComparer.Ordinal)
+                .Where(job => Regex.IsMatch(job.Value, InvocationPattern))
+                .Select(job => new TestRunningJob(workflow, job.Key, job.Value)))
+            .ToList();
 
-    private static IReadOnlyList<string> WorkflowsThatRunTests()
+    private static IReadOnlyList<TestRunningJob> JobsThatRunTests()
     {
         // The vacuity guard lives here rather than in one caller: every assertion below is of the
-        // form "no workflow in this set offends", which an empty set satisfies trivially. A rename,
-        // a reformatted invocation or a switch to .yaml would empty it and turn the whole class
-        // green while checking nothing.
-        TestRunningWorkflows.ShouldNotBeEmpty(
-            $"no workflow invokes ./build.[cmd|sh|ps1] ({TargetsThatRunTests}) — every assertion over this set would pass vacuously");
+        // form "no job in this set offends", which an empty set satisfies trivially. A rename, a
+        // reformatted invocation, a switch to .yaml — or a job layout this reader failed to split —
+        // would empty it and turn the whole class green while checking nothing.
+        TestRunningJobs.ShouldNotBeEmpty(
+            $"no job invokes ./build.[cmd|sh|ps1] ({TargetsThatRunTests}) — every assertion over this set would pass vacuously");
 
-        return TestRunningWorkflows;
+        return TestRunningJobs;
     }
 
     /// <summary>
@@ -108,11 +130,12 @@ public class TestReportingTests
     private static bool Enables(string build, string option) =>
         Regex.IsMatch(build, Regex.Escape(option) + "(?![-A-Za-z])");
 
-    private static string StepNamed(string workflowFile, string stepName) =>
-        WorkflowSource.StepNamed(Workflow(workflowFile), stepName, workflowFile);
-
-    private static bool HasUploadStep(string workflowFile) =>
-        Workflow(workflowFile).Contains($"- name: '{UploadStepName}'", StringComparison.Ordinal);
+    /// <summary>
+    /// The upload step as it appears <em>within that job</em> — so an assertion about it cannot be
+    /// answered by an identically-named step sitting in a sibling job.
+    /// </summary>
+    private static string UploadStep(TestRunningJob job) =>
+        WorkflowSource.StepNamed(job.Text, UploadStepName, job.ToString());
 
     [Fact]
     public void BuildScript_Should_Not_Set_The_VSTest_Properties_That_Mtp_Ignores()
@@ -179,10 +202,12 @@ public class TestReportingTests
     }
 
     [Fact]
-    public void Every_Workflow_That_Runs_Tests_Should_Upload_The_TestResults_Artifact()
+    public void Every_Job_That_Runs_Tests_Should_Upload_The_TestResults_Artifact()
     {
-        var missing = WorkflowsThatRunTests()
-            .Where(w => !HasUploadStep(w))
+        // In that same job, not merely somewhere in the file: the artifact is uploaded from the
+        // workspace the build filled, and a sibling job's workspace is a different one.
+        var missing = JobsThatRunTests()
+            .Where(j => !j.Text.Contains($"- name: '{UploadStepName}'", StringComparison.Ordinal))
             .ToList();
 
         missing.ShouldBeEmpty();
@@ -195,8 +220,8 @@ public class TestReportingTests
         // one worth preserving, and it is exactly the path a bare step skips. Microsoft.Testing.
         // Platform prints only a summary line to stdout, so without this a red CI run leaves no
         // record of *which* assertion failed — a cost that was paid for real during #200.
-        var offenders = WorkflowsThatRunTests()
-            .Where(w => !StepNamed(w, UploadStepName).Contains("if: always()", StringComparison.Ordinal))
+        var offenders = JobsThatRunTests()
+            .Where(j => !UploadStep(j).Contains("if: always()", StringComparison.Ordinal))
             .ToList();
 
         offenders.ShouldBeEmpty();
@@ -210,8 +235,8 @@ public class TestReportingTests
         // block listing test-results among other globs would satisfy a laxer line-wise check while
         // re-introducing the very globs the next test rejects. All three steps upload exactly one
         // directory, so that is what is pinned.
-        var offenders = WorkflowsThatRunTests()
-            .Where(w => !StepNamed(w, UploadStepName)
+        var offenders = JobsThatRunTests()
+            .Where(j => !UploadStep(j)
                 .Split('\n')
                 .Any(line => line.Trim() == "path: test-results"))
             .ToList();
@@ -227,8 +252,8 @@ public class TestReportingTests
         // created. --results-directory moved them, so that glob now matches nothing on every run —
         // the same declared-and-inert shape this issue exists to remove, just one file over. Every
         // target that tests routes through Test, so there is no run in which it could match again.
-        var offenders = WorkflowsThatRunTests()
-            .Where(w => StepNamed(w, UploadStepName).Contains("**/TestResults/", StringComparison.Ordinal))
+        var offenders = JobsThatRunTests()
+            .Where(j => UploadStep(j).Contains("**/TestResults/", StringComparison.Ordinal))
             .ToList();
 
         offenders.ShouldBeEmpty();
@@ -242,8 +267,8 @@ public class TestReportingTests
         // warns on a condition that is entirely expected, and a warning nobody can act on is how a
         // real one gets missed. The opposite risk — an *empty* directory passing unremarked — is
         // covered in the build rather than here, by the Assert.NotEmpty on the trx.
-        var offenders = WorkflowsThatRunTests()
-            .Where(w => !StepNamed(w, UploadStepName)
+        var offenders = JobsThatRunTests()
+            .Where(j => !UploadStep(j)
                 .Contains("if-no-files-found: ignore", StringComparison.Ordinal))
             .ToList();
 
