@@ -1,3 +1,5 @@
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
@@ -134,7 +136,7 @@ public class AriaRequiredTests : MudBlazorTestBase
         // Arrange & Act - the collection path builds its tree imperatively, so it has to resolve the
         // flag by the same rule rather than inherit it. AddCommonFieldAttributes feeds three
         // renderers and #190 fixed only the one it was measured on, so all three are covered here.
-        var component = RenderOrderItem(f => f.WithLabel("Product").Required("Product is required"));
+        var component = this.RenderItemForm(NewOrder(), TextItemForm(f => f.Required("Product is required")));
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.Required.ShouldBeTrue();
@@ -145,8 +147,7 @@ public class AriaRequiredTests : MudBlazorTestBase
     public void Required_Numeric_Item_Field_Should_Announce_Itself()
     {
         // Arrange & Act - the second of the three renderers
-        var component = RenderBasketItem(item => item
-            .AddField(x => x.Quantity, f => f.WithLabel("Quantity").Required("Quantity is required")));
+        var component = this.RenderItemForm(NewBasket(), NumericItemForm(f => f.Required("Quantity is required")));
 
         // Assert
         component.FindComponent<MudNumericField<int>>().Instance.Required.ShouldBeTrue();
@@ -157,8 +158,7 @@ public class AriaRequiredTests : MudBlazorTestBase
     public void Required_Date_Item_Field_Should_Announce_Itself()
     {
         // Arrange & Act - the third, MudDatePicker, which #190 missed on the first pass
-        var component = RenderAppointmentItem(item => item
-            .AddField(x => x.When, f => f.WithLabel("When").Required("When is required")));
+        var component = this.RenderItemForm(NewAppointment(), DateItemForm(f => f.Required("When is required")));
 
         // Assert
         component.FindComponent<MudDatePicker>().Instance.Required.ShouldBeTrue();
@@ -169,7 +169,7 @@ public class AriaRequiredTests : MudBlazorTestBase
     public void Optional_Item_Field_Should_Not_Be_Announced_As_Required()
     {
         // Arrange & Act - the item-path counterpart of the ordinary-field case above
-        var component = RenderOrderItem(f => f.WithLabel("Product"));
+        var component = this.RenderItemForm(NewOrder(), TextItemForm());
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.Required.ShouldBeFalse();
@@ -182,10 +182,9 @@ public class AriaRequiredTests : MudBlazorTestBase
         // Arrange & Act - the escape hatch has to behave identically on both paths, or it becomes
         // the next divergence. GetItemFieldRequired tests presence separately from value precisely
         // so this case does not collapse into the "not configured" fallback.
-        var component = RenderOrderItem(f => f
-            .WithLabel("Product")
+        var component = this.RenderItemForm(NewOrder(), TextItemForm(f => f
             .Required("Product is required")
-            .WithNativeRequired(false));
+            .WithNativeRequired(false)));
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.Required.ShouldBeFalse();
@@ -203,8 +202,7 @@ public class AriaRequiredTests : MudBlazorTestBase
         // field, so leaving it silent would have left the headline case of this issue unfixed —
         // and worse than silent once every required text field carries an asterisk, because absence
         // would then read as "optional".
-        var component = RenderBasketItem(item => item
-            .AddField(x => x.IsGift, f => f.WithLabel("Gift").Required("Gift is required")));
+        var component = this.RenderItemForm(NewBasket(), BooleanItemForm(f => f.Required("Gift is required")));
 
         // Assert - the parameter, the asterisk class, and the attribute on the real <input>
         component.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Gift");
@@ -386,51 +384,6 @@ public class AriaRequiredTests : MudBlazorTestBase
         textField.ErrorText.ShouldBeNullOrEmpty();
     }
 
-    private IRenderedComponent<FormCraftComponent<OrderModel>> RenderOrderItem(
-        Action<FieldBuilder<OrderItem, string>> configure)
-    {
-        var config = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item.AddField(x => x.ProductName, configure)))
-            .Build();
-
-        return Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, config));
-    }
-
-    private IRenderedComponent<FormCraftComponent<BasketModel>> RenderBasketItem(
-        Action<FormBuilder<BasketLine>> configureItemForm)
-    {
-        var config = FormBuilder<BasketModel>
-            .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(configureItemForm))
-            .Build();
-
-        return Render<FormCraftComponent<BasketModel>>(parameters => parameters
-            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
-            .Add(p => p.Configuration, config));
-    }
-
-    private IRenderedComponent<FormCraftComponent<AppointmentModel>> RenderAppointmentItem(
-        Action<FormBuilder<AppointmentSlot>> configureItemForm)
-    {
-        var config = FormBuilder<AppointmentModel>
-            .Create()
-            .AddCollectionField(x => x.Slots, collection => collection
-                .WithLabel("Slots")
-                .WithItemForm(configureItemForm))
-            .Build();
-
-        return Render<FormCraftComponent<AppointmentModel>>(parameters => parameters
-            .Add(p => p.Model, new AppointmentModel { Slots = { new AppointmentSlot() } })
-            .Add(p => p.Configuration, config));
-    }
-
     private IRenderedComponent<FormCraftComponent<TestModel>> RenderField(
         Action<FieldBuilder<TestModel, string>> configure)
     {
@@ -461,37 +414,5 @@ public class AriaRequiredTests : MudBlazorTestBase
         public string Country { get; set; } = string.Empty;
 
         public IBrowserFile? Upload { get; set; }
-    }
-
-    private class OrderModel
-    {
-        public List<OrderItem> Items { get; set; } = new();
-    }
-
-    private class OrderItem
-    {
-        public string ProductName { get; set; } = string.Empty;
-    }
-
-    private class BasketModel
-    {
-        public List<BasketLine> Lines { get; set; } = new();
-    }
-
-    private class BasketLine
-    {
-        public int Quantity { get; set; }
-
-        public bool IsGift { get; set; }
-    }
-
-    private class AppointmentModel
-    {
-        public List<AppointmentSlot> Slots { get; set; } = new();
-    }
-
-    private class AppointmentSlot
-    {
-        public DateTime When { get; set; }
     }
 }
