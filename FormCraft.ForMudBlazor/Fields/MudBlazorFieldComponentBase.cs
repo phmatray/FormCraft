@@ -89,20 +89,36 @@ public sealed class CollectionItemFieldScope
     public string DiagnosticKey(string fieldName) => $"{CollectionName}[].{fieldName}";
 
     /// <summary>
-    /// Returns <c>true</c> the first time a given key is presented, and <c>false</c> forever after.
+    /// Returns <c>true</c> the first time a given (diagnostic, field) pair is presented, and
+    /// <c>false</c> forever after.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// A collection renders one component instance <i>per row</i>, and a diagnostic that fires from
     /// <c>OnInitialized</c> therefore fires once per row: a 50-item collection would emit 50
     /// identical warnings about a single field's configuration. The hand-rolled path latched
     /// exactly this way before #203; the latch simply moved here when the render did.
+    /// </para>
     /// <para>
-    /// Not needed by the ShrinkLabel diagnostic, whose collector already dedupes by key — this is
-    /// for the ones that log directly, such as <see cref="MaskedLinesDiagnostic"/>.
+    /// ⛔ <paramref name="category"/> is part of the key, not decoration. The code this replaced kept
+    /// <i>two</i> separate <c>HashSet</c>s — <c>_warnedItemFields</c> and
+    /// <c>_maskedLinesWarnedFields</c> — with an explicit note that "a shared latch would let
+    /// whichever fired first silence the other on the same field". A single field can legitimately
+    /// trip several diagnostics (a masked multi-line password whose adornment is displaced trips
+    /// two), and latching them together would report only the first and hide the rest for good.
+    /// </para>
+    /// <para>
+    /// Needed by the diagnostics that log directly. The ShrinkLabel one usually reports to a
+    /// collector that already dedupes by key — but only when a collector exists, which it does not
+    /// for a collection rendered outside a <c>FormCraftComponent</c>, so that fallback latches here
+    /// too.
     /// </para>
     /// </remarks>
+    /// <param name="category">
+    /// The diagnostic's logger category, e.g. <see cref="MaskedLinesDiagnostic.Category"/>.
+    /// </param>
     /// <param name="key">The field identity to latch on, normally <see cref="DiagnosticKey"/>.</param>
-    public bool ShouldWarnOnce(string key) => _warnedOnce.Add(key);
+    public bool ShouldWarnOnce(string category, string key) => _warnedOnce.Add($"{category}|{key}");
 }
 
 /// <summary>
@@ -336,6 +352,16 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
             return;
         }
 
+        // No collector to dedupe for us on this branch, so the scope's latch has to. A collection
+        // rendered outside a FormCraftComponent — CollectionFieldRenderer.Render is public API — has
+        // one component instance per row and _shrinkLabelDiagnosticEmitted is per INSTANCE, so an
+        // unlatched fallback would log N identical warnings for one field's configuration. The
+        // hand-rolled path latched this per field before #203.
+        if (ItemFieldScope?.ShouldWarnOnce(ShrinkLabelDiagnostic.Category, fieldName) == false)
+        {
+            return;
+        }
+
         // A diagnostic must never break a render, so a logger that throws is swallowed.
         try
         {
@@ -365,10 +391,14 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
 }
 
 /// <summary>
-/// The single implementation of the ShrinkLabel conflict rule, shared by the component render
-/// path (<see cref="MudBlazorFieldComponentBase{TModel, TValue}"/>) and the imperative
-/// RenderTreeBuilder path used for collection item fields.
+/// The single implementation of the ShrinkLabel conflict rule, used by
+/// <see cref="MudBlazorFieldComponentBase{TModel, TValue}"/>.
 /// </summary>
+/// <remarks>
+/// Extracted when a second, imperative render path existed for collection item fields and the rule
+/// had to be applied identically by both. #203 deleted that path; the rule keeps its own type
+/// because it is the part worth stating and testing independently of any component.
+/// </remarks>
 internal static class ShrinkLabelDiagnostic
 {
     /// <summary>Logger category for the ShrinkLabel diagnostic.</summary>
