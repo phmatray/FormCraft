@@ -58,6 +58,20 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **`Mask` works — on both render paths.** `.WithAttribute("Mask", …)` was accepted and silently did nothing anywhere: FormCraft stores the mask as a string, MudBlazor's parameter takes an `IMask`, and the conversion had never been written. The component path read the string into a property whose only consumer was a `GetMask()` stub that returned `null` and that nothing called; the collection path deliberately did not forward it at all, precisely so the two would not diverge. The conversion now exists and both paths bind it, so a mask applies to an ordinary field and to one inside `.WithItemForm(...)` alike (#211)
+
+  ```csharp
+  .AddField(x => x.Phone, field => field
+      .WithLabel("Phone")
+      .WithAttribute("Mask", "(000) 000-0000"))   // ← was inert, now masks as you type
+  ```
+
+  Pattern characters are `0` (digit), `a` (letter) and `*` (letter or digit); every other character is a literal the mask inserts for you — so typing `5551234567` above yields `(555) 123-4567`.
+
+  **Behaviour change to be aware of.** A form that already passes `Mask` starts masking — the characters are now reformatted as they are typed, and a value that does not fit the pattern is no longer accepted verbatim. A field that configures no mask is untouched.
+
+  **One combination still cannot be honoured:** a mask together with `AsTextArea(lines: > 1)`. MudBlazor renders a `<textarea>` past one line, and a textarea cannot carry a mask, so the **mask** is the half that gets dropped. This is the mirror image of the `.AsPassword()` + `Lines` rule (#207), where the line count is dropped instead so the masking survives. Both render paths agree on it — pinned by a parity test — so it is a limitation rather than a divergence.
+
 - **Date collection item fields honour a configured adornment — and keep their calendar icon.** `.WithAdornment(...)` on a date field inside `.WithItemForm(...)` was accepted and silently dropped: the date path refused the forward because `MudDatePicker` defaults to `Adornment.End` with its own calendar icon, and forwarding an unset adornment would have erased it. Both now hold — MudDatePicker's End + calendar icon is the **default**, and a configured adornment wins (#217)
 
   **Worth knowing if you configure a start adornment on a date item field:** it is now really rendered, so it really does pin the label — and the `ShrinkLabel` diagnostic now says so, where it used to stay quiet because the adornment was being discarded.
@@ -138,7 +152,7 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Behaviour change to be aware of.** Forms that already use `.AsPassword()` inside a collection **start masking** — the characters stop being visible. If any workflow relied on reading those values off the screen, it will notice. The same path now also forwards `Lines`, `MaxLength` and `autocomplete`, so multi-line item fields honour their configured height, length limits apply, and password managers can fill item fields.
 
-  **Scope.** The visibility-toggle eye that `.AsPassword()` puts on an ordinary field is still not drawn on an item field; the masking no longer depends on it. `Mask` remains unimplemented on **both** render paths — FormCraft stores it as a string, MudBlazor wants an `IMask`, and the conversion has never been written — so `.WithAttribute("Mask", …)` is inert everywhere rather than newly inconsistent. The parity test introduced with the #184 entry below now compares `InputType`, `Lines`, `MaxLength` and `autocomplete` instead of listing them as known divergences.
+  **Scope.** The visibility-toggle eye that `.AsPassword()` puts on an ordinary field is still not drawn on an item field; the masking no longer depends on it. `Mask` was left unimplemented on **both** render paths at the time — FormCraft stored it as a string, MudBlazor wanted an `IMask`, and the conversion had never been written — so `.WithAttribute("Mask", …)` was inert everywhere rather than newly inconsistent; that has since been closed (see the `Mask` entry under **Unreleased**). The parity test introduced with the #184 entry below now compares `InputType`, `Lines`, `MaxLength` and `autocomplete` instead of listing them as known divergences.
 
 - **`.WithAdornment(...)`'s `onClick` handler now fires — on both render paths.** The parameter was accepted, documented and then thrown away: `WithAdornment` never wrote it anywhere, so a search or visibility-toggle icon rendered, invited a click, and did nothing. It now runs on an ordinary field and on one inside `.WithItemForm(...)` alike, receiving the field's current value (#192)
 

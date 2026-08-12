@@ -843,6 +843,35 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
         component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
     }
 
+    [Fact]
+    public void TextField_With_A_Mask_And_Lines_Should_Render_A_Single_Line_Input()
+    {
+        // Arrange - #211, the mask/multi-line interaction, and the twin of #207's password/Lines rule.
+        // MudBlazor swaps MudTextField's whole input implementation for a MudMask once Mask is
+        // non-null, and a MudMask is an <input>: there is no such thing as a masked <textarea>. So the
+        // combination cannot be honoured as written, exactly as `.AsPassword()` + `Lines` could not.
+        // Pinned because it is a silent narrowing — nothing throws, the field just stops being tall.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Description, field => field
+                .WithLabel("Description")
+                .AsTextArea(lines: 4)
+                .WithAttribute("Mask", "0000-0000"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert - measured, not assumed: MudBlazor resolves this the other way round from #207's
+        // password rule. Past Lines > 1 it renders a <textarea>, and a textarea cannot carry a mask,
+        // so the MASK is what gets dropped here rather than the line count.
+        component.FindAll("textarea").Count.ShouldBe(1);
+        component.FindAll("input").ShouldBeEmpty();
+    }
+
     private class NumericModel
     {
         public int Quantity { get; set; }

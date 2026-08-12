@@ -628,6 +628,48 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void A_Mask_Combined_With_Lines_Should_Be_Resolved_Identically_On_Both_Paths()
+    {
+        // Arrange - the combination MudBlazor cannot honour as written, checked for DRIFT rather than
+        // for a particular outcome. Past Lines > 1 MudBlazor renders a <textarea>, which cannot carry
+        // a mask, so the mask is dropped — the mirror image of #207, where a password field's Lines is
+        // dropped instead so the masking survives. What #211 must guarantee is that both render paths
+        // land in the same place, which is the property this file exists to defend; whether that place
+        // is the right one is a separate question (tracked as a follow-up on the PR).
+        void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field.WithLabel("Value").AsTextArea(lines: 4).WithAttribute("Mask", "0000-0000");
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act
+        var standaloneRender = RenderForm(standaloneConfig);
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+
+        // Assert - same element choice, and the same resolved Lines and pattern behind it.
+        itemRender.FindAll("textarea").Count.ShouldBe(standaloneRender.FindAll("textarea").Count);
+        itemRender.FindAll("input").Count.ShouldBe(standaloneRender.FindAll("input").Count);
+
+        var standalone = standaloneRender.FindComponent<MudTextField<string>>().Instance;
+        var item = itemRender.FindComponent<MudTextField<string>>().Instance;
+
+        item.Lines.ShouldBe(standalone.Lines);
+        item.Mask?.Mask.ShouldBe(standalone.Mask?.Mask);
+    }
+
+    [Fact]
     public void NativeRequiredOptIn_Should_Be_Honoured_Identically_On_Both_Paths()
     {
         // Arrange - #204. `.WithNativeRequired()` (and the raw "Required" attribute it replaces) used
