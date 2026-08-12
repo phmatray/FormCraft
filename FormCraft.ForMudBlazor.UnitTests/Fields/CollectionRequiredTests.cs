@@ -1,3 +1,5 @@
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
@@ -22,6 +24,13 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// The attribute is now resolved from an explicit <c>"Required"</c> attribute instead, so a field
 /// that opts back in with <c>.WithAttribute("Required", true)</c> still gets it.
 /// </para>
+/// <para>
+/// Models and item-form builders come from <see cref="CollectionItemFixture"/> (#205). Note that
+/// every text-path test below renders <c>NewOrder()</c> — the <b>blank</b> seed — deliberately: a
+/// populated <c>ProductName</c> would satisfy the validator and turn the two validation tests into
+/// assertions about nothing. The seed is passed at each call site rather than defaulted by a local
+/// helper so that stays visible.
+/// </para>
 /// </summary>
 public class CollectionRequiredTests : MudBlazorTestBase
 {
@@ -29,7 +38,7 @@ public class CollectionRequiredTests : MudBlazorTestBase
     public void Required_ItemField_Should_Not_Render_The_Html5_Required_Attribute()
     {
         // Arrange & Act - the same .Required(...) call a standalone field would use
-        var component = RenderOrderForm(BuildConfiguration(field => field
+        var component = this.RenderItemForm(NewOrder(), TextItemForm(field => field
             .Required("Product name is required")));
 
         // Assert - validation still runs (see the EditContext tests); the attribute does not
@@ -41,7 +50,7 @@ public class CollectionRequiredTests : MudBlazorTestBase
     {
         // Arrange & Act - the escape hatch: dropping the IsRequired forward must not also drop the
         // ability to ask for MudBlazor's asterisk deliberately.
-        var component = RenderOrderForm(BuildConfiguration(field => field
+        var component = this.RenderItemForm(NewOrder(), TextItemForm(field => field
             .WithAttribute("Required", true)));
 
         // Assert - the property, and that it actually reaches the DOM. Asserting only the property
@@ -57,7 +66,7 @@ public class CollectionRequiredTests : MudBlazorTestBase
     public void ItemField_Without_Any_Required_Configuration_Should_Not_Render_It()
     {
         // Arrange & Act - unchanged from before #190
-        var component = RenderOrderForm(BuildConfiguration(_ => { }));
+        var component = this.RenderItemForm(NewOrder(), TextItemForm());
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.Required.ShouldBeFalse();
@@ -66,22 +75,10 @@ public class CollectionRequiredTests : MudBlazorTestBase
     [Fact]
     public void Required_NumericItemField_Should_Not_Render_The_Html5_Required_Attribute()
     {
-        // Arrange - AddCommonFieldAttributes feeds three renderers (text, numeric and date), so the
-        // numeric one must lose the forward too rather than being fixed only where it was measured.
-        var config = FormBuilder<BasketModel>
-            .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.Quantity, field => field
-                        .WithLabel("Quantity")
-                        .Required("Quantity is required"))))
-            .Build();
-
-        // Act
-        var component = Render<FormCraftComponent<BasketModel>>(parameters => parameters
-            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
-            .Add(p => p.Configuration, config));
+        // Arrange & Act - AddCommonFieldAttributes feeds three renderers (text, numeric and date), so
+        // the numeric one must lose the forward too rather than being fixed only where it was measured.
+        var component = this.RenderItemForm(NewBasket(), NumericItemForm(field => field
+            .Required("Quantity is required")));
 
         // Assert
         component.FindComponent<MudNumericField<int>>().Instance.Required.ShouldBeFalse();
@@ -93,7 +90,7 @@ public class CollectionRequiredTests : MudBlazorTestBase
         // Arrange & Act - the component property is the cause; this is the effect the convention
         // actually names ("Required() adds validation but NOT the HTML5 required attribute").
         // Measured before the fix: the input carried required="" and aria-required="true".
-        var component = RenderOrderForm(BuildConfiguration(field => field
+        var component = this.RenderItemForm(NewOrder(), TextItemForm(field => field
             .Required("Product name is required")));
 
         // Assert - anchored to the field under test, not to whichever input happens to be first
@@ -109,7 +106,7 @@ public class CollectionRequiredTests : MudBlazorTestBase
         // only when Required is true. A markup search for "*" cannot see it, so the CLASS is the
         // measurable proxy. This is the user-visible half of the change: a required item field now
         // looks exactly like a required ordinary field, which never carried one.
-        var component = RenderOrderForm(BuildConfiguration(field => field
+        var component = this.RenderItemForm(NewOrder(), TextItemForm(field => field
             .Required("Product name is required")));
 
         // Assert
@@ -119,23 +116,11 @@ public class CollectionRequiredTests : MudBlazorTestBase
     [Fact]
     public void DateItemField_Should_Not_Render_The_Html5_Required_Attribute()
     {
-        // Arrange - MudDatePicker is the THIRD renderer fed by AddCommonFieldAttributes, and it
+        // Arrange & Act - MudDatePicker is the THIRD renderer fed by AddCommonFieldAttributes, and it
         // derives from MudFormComponent too, so it took the same forward. Its sibling suite covers
         // the date path for adornments (#184); this keeps that parity for Required.
-        var config = FormBuilder<AppointmentModel>
-            .Create()
-            .AddCollectionField(x => x.Slots, collection => collection
-                .WithLabel("Slots")
-                .WithItemForm(item => item
-                    .AddField(x => x.When, field => field
-                        .WithLabel("When")
-                        .Required("When is required"))))
-            .Build();
-
-        // Act
-        var component = Render<FormCraftComponent<AppointmentModel>>(parameters => parameters
-            .Add(p => p.Model, new AppointmentModel { Slots = { new AppointmentSlot() } })
-            .Add(p => p.Configuration, config));
+        var component = this.RenderItemForm(NewAppointment(), DateItemForm(field => field
+            .Required("When is required")));
 
         // Assert
         component.FindComponent<MudDatePicker>().Instance.Required.ShouldBeFalse();
@@ -145,22 +130,10 @@ public class CollectionRequiredTests : MudBlazorTestBase
     [Fact]
     public void DateItemField_Should_Honour_An_Explicit_Required_Attribute()
     {
-        // Arrange - the opt-in has to reach the date path too, or the escape hatch is text/numeric
+        // Arrange & Act - the opt-in has to reach the date path too, or the escape hatch is text/numeric
         // only while the README promises it for item fields generally.
-        var config = FormBuilder<AppointmentModel>
-            .Create()
-            .AddCollectionField(x => x.Slots, collection => collection
-                .WithLabel("Slots")
-                .WithItemForm(item => item
-                    .AddField(x => x.When, field => field
-                        .WithLabel("When")
-                        .WithAttribute("Required", true))))
-            .Build();
-
-        // Act
-        var component = Render<FormCraftComponent<AppointmentModel>>(parameters => parameters
-            .Add(p => p.Model, new AppointmentModel { Slots = { new AppointmentSlot() } })
-            .Add(p => p.Configuration, config));
+        var component = this.RenderItemForm(NewAppointment(), DateItemForm(field => field
+            .WithAttribute("Required", true)));
 
         // Assert
         component.FindComponent<MudDatePicker>().Instance.Required.ShouldBeTrue();
@@ -169,24 +142,12 @@ public class CollectionRequiredTests : MudBlazorTestBase
     [Fact]
     public void BooleanItemField_With_An_Explicit_Required_Attribute_Should_Be_Inert()
     {
-        // Arrange - RenderBooleanField sets its own attributes and never calls
+        // Arrange & Act - RenderBooleanField sets its own attributes and never calls
         // AddCommonFieldAttributes, so the opt-in is silently inert here. Pinned rather than fixed,
         // exactly as CollectionAdornmentTests pins the same inertness for adornments (#184): the
         // point is that configuring it is harmless, not that it works.
-        var config = FormBuilder<BasketModel>
-            .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.IsGift, field => field
-                        .WithLabel("Gift")
-                        .WithAttribute("Required", true))))
-            .Build();
-
-        // Act
-        var component = Render<FormCraftComponent<BasketModel>>(parameters => parameters
-            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
-            .Add(p => p.Configuration, config));
+        var component = this.RenderItemForm(NewBasket(), BooleanItemForm(field => field
+            .WithAttribute("Required", true)));
 
         // Assert - renders, does not throw, and takes no notice of the attribute
         component.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Gift");
@@ -196,13 +157,14 @@ public class CollectionRequiredTests : MudBlazorTestBase
     [Fact]
     public async Task Blank_Required_ItemField_Should_Still_Fail_Validation_With_The_Configured_Message()
     {
-        // Arrange - dropping the attribute must not drop the validation it never drove.
-        var model = new OrderModel { Items = { new OrderItem() } };
+        // Arrange - dropping the attribute must not drop the validation it never drove. Rendered
+        // directly rather than through RenderItemForm because this test needs the EditContext hook.
+        var model = NewOrder();
         EditContext? editContext = null;
 
         var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
             .Add(p => p.Model, model)
-            .Add(p => p.Configuration, BuildConfiguration(field => field
+            .Add(p => p.Configuration, TextItemForm(field => field
                 .Required("Product name is required")))
             .Add(p => p.OnEditContextCreated, ctx => editContext = ctx));
 
@@ -227,12 +189,8 @@ public class CollectionRequiredTests : MudBlazorTestBase
         // attribute was the only way it could ever be armed - so this pins the COUNT at one rather
         // than merely asserting the right text is present, and would catch the duplicate if that
         // wiring ever changed.
-        var model = new OrderModel { Items = { new OrderItem() } };
-
-        var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, BuildConfiguration(field => field
-                .Required("Product name is required"))));
+        var component = this.RenderItemForm(NewOrder(), TextItemForm(field => field
+            .Required("Product name is required")));
 
         // Act
         await component.InvokeAsync(() => component.Instance.ValidateAsync());
@@ -259,7 +217,7 @@ public class CollectionRequiredTests : MudBlazorTestBase
         // Arrange & Act - #204. The same opt-in as the raw string above, through the typed method.
         // Asserted on all three renderers fed by AddCommonFieldAttributes, because the escape hatch
         // being text-only would be the exact divergence class this library keeps re-filing.
-        var component = RenderOrderForm(BuildConfiguration(field => field.WithNativeRequired()));
+        var component = this.RenderItemForm(NewOrder(), TextItemForm(field => field.WithNativeRequired()));
 
         // Assert - the component property, and the class MudBlazor's asterisk hangs off.
         component.FindComponent<MudTextField<string>>().Instance.Required.ShouldBeTrue();
@@ -269,22 +227,9 @@ public class CollectionRequiredTests : MudBlazorTestBase
     [Fact]
     public void NumericItemField_With_WithNativeRequired_Should_Render_The_Decoration()
     {
-        // Arrange - the second renderer. WithNativeRequired is declared on the general TValue
+        // Arrange & Act - the second renderer. WithNativeRequired is declared on the general TValue
         // overload rather than string-only precisely so this compiles.
-        var config = FormBuilder<BasketModel>
-            .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.Quantity, field => field
-                        .WithLabel("Quantity")
-                        .WithNativeRequired())))
-            .Build();
-
-        // Act
-        var component = Render<FormCraftComponent<BasketModel>>(parameters => parameters
-            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
-            .Add(p => p.Configuration, config));
+        var component = this.RenderItemForm(NewBasket(), NumericItemForm(field => field.WithNativeRequired()));
 
         // Assert
         component.FindComponent<MudNumericField<int>>().Instance.Required.ShouldBeTrue();
@@ -293,21 +238,8 @@ public class CollectionRequiredTests : MudBlazorTestBase
     [Fact]
     public void DateItemField_With_WithNativeRequired_Should_Render_The_Decoration()
     {
-        // Arrange - the third renderer, MudDatePicker.
-        var config = FormBuilder<AppointmentModel>
-            .Create()
-            .AddCollectionField(x => x.Slots, collection => collection
-                .WithLabel("Slots")
-                .WithItemForm(item => item
-                    .AddField(x => x.When, field => field
-                        .WithLabel("When")
-                        .WithNativeRequired())))
-            .Build();
-
-        // Act
-        var component = Render<FormCraftComponent<AppointmentModel>>(parameters => parameters
-            .Add(p => p.Model, new AppointmentModel { Slots = { new AppointmentSlot() } })
-            .Add(p => p.Configuration, config));
+        // Arrange & Act - the third renderer, MudDatePicker.
+        var component = this.RenderItemForm(NewAppointment(), DateItemForm(field => field.WithNativeRequired()));
 
         // Assert
         component.FindComponent<MudDatePicker>().Instance.Required.ShouldBeTrue();
@@ -316,85 +248,14 @@ public class CollectionRequiredTests : MudBlazorTestBase
     [Fact]
     public void BooleanItemField_With_WithNativeRequired_Should_Be_Inert()
     {
-        // Arrange - RenderBooleanField sets its own attributes and never calls
+        // Arrange & Act - RenderBooleanField sets its own attributes and never calls
         // AddCommonFieldAttributes, so the opt-in is inert here through the typed method exactly as
         // through the raw string. Pinned rather than fixed, mirroring the adornment inertness test
         // (#184): the claim is that configuring it is harmless, not that it works.
-        var config = FormBuilder<BasketModel>
-            .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.IsGift, field => field
-                        .WithLabel("Gift")
-                        .WithNativeRequired())))
-            .Build();
-
-        // Act
-        var component = Render<FormCraftComponent<BasketModel>>(parameters => parameters
-            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
-            .Add(p => p.Configuration, config));
+        var component = this.RenderItemForm(NewBasket(), BooleanItemForm(field => field.WithNativeRequired()));
 
         // Assert
         component.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Gift");
         component.FindAll(".mud-input-required").ShouldBeEmpty();
-    }
-
-    private IRenderedComponent<FormCraftComponent<OrderModel>> RenderOrderForm(
-        IFormConfiguration<OrderModel> config)
-    {
-        var model = new OrderModel { Items = { new OrderItem() } };
-
-        return Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
-    }
-
-    private static IFormConfiguration<OrderModel> BuildConfiguration(
-        Action<FieldBuilder<OrderItem, string>> configureItemField)
-    {
-        return FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.ProductName, field =>
-                    {
-                        field.WithLabel("Product");
-                        configureItemField(field);
-                    })))
-            .Build();
-    }
-
-    private class OrderModel
-    {
-        public List<OrderItem> Items { get; set; } = new();
-    }
-
-    private class OrderItem
-    {
-        public string ProductName { get; set; } = string.Empty;
-    }
-
-    private class BasketModel
-    {
-        public List<BasketLine> Lines { get; set; } = new();
-    }
-
-    private class BasketLine
-    {
-        public int Quantity { get; set; }
-
-        public bool IsGift { get; set; }
-    }
-
-    private class AppointmentModel
-    {
-        public List<AppointmentSlot> Slots { get; set; } = new();
-    }
-
-    private class AppointmentSlot
-    {
-        public DateTime When { get; set; }
     }
 }
