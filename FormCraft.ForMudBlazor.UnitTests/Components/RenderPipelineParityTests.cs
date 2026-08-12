@@ -463,12 +463,14 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         standaloneRender.Find("input").GetAttribute("type").ShouldBe("password");
         itemRender.Find("input").GetAttribute("type").ShouldBe("password");
 
-        // Required is compared here at its agreed DEFAULT (#190): both paths must render false for a
-        // .Required(...) field, because validation here is server-side. Its bite comes from the
-        // collection path, which used to render true off field.IsRequired and would diverge from
-        // this standalone false the moment that emission came back. The non-default direction — the
-        // explicit .WithNativeRequired() opt-in — is guarded by the test below (#204).
-        standalone.Required.ShouldBeFalse();
+        // Required is compared here for a .Required(...) field, which since #199 renders TRUE on both
+        // paths so the field is announced to assistive technology. This assertion used to read
+        // ShouldBeFalse (#190); the value flipped, the guard did not. Its bite is unchanged and
+        // symmetric — Presentation() above compares the two paths, and this line pins WHICH of the
+        // two agreed values they settled on, so levelling both back down to silence fails here
+        // rather than passing as a vacuous agreement. The explicit .WithNativeRequired() opt-in is
+        // guarded by the test below (#204), and the opt-OUT by AriaRequiredTests.
+        standalone.Required.ShouldBeTrue();
     }
 
     [Theory]
