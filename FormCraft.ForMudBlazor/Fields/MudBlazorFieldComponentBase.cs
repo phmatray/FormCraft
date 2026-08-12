@@ -145,18 +145,35 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     protected virtual Adornment? RenderedAdornment => null;
 
     /// <summary>
-    /// Whether the field opted into MudBlazor's native required decoration via
-    /// <c>.WithNativeRequired()</c> (or the equivalent raw <c>"Required"</c> attribute). Defaults to
-    /// <c>false</c> (#204).
+    /// Whether MudBlazor's native required decoration is rendered: the explicit
+    /// <c>.WithNativeRequired(...)</c> opt-in (or the equivalent raw <c>"Required"</c> attribute)
+    /// when the field sets one, otherwise <c>Context.Field.IsRequired</c> (#199, #204).
     /// </summary>
     /// <remarks>
-    /// ⛔ Deliberately read from the attribute and **never** from <c>Context.Field.IsRequired</c>.
-    /// Driving it from <c>.Required(...)</c> is exactly what #190 removed: FormCraft's validation is
-    /// server-side, and the same call emitted the HTML5 attribute inside <c>.WithItemForm(...)</c>
-    /// and not outside it. This is the explicit opt-in for callers who want the decoration anyway,
-    /// and it is honoured on both render paths so the escape hatch does not work on only one of them.
+    /// <para>
+    /// The explicit attribute wins in <b>both</b> directions — a field that asked for the decoration
+    /// without <c>.Required(...)</c> gets it, and one that suppressed it with
+    /// <c>.WithNativeRequired(false)</c> keeps it suppressed even when <c>.Required(...)</c> is
+    /// configured. Only an unconfigured field falls through to the validator's own answer.
+    /// </para>
+    /// <para>
+    /// ⚠️ This property used to read the attribute and <b>never</b> <c>IsRequired</c>, because #190
+    /// had removed that forward. #199 restores it deliberately: a required field that is not
+    /// announced as required fails WCAG 2.1 <b>3.3.2</b> (Level A), and on MudBlazor 9.8.0 there is
+    /// no way to say so without this flag. <c>MudInput</c> splats <c>UserAttributes</c> and then
+    /// writes its own <c>required</c> and <c>aria-required</c> afterwards, both off this single
+    /// bool; Blazor resolves duplicate attributes last-write-wins, so a caller-supplied
+    /// <c>aria-required</c> is always overwritten and the two attributes cannot be separated.
+    /// </para>
+    /// <para>
+    /// What #190 actually fixed — the same <c>.Required("…")</c> call decorating an item field but
+    /// not an ordinary one — stays fixed: <c>CollectionFieldComponent</c> resolves the flag by the
+    /// same rule, so the two render paths agree. The HTML5 attribute that returns with it is inert
+    /// for validation here, since FormCraft forms render <c>novalidate</c> (#206).
+    /// </para>
     /// </remarks>
-    protected bool EffectiveNativeRequired => GetAttribute("Required", false);
+    protected bool EffectiveNativeRequired =>
+        NativeRequired.Resolve(Context.Field.AdditionalAttributes, IsRequired);
 
     /// <summary>
     /// Service provider used to resolve an optional <see cref="ILoggerFactory"/> for the
@@ -268,6 +285,38 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// </summary>
     private string? ShrinkLabelConflict() =>
         ShrinkLabelDiagnostic.Conflict(Placeholder, RenderedAdornment);
+}
+
+/// <summary>
+/// The single implementation of the native-required rule (#199), shared by the component render
+/// path (<see cref="MudBlazorFieldComponentBase{TModel, TValue}"/>) and the imperative
+/// RenderTreeBuilder path used for collection item fields — the same arrangement
+/// <see cref="ShrinkLabelDiagnostic"/> uses, and for the same reason: a rule the two paths must
+/// agree on gets one implementation, so <c>RenderPipelineParityTests</c> is guarding against
+/// regressions rather than against a copy-paste drifting.
+/// </summary>
+internal static class NativeRequired
+{
+    /// <summary>The attribute name carrying the explicit opt-in/opt-out.</summary>
+    internal const string AttributeName = "Required";
+
+    /// <summary>
+    /// Whether MudBlazor's <c>Required</c> should be set: the explicit
+    /// <c>.WithNativeRequired(...)</c> attribute when the field sets one, otherwise the field's own
+    /// <c>IsRequired</c>.
+    /// </summary>
+    /// <remarks>
+    /// Presence is tested separately from value on purpose. Collapsing "not configured" and
+    /// "configured false" into one fallback — which a plain get-with-default does — would make
+    /// <c>.WithNativeRequired(false)</c> on a <c>.Required(...)</c> field silently re-acquire the
+    /// decoration it was written to suppress. The explicit value has to win in both directions.
+    /// </remarks>
+    /// <param name="additionalAttributes">The field's configured additional attributes.</param>
+    /// <param name="isRequired">The field's own required flag, used when nothing is configured.</param>
+    internal static bool Resolve(IReadOnlyDictionary<string, object> additionalAttributes, bool isRequired)
+        => additionalAttributes.TryGetValue(AttributeName, out var configured) && configured is bool optIn
+            ? optIn
+            : isRequired;
 }
 
 /// <summary>

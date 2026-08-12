@@ -182,23 +182,41 @@ public static class MudBlazorFieldBuilderExtensions
     }
 
     /// <summary>
-    /// Opts this field into MudBlazor's native required decoration — the HTML5 <c>required</c>
-    /// attribute and MudBlazor's required styling on the rendered input.
+    /// Overrides whether this field renders MudBlazor's native required decoration — the HTML5
+    /// <c>required</c> attribute, <c>aria-required</c>, and MudBlazor's required styling (the
+    /// asterisk) on the rendered input. Pass <c>false</c> to suppress a decoration that
+    /// <c>.Required(...)</c> would otherwise produce.
     /// </summary>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
     /// <typeparam name="TValue">The type of the field value.</typeparam>
     /// <param name="builder">The FieldBuilder instance.</param>
-    /// <param name="enabled">Whether to apply the native decoration (default: <c>true</c>).</param>
+    /// <param name="enabled">
+    /// <c>true</c> (default) to force the decoration on a field that never called
+    /// <c>.Required(...)</c>; <c>false</c> to suppress it on one that did. Either way the explicit
+    /// value wins over the inference — this method is an override, not merely an opt-in.
+    /// </param>
     /// <returns>The FieldBuilder instance for method chaining.</returns>
     /// <remarks>
     /// <para>
-    /// ⚠️ **This adds no validation.** It is presentation only. <c>.Required("…")</c> is what makes a
-    /// field actually required — it registers a validator, and FormCraft's validation is server-side
-    /// with messages from the validator you configured. The two are deliberately separate: #190
-    /// removed the native attribute from <c>.Required(...)</c> because the same call emitted it
-    /// inside <c>.WithItemForm(...)</c> and not outside, and because native browser validation
-    /// contradicts the library's stance. This method is the explicit opt-in for the cases that want
-    /// the decoration anyway.
+    /// ⚠️ **This changes no validation.** It is presentation only. <c>.Required("…")</c> is what makes
+    /// a field actually required — it registers a validator, and FormCraft's validation is
+    /// server-side with messages from the validator you configured. Passing <c>false</c> here
+    /// suppresses the decoration and leaves that validation entirely intact.
+    /// </para>
+    /// <para>
+    /// ⛔ **Think twice before passing <c>false</c> on a <c>.Required(...)</c> field.** Since #199 a
+    /// required field renders <c>aria-required="true"</c> so assistive technology announces it;
+    /// suppressing that puts <c>aria-required="false"</c> back on a genuinely required input, which
+    /// states the opposite of the truth to a screen reader and is a WCAG 2.1 3.3.2 (Level A)
+    /// failure. If the visible asterisk is what you want gone, restyle the
+    /// <c>mud-input-required</c> class instead. Legitimate uses of <c>false</c> are fields whose
+    /// requirement is conditional or communicated elsewhere.
+    /// </para>
+    /// <para>
+    /// History: #190 removed the native attribute from <c>.Required(...)</c> because the same call
+    /// emitted it inside <c>.WithItemForm(...)</c> and not outside. That divergence is fixed, but
+    /// #199 restored the forward on both paths — levelling the two down to silence had left every
+    /// required field unannounced. This method is now the per-field override in both directions.
     /// </para>
     /// <para>
     /// Replaces the documented magic string <c>.WithAttribute("Required", true)</c> from #193, which
