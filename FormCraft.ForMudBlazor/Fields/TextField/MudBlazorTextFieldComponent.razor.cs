@@ -22,6 +22,23 @@ public partial class MudBlazorTextFieldComponent<TModel>
     public string InputType { get; set; } = "text";
     public string? Autocomplete { get; set; }
     public string? Mask { get; set; }
+
+    /// <summary>
+    /// Whether <see cref="Mask"/> strips its literals out of the value the model receives (#265).
+    /// </summary>
+    /// <remarks>
+    /// Private, along with <see cref="MaskFactory"/>: both are read once by <see cref="GetMask"/>
+    /// and nothing outside this component has any use for them. Public would add two members to a
+    /// shipped package's permanent API surface for no caller.
+    /// </remarks>
+    private bool MaskCleanDelimiters { get; set; }
+
+    /// <summary>
+    /// A caller-supplied MudBlazor mask factory, which takes precedence over <see cref="Mask"/>
+    /// (#265).
+    /// </summary>
+    private Func<IMask>? MaskFactory { get; set; }
+
     public Adornment? Adornment { get; set; }
 
     /// <summary>
@@ -75,6 +92,13 @@ public partial class MudBlazorTextFieldComponent<TModel>
         }
         Autocomplete = GetAttribute<string?>("autocomplete");
         Mask = GetAttribute<string?>(TextMaskMap.AttributeName);
+        MaskCleanDelimiters = GetAttribute(TextMaskMap.CleanDelimitersAttribute, false);
+        MaskFactory = GetAttribute<Func<IMask>?>(TextMaskMap.MaskFactoryAttribute);
+
+        // After the two mask options above, deliberately. The diagnostic judges the mask that will
+        // actually render — which since #265 may come from a factory rather than the pattern string
+        // — so it cannot run until both are loaded, or it would report on a mask the field does not
+        // use.
         WarnIfMaskBlanksTheStoredValue();
 
         // Load adornment configuration
@@ -140,36 +164,48 @@ public partial class MudBlazorTextFieldComponent<TModel>
     /// <para>
     /// The masked result is computed the same way <c>MudBaseInput</c> is about to compute it — run
     /// the value through a resolved mask and read the text back — so the two cannot disagree about
-    /// what will render. The mask instance costs one allocation, which is why the value and pattern
-    /// are both checked first: an unmasked field, or one with nothing stored, allocates nothing.
+    /// what will render. It resolves through <see cref="GetMask"/> rather than the pattern string
+    /// for exactly that reason: since #265 a mask can come from a caller-supplied factory with no
+    /// pattern configured at all, and judging <see cref="Mask"/> would both miss those fields and
+    /// ignore <c>CleanDelimiters</c>, reporting on a mask the field does not use.
+    /// </para>
+    /// <para>
+    /// The blank-value test comes first so the cost profile holds: a field with nothing stored
+    /// resolves no mask and allocates nothing, and an unmasked field's <see cref="GetMask"/> returns
+    /// <c>null</c> without constructing one.
     /// </para>
     /// </remarks>
     private void WarnIfMaskBlanksTheStoredValue()
     {
-        if (string.IsNullOrWhiteSpace(Mask) || string.IsNullOrWhiteSpace(CurrentValue))
+        if (string.IsNullOrWhiteSpace(CurrentValue))
         {
             return;
         }
 
         string? maskedResult;
+        string? pattern;
         try
         {
-            var mask = TextMaskMap.Resolve(Mask);
+            var mask = GetMask();
             if (mask is null)
             {
                 return;
             }
 
+            // Read off the resolved mask, not from the Mask property: a factory-supplied mask has
+            // its own pattern and no configured string to quote back.
+            pattern = mask.Mask;
             mask.SetText(CurrentValue);
             maskedResult = mask.Text;
         }
         catch
         {
             // Ignored, on the same terms as the emitter's own guard: this mask instance exists ONLY
-            // to compute a diagnostic. Letting MudBlazor's pattern parsing or alignment throw from
-            // here would take down a field render for a warning nobody asked for — the exact
-            // failure MaskedValueDiagnostic.Warn wraps its own body to avoid. The real mask that
-            // renders the field is built separately by GetMask(); nothing here affects it.
+            // to compute a diagnostic. Letting MudBlazor's pattern parsing or alignment — or a
+            // caller-supplied mask factory (#265), which is arbitrary user code — throw from here
+            // would take down a field render for a warning nobody asked for, the exact failure
+            // MaskedValueDiagnostic.Warn wraps its own body to avoid. This instance is discarded;
+            // the mask that renders the field is a separate GetMask() call at binding time.
             return;
         }
 
@@ -199,7 +235,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
             DiagnosticServiceProvider,
             DiagnosticFieldKey,
             QualifiedLabel,
-            Mask);
+            pattern);
     }
 
     /// <summary>
@@ -251,7 +287,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
     /// <c>.WithAttribute("Mask", …)</c> looked supported while doing nothing. The resolution itself
     /// lives in <see cref="TextMaskMap"/> so the collection render path cannot drift from it.
     /// </remarks>
-    private IMask? GetMask() => TextMaskMap.Resolve(Mask);
+    private IMask? GetMask() => TextMaskMap.Resolve(Mask, MaskCleanDelimiters, MaskFactory);
 
     private void TogglePasswordVisibility(string? value = null)
     {
@@ -380,9 +416,9 @@ internal static class TextInputTypeMap
 }
 
 /// <summary>
-/// The single implementation of FormCraft's mask-string to <see cref="IMask"/> mapping, shared by the
-/// component render path (<see cref="MudBlazorTextFieldComponent{TModel}"/>) and the imperative
-/// RenderTreeBuilder path used for collection item fields.
+/// The single implementation of FormCraft's mask configuration to <see cref="IMask"/> mapping, used
+/// by <see cref="MudBlazorTextFieldComponent{TModel}"/> — which since #203/#250 is the only render
+/// path there is, for an ordinary field and a collection item field alike.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -391,6 +427,14 @@ internal static class TextInputTypeMap
 /// returned <c>null</c> and that nothing called, and the collection path deliberately did not forward
 /// it at all. Masks land through here so the two paths cannot answer the question differently — the
 /// same reason #189 moved the input-type mapping into <see cref="TextInputTypeMap"/>.
+/// </para>
+/// <para>
+/// That second path is now gone rather than merely kept in step: #203/#250 deleted the hand-rolled
+/// <c>RenderTreeBuilder</c> renderer and routed item fields through <c>IFieldRendererService</c>, so
+/// convergence is structural. This type survives it because the drift it prevents is between
+/// <b>readers</b> of the mask attributes, and #265 gave it three of them to interpret together;
+/// <c>RenderPipelineParityTests</c> keeps asserting the property in case a second reader ever
+/// returns.
 /// </para>
 /// </remarks>
 internal static class TextMaskMap
@@ -407,6 +451,42 @@ internal static class TextMaskMap
     /// there because no builder method writes this one — callers pass the string themselves.
     /// </remarks>
     internal const string AttributeName = "Mask";
+
+    /// <summary>
+    /// The attribute key <c>MudBlazorFieldBuilderExtensions.WithMask</c> stores its
+    /// <c>cleanDelimiters</c> argument under, and which both render paths read it back from (#265).
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="AttributeName"/> this key is written by a builder method rather than spelled
+    /// by the caller, and deliberately so: the issue considered exposing a second magic string
+    /// alongside <c>"Mask"</c> and rejected it, since two undiscoverable keys to spell correctly is
+    /// the situation #204 was filed about. It lives here rather than beside the builder because
+    /// <see cref="Resolve"/> is its only reader.
+    /// </remarks>
+    internal const string CleanDelimitersAttribute = "MaskCleanDelimiters";
+
+    /// <summary>
+    /// The attribute key <c>MudBlazorFieldBuilderExtensions.WithMask</c> stores a caller-supplied
+    /// mask <b>factory</b> under, and which <see cref="Resolve"/> reads it back from (#265).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Separate from <see cref="AttributeName"/> rather than sharing it, because that key is typed
+    /// <c>string?</c> at its reader and anything else written to it fails the <c>value is T</c> test
+    /// and reads back as <c>null</c> — which is exactly how
+    /// <c>.WithAttribute("Mask", new RegexMask(…))</c> came to compile, render and do nothing.
+    /// Widening that key to <c>object?</c> instead would make every existing reader re-test the
+    /// type; a second key keeps each one monomorphic.
+    /// </para>
+    /// <para>
+    /// A factory and not an <see cref="IMask"/>: one field configuration is shared by every row of a
+    /// collection, so storing a mask here would hand the same stateful <c>BaseMask</c> to every row,
+    /// and <c>MudMask.SetMask</c> retains rather than copies an incoming mask whose type differs
+    /// from its seed <c>PatternMask</c>. Storing the recipe keeps <see cref="Resolve"/>'s
+    /// fresh-instance-per-call contract true for supplied masks as well as built ones.
+    /// </para>
+    /// </remarks>
+    internal const string MaskFactoryAttribute = "MaskFactory";
 
     /// <summary>
     /// Maps a configured mask pattern onto MudBlazor's <see cref="IMask"/>, or <c>null</c> when the
@@ -452,6 +532,44 @@ internal static class TextMaskMap
     /// several patterns by <c>RenderPipelineParityTests.Mask_Should_Resolve_Identically_On_Both_Paths</c>.
     /// </para>
     /// </remarks>
-    internal static IMask? Resolve(string? mask) =>
-        string.IsNullOrWhiteSpace(mask) ? null : new PatternMask(mask);
+    /// <param name="mask">The configured pattern, or <c>null</c>/blank for no mask.</param>
+    /// <param name="cleanDelimiters">
+    /// Whether the resolved <see cref="PatternMask"/> strips the pattern's literals out of the value
+    /// it reports (#265). Meaningless without a pattern, and ignored there rather than allowed to
+    /// resurrect a mask the blank rule above suppressed.
+    /// </param>
+    /// <param name="maskFactory">
+    /// <para>
+    /// A caller-supplied mask factory (#265), which wins over <paramref name="mask"/> when both are
+    /// configured. The builder clears whichever key the other overload wrote, so in practice only
+    /// one is ever set and the last <c>WithMask</c> call on a field is the one that counts.
+    /// </para>
+    /// <para>
+    /// Invoked on every call, which is what keeps the fresh-instance-per-call contract above true
+    /// for supplied masks too: a stored <see cref="IMask"/> would be shared by every row of a
+    /// collection, and <c>MudMask.SetMask</c> retains rather than copies one whose type differs
+    /// from its seed <c>PatternMask</c>.
+    /// </para>
+    /// </param>
+    /// <remarks>
+    /// No parameter has a default. Both are supplied at the single call site, and a default here
+    /// would let a future second reader call <c>Resolve(mask)</c>, compile clean, and silently drop
+    /// the options — the divergence class this type was extracted to prevent.
+    /// </remarks>
+    internal static IMask? Resolve(string? mask, bool cleanDelimiters, Func<IMask>? maskFactory)
+    {
+        if (maskFactory is not null)
+        {
+            // The blank rule applies to a produced mask as well as a configured pattern: a factory
+            // that returns PatternMask("") — from a settings string that bound to empty, say — would
+            // otherwise reroute an unmasked field through MudMask and drop MaxLines with it, which
+            // is the outcome the rule exists to prevent regardless of which path produced it.
+            var produced = maskFactory();
+            return string.IsNullOrWhiteSpace(produced?.Mask) ? null : produced;
+        }
+
+        return string.IsNullOrWhiteSpace(mask)
+            ? null
+            : new PatternMask(mask) { CleanDelimiters = cleanDelimiters };
+    }
 }

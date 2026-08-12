@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
@@ -215,21 +216,13 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
         // Arrange - collection item fields render through CollectionFieldComponent's imperative
         // RenderTreeBuilder path, which resolves presentation attributes itself and so needs the
         // diagnostic wired separately from the component path.
-        var config = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.ProductName, field => field
-                        .WithLabel("Product")
-                        .WithPlaceholder("e.g. Widget")
-                        .WithShrinkLabel(false))))
-            .Build();
+        // The fixture's text item form already labels the field "Product" (#205).
+        var config = TextItemForm(field => field
+            .WithPlaceholder("e.g. Widget")
+            .WithShrinkLabel(false));
 
         // Act
-        Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, config));
+        this.RenderItemForm(NewOrder(), config);
 
         // Assert
         var warnings = _logs.Warnings;
@@ -242,20 +235,10 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
     public void Should_Not_Warn_For_A_Collection_Item_Field_Without_A_Conflict()
     {
         // Arrange
-        var config = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.ProductName, field => field
-                        .WithLabel("Product")
-                        .WithShrinkLabel(false))))
-            .Build();
+        var config = TextItemForm(field => field.WithShrinkLabel(false));
 
         // Act
-        Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, config));
+        this.RenderItemForm(NewOrder(), config);
 
         // Assert
         _logs.Warnings.ShouldBeEmpty();
@@ -268,21 +251,12 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
         // entirely, so ShrinkLabel=false WAS honoured and warning would have pushed the developer
         // to remove a setting that worked. Since #184 the adornment really is rendered there, so
         // the same conflict as the component path applies and the diagnostic must say so.
-        var config = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.ProductName, field => field
-                        .WithLabel("Product")
-                        .WithAdornment(Icons.Material.Filled.Search, Adornment.Start)
-                        .WithShrinkLabel(false))))
-            .Build();
+        var config = TextItemForm(field => field
+            .WithAdornment(Icons.Material.Filled.Search, Adornment.Start)
+            .WithShrinkLabel(false));
 
         // Act
-        Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, config));
+        this.RenderItemForm(NewOrder(), config);
 
         // Assert
         var warnings = _logs.Warnings;
@@ -295,21 +269,12 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
     public void Should_Not_Warn_About_An_End_Adornment_On_A_Collection_Item_Field()
     {
         // Arrange - only a START adornment competes with the label, on either render path
-        var config = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.ProductName, field => field
-                        .WithLabel("Product")
-                        .WithAdornment(Icons.Material.Filled.Search, Adornment.End)
-                        .WithShrinkLabel(false))))
-            .Build();
+        var config = TextItemForm(field => field
+            .WithAdornment(Icons.Material.Filled.Search, Adornment.End)
+            .WithShrinkLabel(false));
 
         // Act
-        Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, config));
+        this.RenderItemForm(NewOrder(), config);
 
         // Assert
         _logs.Warnings.ShouldBeEmpty();
@@ -329,16 +294,12 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
         // calendar icon as the default). The rule has not changed; what the path renders has. A start
         // adornment is now really drawn, it really does pin the label, and warning is now the correct
         // answer under exactly the same rule.
-        var config = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.OrderedOn, field => field
-                        .WithLabel("Ordered on")
-                        .WithAttribute("Adornment", Adornment.Start)
-                        .WithShrinkLabel(false))))
-            .Build();
+        // The fixture's date item form (#205), relabelled — the callback runs after the default
+        // label, so a suite can name the field whatever its assertions read.
+        var config = DateItemForm(field => field
+            .WithLabel("Ordered on")
+            .WithAttribute("Adornment", Adornment.Start)
+            .WithShrinkLabel(false));
 
         // Act - next to a MudPopoverProvider, or MudDatePicker logs a warning of its own that has
         // nothing to do with this diagnostic
@@ -346,8 +307,8 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
         {
             builder.OpenComponent<MudPopoverProvider>(0);
             builder.CloseComponent();
-            builder.OpenComponent<FormCraftComponent<OrderModel>>(1);
-            builder.AddComponentParameter(2, "Model", new OrderModel { Items = { new OrderItem() } });
+            builder.OpenComponent<FormCraftComponent<AppointmentModel>>(1);
+            builder.AddComponentParameter(2, "Model", NewAppointment());
             builder.AddComponentParameter(3, "Configuration", config);
             builder.CloseComponent();
         });
@@ -380,18 +341,6 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
         var warnings = _logs.Warnings;
         warnings.Count.ShouldBe(1);
         warnings[0].ShouldContain("2 field(s)");
-    }
-
-    private class OrderModel
-    {
-        public List<OrderItem> Items { get; set; } = new();
-    }
-
-    private class OrderItem
-    {
-        public string ProductName { get; set; } = string.Empty;
-
-        public DateTime OrderedOn { get; set; }
     }
 
     private IRenderedComponent<FormCraftComponent<TestModel>> RenderFormWithPopover(

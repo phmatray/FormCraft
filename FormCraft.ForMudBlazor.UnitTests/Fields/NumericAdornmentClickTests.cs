@@ -1,3 +1,5 @@
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
@@ -91,20 +93,9 @@ public class NumericAdornmentClickTests : MudBlazorTestBase
         // inert inside .WithItemForm(...). Fixing only the component path would have opened the
         // divergence RenderPipelineParityTests exists to close.
         int? received = null;
-        var config = FormBuilder<BasketModel>
-            .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.Quantity, field => field
-                        .WithLabel("Quantity")
-                        .WithAdornment(Icons.Material.Filled.Numbers, Adornment.End,
-                            onClick: v => received = v))))
-            .Build();
-
-        var component = Render<FormCraftComponent<BasketModel>>(parameters => parameters
-            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine { Quantity = 3 } } })
-            .Add(p => p.Configuration, config));
+        var component = this.RenderItemForm(NewBasket(3), NumericItemForm(field => field
+            .WithAdornment(Icons.Material.Filled.Numbers, Adornment.End,
+                onClick: v => received = v)));
 
         // Act
         component.Find(".mud-input-adornment button").Click();
@@ -117,20 +108,9 @@ public class NumericAdornmentClickTests : MudBlazorTestBase
     public void NumericItemField_Adornment_Without_A_Handler_Should_Not_Render_A_Button()
     {
         // Arrange - the #216 invariant on the item path too.
-        var config = FormBuilder<BasketModel>
-            .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.Quantity, field => field
-                        .WithLabel("Quantity")
-                        .WithAdornment(Icons.Material.Filled.Numbers, Adornment.End))))
-            .Build();
-
         // Act
-        var component = Render<FormCraftComponent<BasketModel>>(parameters => parameters
-            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
-            .Add(p => p.Configuration, config));
+        var component = this.RenderItemForm(NewBasket(), NumericItemForm(field => field
+            .WithAdornment(Icons.Material.Filled.Numbers, Adornment.End)));
 
         // Assert
         component.FindAll(".mud-input-adornment button").ShouldBeEmpty();
@@ -140,15 +120,5 @@ public class NumericAdornmentClickTests : MudBlazorTestBase
     {
         public int Quantity { get; set; }
         public decimal? Discount { get; set; }
-    }
-
-    private class BasketModel
-    {
-        public List<BasketLine> Lines { get; set; } = new();
-    }
-
-    private class BasketLine
-    {
-        public int Quantity { get; set; }
     }
 }

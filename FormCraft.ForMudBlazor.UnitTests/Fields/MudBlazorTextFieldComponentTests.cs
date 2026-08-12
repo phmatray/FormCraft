@@ -1061,6 +1061,243 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
         component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
     }
 
+    [Fact]
+    public void TextField_With_WithMask_Should_Bind_A_PatternMask_Keeping_Delimiters()
+    {
+        // Arrange - the typed builder replacing `.WithAttribute("Mask", …)` (#265). The default must
+        // reproduce #211's behaviour exactly, delimiters and all: this overload is additive, and a
+        // caller migrating off the magic string must not find the model quietly storing something
+        // else afterwards.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask("0000-0000"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var mask = component.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<PatternMask>();
+        mask.Mask.ShouldBe("0000-0000");
+        mask.CleanDelimiters.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void TextField_With_WithMask_CleanDelimiters_Should_Bind_A_Stripping_PatternMask()
+    {
+        // Arrange - the knob #211 left unreachable. CleanDelimiters is what decides whether
+        // GetCleanText() strips the literals, and with no way to set it the model always received
+        // the delimited text — punctuation and all — with no opt-out.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask("0000-0000", cleanDelimiters: true))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var mask = component.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<PatternMask>();
+        mask.Mask.ShouldBe("0000-0000");
+        mask.CleanDelimiters.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void TextField_With_A_Blank_WithMask_Pattern_Should_Bind_No_Mask(string pattern)
+    {
+        // Arrange - the typed builder inherits #211's blank rule rather than restating it: a blank
+        // pattern reaching PatternMask("") would reroute an unmasked field through MudMask and drop
+        // MaxLines with it. Asserted through the new entry point because that is a second caller of
+        // Resolve, and a rule enforced on only one of them is the divergence class this repo keeps
+        // closing.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask(pattern))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
+    }
+
+    [Fact]
+    public void TextField_With_A_Blank_WithMask_Pattern_Should_Ignore_CleanDelimiters()
+    {
+        // Arrange - cleanDelimiters is meaningless without a pattern. It must not resurrect a mask
+        // the blank rule just suppressed, or "no mask + an option" would render a field that
+        // accepts no input — the exact outcome the blank rule exists to prevent.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask("  ", cleanDelimiters: true))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
+    }
+
+    [Fact]
+    public void TextField_With_A_Supplied_Mask_Should_Bind_That_Mask()
+    {
+        // Arrange - the third gap #265 closes. `.WithAttribute("Mask", new RegexMask(…))` is the
+        // natural thing for a MudBlazor user to write and it compiled, built and rendered while
+        // doing nothing: both paths read the attribute as string?, whose `value is T` test fails for
+        // an IMask and falls back to null. So RegexMask, BlockMask and MultiMask were unreachable.
+        //
+        // The regex is open-ended (`{0,4}`, not `{4}`) because MudBlazor matches it against partial
+        // input: an exact quantifier never matches a shorter prefix and blocks every keystroke.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask(() => new RegexMask("^[0-9]{0,4}$")))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert - the type and the pattern, not the instance.
+        var mask = component.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<RegexMask>();
+        mask.Mask.ShouldBe("^[0-9]{0,4}$");
+    }
+
+    [Fact]
+    public void TextField_With_A_Pattern_After_A_Supplied_Mask_Should_Use_The_Pattern()
+    {
+        // Arrange - the last WithMask on a field wins, in BOTH orders. The two overloads write
+        // different attribute keys, so without each clearing the other's the answer would be fixed
+        // by precedence rather than by call order — and a caller refining a shared helper's mask
+        // would find their own later, more specific call silently ignored. This is the order that
+        // would break.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask(() => new RegexMask("^[0-9]{0,4}$"))
+                .WithMask("0000-0000"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<PatternMask>()
+            .Mask.ShouldBe("0000-0000");
+    }
+
+    [Fact]
+    public void TextField_With_A_Supplied_Mask_After_A_Pattern_Should_Use_The_Supplied_Mask()
+    {
+        // Arrange - the mirror of the test above, so the rule is pinned symmetrically rather than
+        // in the one direction where precedence and last-write-wins happen to agree.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask("0000-0000")
+                .WithMask(() => new RegexMask("^[0-9]{0,4}$")))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<RegexMask>()
+            .Mask.ShouldBe("^[0-9]{0,4}$");
+    }
+
+    [Fact]
+    public void TextField_With_A_Factory_Producing_A_Blank_Mask_Should_Bind_No_Mask()
+    {
+        // Arrange - the blank rule is about the OUTCOME, not about which overload produced it. A
+        // factory building its pattern from configuration can hand back PatternMask(""), and letting
+        // that through would reroute an otherwise ordinary field via MudMask and drop MaxLines with
+        // it — the same damage the string overload's guard prevents.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask(() => new PatternMask("")))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
+    }
+
+    [Fact]
+    public void TextField_With_CleanDelimiters_Should_Write_The_Stripped_Text_To_The_Model()
+    {
+        // Arrange - the feature's headline promise, asserted end-to-end rather than on the bound
+        // parameter. `CleanDelimiters == true` on the mask is a claim about a chain FormCraft does
+        // not own — PatternMask.GetCleanText, MudMask's ConvertGet, MudTextField's masked-value
+        // callback, then FormCraft's binding — and the README states the OUTCOME, so that is what
+        // has to be pinned. Its delimited twin is TextField_With_A_Mask_Should_Write_The_Masked_
+        // Text_To_The_Model.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask("(000) 000-0000", cleanDelimiters: true))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Act
+        component.Find("input").Input("5551234567");
+
+        // Assert
+        model.Phone.ShouldBe("5551234567");
+    }
+
     private class NumericModel
     {
         public int Quantity { get; set; }

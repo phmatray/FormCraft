@@ -1,3 +1,5 @@
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
@@ -140,25 +142,13 @@ public class NumericFormatTests : MudBlazorTestBase
             .Add(p => p.Configuration, config));
     }
 
+    /// <summary>
+    /// The item-form half comes from <see cref="CollectionItemFixture"/> (#205); the blank seed
+    /// matches the unseeded <c>BasketLine</c> this suite used to declare locally.
+    /// </summary>
     private IRenderedComponent<FormCraftComponent<BasketModel>> RenderNumericItem(
-        Action<FieldBuilder<BasketLine, int>> configure)
-    {
-        var config = FormBuilder<BasketModel>
-            .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.Quantity, field =>
-                    {
-                        field.WithLabel("Quantity");
-                        configure(field);
-                    })))
-            .Build();
-
-        return Render<FormCraftComponent<BasketModel>>(parameters => parameters
-            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
-            .Add(p => p.Configuration, config));
-    }
+        Action<FieldBuilder<BasketLine, int>> configure) =>
+        this.RenderItemForm(NewBasket(), NumericItemForm(configure));
 
     private class NumericModel
     {
@@ -168,15 +158,5 @@ public class NumericFormatTests : MudBlazorTestBase
     private class NullableNumericModel
     {
         public int? Quantity { get; set; }
-    }
-
-    private class BasketModel
-    {
-        public List<BasketLine> Lines { get; set; } = new();
-    }
-
-    private class BasketLine
-    {
-        public int Quantity { get; set; }
     }
 }

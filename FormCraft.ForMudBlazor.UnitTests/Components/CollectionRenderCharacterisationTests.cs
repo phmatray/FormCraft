@@ -1,3 +1,6 @@
+using FormCraft.ForMudBlazor.UnitTests.Fields;
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Components;
 
 /// <summary>
@@ -35,10 +38,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     public void Editing_A_Row_Should_Write_Only_That_Rows_Item()
     {
         // Arrange
-        var model = new OrderModel
-        {
-            Items = { new OrderItem { ProductName = "first" }, new OrderItem { ProductName = "second" } },
-        };
+        var model = NewOrderWithItems("first", "second");
 
         var component = RenderOrderForm(model);
 
@@ -53,10 +53,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     public void Adding_A_Row_Should_Preserve_The_Existing_Row_Values()
     {
         // Arrange
-        var model = new OrderModel
-        {
-            Items = { new OrderItem { ProductName = "first" }, new OrderItem { ProductName = "second" } },
-        };
+        var model = NewOrderWithItems("first", "second");
 
         var component = RenderOrderForm(model, allowAdd: true);
 
@@ -72,15 +69,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     public void Removing_A_Row_Should_Keep_The_Remaining_Values_With_Their_Rows()
     {
         // Arrange - three rows so removing the middle one can be told apart from removing the last
-        var model = new OrderModel
-        {
-            Items =
-            {
-                new OrderItem { ProductName = "first" },
-                new OrderItem { ProductName = "second" },
-                new OrderItem { ProductName = "third" },
-            },
-        };
+        var model = NewOrderWithItems("first", "second", "third");
 
         var component = RenderOrderForm(model, allowRemove: true);
 
@@ -97,15 +86,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     {
         // Arrange - three rows, so a positional-pairing bug cannot pass by symmetry the way a
         // two-row swap can.
-        var model = new OrderModel
-        {
-            Items =
-            {
-                new OrderItem { ProductName = "first" },
-                new OrderItem { ProductName = "second" },
-                new OrderItem { ProductName = "third" },
-            },
-        };
+        var model = NewOrderWithItems("first", "second", "third");
 
         var component = RenderOrderForm(model, allowReorder: true);
 
@@ -122,10 +103,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     {
         // Arrange - the composition the two tests above cannot catch separately: a value edit
         // AFTER a reorder must follow the row, not the original index the callback was built with.
-        var model = new OrderModel
-        {
-            Items = { new OrderItem { ProductName = "first" }, new OrderItem { ProductName = "second" } },
-        };
+        var model = NewOrderWithItems("first", "second");
 
         var component = RenderOrderForm(model, allowReorder: true);
         component.FindAll("button[aria-label='Move up']")[1].Click();
@@ -482,16 +460,6 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
         });
 
         return (host.FindComponent<FormCraftComponent<MixedModel>>(), editContext);
-    }
-
-    private class OrderModel
-    {
-        public List<OrderItem> Items { get; set; } = new();
-    }
-
-    private class OrderItem
-    {
-        public string ProductName { get; set; } = string.Empty;
     }
 
     private class MixedModel

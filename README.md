@@ -95,11 +95,42 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Three things to check before you upgrade**, if you already pass `Mask` — it did nothing until now, so all three are newly reachable:
 
-  1. **The model stores the *masked* text.** With the mask above, `model.Phone` becomes `"(555) 123-4567"`, not `"5551234567"`. Validation, database columns and APIs keyed to raw digits will see the delimiters. (MudBlazor can strip them — `PatternMask.CleanDelimiters` — but FormCraft has no way to reach that yet; see the follow-up on #211.)
-  2. **An existing value that doesn't fit the pattern renders as an empty field** — while the model quietly keeps the original. The user sees a blank input, submits without touching it, and the old value survives. FormCraft now **says so** instead of leaving you to find it in a bug report: a warning under the `FormCraft.ForMudBlazor.MaskedValue` category names the field and the pattern, on both render paths, once per field — a fifty-row collection reports once, not fifty times (#266). It fires only when the mask rejects a value *outright*; a value it merely reformats (`5551234567` → `(555) 123-4567`) is the mask working, and stays silent. The diagnostic reports only — the stored value is never rewritten, on any path, including read-only views. Still worth auditing stored data against the pattern before turning a mask on; the warning tells you where to look. Silence it by configuring that log category off.
+  1. **The model stores the *masked* text.** With the mask above, `model.Phone` becomes `"(555) 123-4567"`, not `"5551234567"`. Validation, database columns and APIs keyed to raw digits will see the delimiters. This is still the default, but it is no longer the only option: `.WithMask("(000) 000-0000", cleanDelimiters: true)` stores `"5551234567"` instead — see the `.WithMask(...)` entry below (#265).
+  2. **An existing value that doesn't fit the pattern renders as an empty field** — while the model quietly keeps the original. The user sees a blank input, submits without touching it, and the old value survives. FormCraft now **says so** instead of leaving you to find it in a bug report: a warning under the `FormCraft.ForMudBlazor.MaskedValue` category names the field and the pattern, on both render paths, once per field — a fifty-row collection reports once, not fifty times (#266). It judges whichever mask the field actually renders with, a factory supplied via `.WithMask(...)` included. It fires only when the mask rejects a value *outright*; a value it merely reformats (`5551234567` → `(555) 123-4567`) is the mask working, and stays silent. The diagnostic reports only — the stored value is never rewritten, on any path, including read-only views. Still worth auditing stored data against the pattern before turning a mask on; the warning tells you where to look. Silence it by configuring that log category off.
   3. **Masked fields render through MudBlazor's `MudMask`**, which MudBlazor documents as *"recommended to be used in WASM projects only because it has known problems in BSS, especially with high network latency"*. On Blazor Server, test the field under realistic latency before shipping it.
 
   A field that configures no mask is untouched by all of this.
+
+- **`.WithMask(...)` — a typed builder for masks, replacing the `"Mask"` magic string.** The entry above made masks work; the only way to reach one was still `.WithAttribute("Mask", "…")`, which is undiscoverable, unchecked by the compiler, and one typo away from silently doing nothing — the defect #204 closed for `.WithNativeRequired()`. There is now a typed builder, and it reaches two configurations the string never could (#265)
+
+  ```csharp
+  .AddField(x => x.Phone, field => field
+      .WithMask("(000) 000-0000"))                        // model stores "(555) 123-4567"
+
+  .AddField(x => x.Phone, field => field
+      .WithMask("(000) 000-0000", cleanDelimiters: true)) // model stores "5551234567"
+
+  .AddField(x => x.Pin, field => field
+      .WithMask(() => new RegexMask("^[0-9]{0,4}$")))     // any MudBlazor IMask
+  ```
+
+  | Configuration | Resolved mask | Model receives |
+  |---|---|---|
+  | `.WithMask("0000-0000")` | `PatternMask` | `"1234-5678"` (delimited) |
+  | `.WithMask("0000-0000", cleanDelimiters: true)` | `PatternMask` with `CleanDelimiters = true` | `"12345678"` |
+  | `.WithMask(() => new RegexMask(…))` | what the factory returns | per that mask |
+  | `.WithAttribute("Mask", "0000-0000")` | `PatternMask` | `"1234-5678"` — unchanged |
+  | blank or whitespace pattern | none | value unchanged |
+
+  **`cleanDelimiters` is the answer to point 1 above.** The model storing the delimited text used to be unavoidable, because `PatternMask.CleanDelimiters` was unreachable from FormCraft. It is opt-in, so the default keeps #211's behaviour and a form you do not touch is unaffected.
+
+  **A pre-built `IMask` used to be discarded silently.** `.WithAttribute("Mask", new RegexMask(…))` — the natural thing for a MudBlazor user to write — compiled, built and rendered while doing nothing at all: both render paths read that key as `string?`, so an `IMask` failed their type test and fell back to `null`, putting `RegexMask`, `BlockMask` and `MultiMask` out of reach. The new overload writes a separate, correctly-typed key.
+
+  **Why a factory and not the mask itself.** A mask is not a value: MudBlazor's `BaseMask` carries the live `Text`, `CaretPos` and `Selection` of the input it is attached to. One field configuration is shared by every row of a collection, so a mask stored in it would be handed to every row at once — and `MudMask.SetMask` keeps the object it is given rather than copying it whenever the type differs from the `PatternMask` it seeds itself with, which is the case for every `RegexMask`, `BlockMask` and `MultiMask`. Taking `Func<IMask>` gives each rendered field its own instance and keeps the built configuration immutable. Return the **same implementation type** on every call: MudBlazor preserves the user's text and caret only when the incoming mask matches the type it already holds, and a render happens on every keystroke.
+
+  ⚠️ **A regex mask is matched against *partial* input**, so its pattern must accept prefixes: `^[0-9]{0,4}$`, never `^[0-9]{4}$`, which never matches a shorter prefix and so blocks every keystroke.
+
+  `.WithAttribute("Mask", "…")` keeps working and is unchanged — this is additive, not a migration. Both render paths resolve all of it through the same `TextMaskMap.Resolve`, so an ordinary field and one inside `.WithItemForm(...)` agree by construction. One wrinkle if you *mix* the two on a single field: the raw form sets only the pattern, so a `cleanDelimiters: true` from an earlier `.WithMask(...)` call on that field stays in effect. Prefer `.WithMask(...)`, which clears whatever the other overload configured.
 
 - **Required fields are now announced to assistive technology, on both render paths.** A `.Required("…")` field rendered `aria-required="false"` — not merely silent, but an affirmatively wrong statement to a screen reader — so a screen-reader user got no indication which fields were mandatory until submission failed. That is a WCAG 2.1 **3.3.2 Labels or Instructions** (Level A) failure. Both the ordinary field path and the collection item path now resolve MudBlazor's `Required` from `.Required(...)`, so the field is announced identically inside and outside `.WithItemForm(...)` (#199)
 
@@ -111,7 +142,15 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   Checkboxes needed a different mechanism: `MudCheckBox` and `MudSwitch` emit no `aria-required` of their own, so FormCraft supplies it through `UserAttributes` — which works there precisely because nothing downstream overwrites it, unlike `MudInput`.
 
-  **The one exclusion is file upload**, and it is tested rather than overlooked. `MudFileUpload` would accept the flag, but FormCraft renders its `<input type="file">` with `tabindex="-1"` beneath a custom drop zone, so the annotation would sit on an element no keyboard or screen-reader user ever reaches while satisfying a DOM assertion. Marking a required upload needs a label-level answer, which is a design decision rather than one more binding. Until then, put it in the label or help text.
+  **File upload is no longer the exclusion** — it is covered by a different mechanism, see the #262 entry below.
+
+- **Required file-upload fields are identified too, at the label and the button.** #199 left file upload as the one field type a `.Required(...)` call did not mark, which was defensible while nothing was marked — and stopped being defensible the moment everything else was. Beside eight asterisked field types, an unmarked required upload actively reads as *optional*, to sighted and screen-reader users alike: a stronger wrong signal than the uniform silence it replaced, and the same WCAG 2.1 **3.3.2** (Level A) failure #199 set out to fix (#262)
+
+  **Why not just bind the flag.** FormCraft renders `MudFileUpload`'s real `<input type="file">` at `opacity-0` with `tabindex="-1"` beneath a custom drop zone, so it is deliberately outside the tab order. An annotation there satisfies a DOM assertion while reaching no keyboard or screen-reader user — so both upload components (single **and** multiple) mark the requirement where the user actually is: a visible `*` in the field's own label, and `aria-describedby` on the **Browse** button — the affordance that really takes focus — resolving to a visually-hidden "*&lt;Label&gt;* is required." A field with a blank label still gets the button description, which is then its only channel.
+
+  **`Required` on `MudFileUpload` is deliberately NOT bound**, and that was measured rather than assumed. It was tried as belt-and-braces for assistive technology that walks the accessibility tree instead of the tab order, and reverted: `MudFormComponent` raises its own `RequiredError` once the flag is set, and outside a cascaded `EditContext` — a standalone `IFieldRendererService.RenderField`, which is supported and used — clearing a required upload printed MudBlazor's own **"Required"** under the drop zone, in different words from your validator's message. A real wrong message in exchange for a speculative benefit is a bad trade.
+
+  **Styling the marker.** The asterisk is a text node in a `span.formcraft-required-marker`, not MudBlazor's CSS `::after` — MudBlazor's only `mud-input-required` rule targets a `.mud-input-label` descendant that this span does not have. So restyle **`.formcraft-required-marker`** for upload fields; the `.mud-input-required` advice in the #199 entry above does not reach them. `.WithNativeRequired(false)` suppresses both channels, as everywhere else.
 
 - **Date collection item fields honour a configured adornment — and keep their calendar icon.** `.WithAdornment(...)` on a date field inside `.WithItemForm(...)` was accepted and silently dropped: the date path refused the forward because `MudDatePicker` defaults to `Adornment.End` with its own calendar icon, and forwarding an unset adornment would have erased it. Both now hold — MudDatePicker's End + calendar icon is the **default**, and a configured adornment wins (#217)
 
