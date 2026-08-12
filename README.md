@@ -58,6 +58,24 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **Collection item fields now render through the same components as every other field.** Fields inside `.WithItemForm(...)` used to be built by a second, hand-written renderer, so every presentation feature had to be implemented twice — which is where #146 (`Variant`), #177 (`ShrinkLabel`), #184 (adornments) and #190 (`Required`) each came from, one bug report at a time. That renderer is gone: item fields go through `IFieldRendererService` like everything else, and inherit present and future field capabilities by construction rather than by vigilance (#203)
+
+  No API changed, and a form that configures nothing renders as before. Settings that an item field previously accepted and silently ignored now take effect:
+
+  | Setting on a field inside `.WithItemForm(...)` | Before | Now |
+  |---|---|---|
+  | `.AsPassword(enableVisibilityToggle: true)` | masked, but no show/hide eye | the eye is rendered and works |
+  | `DisplayStyle = BooleanDisplayStyle.Switch` on a `bool` | always a checkbox | renders a switch |
+  | `MinDate` / `MaxDate` on a date | ignored | honoured |
+  | typing into a date field | picker only | editable, like a standalone date field |
+  | `Min` / `Max` / `Step` on a numeric | ignored | honoured |
+
+  **Worth knowing:** a `bool` item field gains `DisplayStyle`, not the whole shared presentation set — `MudCheckBox` has no `Variant`, `Placeholder` or adornment to give it. Configuring those on a `bool` stays inert, exactly as it is on a standalone `bool` field. `.WithAttribute("Required", true)` was already path-independent as of #204 and is unchanged here.
+
+- **⚠️ `.WithAdornment(...)` on an ordinary date field is now honoured.** It used to be accepted and silently dropped on the *component* path, the mirror image of the collection-path bug #217 fixed — `MudDatePicker` defaults to `Adornment.End` with its own calendar icon, and the component declined to bind an adornment at all rather than erase it. It now supplies MudDatePicker's own defaults, so an unconfigured field still renders End + the calendar icon and a configured adornment wins (#203)
+
+  If you had `.WithAdornment(..., Adornment.Start)` on a date field and had not noticed it doing nothing, it will now render — and, being a real start adornment, it pins the label, so the `ShrinkLabel` diagnostic will now report it.
+
 - **Date collection item fields honour a configured adornment — and keep their calendar icon.** `.WithAdornment(...)` on a date field inside `.WithItemForm(...)` was accepted and silently dropped: the date path refused the forward because `MudDatePicker` defaults to `Adornment.End` with its own calendar icon, and forwarding an unset adornment would have erased it. Both now hold — MudDatePicker's End + calendar icon is the **default**, and a configured adornment wins (#217)
 
   **Worth knowing if you configure a start adornment on a date item field:** it is now really rendered, so it really does pin the label — and the `ShrinkLabel` diagnostic now says so, where it used to stay quiet because the adornment was being discarded.

@@ -9,6 +9,18 @@ namespace FormCraft.ForMudBlazor.UnitTests.Components;
 /// rendering for booleans, Variant/Margin/ShrinkLabel/Immediate settings) must be
 /// produced identically by the FieldRendererService components.
 /// </summary>
+/// <remarks>
+/// The collection-item comparisons below were the sharp end of this suite while a field inside
+/// <c>.WithItemForm(...)</c> was rendered by a second, hand-written implementation — they compared
+/// two genuinely different renderers, and repeatedly caught them disagreeing.
+/// <para>
+/// Since #203 there is one implementation, so those comparisons are close to a tautology. That is
+/// the intended end state, not a reason to delete them: they now pin the wiring rather than the
+/// attributes — that a collection item field still reaches the same component, with the field's own
+/// configuration and the form's cascaded defaults intact. A regression that re-routed item fields,
+/// dropped the cascade, or reintroduced a bespoke branch would surface here first.
+/// </para>
+/// </remarks>
 public class RenderPipelineParityTests : MudBlazorTestBase
 {
     private IRenderedComponent<FormCraftComponent<TestModel>> RenderForm(IFormConfiguration<TestModel> config, TestModel? model = null)
@@ -396,8 +408,8 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         // RenderTreeBuilder), and presentation attributes have repeatedly drifted between them:
         // Variant in #146, ShrinkLabel in #177, the adornments in #184 — each found reactively,
         // years apart. This pins the set the two paths DO agree on, so a regression in any of them
-        // fails here. It is not a claim that the paths agree on everything: see Presentation()
-        // for the attributes still known to diverge.
+        // fails here. Since #203 that set is the whole of it — the divergence list in Presentation()
+        // is empty, because the second renderer that produced the divergences is gone.
         // One field carrying every compared attribute at once, so a single comparison covers the
         // whole set. Two deliberate exclusions:
         //
@@ -759,6 +771,63 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         standaloneRender.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(1);
     }
 
+    [Fact]
+    public void PasswordToggleCollectionItemField_Should_Offer_The_Same_Toggle_As_A_Standalone_Field()
+    {
+        // Arrange - #203, and the last entry to leave the divergence list below.
+        //
+        // `.AsPassword()`'s visibility toggle used to be component-path only: a standalone field got
+        // an eye icon that revealed the value, and the identical field inside `.WithItemForm(...)`
+        // got nothing, because the collection path was a separate renderer that had never been
+        // taught the feature. Nobody had to implement it for item fields — converging the two paths
+        // onto one component is what made it appear on both, which is the argument for the refactor.
+        //
+        // Asserted on its own field rather than folded into the big comparison above, because the
+        // toggle claims the single adornment slot and would displace that field's start adornment.
+        static void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field.WithLabel("Secret").AsPassword(enableVisibilityToggle: true);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        var standaloneRender = RenderForm(standaloneConfig);
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+
+        // Assert - the toggle affordance itself is identical...
+        Presentation(itemRender.FindComponent<MudTextField<string>>().Instance)
+            .ShouldBe(Presentation(standaloneRender.FindComponent<MudTextField<string>>().Instance));
+
+        // Guard the guard: two fields with no adornment at all would compare equal for free.
+        var standalone = standaloneRender.FindComponent<MudTextField<string>>().Instance;
+        standalone.Adornment.ShouldBe(Adornment.End);
+        standalone.AdornmentIcon.ShouldBe(Icons.Material.Filled.Visibility);
+
+        // ...both start masked...
+        standaloneRender.Find("input").GetAttribute("type").ShouldBe("password");
+        itemRender.Find("input").GetAttribute("type").ShouldBe("password");
+
+        // Act - and the affordance is not merely drawn on both, it WORKS on both. A rendered eye
+        // that does nothing would satisfy every parameter comparison above.
+        standaloneRender.Find(AdornmentButton).Click();
+        itemRender.Find(AdornmentButton).Click();
+
+        // Assert
+        standaloneRender.Find("input").GetAttribute("type").ShouldBe("text");
+        itemRender.Find("input").GetAttribute("type").ShouldBe("text");
+    }
+
     /// <summary>
     /// The presentation attributes both render paths are expected to honour identically, and which
     /// the test above actually configures. Add to this list whenever a field component gains one.
@@ -770,23 +839,30 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     /// trap the list below warns about.
     /// </para>
     /// <para>
-    /// Deliberately NOT compared, because the two paths are known to disagree today — each is
-    /// tracked separately, and listing one here without configuring it would assert nothing while
-    /// looking like coverage:
+    /// <b>The divergence list is empty.</b> It used to name the attributes the two paths were known
+    /// to disagree on, and it grew: <c>Required</c>, <c>InputType</c>, <c>Lines</c>,
+    /// <c>MaxLength</c>, <c>Autocomplete</c>, <c>OnAdornmentClick</c>, <c>EnablePasswordToggle</c>,
+    /// each entered by a bug report and left by its own fix. #203 removed the second render path
+    /// altogether — collection item fields go through <c>IFieldRendererService</c> and the same
+    /// per-type components as everything else — so there is no longer a mechanism by which a
+    /// presentation attribute CAN diverge, and nothing left to list.
+    /// </para>
+    /// <para>
+    /// What survives is not a divergence but a shared gap, and one measurement note:
     /// </para>
     /// <list type="bullet">
-    /// <item>✅ <b>Resolved in #204</b> — the native-required opt-in used to be collection-path only:
-    /// <c>.WithAttribute("Required", true)</c> was read solely by <c>CollectionFieldComponent</c>, so
-    /// it was honoured inside an item form and silently ignored outside one. Both paths now read it
-    /// (via the typed <c>.WithNativeRequired()</c>), and <c>Required</c> is compared in
-    /// <c>Presentation()</c> below. <c>.Required(...)</c> alone still renders <c>false</c> on both,
-    /// which is the #190 invariant.</item>
-    /// <item><c>EnablePasswordToggle</c> — component path only: <c>.AsPassword()</c> puts a
-    /// visibility eye on a standalone field and nothing on an item field. The masking itself is
-    /// compared (see <c>InputType</c> below); only the toggle affordance diverges.</item>
-    /// <item><c>Mask</c> — neither path renders one. FormCraft stores it as a string, MudBlazor's
-    /// parameter wants an <c>IMask</c>, and the component path's <c>GetMask()</c> is an
-    /// unimplemented stub that nothing calls. Listed so it is not mistaken for coverage.</item>
+    /// <item>✅ <b>Resolved in #204</b> — the native-required opt-in was once collection-path only.
+    /// Both paths read it (via the typed <c>.WithNativeRequired()</c>) and <c>Required</c> is
+    /// compared in <c>Presentation()</c> below. <c>.Required(...)</c> alone still renders
+    /// <c>false</c>, which is the #190 invariant.</item>
+    /// <item>✅ <b>Resolved in #203</b> — <c>EnablePasswordToggle</c>. Not by implementing it for
+    /// item fields, but by deleting the renderer that lacked it; covered by
+    /// <see cref="PasswordToggleCollectionItemField_Should_Offer_The_Same_Toggle_As_A_Standalone_Field"/>,
+    /// which asserts the toggle both renders AND works in either placement.</item>
+    /// <item><c>Mask</c> — <b>a shared gap, not a divergence</b>: neither placement renders one, and
+    /// they cannot differ now that they are the same component. FormCraft stores it as a string,
+    /// MudBlazor's parameter wants an <c>IMask</c>, and <c>GetMask()</c> is an unimplemented stub
+    /// that nothing calls. Listed so it is not mistaken for coverage.</item>
     /// </list>
     /// <para>
     /// <c>InputType</c>, <c>Lines</c>, <c>MaxLength</c> and <c>Autocomplete</c> moved out of that
@@ -794,21 +870,24 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     /// rendered its characters in clear text inside a collection.
     /// </para>
     /// <para>
-    /// <c>OnAdornmentClick</c> is honoured by both paths since #192, but is absent from the list
-    /// below on purpose: the two paths build their callbacks separately, so comparing the values
-    /// would compare two different delegates and prove nothing. It is covered by
+    /// <c>OnAdornmentClick</c> stays out of the compared set for a reason that is now purely
+    /// mechanical rather than a divergence: an <c>EventCallback</c> wraps a delegate built per
+    /// component instance, so comparing two of them compares two different objects and proves
+    /// nothing. Behaviour is asserted instead by
     /// <see cref="CollectionItemField_Should_Fire_The_Adornment_Handler_Like_A_Standalone_Field"/>,
-    /// which asserts each path actually invokes the configured handler.
+    /// which checks each placement actually invokes the configured handler with its own value.
     /// </para>
     /// <para>
-    /// The handler-less case used to diverge in MARKUP, though not in behaviour: the component path
-    /// bound <c>OnAdornmentClick</c> unconditionally, so an ordinary field's decorative adornment
-    /// was always a focusable <c>&lt;button&gt;</c> — inert, but in the tab order — while the
-    /// collection path emitted an empty callback and MudBlazor drew a plain icon. Closed in #216 by
-    /// making the component path's binding conditional too. Both paths now render a plain icon, each
-    /// pinned by its own test (<c>TextField_Adornment_Without_A_Handler_Should_Render_A_Plain_Icon</c>
-    /// and <c>ItemField_Adornment_Without_A_Handler_Should_Stay_Inert</c>), so a regression on either
-    /// side fails on its own rather than only as a parity mismatch.
+    /// Historically this was the subtlest disagreement of the set, and worth keeping on record. The
+    /// handler-less case diverged in MARKUP but not in behaviour: the component path bound
+    /// <c>OnAdornmentClick</c> unconditionally, so an ordinary field's decorative adornment was
+    /// always a focusable <c>&lt;button&gt;</c> — inert, but in the tab order — while the collection
+    /// path emitted an empty callback and MudBlazor drew a plain icon. An accessibility defect that
+    /// no parameter comparison could see, closed in #216 by making the component path's binding
+    /// conditional too, and unable to reopen since #203 left only one binding. Both placements are
+    /// still pinned by their own tests
+    /// (<c>TextField_Adornment_Without_A_Handler_Should_Render_A_Plain_Icon</c> and
+    /// <c>ItemField_Adornment_Without_A_Handler_Should_Stay_Inert</c>).
     /// </para>
     /// </summary>
     private static object?[] Presentation(MudTextField<string> field) =>
