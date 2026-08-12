@@ -1,0 +1,18 @@
+@namespace FormCraft.ForMudBlazor
+
+@* The visible required marker for a file-upload field's own label (#262).
+
+   Lives here rather than inline in each upload component so the single- and multiple-file
+   components cannot drift — markup divergence between the two is the failure class this library
+   keeps re-filing (#146, #177, #184, #189).
+
+   aria-hidden: the requirement is conveyed programmatically by the Browse button's
+   aria-describedby, so announcing "star" here would only duplicate it.
+
+   Two classes on purpose. `mud-input-required` is the semantic class the rest of this suite uses
+   for "this field is marked required". `formcraft-required-marker` is FormCraft's own hook, and it
+   is the one to select or restyle: MudBlazor's only rule for its class is
+   `.mud-input-control.mud-input-required > .mud-input-control-input-container > .mud-input-label::after`,
+   which never matches this span, so the asterisk here is a real text node rather than CSS content. *@
+
+<span class="mud-input-required formcraft-required-marker" aria-hidden="true">&nbsp;*</span>

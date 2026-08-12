@@ -249,10 +249,33 @@ public interface IUIFrameworkAdapter
   FormCraft passes it via `UserAttributes` — which lands there because nothing downstream re-emits
   it. Do **not** copy that trick to `MudInput`-based fields: there MudBlazor's own later write always
   wins, which is the whole reason `Required` had to be the mechanism (see `EffectiveNativeRequired`)
-- **File upload is the one deliberate exclusion**, pinned by
-  `AriaRequiredTests.Required_FileUpload_Field_Should_Stay_Unannotated`. Its `<input type="file">`
-  carries `tabindex="-1"` behind a custom drop zone, so annotating it would satisfy a DOM assertion
-  while reaching no user. Needs a label-level answer, not another binding
+- **File upload is covered too, but NOT via `Required` on `MudFileUpload`** (#262). Its
+  `<input type="file">` carries `tabindex="-1"` at `opacity-0` behind a custom drop zone, so
+  annotating that input satisfies a DOM assertion while reaching no user who navigates by focus.
+  Both upload components mark the requirement on two reachable channels instead: a visible `*` in
+  the field's own `<MudText>` label, and `aria-describedby` on the **Browse** `MudButton` pointing
+  at a `mud-sr-only` description. The rule lives in `MudBlazorFileUploadComponentBase` and the
+  markup in `FileUploadRequiredMarker`/`FileUploadRequiredHint`, so the single- and multiple-file
+  components cannot drift — centralising only the values still leaves two copies of the markup
+- ⛔ **Do not "also bind `Required`" on `MudFileUpload` as belt-and-braces.** It was tried under #262
+  and reverted with a measurement: `MudFormComponent` raises its own `RequiredError` once the flag is
+  set, and with no cascaded `EditContext` — a standalone `IFieldRendererService.RenderField`, which
+  this suite exercises — clearing a required upload rendered `mud-input-error` plus helper text
+  reading `"Required"`, MudBlazor's wording rather than the developer's. Pinned by
+  `AriaRequiredTests.Clearing_A_Standalone_Required_Upload_Should_Not_Surface_MudBlazors_Own_Error`.
+  Note `MudFileUpload.Error`/`ErrorText` stay clean because FormCraft passes `ErrorText=""` as a
+  *parameter* while MudBlazor writes its own internal state — so assert the **rendered DOM**, not
+  those properties, or the test proves nothing
+- **The upload asterisk is a text node, not MudBlazor's CSS `::after`.** MudBlazor's only rule is
+  `.mud-input-control.mud-input-required > .mud-input-control-input-container > .mud-input-label::after`,
+  which never matches FormCraft's `span`. So the marker carries its own
+  `formcraft-required-marker` class — select and restyle **that**, and don't tell users to restyle
+  `.mud-input-required` for upload fields
+- **The hint id must stay unique per rendered instance.** `formcraft-{FieldName}-required-{guid8}`:
+  the field name alone is not unique in a document, because item fields render through these very
+  components since #203 (one hint per row), two forms over one model collide the same way, and two
+  nested fields can share a member name. A test using two *different* fields cannot catch this —
+  different names never collide; the real case is the same field rendered twice
 
 #### Testing Patterns
 ```csharp

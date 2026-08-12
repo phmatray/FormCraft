@@ -311,21 +311,25 @@ public class AriaRequiredTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void Required_FileUpload_Field_Should_Stay_Unannotated()
+    public void Required_FileUpload_Field_Should_Announce_Itself_At_The_Label_And_The_Button()
     {
-        // Arrange - THE DECIDED FILE-UPLOAD CASE. Pinned as unannotated rather than fixed, and
-        // unlike the boolean case that is not a reversal waiting to happen.
+        // Arrange - THE FILE-UPLOAD CASE, now answered rather than pinned (#262). The rationale that
+        // kept it unannotated under #199 is kept here, because it is still the reason the hidden
+        // <input type="file"> is NOT the element being annotated:
         //
-        // MudFileUpload does accept Required and would emit aria-required on its <input
-        // type="file">. But FormCraft renders that input with `tabindex="-1"` and `opacity-0`
-        // beneath a custom drop zone, so it is deliberately OUT of the tab order: a screen-reader
-        // user never lands on the element the annotation would sit on, and the affordance they do
-        // reach is a MudButton that takes no such attribute. Annotating the hidden input would
-        // satisfy a DOM assertion while telling no user anything — the "forwarded but inert" failure
-        // this suite's sibling tests exist to catch.
+        //   MudFileUpload does accept Required and would emit aria-required on its <input
+        //   type="file">. But FormCraft renders that input with `tabindex="-1"` and `opacity-0`
+        //   beneath a custom drop zone, so it is deliberately OUT of the tab order: a screen-reader
+        //   user never lands on the element the annotation would sit on, and the affordance they do
+        //   reach is a MudButton that takes no such attribute. Annotating the hidden input would
+        //   satisfy a DOM assertion while telling no user anything — the "forwarded but inert"
+        //   failure this suite's sibling tests exist to catch.
         //
-        // Marking a required upload needs a label-level answer (the field's own <MudText> label, or
-        // aria-describedby on the button), which is a design decision rather than one more binding.
+        // What changed is that #199 made absence *mean* something. Every other required field now
+        // renders `*` and aria-required="true", so a silent upload beside them reads as OPTIONAL —
+        // a stronger wrong signal than the uniform silence it replaced. So the requirement is
+        // identified where the user actually is: the field's own <MudText> label (visible) and
+        // aria-describedby on the focusable MudButton (announced on focus).
         var config = FormBuilder<TestModel>
             .Create()
             .AddField(x => x.Upload, f => f.WithLabel("Passport scan").Required("A scan is required"))
@@ -334,9 +338,407 @@ public class AriaRequiredTests : MudBlazorTestBase
         // Act
         var component = RenderConfig(config);
 
-        // Assert - renders, does not throw, and carries no required annotation
-        component.FindComponent<MudFileUpload<IBrowserFile>>().Instance.Required.ShouldBeFalse();
+        // Assert - the visible marker, in the label FormCraft itself renders.
+        //
+        // Selected by FormCraft's OWN class rather than the shared `mud-input-required`: the marker
+        // is a real text node, whereas MudBlazor's only rule for its own class is an ::after on a
+        // `.mud-input-label` descendant that never matches this span. Asserting the owned class
+        // keeps the test pointed at the thing that actually renders.
+        component.FindAll(".formcraft-required-marker").ShouldNotBeEmpty();
+
+        // Assert - the programmatic association, on the element that actually receives focus
+        var browse = component.FindAll(".mud-toolbar button")[0];
+        var describedBy = browse.GetAttribute("aria-describedby");
+        describedBy.ShouldNotBeNullOrWhiteSpace();
+
+        // Assert - and it resolves to text that names the requirement
+        var hint = component.Find($"#{describedBy}");
+        hint.TextContent.ShouldContain("Passport scan");
+        hint.TextContent.ShouldContain("required");
+    }
+
+    [Fact]
+    public void Required_FileUpload_Field_With_No_Label_Should_Still_Describe_The_Requirement()
+    {
+        // Arrange - the component renders its <MudText> label only inside an @if, so an unlabelled
+        // required field has no visible marker to attach one to. The button's description is then
+        // the only channel left, and it has to say something without a label to name.
+        //
+        // The empty WithLabel is what actually reaches that branch: FieldConfiguration's constructor
+        // defaults Label to the property name, so simply omitting .WithLabel(...) still yields the
+        // labelled path ("Upload"). Only an explicitly blank label is label-free.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel(string.Empty).Required("A scan is required"))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert - no label, so no visible marker to render
+        component.FindAll(".formcraft-required-marker").ShouldBeEmpty();
+
+        // ...but the requirement still reaches the element that receives focus
+        var browse = component.FindAll(".mud-toolbar button")[0];
+        var describedBy = browse.GetAttribute("aria-describedby");
+        describedBy.ShouldNotBeNullOrWhiteSpace();
+        component.Find($"#{describedBy}").TextContent.ShouldContain("required");
+    }
+
+    [Fact]
+    public void Optional_FileUpload_Field_Should_Carry_Neither_Channel()
+    {
+        // Arrange & Act - the overwhelmingly common case must stay exactly as it was
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan"))
+            .Build();
+
+        var component = RenderConfig(config);
+
+        // Assert - no marker, and no dangling aria-describedby pointing at nothing. The selector is
+        // deliberately the BARE class here: on an optional field neither FormCraft's <span> nor
+        // MudBlazor's input-control <div> may carry it, and asserting both at once is stronger.
         component.FindAll(".mud-input-required").ShouldBeEmpty();
+        component.FindAll(".mud-toolbar button")[0].HasAttribute("aria-describedby").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Required_MultipleFileUpload_Field_Should_Announce_Itself_The_Same_Way()
+    {
+        // Arrange - the two upload components diverging is the exact failure class this library keeps
+        // re-filing (#146, #177, #184, #189), so the multiple-file component gets the single-file
+        // component's assertions verbatim rather than a weaker version of them.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Attachments, f => f
+                .WithLabel("Supporting documents")
+                .Required("At least one document is required"))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert - the visible marker (FormCraft's own class; see the single-file test)
+        component.FindAll(".formcraft-required-marker").ShouldNotBeEmpty();
+
+        // Assert - and the programmatic association on the focusable button
+        var browse = component.FindAll(".mud-toolbar button")[0];
+        var describedBy = browse.GetAttribute("aria-describedby");
+        describedBy.ShouldNotBeNullOrWhiteSpace();
+
+        var hint = component.Find($"#{describedBy}");
+        hint.TextContent.ShouldContain("Supporting documents");
+        hint.TextContent.ShouldContain("required");
+    }
+
+    [Fact]
+    public void Two_Required_Upload_Fields_On_One_Form_Should_Not_Share_A_Description_Id()
+    {
+        // Arrange - the hint is referenced by id, so two upload fields colliding on one id would
+        // point both buttons at the same description and mislabel one of them
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f
+                .WithLabel("Passport scan")
+                .Required("A scan is required"))
+            .AddField(x => x.Attachments, f => f
+                .WithLabel("Supporting documents")
+                .Required("At least one document is required"))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert - one describedby per upload field, and the two differ
+        var describedBy = component
+            .FindAll(".mud-toolbar button[aria-describedby]")
+            .Select(b => b.GetAttribute("aria-describedby"))
+            .ToList();
+
+        describedBy.Count.ShouldBe(2);
+        describedBy.Distinct().Count().ShouldBe(2);
+
+        // Assert - and each resolves to its OWN field's requirement
+        component.Find($"#{describedBy[0]}").TextContent.ShouldContain("Passport scan");
+        component.Find($"#{describedBy[1]}").TextContent.ShouldContain("Supporting documents");
+    }
+
+    [Fact]
+    public void The_Same_Upload_Field_Rendered_Twice_Should_Not_Share_A_Description_Id()
+    {
+        // Arrange - THE case that can actually collide, and the one the sibling test above cannot
+        // reach: two different fields have different names, so `formcraft-{FieldName}-required`
+        // separates them under any implementation, including a broken one. The same field rendered
+        // twice does not — and that is not hypothetical. Item fields render through these very
+        // components since #203, so a required upload inside .WithItemForm(...) emits one hint per
+        // row; two forms over one model on a page do the same. Duplicate ids are invalid HTML and
+        // point every later button at the first one's description.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f
+                .WithLabel("Passport scan")
+                .Required("A scan is required"))
+            .Build();
+
+        // Act - two independent instances of the same form, in one document
+        var component = Render(builder =>
+        {
+            for (var i = 0; i < 2; i++)
+            {
+                builder.OpenComponent<FormCraftComponent<TestModel>>(i);
+                builder.AddAttribute(i + 1, nameof(FormCraftComponent<TestModel>.Model), new TestModel());
+                builder.AddAttribute(i + 2, nameof(FormCraftComponent<TestModel>.Configuration), config);
+                builder.CloseComponent();
+            }
+        });
+
+        // Assert - both rendered, and their hint ids are distinct
+        var describedBy = component
+            .FindAll(".mud-toolbar button[aria-describedby]")
+            .Select(b => b.GetAttribute("aria-describedby"))
+            .ToList();
+
+        describedBy.Count.ShouldBe(2);
+        describedBy.Distinct().Count().ShouldBe(2);
+
+        // Assert - and each id resolves to exactly one element, i.e. no duplicate ids in the document
+        foreach (var id in describedBy)
+        {
+            component.FindAll($"#{id}").Count.ShouldBe(1);
+        }
+    }
+
+    [Fact]
+    public void MultipleFileUpload_Should_Honour_The_Opt_Out_And_Leave_MudFileUpload_Unbound()
+    {
+        // Arrange - the parity half of the opt-out. Every other assertion about .WithNativeRequired
+        // (false) and the unbound MudFileUpload targets the SINGLE-file component, so the multiple
+        // component could regress on both while the suite stayed green — the divergence this issue's
+        // shared base exists to prevent.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Attachments, f => f
+                .WithLabel("Supporting documents")
+                .Required("At least one document is required")
+                .WithNativeRequired(false))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert - marker and description both suppressed
+        component.FindAll(".formcraft-required-marker").ShouldBeEmpty();
+        component.FindAll(".mud-toolbar button")[0].HasAttribute("aria-describedby").ShouldBeFalse();
+
+        // Assert - and this component leaves MudFileUpload unbound too, exactly like the single one
+        component
+            .FindComponent<MudFileUpload<IReadOnlyList<IBrowserFile>>>()
+            .Instance.Required.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Required_MultipleFileUpload_Should_Not_Bind_Required_On_MudFileUpload()
+    {
+        // Arrange & Act - the required case of the same parity claim
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Attachments, f => f
+                .WithLabel("Supporting documents")
+                .Required("At least one document is required"))
+            .Build();
+
+        var component = RenderConfig(config);
+
+        // Assert
+        component
+            .FindComponent<MudFileUpload<IReadOnlyList<IBrowserFile>>>()
+            .Instance.Required.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void FileUpload_Field_With_WithNativeRequired_False_Should_Suppress_Both_Channels()
+    {
+        // Arrange - the per-field opt-out has to reach this field type too, or ".WithNativeRequired
+        // (false)" would mean something different here than on the other eight (#199)
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f
+                .WithLabel("Passport scan")
+                .Required("A scan is required")
+                .WithNativeRequired(false))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert - both channels suppressed: the visible marker and the announced description.
+        // The bare `mud-input-required` is asserted too, which is the stronger statement: nothing
+        // anywhere in the field claims required-ness, FormCraft's marker included.
+        component.FindAll(".mud-input-required").ShouldBeEmpty();
+        component.FindAll(".formcraft-required-marker").ShouldBeEmpty();
+        component.FindAll(".mud-toolbar button")[0].HasAttribute("aria-describedby").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Required_FileUpload_Should_Not_Bind_Required_On_MudFileUpload()
+    {
+        // Arrange - THE DECIDED "also bind Required" QUESTION (#262 Task 3), settled as NO, after
+        // measuring it. Binding it was attempted first, as belt-and-braces for assistive technology
+        // that walks the accessibility tree rather than the tab order, and reverted because it is
+        // not free:
+        //
+        //   MudFormComponent.ValidateValue() raises its OWN RequiredError ("Required") when
+        //   `Required && Touched && !HasValue`. MudFileUpload.ClearAsync() sets Touched and
+        //   validates, and the resulting error only goes to an EditContext when one is cascaded.
+        //   Rendered standalone — a supported path, IFieldRendererService.RenderField, exercised by
+        //   this suite — clearing a required upload therefore printed MudBlazor's own "Required"
+        //   under the drop zone, in different words from the developer's message.
+        //   Pinned by Clearing_A_Standalone_Required_Upload_Should_Not_Surface_MudBlazors_Own_Error.
+        //
+        // The annotation would have landed on an opacity-0, tabindex="-1" input nobody reaches, so
+        // the trade was a real wrong message for a speculative benefit. The label marker and the
+        // button's aria-describedby remain the mechanism, and they are enough.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan").Required("A scan is required"))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert - deliberately unbound
+        component.FindComponent<MudFileUpload<IBrowserFile>>().Instance.Required.ShouldBeFalse();
+
+        // ...while the two channels that DO reach a user are present
+        component.FindAll(".formcraft-required-marker").ShouldNotBeEmpty();
+        component.FindAll(".mud-toolbar button")[0].HasAttribute("aria-describedby").ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Clearing_A_Standalone_Required_Upload_Should_Not_Surface_MudBlazors_Own_Error()
+    {
+        // Arrange - the regression this pins was REAL and measured, not theoretical: with Required
+        // bound, this exact sequence rendered `mud-input-error` twice and helper text reading
+        // "Required" — MudBlazor's wording, not the developer's.
+        //
+        // Standalone (no cascaded EditContext) is the case that matters. Inside FormCraftComponent
+        // the EditForm supplies one and the error is swallowed, so a test that only renders the
+        // whole form green-lights a guarantee it never exercises.
+        var model = new TestModel { Upload = new StubBrowserFile() };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan").Required("A scan is required"))
+            .Build();
+
+        var context = new FieldRenderContext<TestModel>
+        {
+            Model = model,
+            Field = config.Fields.First(),
+            ActualFieldType = typeof(IBrowserFile),
+            CurrentValue = model.Upload,
+        };
+
+        var component = Render<MudBlazorFileUploadFieldComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Context, context));
+
+        // Act - a file is present, so the toolbar carries Browse then Clear; clear it
+        var buttons = component.FindAll(".mud-toolbar button");
+        buttons.Count.ShouldBe(2);
+        await component.InvokeAsync(() => buttons[1].Click());
+
+        // Assert - the field is now empty and unsatisfied, and MudBlazor says nothing about it
+        component.FindAll(".mud-input-error").ShouldBeEmpty();
+        component
+            .FindAll(".mud-input-helper-text")
+            .Select(e => e.TextContent.Trim())
+            .ShouldNotContain("Required");
+    }
+
+    [Fact]
+    public void Optional_FileUpload_Should_Not_Flag_The_Hidden_Input()
+    {
+        // Arrange & Act - belt-and-braces was dropped, so this holds for required fields too; it is
+        // asserted on the optional field as the baseline the required case is compared against
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan"))
+            .Build();
+
+        var component = RenderConfig(config);
+
+        // Assert
+        component.FindComponent<MudFileUpload<IBrowserFile>>().Instance.Required.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Blank_Label_Should_Not_Leave_The_File_Input_Without_An_Accessible_Name()
+    {
+        // Arrange - `Label ?? "File upload"` treated a configured blank label as a real name, so the
+        // fallback never fired and the input was left with aria-label="" — no accessible name at all
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel(string.Empty).Required("A scan is required"))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert
+        component.Find("input[type=file]").GetAttribute("aria-label").ShouldBe("File upload");
+    }
+
+    [Fact]
+    public void Whitespace_Label_Should_Not_Make_The_Two_Channels_Contradict_Each_Other()
+    {
+        // Arrange - the label gate and the description used to disagree (IsNullOrEmpty vs
+        // IsNullOrWhiteSpace), so " " rendered a lone asterisk with no text beside it while the
+        // description simultaneously announced the field as having no label
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("   ").Required("A scan is required"))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert - one predicate now, so: no label rendered, hence no orphan marker...
+        component.FindAll(".formcraft-required-marker").ShouldBeEmpty();
+
+        // ...and the description agrees that there is no label to name
+        var describedBy = component.FindAll(".mud-toolbar button")[0].GetAttribute("aria-describedby");
+        component.Find($"#{describedBy}").TextContent.ShouldContain("This file upload is required.");
+    }
+
+    [Fact]
+    public async Task Blank_Required_FileUpload_Should_Surface_Exactly_One_Message()
+    {
+        // Arrange - the same behavioural risk Blank_Required_Field_Should_Surface_Exactly_One_Message
+        // pins for text fields, re-asked for the field type this issue newly sets the flag on.
+        // MudFormComponent can run a required check of its OWN, differently worded; if binding
+        // Required woke that up, every required upload would report twice.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan").Required("A scan is required"))
+            .Build();
+
+        var component = RenderConfig(config);
+
+        // Act
+        await component.InvokeAsync(() => component.Instance.ValidateAsync());
+
+        // Assert - exactly one error message, and it is the developer's own wording
+        component.WaitForAssertion(() =>
+            component.FindComponents<FieldValidationMessage>()
+                .Single(m => m.Instance.FieldName == nameof(TestModel.Upload))
+                .FindComponents<MudText>()
+                .Count(t => t.Instance.Color == Color.Error)
+                .ShouldBe(1));
+
+        // ...and MudBlazor's own error slot stays empty, so nothing is queued behind it
+        var upload = component.FindComponent<MudFileUpload<IBrowserFile>>().Instance;
+        upload.Error.ShouldBeFalse();
+        upload.ErrorText.ShouldBeNullOrEmpty();
     }
 
     private static Task<IEnumerable<SelectOption<string>>> SearchAsync(
@@ -414,5 +816,28 @@ public class AriaRequiredTests : MudBlazorTestBase
         public string Country { get; set; } = string.Empty;
 
         public IBrowserFile? Upload { get; set; }
+
+        // Exactly IReadOnlyList<IBrowserFile> — that is what MudBlazorMultipleFileUploadRenderer
+        // matches on, so a different list type would silently render the single-file component.
+        public IReadOnlyList<IBrowserFile>? Attachments { get; set; }
+    }
+
+    /// <summary>
+    /// Minimal <see cref="IBrowserFile"/> so a test can start from a field that already holds a file
+    /// and then clear it — the transition from satisfied to unsatisfied.
+    /// </summary>
+    private sealed class StubBrowserFile : IBrowserFile
+    {
+        public string Name => "passport.png";
+
+        public DateTimeOffset LastModified => DateTimeOffset.UnixEpoch;
+
+        public long Size => 1024;
+
+        public string ContentType => "image/png";
+
+        public Stream OpenReadStream(
+            long maxAllowedSize = 512000,
+            CancellationToken cancellationToken = default) => new MemoryStream();
     }
 }
