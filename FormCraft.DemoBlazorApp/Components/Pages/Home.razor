@@ -2,288 +2,191 @@
 @page "/home"
 @inject IJSRuntime JS
 
-<PageTitle>FormCraft - Dynamic Forms for Blazor</PageTitle>
+<PageTitle>FormCraft — dynamic forms for Blazor</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-0">
-    @* Hero Section with Interactive Playground *@
-    <MudPaper Square="true" Elevation="1" Class="pa-0">
-        <MudContainer MaxWidth="MaxWidth.Large" Class="py-12">
-            <MudGrid Spacing="6" Justify="Justify.Center">
-                <MudItem xs="12" md="5" Class="d-flex flex-column justify-center">
-                    <div class="hero-title">
-                        <MudText Typo="Typo.h2" Class="mb-3 font-weight-bold">
-                            Build Dynamic Forms
-                            <span class="text-primary d-block">In Minutes</span>
-                        </MudText>
-                        <MudText Typo="Typo.h6" Class="mb-5 mud-text-secondary">
-                            Type-safe, validated, beautiful. Try it right now.
-                        </MudText>
-                        <div class="d-flex gap-3 flex-wrap">
-                            <MudButton Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       Size="Size.Large"
-                                       StartIcon="@Icons.Material.Filled.RocketLaunch"
-                                       Href="docs/getting-started">
-                                Get Started
-                            </MudButton>
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Primary"
-                                       Size="Size.Large"
-                                       StartIcon="@Icons.Material.Filled.PlayArrow"
-                                       Href="simplified">
-                                View All Demos
-                            </MudButton>
-                        </div>
-                    </div>
-                </MudItem>
-                <MudItem xs="12" md="7">
-                    <div class="hero-playground">
-                        <InteractivePlayground />
-                    </div>
-                </MudItem>
-            </MudGrid>
-        </MudContainer>
-    </MudPaper>
+@* ----------------------------------------------------------------------------
+   Hero. The thesis is the transform, so the transform is the hero: a builder
+   chain and the form it produced, tied together.
+   ---------------------------------------------------------------------------- *@
+<section class="fc-page fc-band fc-hero">
+    <div class="fc-hero__intro">
+        <span class="fc-eyebrow">FormBuilder&lt;T&gt;</span>
+        <h1 class="fc-hero__title">
+            Describe the form in C#.
+            <em>FormCraft renders it.</em>
+        </h1>
+        <p class="fc-lede">
+            One typed builder chain produces the fields, the validation and the MudBlazor markup.
+            Add a line, get a control — hover either side below to see the pairing.
+        </p>
 
-    @* Statistics Section *@
-    <MudPaper Square="true" Class="stats-section py-8">
-        <MudContainer MaxWidth="MaxWidth.Large">
-            <MudGrid Justify="Justify.SpaceAround">
-                <MudItem xs="6" md="3">
-                    <AnimatedCounter Target="600" Suffix="+" Label="Unit Tests"
-                                     Icon="@Icons.Material.Filled.CheckCircle" />
-                </MudItem>
-                <MudItem xs="6" md="3">
-                    <AnimatedCounter Target="25" Suffix="+" Label="Field Types"
-                                     Icon="@Icons.Material.Filled.Extension" />
-                </MudItem>
-                <MudItem xs="6" md="3">
-                    <AnimatedCounter Target="18" Label="Demo Pages"
-                                     Icon="@Icons.Material.Filled.Code" />
-                </MudItem>
-                <MudItem xs="6" md="3">
-                    <AnimatedCounter Target="100" Suffix="%" Label="Type-Safe"
-                                     Icon="@Icons.Material.Filled.Security" />
-                </MudItem>
-            </MudGrid>
-        </MudContainer>
-    </MudPaper>
-
-    @* Features Section *@
-    <MudContainer MaxWidth="MaxWidth.Large" Class="py-12">
-        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-2 font-weight-bold">
-            Why Choose FormCraft?
-        </MudText>
-        <MudText Typo="Typo.subtitle1" Align="Align.Center" Class="mb-8 mud-text-secondary">
-            Everything you need to build powerful forms in Blazor
-        </MudText>
-
-        <MudGrid Spacing="4" Class="feature-cards-container">
-            <MudItem xs="12" sm="6" md="4">
-                <MudCard Elevation="2" Class="feature-card feature-card-animated visible h-100">
-                    <MudCardContent Class="text-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Large" Color="Color.Primary" Class="mb-3 feature-icon" />
-                        <MudText Typo="Typo.h6" Class="mb-2">Type-Safe & Fast</MudText>
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                            Strongly-typed forms with compile-time safety and IntelliSense support.
-                        </MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <MudItem xs="12" sm="6" md="4">
-                <MudCard Elevation="2" Class="feature-card feature-card-animated visible h-100">
-                    <MudCardContent Class="text-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Api" Size="Size.Large" Color="Color.Secondary" Class="mb-3 feature-icon" />
-                        <MudText Typo="Typo.h6" Class="mb-2">Fluent API</MudText>
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                            Intuitive method chaining for building forms with minimal code.
-                        </MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <MudItem xs="12" sm="6" md="4">
-                <MudCard Elevation="2" Class="feature-card feature-card-animated visible h-100">
-                    <MudCardContent Class="text-center">
-                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large" Color="Color.Success" Class="mb-3 feature-icon" />
-                        <MudText Typo="Typo.h6" Class="mb-2">Built-in Validation</MudText>
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                            FluentValidation integration with custom validator support.
-                        </MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <MudItem xs="12" sm="6" md="4">
-                <MudCard Elevation="2" Class="feature-card feature-card-animated visible h-100">
-                    <MudCardContent Class="text-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Palette" Size="Size.Large" Color="Color.Warning" Class="mb-3 feature-icon" />
-                        <MudText Typo="Typo.h6" Class="mb-2">MudBlazor Integration</MudText>
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                            Beautiful UI powered by MudBlazor with full theming support.
-                        </MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <MudItem xs="12" sm="6" md="4">
-                <MudCard Elevation="2" Class="feature-card feature-card-animated visible h-100">
-                    <MudCardContent Class="text-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Extension" Size="Size.Large" Color="Color.Info" Class="mb-3 feature-icon" />
-                        <MudText Typo="Typo.h6" Class="mb-2">Extensible</MudText>
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                            Custom field renderers and validators for your requirements.
-                        </MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <MudItem xs="12" sm="6" md="4">
-                <MudCard Elevation="2" Class="feature-card feature-card-animated visible h-100">
-                    <MudCardContent Class="text-center">
-                        <MudIcon Icon="@Icons.Material.Filled.DynamicForm" Size="Size.Large" Color="Color.Error" Class="mb-3 feature-icon" />
-                        <MudText Typo="Typo.h6" Class="mb-2">Dynamic Fields</MudText>
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                            Conditional visibility, dependencies, and dynamic generation.
-                        </MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-        </MudGrid>
-    </MudContainer>
-
-    @* Feature Showcase Section *@
-    <FeatureShowcase />
-
-    @* Quick Start Section *@
-    <MudContainer MaxWidth="MaxWidth.Large" Class="py-12">
-        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-2 font-weight-bold">
-            Get Started in 3 Steps
-        </MudText>
-        <MudText Typo="Typo.subtitle1" Align="Align.Center" Class="mb-8 mud-text-secondary">
-            From zero to your first form in under a minute
-        </MudText>
-
-        <MudTimeline TimelinePosition="TimelinePosition.Start" TimelineAlign="TimelineAlign.Default">
-            <MudTimelineItem Color="Color.Primary" Size="Size.Large" Elevation="2">
-                <ItemOpposite>
-                    <MudChip T="string" Color="Color.Primary" Size="Size.Large">Step 1</MudChip>
-                </ItemOpposite>
-                <ItemContent>
-                    <MudCard Elevation="2">
-                        <MudCardContent>
-                            <MudText Typo="Typo.h6" Class="mb-2">Install the Package</MudText>
-                            <MudPaper Class="pa-3 d-flex align-center justify-space-between" Elevation="0"
-                                      Style="background: #1e1e1e; border-radius: 8px;">
-                                <code style="color: #dcdcdc;">dotnet add package FormCraft.ForMudBlazor</code>
-                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
-                                               Color="Color.Primary"
-                                               Size="Size.Small"
-                                               OnClick="@(() => CopyToClipboard("dotnet add package FormCraft.ForMudBlazor", true))" />
-                            </MudPaper>
-                        </MudCardContent>
-                    </MudCard>
-                </ItemContent>
-            </MudTimelineItem>
-
-            <MudTimelineItem Color="Color.Secondary" Size="Size.Large" Elevation="2">
-                <ItemOpposite>
-                    <MudChip T="string" Color="Color.Secondary" Size="Size.Large">Step 2</MudChip>
-                </ItemOpposite>
-                <ItemContent>
-                    <MudCard Elevation="2">
-                        <MudCardContent>
-                            <MudText Typo="Typo.h6" Class="mb-2">Configure Your Form</MudText>
-                            <MudPaper Class="pa-3" Elevation="0" Style="background: #1e1e1e; border-radius: 8px;">
-                                <pre style="color: #9cdcfe; margin: 0; font-size: 0.85rem;"><span style="color: #569cd6;">var</span> config = <span style="color: #4ec9b0;">FormBuilder</span>&lt;<span style="color: #4ec9b0;">MyModel</span>&gt;.<span style="color: #dcdcaa;">Create</span>()
-    .<span style="color: #dcdcaa;">AddRequiredTextField</span>(x => x.Name, <span style="color: #ce9178;">"Name"</span>)
-    .<span style="color: #dcdcaa;">AddEmailField</span>(x => x.Email)
-    .<span style="color: #dcdcaa;">Build</span>();</pre>
-                            </MudPaper>
-                        </MudCardContent>
-                    </MudCard>
-                </ItemContent>
-            </MudTimelineItem>
-
-            <MudTimelineItem Color="Color.Success" Size="Size.Large" Elevation="2">
-                <ItemOpposite>
-                    <MudChip T="string" Color="Color.Success" Size="Size.Large">Step 3</MudChip>
-                </ItemOpposite>
-                <ItemContent>
-                    <MudCard Elevation="2">
-                        <MudCardContent>
-                            <MudText Typo="Typo.h6" Class="mb-2">Use in Your Component</MudText>
-                            <MudPaper Class="pa-3" Elevation="0" Style="background: #1e1e1e; border-radius: 8px;">
-                                <pre style="color: #808080; margin: 0; font-size: 0.85rem;">&lt;<span style="color: #569cd6;">FormCraftComponent</span> <span style="color: #9cdcfe;">TModel</span>=<span style="color: #ce9178;">"MyModel"</span>
-    <span style="color: #9cdcfe;">Model</span>=<span style="color: #ce9178;">"@@model"</span>
-    <span style="color: #9cdcfe;">Configuration</span>=<span style="color: #ce9178;">"@@config"</span> /&gt;</pre>
-                            </MudPaper>
-                        </MudCardContent>
-                    </MudCard>
-                </ItemContent>
-            </MudTimelineItem>
-        </MudTimeline>
-
-        <div class="text-center mt-6">
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       Size="Size.Large"
-                       StartIcon="@Icons.Material.Filled.MenuBook"
-                       Href="docs/getting-started">
-                Read Full Documentation
+        <div class="fc-hero__actions">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="simplified">
+                Browse the demos
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" Href="docs/getting-started">
+                Read the docs
             </MudButton>
         </div>
-    </MudContainer>
 
-    @* Footer CTA *@
-    <MudPaper Square="true" Elevation="3" Class="py-8 ma-0 rounded-0">
-        <MudContainer MaxWidth="MaxWidth.Large" Class="text-center">
-            <MudText Typo="Typo.h4" Class="mb-4 font-weight-bold" Color="Color.Primary">
-                Ready to Build Better Forms?
-            </MudText>
-            <MudText Typo="Typo.h6" Class="mb-6">
-                Join developers who are creating dynamic forms faster with FormCraft.
-            </MudText>
-            <div class="d-flex gap-3 justify-center flex-wrap">
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Large"
-                           StartIcon="@Icons.Material.Filled.RocketLaunch"
-                           Href="docs/getting-started">
-                    Get Started Now
-                </MudButton>
-                <MudButton Variant="Variant.Outlined"
-                           Color="Color.Primary"
-                           Size="Size.Large"
-                           StartIcon="@Icons.Custom.Brands.GitHub"
-                           Href="https://github.com/phmatray/FormCraft"
-                           Target="_blank">
-                    View on GitHub
-                </MudButton>
-            </div>
-        </MudContainer>
-    </MudPaper>
-</MudContainer>
+        <div class="fc-install">
+            <span class="fc-install__prompt">$</span>
+            <span>dotnet add package FormCraft.ForMudBlazor</span>
+            <MudTooltip Text="@(_copiedInstall ? "Copied" : "Copy")">
+                <MudIconButton Icon="@(_copiedInstall ? Icons.Material.Filled.Check : Icons.Material.Filled.ContentCopy)"
+                               Color="@(_copiedInstall ? Color.Success : Color.Default)"
+                               Size="Size.Small"
+                               aria-label="Copy the install command"
+                               OnClick="CopyInstall" />
+            </MudTooltip>
+        </div>
+    </div>
 
-<style>
-    .font-weight-bold {
-        font-weight: 700 !important;
-    }
+    <BindingHero />
 
-    .rounded-lg {
-        border-radius: 12px !important;
-    }
+    @* Facts an evaluating developer actually checks, in the same mono as every
+       other API-shaped label on the site. The test figure is a lower bound on
+       purpose: an exact count goes stale the next time anyone adds a test.
+       Measured at 1,134 passing on this branch (dotnet test). *@
+    <dl class="fc-spec">
+        <div class="fc-spec__item"><dt>targets</dt><dd class="fc-spec__value">net8.0 · net10.0</dd></div>
+        <div class="fc-spec__item"><dt>tests</dt><dd class="fc-spec__value">1,100+</dd></div>
+        <div class="fc-spec__item"><dt>licence</dt><dd class="fc-spec__value">MIT</dd></div>
+        <div class="fc-spec__item"><dt>ui</dt><dd class="fc-spec__value">MudBlazor 9</dd></div>
+    </dl>
+</section>
 
-    pre {
-        margin: 0;
-        padding: 0;
-        background: transparent;
-        font-size: 0.875rem;
-        line-height: 1.5;
-    }
+@* ----------------------------------------------------------------------------
+   Capabilities. Each entry names the API that does the job and links to the demo
+   that proves it, so the section is a route into the site rather than a poster.
+   ---------------------------------------------------------------------------- *@
+<section class="fc-page fc-band">
+    <header class="fc-section-head">
+        <span class="fc-eyebrow">What it covers</span>
+        <h2 class="fc-section-title">Everything a real form needs, typed.</h2>
+        <p class="fc-lede">
+            Each of these is one call on the builder. Follow any of them into a working demo.
+        </p>
+    </header>
 
-    code {
-        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    }
-</style>
+    <div class="fc-caps">
+        <a class="fc-cap" href="fluent-validation-demo">
+            <code class="fc-cap__api">.Required() · .WithValidator()</code>
+            <h3 class="fc-cap__title">Validation on the server, not the browser</h3>
+            <p class="fc-cap__body">
+                Built-in rules, custom validators and FluentValidation, all running against your model.
+            </p>
+        </a>
+
+        <a class="fc-cap" href="complex-dependencies">
+            <code class="fc-cap__api">.DependsOn()</code>
+            <h3 class="fc-cap__title">Fields that answer to other fields</h3>
+            <p class="fc-cap__body">
+                Show, hide or recalculate a field when the values it depends on change.
+            </p>
+        </a>
+
+        <a class="fc-cap" href="field-groups">
+            <code class="fc-cap__api">.AddFieldGroup()</code>
+            <h3 class="fc-cap__title">Groups, columns and cards</h3>
+            <p class="fc-cap__body">
+                Arrange fields into labelled sections with their own column counts and layout.
+            </p>
+        </a>
+
+        <a class="fc-cap" href="custom-renderers">
+            <code class="fc-cap__api">.WithCustomRenderer()</code>
+            <h3 class="fc-cap__title">Your own controls</h3>
+            <p class="fc-cap__body">
+                Swap in any Blazor component for a field type the library does not ship.
+            </p>
+        </a>
+
+        <a class="fc-cap" href="attribute-based-forms">
+            <code class="fc-cap__api">.AddFieldsFromAttributes()</code>
+            <h3 class="fc-cap__title">Forms straight from the model</h3>
+            <p class="fc-cap__body">
+                Annotate properties and let the builder derive the fields for you.
+            </p>
+        </a>
+
+        <a class="fc-cap" href="security-demo">
+            <code class="fc-cap__api">.WithSecurity()</code>
+            <h3 class="fc-cap__title">Encryption, CSRF and rate limits</h3>
+            <p class="fc-cap__body">
+                Encrypt named fields, issue CSRF tokens and throttle submissions from the same chain.
+            </p>
+        </a>
+    </div>
+</section>
+
+@* ----------------------------------------------------------------------------
+   Quick start. Numbered because this genuinely is a sequence — the numbers carry
+   order the reader needs, which is the only reason to use them.
+   ---------------------------------------------------------------------------- *@
+<section class="fc-band fc-band--tint">
+    <div class="fc-page">
+        <header class="fc-section-head">
+            <span class="fc-eyebrow">Quick start</span>
+            <h2 class="fc-section-title">Three steps to a working form.</h2>
+        </header>
+
+        <ol class="fc-steps">
+            <li class="fc-step">
+                <span class="fc-step__num">01</span>
+                <div>
+                    <h3 class="fc-step__title">Install the package</h3>
+                    <pre>dotnet add package FormCraft.ForMudBlazor</pre>
+                </div>
+            </li>
+
+            <li class="fc-step">
+                <span class="fc-step__num">02</span>
+                <div>
+                    <h3 class="fc-step__title">Register the services</h3>
+                    <pre>builder.Services.AddMudServices();
+builder.Services.AddFormCraftForMudBlazor();</pre>
+                </div>
+            </li>
+
+            <li class="fc-step">
+                <span class="fc-step__num">03</span>
+                <div>
+                    <h3 class="fc-step__title">Build a form and render it</h3>
+                    <pre>var config = FormBuilder&lt;Contact&gt;.Create()
+    .AddRequiredTextField(x =&gt; x.Name, "Name")
+    .AddEmailField(x =&gt; x.Email)
+    .Build();
+
+&lt;FormCraftComponent TModel="Contact"
+                    Model="@@model"
+                    Configuration="@@config" /&gt;</pre>
+                </div>
+            </li>
+        </ol>
+    </div>
+</section>
+
+@* ---------------------------------------------------------------------------- *@
+<section class="fc-page fc-band">
+    <div class="fc-cta">
+        <h2 class="fc-cta__title">Start with the beginner track.</h2>
+        <p class="fc-cta__body">
+            Twenty demos, ordered from a five-line contact form to master-detail collections,
+            security and custom renderers. Each one ships its source alongside it.
+        </p>
+        <div class="fc-cta__actions">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="simplified">
+                Open the first demo
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Inherit"
+                       Size="Size.Large"
+                       Style="color: #F5F4F8; border-color: rgba(255,255,255,.35);"
+                       Href="https://github.com/phmatray/FormCraft"
+                       Target="_blank">
+                View the source
+            </MudButton>
+        </div>
+    </div>
+</section>

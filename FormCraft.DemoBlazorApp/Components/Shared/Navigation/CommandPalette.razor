@@ -1,0 +1,68 @@
+@namespace FormCraft.DemoBlazorApp.Components.Shared.Navigation
+@using FormCraft.DemoBlazorApp.Models
+
+<MudOverlay Visible="@Open" DarkBackground="true" AutoClose="false" ZIndex="2000" OnClick="@Close">
+    @* Stop clicks inside the panel from reaching the overlay's close handler. *@
+    <div class="fc-palette" @onclick:stopPropagation="true" role="dialog" aria-modal="true" aria-label="Search demos and documentation">
+        <div class="fc-palette__search">
+            <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="fc-palette__search-icon" />
+            <input @ref="_input"
+                   class="fc-palette__input"
+                   type="text"
+                   placeholder="Search demos and documentation"
+                   aria-label="Search demos and documentation"
+                   aria-controls="fc-palette-results"
+                   autocomplete="off"
+                   value="@_query"
+                   @oninput="OnQueryChanged"
+                   @onkeydown="OnKeyDown" />
+            <kbd class="fc-kbd">esc</kbd>
+        </div>
+
+        <div class="fc-palette__results" id="fc-palette-results" role="listbox">
+            @if (_results.Count == 0)
+            {
+                <p class="fc-palette__empty">
+                    No page matches “@_query”. Try a field type, like <span class="fc-mono">upload</span>,
+                    or a concept, like <span class="fc-mono">validation</span>.
+                </p>
+            }
+            else
+            {
+                @foreach (var group in _results.GroupBy(r => r.Category))
+                {
+                    <div class="fc-palette__group-label">@GroupLabel(group.Key)</div>
+
+                    @foreach (var demo in group)
+                    {
+                        var index = _results.IndexOf(demo);
+                        var selected = index == _selectedIndex;
+
+                        <button type="button"
+                                class="fc-palette__row @(selected ? "is-selected" : "")"
+                                role="option"
+                                aria-selected="@selected"
+                                @onclick="@(() => Go(demo))"
+                                @onmouseenter="@(() => _selectedIndex = index)">
+                            <MudIcon Icon="@demo.Icon" Size="Size.Small" Class="fc-palette__row-icon" />
+                            <span class="fc-palette__row-body">
+                                <span class="fc-palette__row-title">@demo.Title</span>
+                                <span class="fc-palette__row-desc">@demo.Description</span>
+                            </span>
+                            @if (!string.IsNullOrEmpty(demo.Level))
+                            {
+                                <span class="fc-palette__row-level">@demo.Level</span>
+                            }
+                        </button>
+                    }
+                }
+            }
+        </div>
+
+        <div class="fc-palette__footer">
+            <span><kbd class="fc-kbd">↑</kbd><kbd class="fc-kbd">↓</kbd> to move</span>
+            <span><kbd class="fc-kbd">↵</kbd> to open</span>
+            <span class="fc-palette__count">@_results.Count of @_all.Count pages</span>
+        </div>
+    </div>
+</MudOverlay>

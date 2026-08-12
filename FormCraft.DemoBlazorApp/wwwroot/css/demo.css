@@ -1,0 +1,249 @@
+/* ==========================================================================
+   FormCraft — demo and documentation pages
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Breadcrumb trail
+   -------------------------------------------------------------------------- */
+
+.fc-crumbs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.fc-crumbs__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.fc-crumbs__time {
+    font-family: var(--fc-font-mono);
+    font-size: 0.72rem;
+    color: var(--fc-muted);
+}
+
+/* Difficulty as a filled scale rather than a traffic light. */
+.fc-level {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.fc-level__dots { display: inline-flex; gap: 3px; }
+
+.fc-level__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    border: 1px solid var(--fc-violet);
+    opacity: 0.35;
+}
+
+.fc-level__dot.is-on { background: var(--fc-violet); opacity: 1; }
+
+.fc-level__label {
+    font-family: var(--fc-font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fc-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Demo page header
+   -------------------------------------------------------------------------- */
+
+.fc-demo-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.fc-demo-head__icon {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--fc-radius);
+    background: var(--fc-violet-wash);
+    color: var(--fc-violet);
+    margin-top: 0.2rem;
+}
+
+.fc-demo-head__icon .mud-icon-root { color: var(--fc-violet); }
+
+.fc-demo-head__title {
+    font-family: var(--fc-font-display);
+    font-weight: 800;
+    font-size: clamp(1.85rem, 3.2vw, 2.6rem);
+    letter-spacing: -0.028em;
+    line-height: 1.05;
+    color: var(--fc-ink);
+    margin: 0 0 0.6rem;
+}
+
+.fc-demo-head__desc {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--fc-muted);
+    margin: 0;
+    max-width: 68ch;
+}
+
+/* --------------------------------------------------------------------------
+   Tabs — sentence case, matching every other control label on the site
+   -------------------------------------------------------------------------- */
+
+.mud-tabs .mud-tab {
+    text-transform: none;
+    font-size: 0.875rem;
+    letter-spacing: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Code blocks
+
+   prism.min.css ships Prism's *light* theme — black text with a white text-shadow.
+   On the dark code ground that was black-on-near-black and effectively unreadable,
+   so the palette below replaces it wholesale with the site's own code colours.
+   -------------------------------------------------------------------------- */
+
+/* Every selector below is prefixed with `body` purely to outrank Prism's own rules,
+   which use the same specificity. Without it the winner depends on <link> order —
+   too fragile a thing to hang legibility on. */
+body pre[class*="language-"],
+body code[class*="language-"],
+body .markdown-content pre {
+    color: var(--fc-code-fg);
+    text-shadow: none;
+    font-family: var(--fc-font-mono);
+    font-size: 0.83rem;
+    line-height: 1.7;
+    background: var(--fc-code-bg);
+}
+
+body pre[class*="language-"],
+body .markdown-content pre {
+    border-radius: var(--fc-radius);
+    padding: 1rem 1.15rem;
+    overflow-x: auto;
+}
+
+/* Inline code is not a block, so it keeps the page's own surface. */
+.markdown-content code:not([class*="language-"]) {
+    background: var(--fc-violet-wash);
+    color: var(--fc-ink);
+    font-family: var(--fc-font-mono);
+    font-size: 0.85em;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+}
+
+body .token.comment,
+body .token.prolog,
+body .token.doctype,
+body .token.cdata { color: var(--fc-code-dim); font-style: italic; }
+
+body .token.punctuation { color: var(--fc-code-fg); opacity: 0.75; }
+
+body .token.keyword,
+body .token.boolean,
+body .token.important,
+body .token.atrule { color: var(--fc-code-key); }
+
+body .token.class-name,
+body .token.builtin,
+body .token.namespace,
+body .token.symbol { color: var(--fc-code-type); }
+
+body .token.function,
+body .token.attr-name { color: var(--fc-code-call); }
+
+body .token.string,
+body .token.char,
+body .token.attr-value,
+body .token.regex { color: var(--fc-code-str); }
+
+body .token.number,
+body .token.constant { color: #9FE3C0; }
+
+body .token.operator,
+body .token.entity,
+body .token.url,
+body .token.variable,
+body .token.property,
+body .token.tag,
+body .token.selector { color: var(--fc-code-fg); }
+
+body .token.deleted { color: #F0788F; }
+body .token.inserted { color: var(--fc-bind); }
+
+/* Prism's light theme paints a translucent white behind operators, tags and
+   strings so they read on cream. On the dark ground those became grey chips
+   scattered through the code. */
+body .token.operator,
+body .token.entity,
+body .token.url,
+body .token.tag,
+body .token.atrule,
+body .token.attr-value,
+body .token.punctuation,
+body .token.string,
+body .token.inserted,
+body .token.deleted { background: none; }
+
+/* Line numbers sit in the gutter, dimmed so they never compete with the code. */
+body .line-numbers-rows > span::before { color: var(--fc-code-dim); opacity: 0.6; }
+body .line-numbers .line-numbers-rows { border-right-color: rgba(255, 255, 255, 0.08); }
+
+/* --------------------------------------------------------------------------
+   Prev / next
+   -------------------------------------------------------------------------- */
+
+.fc-prevnext {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1px;
+    margin-top: 2.5rem;
+    background: var(--fc-rule);
+    border: 1px solid var(--fc-rule);
+    border-radius: var(--fc-radius-lg);
+    overflow: hidden;
+}
+
+.fc-prevnext__link {
+    display: block;
+    padding: 1.15rem 1.35rem;
+    background: var(--fc-surface);
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.18s ease;
+}
+
+.fc-prevnext__link:hover { background: var(--fc-violet-wash); }
+
+.fc-prevnext__link--next { text-align: right; }
+
+.fc-prevnext__dir {
+    font-family: var(--fc-font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--fc-muted);
+    display: block;
+    margin-bottom: 0.3rem;
+}
+
+.fc-prevnext__title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--fc-ink);
+}
+
+.fc-prevnext__link:hover .fc-prevnext__title { color: var(--fc-violet); }
