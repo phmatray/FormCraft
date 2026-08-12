@@ -75,6 +75,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
         }
         Autocomplete = GetAttribute<string?>("autocomplete");
         Mask = GetAttribute<string?>(TextMaskMap.AttributeName);
+        WarnIfMaskBlanksTheStoredValue();
 
         // Load adornment configuration
         var customAdornment = GetAttribute<Adornment?>("Adornment");
@@ -124,6 +125,50 @@ public partial class MudBlazorTextFieldComponent<TModel>
             OnAdornmentClick = GetAttribute<Action<string?>?>(
                 MudBlazorFieldBuilderExtensions.AdornmentClickAttribute);
         }
+    }
+
+    /// <summary>
+    /// Reports a stored value that the configured mask rejects outright (#266).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Called from <see cref="OnInitialized"/>, so it judges the value the field was *given* rather
+    /// than one the user has since edited. That framing is what keeps it quiet when someone
+    /// legitimately clears a field: the emptiness that matters is the one that was there before
+    /// anyone touched it.
+    /// </para>
+    /// <para>
+    /// The masked result is computed the same way <c>MudBaseInput</c> is about to compute it — run
+    /// the value through a resolved mask and read the text back — so the two cannot disagree about
+    /// what will render. The mask instance costs one allocation, which is why the value and pattern
+    /// are both checked first: an unmasked field, or one with nothing stored, allocates nothing.
+    /// </para>
+    /// </remarks>
+    private void WarnIfMaskBlanksTheStoredValue()
+    {
+        if (string.IsNullOrWhiteSpace(Mask) || string.IsNullOrWhiteSpace(CurrentValue))
+        {
+            return;
+        }
+
+        var mask = TextMaskMap.Resolve(Mask);
+        if (mask is null)
+        {
+            return;
+        }
+
+        mask.SetText(CurrentValue);
+
+        if (!MaskedValueDiagnostic.Applies(CurrentValue, mask.Text))
+        {
+            return;
+        }
+
+        MaskedValueDiagnostic.Warn(
+            DiagnosticServiceProvider,
+            Context.Field.FieldName,
+            Label,
+            Mask);
     }
 
     protected override void OnParametersSet()

@@ -1,7 +1,16 @@
+using FormCraft.ForMudBlazor.UnitTests.TestSupport;
+using Microsoft.Extensions.Logging;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
 {
+    private readonly CapturingLoggerProvider _logs = new();
+
+    public MudBlazorTextFieldComponentTests()
+    {
+        Services.AddLogging(builder => builder.AddProvider(_logs));
+    }
 
     [Fact]
     public void TextField_Should_Render_With_Label()
@@ -931,6 +940,101 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
         // Assert
         component.Find("input").GetAttribute("value").ShouldBeNullOrEmpty();
         model.Phone.ShouldBe("N/A");
+    }
+
+    [Fact]
+    public void TextField_With_A_Mask_Should_Warn_When_It_Blanks_A_Stored_Value()
+    {
+        // Arrange - the other half of the test above (#266). Pinning the blanking made the hazard
+        // known to whoever reads the suite; this makes it known to the developer whose form is doing
+        // it, which is the person who can act on it. The message has to name the field AND the
+        // pattern: a form of thirty fields otherwise sends them hunting.
+        var model = new TestModel { Phone = "N/A" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        // Act
+        Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("Phone");
+        warnings[0].ShouldContain("(000) 000-0000");
+    }
+
+    [Fact]
+    public void TextField_With_A_Mask_Should_Not_Warn_When_It_Reformats_A_Stored_Value()
+    {
+        // Arrange - the load-bearing negative case. A conforming value is reformatted rather than
+        // rejected, which is the mask doing its job; warning here would fire on every correctly
+        // masked field in every form, and a diagnostic that cries on the happy path gets muted --
+        // taking the real signal with it.
+        var model = new TestModel { Phone = "5551234567" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert - the value really did survive the mask, so this is a no-warning case rather than a
+        // second blanking that happened to go unreported.
+        component.Find("input").GetAttribute("value").ShouldBe("(555) 123-4567");
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void TextField_With_A_Mask_Should_Not_Warn_For_An_Empty_Value()
+    {
+        // Arrange - nothing was stored, so nothing was lost. This is the overwhelmingly common state
+        // of a masked field before anyone types into it, and it must stay silent.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        // Act
+        Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void TextField_Without_A_Mask_Should_Not_Warn_For_Any_Value()
+    {
+        // Arrange - no mask means no masking, so no value can be rejected by one. Guards against a
+        // rule that keys off the value alone.
+        var model = new TestModel { Phone = "N/A" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field.WithLabel("Phone"))
+            .Build();
+
+        // Act
+        Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        _logs.Warnings.ShouldBeEmpty();
     }
 
     [Fact]
