@@ -14,61 +14,18 @@ namespace FormCraft.UnitTests.Ci;
 /// </remarks>
 public class TrustedPublishingWorkflowTests
 {
-    private static readonly string RepoRoot = LocateRepoRoot();
-
-    private static string LocateRepoRoot()
-    {
-        // dir.Parent is DirectoryInfo?, so the variable has to be too — inferring DirectoryInfo
-        // from the initializer would fail the build under TreatWarningsAsErrors.
-        DirectoryInfo? dir = new(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "FormCraft.sln")))
-        {
-            dir = dir.Parent;
-        }
-
-        dir.ShouldNotBeNull("could not locate FormCraft.sln above the test output directory");
-        return dir.FullName;
-    }
-
-    private static string WorkflowsDirectory => Path.Combine(RepoRoot, ".github", "workflows");
-
-    private static string ReadWorkflow(string fileName) =>
-        File.ReadAllText(Path.Combine(WorkflowsDirectory, fileName));
-
-    private static string ReadBuildScript() =>
-        File.ReadAllText(Path.Combine(RepoRoot, "build", "Build.cs"));
-
-    /// <summary>
-    /// Drops whole-line comments so a "not referenced" assertion fires on wiring rather than on
-    /// prose. These files carry long explanatory comment blocks about this very key, so without
-    /// this a documentation-only edit would turn the suite red — and the natural repair under
-    /// time pressure is to delete the assertion. Only leading-<paramref name="marker"/> lines are
-    /// stripped: a trailing-comment strip would also mangle the "https://" in a URL.
-    /// </summary>
-    private static string WithoutComments(string text, string marker) =>
-        string.Join(
-            '\n',
-            text.Split('\n').Where(line => !line.TrimStart().StartsWith(marker, StringComparison.Ordinal)));
-
     /// <summary>
     /// A single step of a workflow, so an assertion about its <c>if:</c> cannot be satisfied by the
-    /// same expression sitting on some other step. Runs from the <c>id:</c> line to the start of the
-    /// next list item, which covers the step's <c>if:</c>, <c>uses:</c> and <c>with:</c>.
+    /// same expression sitting on some other step.
     /// </summary>
-    private static string StepWithId(string workflowFile, string stepId)
-    {
-        var lines = ReadWorkflow(workflowFile).Split('\n');
-        var start = Array.FindIndex(lines, l => l.Contains($"id: {stepId}", StringComparison.Ordinal));
-        start.ShouldBeGreaterThanOrEqualTo(0, $"{workflowFile} no longer has a step with `id: {stepId}`");
-
-        var end = Array.FindIndex(lines, start + 1, l => l.TrimStart().StartsWith("- ", StringComparison.Ordinal));
-        if (end < 0)
-        {
-            end = lines.Length;
-        }
-
-        return string.Join('\n', lines[start..end]);
-    }
+    /// <remarks>
+    /// Deliberately reads the workflow *unstripped*. The scan runs from the <c>id:</c> line to the
+    /// next list item, so the slice carries whatever explanatory comments sit between the step and
+    /// its successor — harmless here, because every claim below is about a line these files spell
+    /// as wiring (<c>if:</c>, <c>uses:</c>) rather than as prose.
+    /// </remarks>
+    private static string StepWithId(string workflowFile, string stepId) =>
+        WorkflowSource.StepWithId(WorkflowSource.Read(workflowFile), stepId, workflowFile);
 
     /// <summary>
     /// The <c>if:</c> expression of a single step, so a claim about what a step is *gated on* cannot
@@ -89,7 +46,7 @@ public class TrustedPublishingWorkflowTests
     [Fact]
     public void ReleaseWorkflow_Should_Request_The_OidcToken()
     {
-        WithoutComments(ReadWorkflow("release-please.yml"), "#").ShouldContain("id-token: write");
+        WorkflowSource.Stripped("release-please.yml").ShouldContain("id-token: write");
     }
 
     [Fact]
@@ -104,8 +61,7 @@ public class TrustedPublishingWorkflowTests
         step.ShouldContain("NUGET_USER");
 
         // The minted key has to actually reach the build; this lives on the later `Run` step.
-        WithoutComments(ReadWorkflow("release-please.yml"), "#")
-            .ShouldContain("steps.login.outputs.NUGET_API_KEY");
+        WorkflowSource.Stripped("release-please.yml").ShouldContain("steps.login.outputs.NUGET_API_KEY");
     }
 
     [Fact]
@@ -141,7 +97,7 @@ public class TrustedPublishingWorkflowTests
         // in #197: release-please creates the tag with GITHUB_TOKEN, which never fires
         // `on: push: tags`, so a publish path here could not run — but it could still mint a key.
         // Two workflows able to push the same version is the failure this prevents.
-        var continuous = WithoutComments(ReadWorkflow("continuous.yml"), "#");
+        var continuous = WorkflowSource.Stripped("continuous.yml");
 
         continuous.ShouldNotContain("NuGet/login@");
         continuous.ShouldNotContain("id-token");
@@ -154,18 +110,14 @@ public class TrustedPublishingWorkflowTests
         // Every workflow, not just the publishing one: any workflow that added
         // ${{ secrets.NUGET_API_KEY }} would re-arm exactly the credential #198 exists to retire,
         // with release-please.yml still perfectly clean.
-        var workflows = Directory
-            .EnumerateFiles(WorkflowsDirectory, "*.*")
-            .Where(f => f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase)
-                     || f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        var workflows = WorkflowSource.All.Keys;
 
         workflows.ShouldNotBeEmpty("no workflow files found — the scan would pass vacuously");
 
         var offenders = workflows
-            .Where(f => WithoutComments(File.ReadAllText(f), "#")
+            .Where(fileName => WorkflowSource.Stripped(fileName)
                 .Contains("secrets.NUGET_API_KEY", StringComparison.Ordinal))
-            .Select(Path.GetFileName)
+            .Order(StringComparer.Ordinal)
             .ToList();
 
         // Shouldly prints the collection on failure, so this names the workflow that re-armed it.
@@ -176,7 +128,7 @@ public class TrustedPublishingWorkflowTests
     public void BuildScript_Should_Not_Import_The_LongLived_NuGetApiKey_Secret()
     {
         // The key arrives as a step output now, not as an imported secret.
-        WithoutComments(ReadBuildScript(), "//").ShouldNotContain("ImportSecrets");
+        WorkflowSource.BuildScript.ShouldNotContain("ImportSecrets");
     }
 
     [Fact]
@@ -187,7 +139,7 @@ public class TrustedPublishingWorkflowTests
         // tag-triggered publish path that #197 deliberately removed. The wipe lands on the next
         // ./build.cmd, long after the edit, so assert the flag itself rather than trusting the
         // tests to run after a regeneration.
-        WithoutComments(ReadBuildScript(), "//").ShouldContain("AutoGenerate = false");
+        WorkflowSource.BuildScript.ShouldContain("AutoGenerate = false");
     }
 
     [Fact]
@@ -196,7 +148,7 @@ public class TrustedPublishingWorkflowTests
         // release-please.yml leaves NUGET_API_KEY empty on a dry run, but a skipped step yields an
         // empty string rather than an unset variable — so this static gate, not the emptiness of
         // the key, is what keeps a non-release run from reaching DotNetNuGetPush.
-        var build = WithoutComments(ReadBuildScript(), "//");
+        var build = WorkflowSource.BuildScript;
         build.ShouldMatch(@"OnlyWhenStatic\(\(\) => IsOnVersionTag\(\)\)");
         build.ShouldMatch(@"OnlyWhenStatic\(\(\) => IsServerBuild\)");
     }
