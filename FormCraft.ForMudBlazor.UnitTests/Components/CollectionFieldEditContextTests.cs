@@ -18,10 +18,8 @@ public class CollectionFieldEditContextTests : MudBlazorTestBase
         var model = NewOrder();
         EditContext? editContext = null;
 
-        var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, BuildConfiguration())
-            .Add(p => p.OnEditContextCreated, ctx => editContext = ctx));
+        var component = this.RenderItemForm(model, BuildConfiguration(),
+            parameters => parameters.Add(p => p.OnEditContextCreated, ctx => editContext = ctx));
 
         // Act - edit the first item's ProductName input
         component.FindAll("input")[0].Input("Widget");
@@ -40,10 +38,8 @@ public class CollectionFieldEditContextTests : MudBlazorTestBase
         var model = NewOrder();
         EditContext? editContext = null;
 
-        var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, BuildConfiguration())
-            .Add(p => p.OnEditContextCreated, ctx => editContext = ctx));
+        var component = this.RenderItemForm(model, BuildConfiguration(),
+            parameters => parameters.Add(p => p.OnEditContextCreated, ctx => editContext = ctx));
 
         // Act
         var isValid = true;
@@ -65,10 +61,8 @@ public class CollectionFieldEditContextTests : MudBlazorTestBase
         var model = NewOrder();
         EditContext? editContext = null;
 
-        var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, BuildConfiguration())
-            .Add(p => p.OnEditContextCreated, ctx => editContext = ctx));
+        var component = this.RenderItemForm(model, BuildConfiguration(),
+            parameters => parameters.Add(p => p.OnEditContextCreated, ctx => editContext = ctx));
 
         await component.InvokeAsync(() => component.Instance.ValidateAsync());
         var nestedField = new FieldIdentifier(model, "Items[0].ProductName");
@@ -90,10 +84,8 @@ public class CollectionFieldEditContextTests : MudBlazorTestBase
         var model = NewOrder();
         EditContext? editContext = null;
 
-        var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, BuildConfiguration())
-            .Add(p => p.OnEditContextCreated, ctx => editContext = ctx));
+        var component = this.RenderItemForm(model, BuildConfiguration(),
+            parameters => parameters.Add(p => p.OnEditContextCreated, ctx => editContext = ctx));
 
         // Act
         await component.InvokeAsync(() => component.Instance.ValidateAsync());
@@ -116,8 +108,8 @@ public class CollectionFieldEditContextTests : MudBlazorTestBase
     }
 
     /// <summary>
-    /// The fixture's text item form (#205) with this suite's own required message — the message is
-    /// asserted verbatim below, so it stays here rather than moving into the shared builder.
+    /// The fixture's text item form (#205) with this suite's own required message — the tests above
+    /// assert that message verbatim, so it stays here rather than moving into the shared builder.
     /// </summary>
     private static IFormConfiguration<OrderModel> BuildConfiguration() =>
         TextItemForm(field => field.Required("Product name is required"));

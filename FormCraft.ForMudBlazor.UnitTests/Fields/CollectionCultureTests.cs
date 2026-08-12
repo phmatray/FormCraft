@@ -75,7 +75,7 @@ public class CollectionCultureTests : MudBlazorTestBase
 
     /// <summary>
     /// Stays local: it is a non-collection model, used only for the standalone half of the parity
-    /// comparison below, so the fixture has no reason to carry it.
+    /// comparison above, so the fixture has no reason to carry it.
     /// </summary>
     private class PriceModel
     {

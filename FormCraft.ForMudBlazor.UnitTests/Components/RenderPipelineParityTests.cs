@@ -1031,7 +1031,6 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         field.UserAttributes.GetValueOrDefault("autocomplete"),
     ];
 
-
     [Fact]
     public void CustomTemplate_Should_Take_Precedence_Over_Options()
     {

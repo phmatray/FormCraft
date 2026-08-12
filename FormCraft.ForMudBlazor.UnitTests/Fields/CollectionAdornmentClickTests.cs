@@ -24,7 +24,7 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
         // Arrange
         var received = new List<string?>();
         var component = RenderOrderForm(
-            BuildConfiguration(field => field
+            TextItemForm(field => field
                 .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, onClick: received.Add)),
             "Widget");
 
@@ -41,7 +41,7 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
         // Arrange - the handler must see the current value, not the one the row rendered with
         var received = new List<string?>();
         var component = RenderOrderForm(
-            BuildConfiguration(field => field
+            TextItemForm(field => field
                 .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, onClick: received.Add)),
             "before");
 
@@ -59,22 +59,10 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
         // Arrange - one handler serves every row, so it must be told which row was clicked; a
         // callback that captured the wrong index would search the first row from any icon
         var received = new List<string?>();
-        var config = BuildConfiguration(field => field
+        var config = TextItemForm(field => field
             .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, onClick: received.Add));
 
-        // Two rows: the fixture's factories seed a single item, and a second row is this test's own
-        // requirement rather than a shape other suites share, so it is built here from the fixture's
-        // models rather than added to the fixture.
-        var model = new OrderModel
-        {
-            Items =
-            {
-                new OrderItem { ProductName = "first" },
-                new OrderItem { ProductName = "second" },
-            },
-        };
-
-        var component = this.RenderItemForm(model, config);
+        var component = this.RenderItemForm(NewOrderWithItems("first", "second"), config);
 
         // Act - click the second row's adornment
         component.FindAll(AdornmentButton)[1].Click();
@@ -89,7 +77,7 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
         // Arrange & Act - an adornment configured with no handler keeps rendering as a plain icon,
         // exactly as it did after #184; nothing becomes clickable just because the path now can be
         var component = RenderOrderForm(
-            BuildConfiguration(field => field
+            TextItemForm(field => field
                 .WithAdornment(Icons.Material.Filled.Search, Adornment.Start)),
             "Widget");
 
@@ -104,7 +92,7 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
     public void ItemField_Without_An_Adornment_Should_Be_Unaffected()
     {
         // Arrange & Act - the field that configures nothing must render exactly as before
-        var component = RenderOrderForm(BuildConfiguration(_ => { }), "Widget");
+        var component = RenderOrderForm(TextItemForm(), "Widget");
 
         // Assert
         var textField = component.FindComponent<MudTextField<string>>().Instance;
@@ -136,7 +124,7 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
     {
         // Arrange - AdditionalAttributes is untyped, so a raw WithAttribute can put anything under
         // the key. The renderer must fall back to "no handler" rather than cast and throw.
-        var config = BuildConfiguration(field => field
+        var config = TextItemForm(field => field
             .WithAttribute("Adornment", Adornment.Start)
             .WithAttribute("AdornmentIcon", Icons.Material.Filled.Search)
             .WithAttribute("OnAdornmentClick", "not a delegate"));
@@ -159,8 +147,4 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
         IFormConfiguration<OrderModel> config,
         string productName) =>
         this.RenderItemForm(NewOrder(productName), config);
-
-    private static IFormConfiguration<OrderModel> BuildConfiguration(
-        Action<FieldBuilder<OrderItem, string>> configureItemField) =>
-        TextItemForm(configureItemField);
 }

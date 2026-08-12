@@ -66,15 +66,12 @@ public class CollectionShrinkLabelTests : MudBlazorTestBase
     }
 
     /// <summary>
-    /// The two form-level tests need a <c>DefaultShrinkLabel</c> parameter that the fixture's
-    /// <c>RenderItemForm</c> does not set — it renders Model and Configuration only, deliberately, so
-    /// it stays the shape every suite shares. This local helper adds just that one parameter; the
-    /// model and the item form still come from the fixture.
+    /// The two form-level tests need one parameter beyond Model and Configuration, which the
+    /// fixture's <c>RenderItemForm</c> takes as an optional callback — so this stays a name for the
+    /// intent rather than a re-implementation of the render wiring.
     /// </summary>
     private IRenderedComponent<FormCraftComponent<OrderModel>> RenderWithFormDefault(
         IFormConfiguration<OrderModel> config, bool defaultShrinkLabel) =>
-        Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, NewOrder("Widget"))
-            .Add(p => p.Configuration, config)
-            .Add(p => p.DefaultShrinkLabel, defaultShrinkLabel));
+        this.RenderItemForm(NewOrder("Widget"), config,
+            parameters => parameters.Add(p => p.DefaultShrinkLabel, defaultShrinkLabel));
 }

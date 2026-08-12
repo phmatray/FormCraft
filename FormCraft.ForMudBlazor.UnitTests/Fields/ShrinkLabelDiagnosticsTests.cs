@@ -343,7 +343,6 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
         warnings[0].ShouldContain("2 field(s)");
     }
 
-
     private IRenderedComponent<FormCraftComponent<TestModel>> RenderFormWithPopover(
         IFormConfiguration<TestModel> config)
     {

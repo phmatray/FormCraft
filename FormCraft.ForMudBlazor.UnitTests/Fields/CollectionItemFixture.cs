@@ -28,6 +28,13 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// is the whole reason the boolean model lives here rather than being left to each suite.
 /// </para>
 /// <para>
+/// <b>One shape beyond the field types.</b> Every builder above produces a form containing nothing but
+/// a collection. <see cref="NamedOrderModel"/> / <see cref="NamedOrderItem"/> and
+/// <see cref="RootFieldAndItemForm"/> are the exception: a root-level field <i>beside</i> the
+/// collection, with the two members sharing the name <c>Name</c>. Look here before hand-rolling a
+/// model for a form that is not collection-only (#213, #258).
+/// </para>
+/// <para>
 /// ⚠️ <b>These were four separate render paths when this fixture was written (#205).</b> Item fields
 /// went through a hand-written <c>RenderTreeBuilder</c> in <c>CollectionFieldComponent</c>, with a
 /// shared <c>AddCommonFieldAttributes</c> feeding the first three and a bespoke method for the
@@ -56,6 +63,28 @@ internal static class CollectionItemFixture
     /// <summary>Creates an order with a single item, blank unless a <paramref name="productName"/> is given.</summary>
     internal static OrderModel NewOrder(string productName = "") =>
         new() { Items = { new OrderItem { ProductName = productName } } };
+
+    /// <summary>
+    /// Creates an order with one item per <paramref name="productNames"/> entry — the multi-row
+    /// counterpart of <see cref="NewOrder"/>.
+    /// </summary>
+    /// <remarks>
+    /// Several suites need more than one row: to prove a per-row handler is told which row it came
+    /// from, or that a warning about a field's configuration is reported once rather than once per
+    /// row. Each was building its own <c>Items = { new OrderItem { … }, new OrderItem { … } }</c>
+    /// literal, which is the duplication this fixture exists to remove — so the row count is a
+    /// parameter here rather than a reason to hand-roll the model.
+    /// </remarks>
+    internal static OrderModel NewOrderWithItems(params string[] productNames)
+    {
+        var model = new OrderModel();
+        foreach (var productName in productNames)
+        {
+            model.Items.Add(new OrderItem { ProductName = productName });
+        }
+
+        return model;
+    }
 
     /// <summary>Creates a basket with a single line, blank unless seeds are given.</summary>
     internal static BasketModel NewBasket(int quantity = 0, bool isGift = false) =>
@@ -176,6 +205,15 @@ internal static class CollectionItemFixture
     /// this onto the plain <see cref="OrderModel"/> would delete the subject.
     /// </para>
     /// </summary>
+    /// <remarks>
+    /// The two default <i>labels</i> differ ("Name" and "Item name") even though the two
+    /// <i>members</i> deliberately share the name <c>Name</c>. Only the member names are
+    /// load-bearing: the collector keys conflicts by field identity, not by label — pinned by
+    /// <c>ShrinkLabelDiagnosticsTests.Should_Count_Two_Fields_That_Share_A_Label</c>, which is the
+    /// test asserting that two fields labelled alike are still counted as two. Identical default
+    /// labels would buy nothing and would leave a caller unable to tell the root field from the item
+    /// field in a rendered form.
+    /// </remarks>
     internal static IFormConfiguration<NamedOrderModel> RootFieldAndItemForm(
         Action<FieldBuilder<NamedOrderModel, string>>? configureRoot = null,
         Action<FieldBuilder<NamedOrderItem, string>>? configureItem = null) =>
@@ -191,7 +229,7 @@ internal static class CollectionItemFixture
                 .WithItemForm(item => item
                     .AddField(x => x.Name, field =>
                     {
-                        field.WithLabel("Name");
+                        field.WithLabel("Item name");
                         configureItem?.Invoke(field);
                     })))
             .Build();
@@ -282,15 +320,30 @@ internal sealed class NamedOrderItem
 internal static class CollectionItemFixtureRenderExtensions
 {
     /// <summary>
-    /// Renders <paramref name="model"/> through <c>FormCraftComponent</c> with the given configuration.
+    /// Renders <paramref name="model"/> through <c>FormCraftComponent</c> with the given configuration,
+    /// plus any extra component parameters <paramref name="configure"/> adds.
     /// This is the shape every collection-item suite had open-coded per test.
     /// </summary>
+    /// <remarks>
+    /// <paramref name="configure"/> exists because Model and Configuration are not quite all a suite
+    /// ever needs: some also pass <c>DefaultShrinkLabel</c> (the form-level cascade) or
+    /// <c>OnEditContextCreated</c> (to capture the form's <c>EditContext</c>). Without a way to add
+    /// those, every such test re-opened <c>Render&lt;FormCraftComponent&lt;T&gt;&gt;</c> by hand and
+    /// re-implemented the Model/Configuration wiring this helper owns — so the "shape every suite
+    /// shares" was in fact shared by only some of them. It runs after the two required parameters, so
+    /// existing call sites are unaffected.
+    /// </remarks>
     internal static IRenderedComponent<FormCraftComponent<TModel>> RenderItemForm<TModel>(
         this BunitContext context,
         TModel model,
-        IFormConfiguration<TModel> configuration)
+        IFormConfiguration<TModel> configuration,
+        Action<ComponentParameterCollectionBuilder<FormCraftComponent<TModel>>>? configure = null)
         where TModel : new() =>
-        context.Render<FormCraftComponent<TModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, configuration));
+        context.Render<FormCraftComponent<TModel>>(parameters =>
+        {
+            parameters
+                .Add(p => p.Model, model)
+                .Add(p => p.Configuration, configuration);
+            configure?.Invoke(parameters);
+        });
 }
