@@ -58,6 +58,14 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **New package: `FormCraft.ForFluentUI`** — renders FormCraft forms with **Fluent UI Blazor v5**, alongside the existing MudBlazor adapter. Switching is a two-line change (`AddFormCraftFluentUI()` plus the `@using`), because the Fluent container keeps the same `FormCraftComponent<TModel>` name in its own namespace (#260)
+
+  **Covers** text (including multiline and password), numeric (including nullable, which keeps `null` rather than coercing to `0`), boolean (checkbox or switch via `BooleanDisplayStyle`), `DateTime`/`DateOnly`/`TimeOnly`, and select from `.WithOptions(...)`. Required fields are announced with `aria-required="true"` and the form renders `novalidate`, matching the MudBlazor adapter's guarantees (#199, #206). Fluent v5 does **not** emit `aria-required` from its own `Required` parameter — measured, not assumed — so FormCraft writes it.
+
+  **Not yet covered:** collection/item-form fields, lookup and LOV dialogs, autocomplete, multi-select, file upload, custom renderers, and field-group layout. **`.WithSecurity(...)` is not enforced** — rate limiting, CSRF, audit logging and field encryption — so a form configured with it **throws at render time** rather than silently dropping the protections; use the MudBlazor adapter for those forms.
+
+  **One adapter per application:** `AddFormCraftFluentUI()` throws if the MudBlazor adapter is already registered, because renderer selection is first-match-wins and a mixed container would silently render a half-Material form. ⚠️ The guard is one-directional — registering MudBlazor *after* Fluent is not caught yet. Fluent UI Blazor v5 is still an RC, so this package depends on a prerelease.
+
 - **Collection item fields now render through the same components as every other field.** Fields inside `.WithItemForm(...)` used to be built by a second, hand-written renderer, so every presentation feature had to be implemented twice — which is where #146 (`Variant`), #177 (`ShrinkLabel`), #184 (adornments) and #190 (`Required`) each came from, one bug report at a time. That renderer is gone: item fields go through `IFieldRendererService` like everything else, and inherit present and future field capabilities by construction rather than by vigilance (#203)
 
   No API changed, and a form that configures nothing renders as before. Settings that an item field previously accepted and silently ignored now take effect:
@@ -341,7 +349,12 @@ dotnet add package FormCraft
 dotnet add package FormCraft.ForMudBlazor
 ```
 
-> **Note**: FormCraft.ForMudBlazor includes FormCraft as a dependency, so you only need to install the MudBlazor package if you're using MudBlazor components.
+### FormCraft for Fluent UI Blazor
+```bash
+dotnet add package FormCraft.ForFluentUI
+```
+
+> **Note**: each UI package includes FormCraft as a dependency, so you install one adapter and get the core with it. Pick **one** — `AddFormCraftMudBlazor()` and `AddFormCraftFluentUI()` are mutually exclusive and registering both throws.
 
 **Supported frameworks:** .NET 8, .NET 9, and .NET 10.
 
