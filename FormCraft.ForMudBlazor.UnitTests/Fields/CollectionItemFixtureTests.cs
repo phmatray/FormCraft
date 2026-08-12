@@ -4,16 +4,26 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// Self-tests for <see cref="CollectionItemFixture"/> (#205).
 /// <para>
 /// The fixture exists so an attribute suite declares only the behaviour it tests, and so every such
-/// suite covers all four collection-item render paths by default instead of by remembering to. That
-/// only holds if the fixture itself is guarded: these tests pin the two properties the suites rely on
-/// and cannot check for themselves.
+/// suite covers all five collection-item field types by default instead of by remembering to. That
+/// only holds if the fixture itself is guarded: these tests pin the properties the suites rely on and
+/// cannot check for themselves.
 /// </para>
 /// <para>
-/// <b>All four paths render.</b> Three of them — text, numeric and date — are fed by
-/// <c>AddCommonFieldAttributes</c>; the boolean path bypasses it entirely, which is why several suites
-/// pin an attribute as *inert* there. A fixture that silently stopped producing one of the four would
-/// turn those tests green for the wrong reason, so each path is asserted to reach its MudBlazor
+/// <b>All five types render.</b> Text, numeric, date and decimal all reach a MudBlazor input that
+/// binds the shared presentation attributes; the boolean one bypasses them entirely, which is why
+/// several suites pin an attribute as *inert* there. A fixture that silently stopped producing one of
+/// them would turn those tests green for the wrong reason, so each is asserted to reach its MudBlazor
 /// component.
+/// <para>
+/// ⚠️ <b>Keep this count in step with <see cref="CollectionItemFixture"/>'s own list.</b> That type's
+/// doc records why: a miscounted comment about which renderers a shared block fed once survived a
+/// copy and hid the date path from coverage until review caught it. The count was four until #258
+/// added the decimal type; a reader who trusts a stale number will not know to add the assertion.
+/// </para>
+/// </para>
+/// <para>
+/// <b>Beyond the field types</b>, the fixture also carries one shape — a root-level field beside the
+/// collection (<c>RootFieldAndItemForm</c>) — which is guarded here too.
 /// </para>
 /// <para>
 /// <b>The seed is the caller's choice.</b> <c>CollectionRequiredTests</c> needs a blank
@@ -74,6 +84,36 @@ public class CollectionItemFixtureTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void DecimalItemForm_Should_Render_The_Decimal_Path()
+    {
+        // Arrange & Act - a fifth *type*, not a fifth path: MudNumericField<decimal> is a distinct
+        // closed generic from MudNumericField<int>, so a suite asserting on one says nothing about
+        // the other. CollectionCultureTests is the named consumer (#218 is about decimal parsing).
+        var component = this.RenderItemForm(
+            CollectionItemFixture.NewPricedBasket(),
+            CollectionItemFixture.DecimalItemForm());
+
+        // Assert
+        component.FindComponent<MudNumericField<decimal>>().Instance.Label.ShouldBe("Price");
+    }
+
+    [Fact]
+    public void NewPricedBasket_Should_Default_Blank_And_Honour_Its_Seed()
+    {
+        // Arrange & Act
+        var blank = CollectionItemFixture.NewPricedBasket();
+        var seeded = CollectionItemFixture.NewPricedBasket(12.5m);
+
+        // Assert - in the model, and in what the field actually renders
+        blank.Lines.ShouldHaveSingleItem();
+        blank.Lines[0].Price.ShouldBe(0m);
+        seeded.Lines[0].Price.ShouldBe(12.5m);
+
+        var component = this.RenderItemForm(seeded, CollectionItemFixture.DecimalItemForm());
+        component.FindComponent<MudNumericField<decimal>>().Instance.Value.ShouldBe(12.5m);
+    }
+
+    [Fact]
     public void Each_Item_Form_Should_Apply_The_Callers_Configuration()
     {
         // Arrange & Act - the callback is how a suite declares the behaviour it is testing, so it
@@ -91,12 +131,110 @@ public class CollectionItemFixtureTests : MudBlazorTestBase
         var boolean = this.RenderItemForm(
             CollectionItemFixture.NewBasket(),
             CollectionItemFixture.BooleanItemForm(field => field.WithLabel("Renamed")));
+        var dec = this.RenderItemForm(
+            CollectionItemFixture.NewPricedBasket(),
+            CollectionItemFixture.DecimalItemForm(field => field.WithLabel("Renamed")));
 
         // Assert - the callback runs after the default label, so it can override it
         text.FindComponent<MudTextField<string>>().Instance.Label.ShouldBe("Renamed");
         numeric.FindComponent<MudNumericField<int>>().Instance.Label.ShouldBe("Renamed");
         date.FindComponent<MudDatePicker>().Instance.Label.ShouldBe("Renamed");
         boolean.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Renamed");
+        dec.FindComponent<MudNumericField<decimal>>().Instance.Label.ShouldBe("Renamed");
+    }
+
+    [Fact]
+    public void RootFieldAndItemForm_Should_Render_The_Root_Field_Beside_The_Item_Field()
+    {
+        // Arrange & Act - the one shape none of the other builders produce: a top-level field
+        // ALONGSIDE the collection. ShrinkLabelKeyCollisionTests is the named consumer (#213), and
+        // for it the shape is load-bearing rather than incidental — its whole subject is a top-level
+        // field and an item field whose names collide, which cannot be expressed by a form that has
+        // only a collection in it.
+        var component = this.RenderItemForm(
+            CollectionItemFixture.NewNamedOrder(),
+            CollectionItemFixture.RootFieldAndItemForm());
+
+        // Assert - two text fields, the ROOT one first. The labels differ so this can tell them
+        // apart: with both defaulting to "Name" these two lines were the same assertion twice, and a
+        // builder that emitted the item field first, or emitted two item fields and no root field,
+        // would have passed.
+        var fields = component.FindComponents<MudTextField<string>>();
+        fields.Count.ShouldBe(2);
+        fields[0].Instance.Label.ShouldBe("Name");
+        fields[1].Instance.Label.ShouldBe("Item name");
+    }
+
+    [Fact]
+    public void RootFieldAndItemForm_Should_Apply_Both_Callers_Configurations()
+    {
+        // Arrange & Act - two callbacks, two destinations. A builder that wired both to the same
+        // field, or dropped one, would leave the collision suite configuring nothing.
+        var component = this.RenderItemForm(
+            CollectionItemFixture.NewNamedOrder(),
+            CollectionItemFixture.RootFieldAndItemForm(
+                root => root.WithLabel("Customer name"),
+                item => item.WithLabel("Product name")));
+
+        // Assert
+        var fields = component.FindComponents<MudTextField<string>>();
+        fields[0].Instance.Label.ShouldBe("Customer name");
+        fields[1].Instance.Label.ShouldBe("Product name");
+    }
+
+    [Fact]
+    public void NewNamedOrder_Should_Default_Blank_And_Honour_Its_Seeds()
+    {
+        // Arrange & Act
+        var blank = CollectionItemFixture.NewNamedOrder();
+        var seeded = CollectionItemFixture.NewNamedOrder("Ada", "Widget");
+
+        // Assert - both members are called Name on purpose; that collision is the point.
+        blank.Name.ShouldBe(string.Empty);
+        blank.Items.ShouldHaveSingleItem();
+        blank.Items[0].Name.ShouldBe(string.Empty);
+        seeded.Name.ShouldBe("Ada");
+        seeded.Items[0].Name.ShouldBe("Widget");
+
+        // ...and in what the fields actually render, as the other seed tests do. Asserting the POCO
+        // alone would stay green if the builder bound either field to the wrong property.
+        var fields = this.RenderItemForm(seeded, CollectionItemFixture.RootFieldAndItemForm())
+            .FindComponents<MudTextField<string>>();
+        fields[0].Instance.Value.ShouldBe("Ada");
+        fields[1].Instance.Value.ShouldBe("Widget");
+    }
+
+    [Fact]
+    public void NewOrderWithItems_Should_Create_One_Item_Per_Name()
+    {
+        // Arrange & Act - the multi-row factory. Several suites need more than one row (a per-row
+        // handler must be told which row it came from; a per-field warning must fire once, not once
+        // per row) and each was hand-rolling the literal.
+        var model = CollectionItemFixture.NewOrderWithItems("first", "second", "third");
+
+        // Assert - order preserved, in the model and in what renders
+        model.Items.Count.ShouldBe(3);
+        model.Items.Select(i => i.ProductName).ShouldBe(new[] { "first", "second", "third" });
+
+        var component = this.RenderItemForm(model, CollectionItemFixture.TextItemForm());
+        component.FindComponents<MudTextField<string>>()
+            .Select(f => f.Instance.Value)
+            .ShouldBe(new[] { "first", "second", "third" });
+    }
+
+    [Fact]
+    public void RenderItemForm_Should_Apply_Extra_Component_Parameters()
+    {
+        // Arrange & Act - the escape hatch that keeps suites needing a third parameter (the
+        // form-level cascade, or the EditContext callback) from re-implementing the Model and
+        // Configuration wiring this helper owns.
+        var component = this.RenderItemForm(
+            CollectionItemFixture.NewOrder(),
+            CollectionItemFixture.TextItemForm(),
+            parameters => parameters.Add(p => p.DefaultShrinkLabel, false));
+
+        // Assert - the extra parameter reached the form and cascaded to the item field
+        component.FindComponent<MudTextField<string>>().Instance.ShrinkLabel.ShouldBeFalse();
     }
 
     [Fact]

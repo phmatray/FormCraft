@@ -1,5 +1,6 @@
 using FormCraft.ForMudBlazor.UnitTests.TestSupport;
 using Microsoft.Extensions.Logging;
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
@@ -27,25 +28,18 @@ public class ShrinkLabelKeyCollisionTests : MudBlazorTestBase
     {
         // Arrange - both conflict (a placeholder pins the label), both ask for a floating label, and
         // both are called "Name". They are different fields and must be reported as two.
-        var config = FormBuilder<OrderModel>
-            .Create()
-            .AddField(x => x.Name, f => f
+        var config = RootFieldAndItemForm(
+            root => root
                 .WithLabel("Customer name")
                 .WithPlaceholder("e.g. Ada")
-                .WithShrinkLabel(false))
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.Name, f => f
-                        .WithLabel("Product name")
-                        .WithPlaceholder("e.g. Widget")
-                        .WithShrinkLabel(false))))
-            .Build();
+                .WithShrinkLabel(false),
+            item => item
+                .WithLabel("Product name")
+                .WithPlaceholder("e.g. Widget")
+                .WithShrinkLabel(false));
 
         // Act
-        Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, config));
+        this.RenderItemForm(NewNamedOrder(), config);
 
         // Assert - one aggregated warning, naming both fields.
         var warnings = _logs.Warnings;
@@ -83,8 +77,8 @@ public class ShrinkLabelKeyCollisionTests : MudBlazorTestBase
         Render<FormCraftComponent<TwoCollectionModel>>(parameters => parameters
             .Add(p => p.Model, new TwoCollectionModel
             {
-                Items = { new OrderItem() },
-                Extras = { new OrderItem() }
+                Items = { new NamedOrderItem() },
+                Extras = { new NamedOrderItem() }
             })
             .Add(p => p.Configuration, config));
 
@@ -101,7 +95,10 @@ public class ShrinkLabelKeyCollisionTests : MudBlazorTestBase
     {
         // Arrange - the property the qualified key must not break. The warning is about a field's
         // configuration, so a collection of many rows must report it once, not once per row.
-        var config = FormBuilder<OrderModel>
+        // Built inline rather than through RootFieldAndItemForm: this test must NOT have the root
+        // field, or the aggregated warning would count it and the "1 field(s)" assertion would be
+        // measuring the wrong thing.
+        var config = FormBuilder<NamedOrderModel>
             .Create()
             .AddCollectionField(x => x.Items, collection => collection
                 .WithLabel("Items")
@@ -113,10 +110,10 @@ public class ShrinkLabelKeyCollisionTests : MudBlazorTestBase
             .Build();
 
         // Act
-        Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel
+        Render<FormCraftComponent<NamedOrderModel>>(parameters => parameters
+            .Add(p => p.Model, new NamedOrderModel
             {
-                Items = { new OrderItem(), new OrderItem(), new OrderItem() }
+                Items = { new NamedOrderItem(), new NamedOrderItem(), new NamedOrderItem() }
             })
             .Add(p => p.Configuration, config));
 
@@ -126,20 +123,13 @@ public class ShrinkLabelKeyCollisionTests : MudBlazorTestBase
         warnings[0].ShouldContain("1 field(s)");
     }
 
-    private class OrderModel
-    {
-        public string Name { get; set; } = string.Empty;
-        public List<OrderItem> Items { get; set; } = new();
-    }
-
+    /// <summary>
+    /// Stays local: two collections on one model is this suite's own shape, and no other suite needs
+    /// it. Its item type is the fixture's, so the model pair is no longer duplicated here.
+    /// </summary>
     private class TwoCollectionModel
     {
-        public List<OrderItem> Items { get; set; } = new();
-        public List<OrderItem> Extras { get; set; } = new();
-    }
-
-    private class OrderItem
-    {
-        public string Name { get; set; } = string.Empty;
+        public List<NamedOrderItem> Items { get; set; } = new();
+        public List<NamedOrderItem> Extras { get; set; } = new();
     }
 }

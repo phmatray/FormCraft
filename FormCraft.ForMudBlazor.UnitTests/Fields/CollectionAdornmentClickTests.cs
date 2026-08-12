@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components.Web;
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
@@ -23,7 +24,7 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
         // Arrange
         var received = new List<string?>();
         var component = RenderOrderForm(
-            BuildConfiguration(field => field
+            TextItemForm(field => field
                 .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, onClick: received.Add)),
             "Widget");
 
@@ -40,7 +41,7 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
         // Arrange - the handler must see the current value, not the one the row rendered with
         var received = new List<string?>();
         var component = RenderOrderForm(
-            BuildConfiguration(field => field
+            TextItemForm(field => field
                 .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, onClick: received.Add)),
             "before");
 
@@ -58,21 +59,10 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
         // Arrange - one handler serves every row, so it must be told which row was clicked; a
         // callback that captured the wrong index would search the first row from any icon
         var received = new List<string?>();
-        var config = BuildConfiguration(field => field
+        var config = TextItemForm(field => field
             .WithAdornment(Icons.Material.Filled.Search, Adornment.Start, onClick: received.Add));
 
-        var model = new OrderModel
-        {
-            Items =
-            {
-                new OrderItem { ProductName = "first" },
-                new OrderItem { ProductName = "second" },
-            },
-        };
-
-        var component = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
+        var component = this.RenderItemForm(NewOrderWithItems("first", "second"), config);
 
         // Act - click the second row's adornment
         component.FindAll(AdornmentButton)[1].Click();
@@ -87,7 +77,7 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
         // Arrange & Act - an adornment configured with no handler keeps rendering as a plain icon,
         // exactly as it did after #184; nothing becomes clickable just because the path now can be
         var component = RenderOrderForm(
-            BuildConfiguration(field => field
+            TextItemForm(field => field
                 .WithAdornment(Icons.Material.Filled.Search, Adornment.Start)),
             "Widget");
 
@@ -102,7 +92,7 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
     public void ItemField_Without_An_Adornment_Should_Be_Unaffected()
     {
         // Arrange & Act - the field that configures nothing must render exactly as before
-        var component = RenderOrderForm(BuildConfiguration(_ => { }), "Widget");
+        var component = RenderOrderForm(TextItemForm(), "Widget");
 
         // Assert
         var textField = component.FindComponent<MudTextField<string>>().Instance;
@@ -116,21 +106,12 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
         // Arrange - WithAdornment is declared on string fields only, so a numeric item field has no
         // handler to forward. Rendering its adornment must not throw or invent one (#191 tracks
         // numeric adornment support in its own right).
-        var config = FormBuilder<BasketModel>
-            .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.Quantity, field => field
-                        .WithLabel("Quantity")
-                        .WithAttribute("Adornment", Adornment.End)
-                        .WithAttribute("AdornmentIcon", Icons.Material.Filled.Numbers))))
-            .Build();
+        var config = NumericItemForm(field => field
+            .WithAttribute("Adornment", Adornment.End)
+            .WithAttribute("AdornmentIcon", Icons.Material.Filled.Numbers));
 
         // Act
-        var component = Render<FormCraftComponent<BasketModel>>(parameters => parameters
-            .Add(p => p.Model, new BasketModel { Lines = { new BasketLine() } })
-            .Add(p => p.Configuration, config));
+        var component = this.RenderItemForm(NewBasket(), config);
 
         // Assert
         var numeric = component.FindComponent<MudNumericField<int>>().Instance;
@@ -143,7 +124,7 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
     {
         // Arrange - AdditionalAttributes is untyped, so a raw WithAttribute can put anything under
         // the key. The renderer must fall back to "no handler" rather than cast and throw.
-        var config = BuildConfiguration(field => field
+        var config = TextItemForm(field => field
             .WithAttribute("Adornment", Adornment.Start)
             .WithAttribute("AdornmentIcon", Icons.Material.Filled.Search)
             .WithAttribute("OnAdornmentClick", "not a delegate"));
@@ -157,50 +138,13 @@ public class CollectionAdornmentClickTests : MudBlazorTestBase
         textField.OnAdornmentClick.HasDelegate.ShouldBeFalse();
     }
 
+    /// <summary>
+    /// Renders the fixture's text item form (#205) seeded with <paramref name="productName"/>. The
+    /// seed is a per-test choice here — one test types over it, another asserts the handler receives
+    /// it — so it stays an explicit parameter rather than a default.
+    /// </summary>
     private IRenderedComponent<FormCraftComponent<OrderModel>> RenderOrderForm(
         IFormConfiguration<OrderModel> config,
-        string productName)
-    {
-        var model = new OrderModel { Items = { new OrderItem { ProductName = productName } } };
-
-        return Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
-    }
-
-    private static IFormConfiguration<OrderModel> BuildConfiguration(
-        Action<FieldBuilder<OrderItem, string>> configureItemField)
-    {
-        return FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.ProductName, field =>
-                    {
-                        field.WithLabel("Product");
-                        configureItemField(field);
-                    })))
-            .Build();
-    }
-
-    private class OrderModel
-    {
-        public List<OrderItem> Items { get; set; } = new();
-    }
-
-    private class OrderItem
-    {
-        public string ProductName { get; set; } = string.Empty;
-    }
-
-    private class BasketModel
-    {
-        public List<BasketLine> Lines { get; set; } = new();
-    }
-
-    private class BasketLine
-    {
-        public int Quantity { get; set; }
-    }
+        string productName) =>
+        this.RenderItemForm(NewOrder(productName), config);
 }
