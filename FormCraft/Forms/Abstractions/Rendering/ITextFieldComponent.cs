@@ -22,7 +22,17 @@ public interface ITextFieldComponent<TModel> : IFieldComponent<TModel>
     string InputType { get; set; }
 
     /// <summary>
-    /// Gets or sets the input mask pattern.
+    /// Gets or sets the input mask pattern, or <c>null</c> for an unmasked field.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The pattern is an opaque string rather than a UI framework's mask type, so this contract stays
+    /// framework-agnostic: each implementation translates it into whatever its own components take,
+    /// and <b>defines the pattern language itself</b>. Consult the UI adapter in use for the
+    /// characters it accepts — this interface deliberately does not fix them, because pinning one
+    /// framework's syntax here would either bind every other adapter to it or make them silently
+    /// violate a documented core contract.
+    /// </para>
+    /// </remarks>
     string? Mask { get; set; }
 }

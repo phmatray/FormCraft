@@ -74,7 +74,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
                 ConfiguredLines);
         }
         Autocomplete = GetAttribute<string?>("autocomplete");
-        Mask = GetAttribute<string?>("Mask");
+        Mask = GetAttribute<string?>(TextMaskMap.AttributeName);
 
         // Load adornment configuration
         var customAdornment = GetAttribute<Adornment?>("Adornment");
@@ -149,15 +149,16 @@ public partial class MudBlazorTextFieldComponent<TModel>
         return TextInputTypeMap.Resolve(InputType);
     }
 
-    private IMask? GetMask()
-    {
-        if (string.IsNullOrEmpty(Mask))
-            return null;
-
-        // For now, return null. In a real implementation,
-        // you would parse the mask string and create appropriate IMask
-        return null;
-    }
+    /// <summary>
+    /// The mask this field renders with, or <c>null</c> when it configured none (#211).
+    /// </summary>
+    /// <remarks>
+    /// Until #211 this was a stub that returned <c>null</c> under a "For now" comment, and the
+    /// <c>.razor</c> never bound it — so it was unreachable as well as unimplemented, and
+    /// <c>.WithAttribute("Mask", …)</c> looked supported while doing nothing. The resolution itself
+    /// lives in <see cref="TextMaskMap"/> so the collection render path cannot drift from it.
+    /// </remarks>
+    private IMask? GetMask() => TextMaskMap.Resolve(Mask);
 
     private void TogglePasswordVisibility(string? value = null)
     {
@@ -283,4 +284,81 @@ internal static class TextInputTypeMap
     /// </remarks>
     internal static int EffectiveLines(InputType resolved, int configuredLines) =>
         resolved == InputType.Password ? 1 : configuredLines;
+}
+
+/// <summary>
+/// The single implementation of FormCraft's mask-string to <see cref="IMask"/> mapping, shared by the
+/// component render path (<see cref="MudBlazorTextFieldComponent{TModel}"/>) and the imperative
+/// RenderTreeBuilder path used for collection item fields.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Added in #211. Before it, <c>.WithAttribute("Mask", …)</c> was silently inert on both paths:
+/// the component read the string into a property whose only consumer was a <c>GetMask()</c> stub that
+/// returned <c>null</c> and that nothing called, and the collection path deliberately did not forward
+/// it at all. Masks land through here so the two paths cannot answer the question differently — the
+/// same reason #189 moved the input-type mapping into <see cref="TextInputTypeMap"/>.
+/// </para>
+/// </remarks>
+internal static class TextMaskMap
+{
+    /// <summary>
+    /// The attribute key a field configures a mask under: <c>.WithAttribute("Mask", "0000-0000")</c>.
+    /// </summary>
+    /// <remarks>
+    /// Named rather than spelled twice. Both render paths read this attribute, and extracting the
+    /// interpretation into <see cref="Resolve"/> while leaving the KEY as a literal in two files
+    /// would still allow them to drift: a typo in either one disables masking on that path alone,
+    /// which is the divergence class #211 exists to close. Mirrors
+    /// <c>MudBlazorFieldBuilderExtensions.AdornmentClickAttribute</c>; it lives here rather than
+    /// there because no builder method writes this one — callers pass the string themselves.
+    /// </remarks>
+    internal const string AttributeName = "Mask";
+
+    /// <summary>
+    /// Maps a configured mask pattern onto MudBlazor's <see cref="IMask"/>, or <c>null</c> when the
+    /// field configured none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="PatternMask"/> is the implementation because its constructor takes exactly what
+    /// FormCraft stores — a pattern string — so nothing has to be invented to bridge the two. Its
+    /// pattern characters are <c>0</c> (digit), <c>a</c> (letter) and <c>*</c> (letter or digit);
+    /// every other character is a literal that the mask inserts as the user types.
+    /// </para>
+    /// <para>
+    /// A field that configures no mask must resolve to <c>null</c>, not to an empty
+    /// <c>PatternMask("")</c>. <c>MudTextField</c> renders a <c>MudMask</c> instead of its usual
+    /// input as soon as <c>Mask</c> is non-null, and that swap also makes it ignore <c>MaxLines</c>
+    /// and <c>Sizing</c> — so an empty-but-present mask would quietly reroute every unmasked text
+    /// field in the library through a different component.
+    /// </para>
+    /// <para>
+    /// The blank test is <see cref="string.IsNullOrWhiteSpace"/> rather than
+    /// <see cref="string.IsNullOrEmpty"/>, because a whitespace-only pattern is the same mistake
+    /// wearing a different hat and has a worse outcome. <c>" "</c> — easy to arrive at from
+    /// configuration binding or a trimmed-to-blank setting — is not "no mask": it is a mask whose
+    /// single position is a literal space, so the field takes the <c>MudMask</c> path AND accepts no
+    /// input at all. Treating it as unconfigured is the only reading that leaves the field usable.
+    /// </para>
+    /// <para>
+    /// Returns a fresh instance per call, deliberately. A mask is not a value: <see cref="BaseMask"/>
+    /// carries the live <c>Text</c>, <c>CaretPos</c> and <c>Selection</c> of the input it is attached
+    /// to, so one cached instance shared between two fields — or between two rows of the same
+    /// collection — would have them overwrite each other's editing state.
+    /// </para>
+    /// <para>
+    /// Fresh-per-render is what MudBlazor expects in return, and it is safe for a specific reason
+    /// worth stating, because a future change here could break it silently. <c>MudMask.SetMask</c>
+    /// keeps the instance it already owns and copies into it — <c>_mask.UpdateFrom(other)</c>,
+    /// preserving the user's text and caret — but <b>only when the supplied mask is of the same
+    /// type</b>; otherwise it adopts the new instance outright. Since a render happens on every
+    /// keystroke (<c>Immediate="true"</c>), a resolver that returned different <see cref="IMask"/>
+    /// implementations for different patterns would swap the mask out mid-edit. Always returning
+    /// <see cref="PatternMask"/> is therefore load-bearing, not incidental, and is pinned across
+    /// several patterns by <c>RenderPipelineParityTests.Mask_Should_Resolve_Identically_On_Both_Paths</c>.
+    /// </para>
+    /// </remarks>
+    internal static IMask? Resolve(string? mask) =>
+        string.IsNullOrWhiteSpace(mask) ? null : new PatternMask(mask);
 }
