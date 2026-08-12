@@ -128,6 +128,27 @@ class Build : NukeBuild
             // assembly already makes the defaults unique, so the directory is what carries the
             // identity and the filename is left to the runner.
             //
+            // Discovered by the property that MAKES a project an MTP test application — the same
+            // property that gives the `--` arguments below their meaning — rather than by a name
+            // convention. The solution-wide invocation this replaced ran every test project in the
+            // solution whatever it was called; matching on "*Tests" would quietly narrow that, so a
+            // suite added later as FormCraft.AcceptanceTest or FormCraft.E2E would simply stop being
+            // run, green and unremarked. That is the silent-omission shape #231 was filed about
+            // (release-please.yml left behind by #225), and the assert below does not catch it: it
+            // fires only when *nothing* matches, so one-of-three matching passes it happily.
+            var testProjects = Solution.AllProjects
+                .Where(project => project
+                    .GetProperty("UseMicrosoftTestingPlatformRunner")
+                    ?.Equals("true", StringComparison.OrdinalIgnoreCase) == true)
+                .OrderBy(project => project.Name, StringComparer.Ordinal)
+                .ToList();
+
+            Assert.NotEmpty(
+                testProjects,
+                "No project in the solution sets UseMicrosoftTestingPlatformRunner. Discovery reads "
+                + "that property, so a suite that stopped setting it would be skipped without a word "
+                + "— which is the regression this guards.");
+
             // Which is also why the directory is emptied first. Timestamped names never collide, so
             // nothing overwrites a previous run's reports — they simply accumulate, and a red run
             // followed by a green one would leave a trx recording failures that no longer exist,
@@ -136,21 +157,11 @@ class Build : NukeBuild
             // copy them out first if a flaky failure is what you are chasing. "This directory is the
             // last run" is the less surprising of the two contracts, and `Clean` already reads that
             // way. CI checks out fresh, so only a local `./build.sh Test` loop ever notices.
+            //
+            // Emptied only AFTER discovery has proved the run can proceed: wiping first would
+            // destroy the previous run's reports on a misconfiguration that then produces none of
+            // its own, and the local loop is the only place that has anything to lose.
             TestResultsDirectory.CreateOrCleanDirectory();
-
-            // Discovered from the solution rather than listed literally, so a third suite is held to
-            // the same contract on the day it lands instead of being skipped in silence — the shape
-            // of the miss #231 found, where release-please.yml was left behind by #225.
-            var testProjects = Solution
-                .GetAllProjects("*Tests")
-                .OrderBy(project => project.Name, StringComparer.Ordinal)
-                .ToList();
-
-            Assert.NotEmpty(
-                testProjects,
-                "No project matching \"*Tests\" was found in the solution. Discovery is by project "
-                + "name, so a suite named to some other pattern would be skipped without a word — "
-                + "which is the regression this guards.");
 
             // Every project runs before any failure is surfaced. A bare foreach would let the first
             // red suite's exception abort the loop, hiding a second broken suite until the first was
@@ -182,8 +193,16 @@ class Build : NukeBuild
                 }
                 catch (Exception exception)
                 {
+                    // Recorded rather than thrown, so the remaining suites still run. The exception
+                    // is logged WHOLE: this catch is deliberately broad and will also see failures
+                    // that are nothing to do with a red test — an SDK that cannot launch the test
+                    // host, an unwritable results directory, a project that turns out not to be a
+                    // test application at all — and reducing those to `exception.Message` discards
+                    // the only evidence of which kind it was. Hence "did not complete" rather than
+                    // "tests failed" in the summary below: this list cannot tell the two apart, and
+                    // claiming the narrower one sends the reader to the wrong place.
                     failed.Add(project.Name);
-                    Serilog.Log.Error("{Project} failed: {Message}", project.Name, exception.Message);
+                    Serilog.Log.Error(exception, "{Project} did not complete", project.Name);
                 }
             }
 
@@ -205,24 +224,51 @@ class Build : NukeBuild
             // told only "no trx was produced" is no better off, because the suite that should have
             // written one is precisely what they are trying to identify.
             //
-            // Checked BEFORE the failures collected above are re-thrown, so it runs on red runs too
-            // rather than only on green ones. The old single invocation threw from DotNetTest itself
-            // the moment a suite went red, which meant this guard was skipped on exactly the runs
-            // whose artifact someone was about to download. Strictly stronger, never weaker.
-            foreach (var project in testProjects)
-            {
-                var projectResults = ResultsDirectoryFor(project);
+            // Asked only of the projects that actually COMPLETED. A suite that died — a crashed test
+            // host, a rejected argument, an SDK that could not launch it — writes no trx either, and
+            // blaming that on the reporters would send the reader off to audit MTP wiring for a
+            // failure that has nothing to do with it. Its own entry in `failed` already says what
+            // happened, accurately. What is left is the case this guard is actually for: a project
+            // that ran, passed, and silently produced no report.
+            //
+            // Note this still runs on red runs, which the old single invocation did not — it threw
+            // from DotNetTest the moment any suite went red, skipping the guard on exactly the runs
+            // whose artifact someone was about to download. A sibling suite going red no longer
+            // stops a genuine reporter regression from being reported.
+            var missingReports = testProjects
+                .Where(project => !failed.Contains(project.Name))
+                .Where(project => !ResultsDirectoryFor(project).GlobFiles("*.trx").Any())
+                .Select(project => $"{project.Name} (nothing in {ResultsDirectoryFor(project)})")
+                .ToList();
 
-                Assert.NotEmpty(
-                    projectResults.GlobFiles("*.trx"),
-                    $"{project.Name} produced no *.trx in {projectResults}. Its reporters are wired "
-                    + "but emitted nothing — check whether the runner still honours "
-                    + "--results-directory / --report-xunit-trx (see #231).");
+            // Both lists surfaced together, in one throw — the same "one red run naming both" rule
+            // the run loop follows, and for the same reason. They are independent: a suite can fail
+            // its tests while a different, passing suite quietly stops emitting a report, and
+            // whichever threw first would hide the other. Each entry carries its per-project
+            // directory, so the failure summary points at the artifact #256 just made attributable
+            // rather than making the reader go find it.
+            var problems = new List<string>();
+
+            if (missingReports.Count > 0)
+            {
+                problems.Add(
+                    $"produced no *.trx: {string.Join(", ", missingReports)} — the reporters are "
+                    + "wired but emitted nothing, so check whether the runner still honours "
+                    + "--results-directory / --report-xunit-trx (see #231)");
             }
 
             if (failed.Count > 0)
             {
-                Assert.Fail($"Test suites failed: {string.Join(", ", failed)}.");
+                problems.Add(
+                    "did not complete: "
+                    + string.Join(
+                        ", ",
+                        failed.Select(name => $"{name} (reports, if any, in {TestResultsDirectory / name})")));
+            }
+
+            if (problems.Count > 0)
+            {
+                Assert.Fail($"Test target failed. Projects that {string.Join("; and that ", problems)}.");
             }
         });
 

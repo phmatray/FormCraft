@@ -34,7 +34,10 @@ On Windows use `build.cmd` / `build.ps1`; `build.cmd` also works on macOS and Li
 - **Clean** — cleans build outputs and artifacts
 - **Restore** — restores NuGet packages
 - **Compile** — builds the solution (default target)
-- **Test** — runs the unit tests, writing TRX and HTML results to `test-results/`
+- **Test** — runs the unit tests once per test project, writing each suite's TRX, HTML and
+  per-assembly log to its own `test-results/<project>/` directory. The subdirectory is what
+  identifies the suite: the report file names are the runner's defaults
+  (`<user>_<machine>_<timestamp>`) and say nothing about where they came from
 - **Pack** — creates the NuGet packages (`.nupkg` + `.snupkg`) in `artifacts/`. It copies nothing:
   `FormCraft.csproj` packs `../CHANGELOG.md` **by link**, so the packaged changelog is the root file
   itself (#222)

@@ -63,7 +63,24 @@
                         </div>
                         @if (Configuration.ItemFormConfiguration != null)
                         {
-                            @RenderItemFields(index)
+                            @* The nested context every item field renders in (#203): it names the
+                               owning collection, so form-wide diagnostics can tell an item "Name"
+                               apart from a top-level one, and carries the once-per-field latch that
+                               keeps a 50-row collection from emitting 50 identical warnings.
+
+                               Deliberately NOT IsFixed. One scope instance does serve the whole
+                               collection for this component's lifetime in the normal case — which is
+                               what makes the latch work — but OnParametersSet rebuilds it if the
+                               component is ever re-pointed at a different collection field, and a
+                               fixed CascadingValue registers no subscribers, so that replacement
+                               would never reach the item fields. They would keep reporting
+                               diagnostics under the previous collection's key. The two settings
+                               contradict each other; correctness wins over the saved subscriptions. *@
+                            <CascadingValue TValue="CollectionItemFieldScope"
+                                            Name="@FormCraftCascadingValues.ItemFieldScope"
+                                            Value="@_itemFieldScope">
+                                @RenderItemFields(index)
+                            </CascadingValue>
                         }
                     </MudCardContent>
                 </MudCard>

@@ -105,14 +105,22 @@
 ## Architecture grain / invariants (shape implementation plans to these)
 - **`FormCraft` (core) is UI-framework-agnostic.** No MudBlazor type may leak into it. UI-specific
   code belongs in `FormCraft.ForMudBlazor`.
-- **Two render paths exist and must agree.** Ordinary fields go through the *declarative* path
-  (a `.razor` component per field type, via `IFieldRendererService`); fields inside
-  `.WithItemForm(...)` go through the *imperative* path (`CollectionFieldComponent` building the tree
-  with `RenderTreeBuilder`). `RenderPipelineParityTests` exists to keep them honest — presentation
-  attributes have repeatedly drifted between them (see #146, #177, #184).
-- **`RenderTreeBuilder` sequence numbers are a shared index space** between
-  `AddCommonFieldAttributes` and its callers. Adding an attribute shifts every caller's starting
-  offset; get it wrong and attributes silently overwrite each other.
+- **There is ONE render path.** Every field — ordinary or inside `.WithItemForm(...)` — goes through
+  `IFieldRendererService`, which selects a `.razor` component per field type. A collection item field
+  is rendered by passing the *item* as the model (the service is generic over it) and cascading a
+  `CollectionItemFieldScope` that names the owning collection; the value callback writes the item and
+  notifies the parent `EditContext` under `Items[i].Field` (#91).
+  ⛔ **Do not add a second one.** Until #203 collection item fields were built by hand with a
+  `RenderTreeBuilder`, and every presentation attribute had to be implemented twice — which is where
+  #146 (Variant), #177 (ShrinkLabel), #184 (adornments) and #190 (Required) each came from, one bug
+  report at a time. A new field capability belongs in the component; it then applies to both
+  placements by construction. `RenderPipelineParityTests` still compares the two *placements* and is
+  now close to a tautology, which is the intended end state rather than a reason to delete it.
+- **Presentation defaults live in `MudBlazorFieldComponentBase`** (`EffectiveVariant`,
+  `EffectiveShrinkLabel`, `EffectiveAdornment*`, `EffectiveNativeRequired`), resolved from the field's
+  attributes with the form-level cascade as fallback. A component whose MudBlazor control has its own
+  non-`None` default — `MudDatePicker` draws an End calendar adornment — must supply that default
+  itself rather than binding the base's, or it erases it (#217, `MudBlazorDateTimeFieldComponent`).
 - **Builders are fluent and immutable-after-`Build()`.** `Add*` adds, `With*` configures,
   `Enable*` toggles; no side effects in builder methods.
 - **Validation is server-side only** — `Required()` adds a validator but not the HTML5 attribute;

@@ -30,6 +30,95 @@ public static class FormCraftCascadingValues
     /// ShrinkLabel conflicts so the form can report them in a single warning (#181).
     /// </summary>
     public const string ShrinkLabelDiagnostics = "FormCraftShrinkLabelDiagnostics";
+
+    /// <summary>
+    /// Name of the cascading <see cref="CollectionItemFieldScope"/> supplied by
+    /// <c>CollectionFieldComponent</c> to the item fields it renders (#203). Absent — and therefore
+    /// null — for an ordinary field, which is how a component tells the two apart.
+    /// </summary>
+    public const string ItemFieldScope = "FormCraftItemFieldScope";
+}
+
+/// <summary>
+/// The nested context an item field renders in: which collection owns it, and the once-per-field
+/// latch its diagnostics need.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Introduced by #203, when collection item fields stopped being rendered by a hand-rolled
+/// <c>RenderTreeBuilder</c> path and started going through <see cref="IFieldRendererService"/> like
+/// every other field. That convergence is what this type pays for: the per-type components are now
+/// shared, so the two things the old path knew and a component does not — <i>which collection am I
+/// in</i> and <i>has this field already warned</i> — have to reach them some other way.
+/// </para>
+/// <para>
+/// Cascaded rather than passed as a parameter because it must reach every field component the
+/// service may select, including ones that do not exist yet. A field rendered outside a collection
+/// sees no scope at all.
+/// </para>
+/// </remarks>
+public sealed class CollectionItemFieldScope
+{
+    private readonly HashSet<string> _warnedOnce = [];
+
+    /// <summary>
+    /// Creates a scope for the collection field named <paramref name="collectionName"/>.
+    /// </summary>
+    /// <param name="collectionName">The owning collection field's name, e.g. <c>Items</c>.</param>
+    public CollectionItemFieldScope(string collectionName) => CollectionName = collectionName;
+
+    /// <summary>Gets the owning collection field's name.</summary>
+    public string CollectionName { get; }
+
+    /// <summary>
+    /// The identity a field inside this collection is reported under by the form-wide diagnostic
+    /// collectors: <c>&lt;collection&gt;[].&lt;field&gt;</c> (#213).
+    /// </summary>
+    /// <remarks>
+    /// Row-agnostic on purpose — the <c>[]</c> carries no index. These diagnostics describe a
+    /// field's <i>configuration</i>, so they are emitted once per field however many rows exist;
+    /// keying them to whichever row rendered first would read as though row 0 were special.
+    /// <para>
+    /// The qualification is load-bearing: <c>ShrinkLabelDiagnosticCollector</c> is form-wide and
+    /// keys by field identity, but a bare field name is unique only inside one item form — so a
+    /// top-level "Name" and an item "Name" overwrote each other, and so did item fields of the same
+    /// name in two different collections.
+    /// </para>
+    /// </remarks>
+    /// <param name="fieldName">The item field's own name.</param>
+    public string DiagnosticKey(string fieldName) => $"{CollectionName}[].{fieldName}";
+
+    /// <summary>
+    /// Returns <c>true</c> the first time a given (diagnostic, field) pair is presented, and
+    /// <c>false</c> forever after.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A collection renders one component instance <i>per row</i>, and a diagnostic that fires from
+    /// <c>OnInitialized</c> therefore fires once per row: a 50-item collection would emit 50
+    /// identical warnings about a single field's configuration. The hand-rolled path latched
+    /// exactly this way before #203; the latch simply moved here when the render did.
+    /// </para>
+    /// <para>
+    /// ⛔ <paramref name="category"/> is part of the key, not decoration. The code this replaced kept
+    /// <i>two</i> separate <c>HashSet</c>s — <c>_warnedItemFields</c> and
+    /// <c>_maskedLinesWarnedFields</c> — with an explicit note that "a shared latch would let
+    /// whichever fired first silence the other on the same field". A single field can legitimately
+    /// trip several diagnostics (a masked multi-line password whose adornment is displaced trips
+    /// two), and latching them together would report only the first and hide the rest for good.
+    /// </para>
+    /// <para>
+    /// Needed by the diagnostics that log directly. The ShrinkLabel one usually reports to a
+    /// collector that already dedupes by key — but only when a collector exists, which it does not
+    /// for a collection rendered outside a <c>FormCraftComponent</c>, so that fallback latches here
+    /// too.
+    /// </para>
+    /// </remarks>
+    /// <param name="category">
+    /// The diagnostic's logger category, e.g. <see cref="MaskedLinesDiagnostic.Category"/>.
+    /// </param>
+    /// <param name="key">The field identity to latch on, normally <see cref="DiagnosticKey"/>.</param>
+    public bool ShouldWarnOnce(string category, string key) => _warnedOnce.Add($"{category}|{key}");
 }
 
 /// <summary>
@@ -145,18 +234,35 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     protected virtual Adornment? RenderedAdornment => null;
 
     /// <summary>
-    /// Whether the field opted into MudBlazor's native required decoration via
-    /// <c>.WithNativeRequired()</c> (or the equivalent raw <c>"Required"</c> attribute). Defaults to
-    /// <c>false</c> (#204).
+    /// Whether MudBlazor's native required decoration is rendered: the explicit
+    /// <c>.WithNativeRequired(...)</c> opt-in (or the equivalent raw <c>"Required"</c> attribute)
+    /// when the field sets one, otherwise <c>Context.Field.IsRequired</c> (#199, #204).
     /// </summary>
     /// <remarks>
-    /// ⛔ Deliberately read from the attribute and **never** from <c>Context.Field.IsRequired</c>.
-    /// Driving it from <c>.Required(...)</c> is exactly what #190 removed: FormCraft's validation is
-    /// server-side, and the same call emitted the HTML5 attribute inside <c>.WithItemForm(...)</c>
-    /// and not outside it. This is the explicit opt-in for callers who want the decoration anyway,
-    /// and it is honoured on both render paths so the escape hatch does not work on only one of them.
+    /// <para>
+    /// The explicit attribute wins in <b>both</b> directions — a field that asked for the decoration
+    /// without <c>.Required(...)</c> gets it, and one that suppressed it with
+    /// <c>.WithNativeRequired(false)</c> keeps it suppressed even when <c>.Required(...)</c> is
+    /// configured. Only an unconfigured field falls through to the validator's own answer.
+    /// </para>
+    /// <para>
+    /// ⚠️ This property used to read the attribute and <b>never</b> <c>IsRequired</c>, because #190
+    /// had removed that forward. #199 restores it deliberately: a required field that is not
+    /// announced as required fails WCAG 2.1 <b>3.3.2</b> (Level A), and on MudBlazor 9.8.0 there is
+    /// no way to say so without this flag. <c>MudInput</c> splats <c>UserAttributes</c> and then
+    /// writes its own <c>required</c> and <c>aria-required</c> afterwards, both off this single
+    /// bool; Blazor resolves duplicate attributes last-write-wins, so a caller-supplied
+    /// <c>aria-required</c> is always overwritten and the two attributes cannot be separated.
+    /// </para>
+    /// <para>
+    /// What #190 actually fixed — the same <c>.Required("…")</c> call decorating an item field but
+    /// not an ordinary one — stays fixed: <c>CollectionFieldComponent</c> resolves the flag by the
+    /// same rule, so the two render paths agree. The HTML5 attribute that returns with it is inert
+    /// for validation here, since FormCraft forms render <c>novalidate</c> (#206).
+    /// </para>
     /// </remarks>
-    protected bool EffectiveNativeRequired => GetAttribute("Required", false);
+    protected bool EffectiveNativeRequired =>
+        NativeRequired.Resolve(Context.Field.AdditionalAttributes, IsRequired);
 
     /// <summary>
     /// Service provider used to resolve an optional <see cref="ILoggerFactory"/> for the
@@ -188,6 +294,25 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// </summary>
     [CascadingParameter(Name = FormCraftCascadingValues.ShrinkLabelDiagnostics)]
     public ShrinkLabelDiagnosticCollector? ShrinkLabelDiagnostics { get; set; }
+
+    /// <summary>
+    /// The collection this field is an item field of, or <c>null</c> when it is an ordinary field
+    /// (#203).
+    /// </summary>
+    [CascadingParameter(Name = FormCraftCascadingValues.ItemFieldScope)]
+    public CollectionItemFieldScope? ItemFieldScope { get; set; }
+
+    /// <summary>
+    /// The identity this field is reported under by the form-wide diagnostic collectors: its bare
+    /// field name, or <c>&lt;collection&gt;[].&lt;field&gt;</c> when it is an item field (#213).
+    /// </summary>
+    /// <remarks>
+    /// Deliberately distinct from <c>Context.Field.FieldName</c>, which is unique only within one
+    /// item form. Two collections with same-named item fields — or a top-level field colliding with
+    /// an item field — must be counted as the separate fields they are.
+    /// </remarks>
+    protected string DiagnosticFieldKey =>
+        ItemFieldScope?.DiagnosticKey(Context.Field.FieldName) ?? Context.Field.FieldName;
 
     private bool _shrinkLabelDiagnosticEmitted;
 
@@ -230,8 +355,10 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
 
         _shrinkLabelDiagnosticEmitted = true;
 
-        var fieldName = Context.Field.FieldName;
-        var field = Label ?? fieldName;
+        // The collector is form-wide and keys by identity, so an item field reports under its
+        // qualified key rather than its bare name (#213).
+        var fieldName = DiagnosticFieldKey;
+        var field = Label ?? Context.Field.FieldName;
 
         // Inside a FormCraftComponent, report to the form's collector so all conflicting fields
         // arrive in one warning. Rendered standalone there is no collector, so log directly
@@ -239,6 +366,16 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
         if (ShrinkLabelDiagnostics is not null)
         {
             ShrinkLabelDiagnostics.Report(fieldName, Label, conflict);
+            return;
+        }
+
+        // No collector to dedupe for us on this branch, so the scope's latch has to. A collection
+        // rendered outside a FormCraftComponent — CollectionFieldRenderer.Render is public API — has
+        // one component instance per row and _shrinkLabelDiagnosticEmitted is per INSTANCE, so an
+        // unlatched fallback would log N identical warnings for one field's configuration. The
+        // hand-rolled path latched this per field before #203.
+        if (ItemFieldScope?.ShouldWarnOnce(ShrinkLabelDiagnostic.Category, fieldName) == false)
+        {
             return;
         }
 
@@ -271,10 +408,51 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
 }
 
 /// <summary>
-/// The single implementation of the ShrinkLabel conflict rule, shared by the component render
-/// path (<see cref="MudBlazorFieldComponentBase{TModel, TValue}"/>) and the imperative
-/// RenderTreeBuilder path used for collection item fields.
+/// The single implementation of the native-required rule (#199), used by
+/// <see cref="MudBlazorFieldComponentBase{TModel, TValue}"/>.
+/// <para>
+/// #199 introduced it as a rule the component path and the imperative collection path both had to
+/// apply identically — one implementation so <c>RenderPipelineParityTests</c> guarded against
+/// regressions rather than against a copy-paste drifting. #203 then deleted the imperative path
+/// outright, so the rule now reaches collection item fields the same way every other field
+/// capability does: they render through this component. The type stays because the rule — an
+/// explicit opt-in/out winning over <c>IsRequired</c> in <i>both</i> directions — is worth stating
+/// and testing on its own.
+/// </para>
 /// </summary>
+internal static class NativeRequired
+{
+    /// <summary>The attribute name carrying the explicit opt-in/opt-out.</summary>
+    internal const string AttributeName = "Required";
+
+    /// <summary>
+    /// Whether MudBlazor's <c>Required</c> should be set: the explicit
+    /// <c>.WithNativeRequired(...)</c> attribute when the field sets one, otherwise the field's own
+    /// <c>IsRequired</c>.
+    /// </summary>
+    /// <remarks>
+    /// Presence is tested separately from value on purpose. Collapsing "not configured" and
+    /// "configured false" into one fallback — which a plain get-with-default does — would make
+    /// <c>.WithNativeRequired(false)</c> on a <c>.Required(...)</c> field silently re-acquire the
+    /// decoration it was written to suppress. The explicit value has to win in both directions.
+    /// </remarks>
+    /// <param name="additionalAttributes">The field's configured additional attributes.</param>
+    /// <param name="isRequired">The field's own required flag, used when nothing is configured.</param>
+    internal static bool Resolve(IReadOnlyDictionary<string, object> additionalAttributes, bool isRequired)
+        => additionalAttributes.TryGetValue(AttributeName, out var configured) && configured is bool optIn
+            ? optIn
+            : isRequired;
+}
+
+/// <summary>
+/// The single implementation of the ShrinkLabel conflict rule, used by
+/// <see cref="MudBlazorFieldComponentBase{TModel, TValue}"/>.
+/// </summary>
+/// <remarks>
+/// Extracted when a second, imperative render path existed for collection item fields and the rule
+/// had to be applied identically by both. #203 deleted that path; the rule keeps its own type
+/// because it is the part worth stating and testing independently of any component.
+/// </remarks>
 internal static class ShrinkLabelDiagnostic
 {
     /// <summary>Logger category for the ShrinkLabel diagnostic.</summary>

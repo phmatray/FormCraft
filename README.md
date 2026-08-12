@@ -58,6 +58,53 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **Collection item fields now render through the same components as every other field.** Fields inside `.WithItemForm(...)` used to be built by a second, hand-written renderer, so every presentation feature had to be implemented twice — which is where #146 (`Variant`), #177 (`ShrinkLabel`), #184 (adornments) and #190 (`Required`) each came from, one bug report at a time. That renderer is gone: item fields go through `IFieldRendererService` like everything else, and inherit present and future field capabilities by construction rather than by vigilance (#203)
+
+  No API changed, and a form that configures nothing renders as before. Settings that an item field previously accepted and silently ignored now take effect:
+
+  | Setting on a field inside `.WithItemForm(...)` | Before | Now |
+  |---|---|---|
+  | `.AsPassword(enableVisibilityToggle: true)` | masked, but no show/hide eye | the eye is rendered and works |
+  | `DisplayStyle = BooleanDisplayStyle.Switch` on a `bool` | always a checkbox | renders a switch |
+  | `MinDate` / `MaxDate` on a date | ignored | honoured |
+  | typing into a date field | picker only | editable, like a standalone date field |
+  | `Min` / `Max` / `Step` on a numeric | ignored | honoured |
+
+  **Worth knowing:** a `bool` item field gains `DisplayStyle`, not the whole shared presentation set — `MudCheckBox` has no `Variant`, `Placeholder` or adornment to give it. Configuring those on a `bool` stays inert, exactly as it is on a standalone `bool` field. `.WithAttribute("Required", true)` was already path-independent as of #204 and is unchanged here.
+
+- **⚠️ `.WithAdornment(...)` on an ordinary date field is now honoured.** It used to be accepted and silently dropped on the *component* path, the mirror image of the collection-path bug #217 fixed — `MudDatePicker` defaults to `Adornment.End` with its own calendar icon, and the component declined to bind an adornment at all rather than erase it. It now supplies MudDatePicker's own defaults, so an unconfigured field still renders End + the calendar icon and a configured adornment wins (#203)
+
+  If you had `.WithAdornment(..., Adornment.Start)` on a date field and had not noticed it doing nothing, it will now render — and, being a real start adornment, it pins the label, so the `ShrinkLabel` diagnostic will now report it.
+- **`Mask` works — on both render paths.** `.WithAttribute("Mask", …)` was accepted and silently did nothing anywhere: FormCraft stores the mask as a string, MudBlazor's parameter takes an `IMask`, and the conversion had never been written. The component path read the string into a property whose only consumer was a `GetMask()` stub that returned `null` and that nothing called; the collection path deliberately did not forward it at all, precisely so the two would not diverge. The conversion now exists and both paths bind it, so a mask applies to an ordinary field and to one inside `.WithItemForm(...)` alike (#211)
+
+  ```csharp
+  .AddField(x => x.Phone, field => field
+      .WithLabel("Phone")
+      .WithAttribute("Mask", "(000) 000-0000"))   // ← was inert, now masks as you type
+  ```
+
+  Pattern characters are `0` (digit), `a` (letter) and `*` (letter or digit); every other character is a literal the mask inserts for you — so typing `5551234567` above yields `(555) 123-4567`. A blank pattern (`""` or whitespace) means *no mask*, so a setting that binds to empty leaves the field alone rather than making it reject every keystroke. Unlike `.AsPassword()` + `Lines` (#207), a mask combined with `AsTextArea(lines: > 1)` is honoured in full — you get a masked `<textarea>`.
+
+  **Three things to check before you upgrade**, if you already pass `Mask` — it did nothing until now, so all three are newly reachable:
+
+  1. **The model stores the *masked* text.** With the mask above, `model.Phone` becomes `"(555) 123-4567"`, not `"5551234567"`. Validation, database columns and APIs keyed to raw digits will see the delimiters. (MudBlazor can strip them — `PatternMask.CleanDelimiters` — but FormCraft has no way to reach that yet; see the follow-up on #211.)
+  2. **An existing value that doesn't fit the pattern renders as an empty field** — while the model quietly keeps the original. The user sees a blank input, submits without touching it, and the old value survives. Worth auditing stored data against the pattern before turning a mask on.
+  3. **Masked fields render through MudBlazor's `MudMask`**, which MudBlazor documents as *"recommended to be used in WASM projects only because it has known problems in BSS, especially with high network latency"*. On Blazor Server, test the field under realistic latency before shipping it.
+
+  A field that configures no mask is untouched by all of this.
+
+- **Required fields are now announced to assistive technology, on both render paths.** A `.Required("…")` field rendered `aria-required="false"` — not merely silent, but an affirmatively wrong statement to a screen reader — so a screen-reader user got no indication which fields were mandatory until submission failed. That is a WCAG 2.1 **3.3.2 Labels or Instructions** (Level A) failure. Both the ordinary field path and the collection item path now resolve MudBlazor's `Required` from `.Required(...)`, so the field is announced identically inside and outside `.WithItemForm(...)` (#199)
+
+  **What comes with it.** MudBlazor drives three things from one flag, so the visible `*` asterisk and the HTML5 `required` attribute return alongside the ARIA annotation — they are not separable. The asterisk is itself a *visible* WCAG 3.3.2 identification. The HTML5 attribute is **inert for validation**: FormCraft forms render `novalidate` (#206), so the browser runs no constraint validation and messages still come from your validator. This reverses the collection-path half of #190 deliberately; what #190 actually fixed — the two paths disagreeing — stays fixed, and `RenderPipelineParityTests` now compares `aria-required` on both.
+
+  **Opting out — and why you probably should not.** `.WithNativeRequired(false)` on a `.Required(...)` field suppresses the decoration while keeping the validation. The explicit attribute wins in both directions. ⚠️ **Reach for it to drop an unwanted asterisk and you reintroduce the exact Level A failure this entry describes:** the input goes back to reporting `aria-required="false"` on a genuinely required field, which is worse than saying nothing. If the asterisk is the problem, restyle `.mud-input-required` instead — that removes the visual marker without lying to a screen reader.
+
+  **Coverage is deliberately uniform.** Text, numeric, date, select, multi-select, autocomplete, lookup, LOV **and boolean** fields all announce it, on both render paths. That uniformity is the point rather than a bonus: once required text fields carry an asterisk, *absence* of one stops meaning "not annotated" and starts meaning "optional", so a required Country select or "I accept the terms" checkbox left unmarked would actively mis-signal — a worse outcome than the uniform silence this replaced.
+
+  Checkboxes needed a different mechanism: `MudCheckBox` and `MudSwitch` emit no `aria-required` of their own, so FormCraft supplies it through `UserAttributes` — which works there precisely because nothing downstream overwrites it, unlike `MudInput`.
+
+  **The one exclusion is file upload**, and it is tested rather than overlooked. `MudFileUpload` would accept the flag, but FormCraft renders its `<input type="file">` with `tabindex="-1"` beneath a custom drop zone, so the annotation would sit on an element no keyboard or screen-reader user ever reaches while satisfying a DOM assertion. Marking a required upload needs a label-level answer, which is a design decision rather than one more binding. Until then, put it in the label or help text.
+
 - **Date collection item fields honour a configured adornment — and keep their calendar icon.** `.WithAdornment(...)` on a date field inside `.WithItemForm(...)` was accepted and silently dropped: the date path refused the forward because `MudDatePicker` defaults to `Adornment.End` with its own calendar icon, and forwarding an unset adornment would have erased it. Both now hold — MudDatePicker's End + calendar icon is the **default**, and a configured adornment wins (#217)
 
   **Worth knowing if you configure a start adornment on a date item field:** it is now really rendered, so it really does pin the label — and the `ShrinkLabel` diagnostic now says so, where it used to stay quiet because the adornment was being discarded.
@@ -106,7 +153,7 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
       .WithNativeRequired())           // the decoration — asterisk + HTML5 attribute
   ```
 
-  **The opt-in was collection-only, and no longer is.** A raw `"Required"` attribute was read solely by `CollectionFieldComponent`, so the escape hatch was honoured inside `.WithItemForm(...)` and silently ignored outside it. Both render paths now honour it, and `RenderPipelineParityTests` compares them. `.Required(...)` on its own still emits no HTML5 attribute on either path — that is the #190 behaviour and it is unchanged.
+  **The opt-in was collection-only, and no longer is.** A raw `"Required"` attribute was read solely by `CollectionFieldComponent`, so the escape hatch was honoured inside `.WithItemForm(...)` and silently ignored outside it. Both render paths now honour it, and `RenderPipelineParityTests` compares them. ⚠️ **Superseded in this same release by #199** (see above): `.Required(...)` on its own no longer emits nothing — it now sets the flag on both paths, so the field is announced to assistive technology. What survives from this entry is that the *explicit* attribute is honoured on both paths and wins over the inference in either direction.
 
 - **`novalidate` is now a rendered attribute on the form, not something applied by a script afterwards.** The library documents its forms as `novalidate` — server-side validation, messages from your configured validator, no native browser bubbles — but the attribute was bolted on after first render with `JSRuntime.InvokeVoidAsync("eval", "document.querySelector('form')?.setAttribute(…)")`. That missed in three ways: it marked the **first** form in the document rather than FormCraft's (so a search or login form higher up the page got marked instead, and with two FormCraft forms the second was never marked at all), it never ran during **prerender/SSR**, and it failed silently. Being `eval`, a strict **CSP** blocked it outright — silently and totally. The attribute is now in the markup, so it targets the right form by construction, survives prerender, and needs no JavaScript (#206)
 
@@ -138,7 +185,7 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Behaviour change to be aware of.** Forms that already use `.AsPassword()` inside a collection **start masking** — the characters stop being visible. If any workflow relied on reading those values off the screen, it will notice. The same path now also forwards `Lines`, `MaxLength` and `autocomplete`, so multi-line item fields honour their configured height, length limits apply, and password managers can fill item fields.
 
-  **Scope.** The visibility-toggle eye that `.AsPassword()` puts on an ordinary field is still not drawn on an item field; the masking no longer depends on it. `Mask` remains unimplemented on **both** render paths — FormCraft stores it as a string, MudBlazor wants an `IMask`, and the conversion has never been written — so `.WithAttribute("Mask", …)` is inert everywhere rather than newly inconsistent. The parity test introduced with the #184 entry below now compares `InputType`, `Lines`, `MaxLength` and `autocomplete` instead of listing them as known divergences.
+  **Scope.** The visibility-toggle eye that `.AsPassword()` puts on an ordinary field is still not drawn on an item field; the masking no longer depends on it. `Mask` was left unimplemented on **both** render paths at the time — FormCraft stored it as a string, MudBlazor wanted an `IMask`, and the conversion had never been written — so `.WithAttribute("Mask", …)` was inert everywhere rather than newly inconsistent; that has since been closed (see the `Mask` entry under **Unreleased**). The parity test introduced with the #184 entry below now compares `InputType`, `Lines`, `MaxLength` and `autocomplete` instead of listing them as known divergences.
 
 - **`.WithAdornment(...)`'s `onClick` handler now fires — on both render paths.** The parameter was accepted, documented and then thrown away: `WithAdornment` never wrote it anywhere, so a search or visibility-toggle icon rendered, invited a click, and did nothing. It now runs on an ordinary field and on one inside `.WithItemForm(...)` alike, receiving the field's current value (#192)
 
@@ -176,9 +223,9 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Validation is unchanged.** `.Required(...)` still registers its validator, a blank item field still fails validation, and the message is still the one you passed.
 
-  **⚠️ This is a visible change, not just an attribute change.** MudBlazor draws the required asterisk from a CSS rule on the `mud-input-required` class, which it only adds when `Required="true"`. So text, numeric **and date** item fields configured with `.Required(...)` lose their `*` — they now look exactly like ordinary `.Required(...)` fields, which never had one. `aria-required` likewise reports `false` on these fields as it already did on ordinary ones; identifying required fields to assistive technology is a gap the library has on **both** render paths, tracked separately rather than fixed on one side here.
+  **⚠️ Superseded within this same release by #199 — read that entry above for the behaviour that actually ships.** What this change fixed is that the two render paths *disagreed*, and that stays fixed. How it fixed them was by levelling both down to silence, which left `aria-required="false"` on genuinely required fields — a WCAG 2.1 3.3.2 (Level A) failure on both paths. #199 levels them back up instead: `.Required(...)` sets `Required="true"` on both paths again, so the asterisk and `aria-required="true"` are present, not absent. The paragraphs below describe the intermediate state and are kept for the reasoning, not as a description of the shipped result.
 
-  **Opting back in.** Use `.WithNativeRequired()` (see the note below) — or the raw `.WithAttribute("Required", true)`, which still works — on a text, numeric or date field to render `Required="true"` again, restoring both the asterisk and MudBlazor's native required semantics. The attribute is read from that explicit opt-in rather than inferred from `.Required(...)`. It is **inert on boolean item fields**, which render through a path that takes none of these shared attributes.
+  **Opting out.** Use `.WithNativeRequired(false)` on a text, numeric or date field to suppress the decoration while keeping the validation; `.WithNativeRequired()` (see the note below) — or the raw `.WithAttribute("Required", true)`, which still works — opts *in* on a field that never called `.Required(...)`. The explicit attribute wins in both directions; only an unconfigured field falls through to `.Required(...)`. It used to be **inert on boolean item fields**, which render through a path that takes none of these shared attributes — #199 taught that path the same rule, so the opt-in and opt-out now reach checkboxes too.
 
 - **`.WithAdornment(...)` now renders inside collection item forms.** A field configured with an adornment inside `.WithItemForm(...)` had the setting accepted and then silently discarded — no icon, no exception, no warning — while the identical call on an ordinary field rendered fine. Text and numeric item fields now forward `Adornment`, `AdornmentIcon` and `AdornmentColor` (#184)
 
