@@ -607,6 +607,55 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     }
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Mask_Options_Should_Resolve_Identically_On_Both_Paths(bool cleanDelimiters)
+    {
+        // Arrange - #265's half of the mask parity question. The test above pins the PATTERN; this
+        // pins the OPTION that travels with it, which is the half that decides what the model
+        // actually stores. A path that resolved the same pattern with CleanDelimiters left at its
+        // default would satisfy every assertion above while writing "(555) 123-4567" where the other
+        // wrote "5551234567" — a divergence invisible to a pattern-only comparison.
+        //
+        // Since #203/#250 both paths render through the same MudBlazorTextFieldComponent, so this
+        // passes structurally rather than because two implementations were kept in step. That is
+        // exactly why it is worth pinning: the convergence is the thing that could regress, and a
+        // future change that reintroduces a separate item-field attribute reader would land on a
+        // green suite without it.
+        void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field.WithLabel("Value").WithMask("(000) 000-0000", cleanDelimiters);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act
+        var standaloneRender = RenderForm(standaloneConfig);
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+
+        // Assert - type, pattern and option, never the instance: each path builds its own.
+        var standaloneMask = standaloneRender.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<PatternMask>();
+        var itemMask = itemRender.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<PatternMask>();
+
+        itemMask.Mask.ShouldBe(standaloneMask.Mask);
+        standaloneMask.CleanDelimiters.ShouldBe(cleanDelimiters);
+        itemMask.CleanDelimiters.ShouldBe(cleanDelimiters);
+    }
+
+    [Theory]
     [InlineData("0000-0000", "12345678", "1234-5678")]
     [InlineData("(000) 000-0000", "5551234567", "(555) 123-4567")]
     [InlineData("aaa-000", "abc123", "abc-123")]
