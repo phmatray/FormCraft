@@ -91,8 +91,16 @@ public class NativeRequiredBuilderTests
     [Fact]
     public void Required_Alone_Should_Not_Write_The_Native_Attribute()
     {
-        // Arrange & Act - the #190 invariant, restated here so a regression names itself: validation
-        // is server-side, and `.Required(...)` must never start emitting the HTML5 decoration again.
+        // Arrange & Act - `.Required(...)` writes a VALIDATOR, not an attribute. The distinction
+        // survives #199 and is what this pins: the decoration is now inferred from IsRequired at
+        // RENDER time, so the attribute bag must stay clean for `.WithNativeRequired(...)` to remain
+        // distinguishable from it. If `.Required(...)` started writing "Required" into the bag, the
+        // explicit override could no longer be told apart from the inference and
+        // `.WithNativeRequired(false)` would stop working.
+        //
+        // ⚠️ Not the #190 invariant any more. That was "`.Required(...)` must never emit the HTML5
+        // decoration", which #199 deliberately reversed — see AriaRequiredTests, which asserts the
+        // decoration IS emitted. Only the builder-level fact is pinned here.
         var config = FormBuilder<TestModel>
             .Create()
             .AddField(x => x.Name, f => f.Required("Name is required"))

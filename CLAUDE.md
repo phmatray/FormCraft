@@ -242,7 +242,11 @@ public interface IUIFrameworkAdapter
 - Validation messages from server, not browser
 - MudBlazor components DO set `Required` for a `.Required(...)` field since #199 (see above); the
   field types that bind it are text, numeric and date on both paths. Select, autocomplete, lookup,
-  LOV, file-upload and boolean fields bind none, so they are not announced — a known gap, not a rule
+  LOV, file-upload and boolean fields bind none, so they are not announced — a known gap, not a rule.
+  ⚠️ The gap got sharper, not milder: before #199 no field carried an asterisk so absence meant
+  nothing; now that text/numeric/date required fields all show `*`, absence reads as **"optional"**,
+  which actively mis-signals a required select or consent checkbox. Closing it means binding
+  `Required` on those renderers — worth doing, and tracked separately
 
 #### Testing Patterns
 ```csharp

@@ -535,9 +535,12 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     {
         // Arrange - #204. `.WithNativeRequired()` (and the raw "Required" attribute it replaces) used
         // to be read ONLY by CollectionFieldComponent, so the escape hatch worked inside an item form
-        // and was silently ignored outside one. This is the non-default direction of the Required
-        // comparison: the test above pins that both paths agree on `false` for `.Required(...)`,
-        // this one pins that both agree on `true` when the decoration is explicitly asked for.
+        // and was silently ignored outside one. This pins the EXPLICIT direction of the Required
+        // comparison: the test above pins that both paths agree for a plain `.Required(...)` field
+        // (`true` since #199 — it read `false` under #190), this one pins that both agree on `true`
+        // when the decoration is asked for without `.Required(...)` at all. The remaining
+        // combination, an explicit `false` overriding `.Required(...)`, is covered on both paths by
+        // AriaRequiredTests.
         static void Configure<TOwner>(FieldBuilder<TOwner, string> field)
             where TOwner : new()
             => field.WithLabel("Product").WithNativeRequired();
