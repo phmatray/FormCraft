@@ -1,4 +1,6 @@
 using System.Globalization;
+using FormCraft.ForMudBlazor.UnitTests.Fields;
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Components;
 
@@ -443,20 +445,13 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .AddField(x => x.Status, Configure)
             .Build();
 
-        var collectionConfig = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
-            .Build();
+        var collectionConfig = TextItemForm(Configure);
 
         // Act
         var standaloneRender = RenderForm(standaloneConfig);
         var standalone = standaloneRender.FindComponent<MudTextField<string>>().Instance;
 
-        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, collectionConfig));
+        var itemRender = this.RenderItemForm(NewOrder(), collectionConfig);
         var itemField = itemRender.FindComponent<MudTextField<string>>().Instance;
 
         // Assert - compared as one set, so a newly-honoured attribute on the component path that
@@ -526,18 +521,11 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .AddField(x => x.Status, Configure)
             .Build();
 
-        var collectionConfig = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
-            .Build();
+        var collectionConfig = TextItemForm(Configure);
 
         // Act
         var standaloneRender = RenderForm(standaloneConfig);
-        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, collectionConfig));
+        var itemRender = this.RenderItemForm(NewOrder(), collectionConfig);
 
         // Assert - the resolved parameter agrees, and so does the attribute the browser reads.
         var standaloneType = standaloneRender.FindComponent<MudTextField<string>>().Instance.InputType;
@@ -568,18 +556,11 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .AddField(x => x.Status, Configure)
             .Build();
 
-        var collectionConfig = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
-            .Build();
+        var collectionConfig = TextItemForm(Configure);
 
         // Act
         var standaloneRender = RenderForm(standaloneConfig);
-        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, collectionConfig));
+        var itemRender = this.RenderItemForm(NewOrder(), collectionConfig);
 
         // Assert - the pattern and the mask TYPE, never the instance: each path builds its own IMask,
         // so reference equality would fail for two identically-configured fields and prove nothing.
@@ -629,20 +610,13 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .AddField(x => x.Status, Configure)
             .Build();
 
-        var collectionConfig = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
-            .Build();
+        var collectionConfig = TextItemForm(Configure);
 
         // Act - drive each path's own resolved mask, rather than a locally constructed one: a test
         // that built its own PatternMask would pass even if the render paths bound something else.
         var standaloneMask = RenderForm(standaloneConfig)
             .FindComponent<MudTextField<string>>().Instance.Mask;
-        var itemMask = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-                .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-                .Add(p => p.Configuration, collectionConfig))
+        var itemMask = this.RenderItemForm(NewOrder(), collectionConfig)
             .FindComponent<MudTextField<string>>().Instance.Mask;
 
         standaloneMask.ShouldNotBeNull();
@@ -672,18 +646,11 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .AddField(x => x.Status, Configure)
             .Build();
 
-        var collectionConfig = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
-            .Build();
+        var collectionConfig = TextItemForm(Configure);
 
         // Act
         var standaloneRender = RenderForm(standaloneConfig);
-        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, collectionConfig));
+        var itemRender = this.RenderItemForm(NewOrder(), collectionConfig);
 
         // Assert - same element choice, and the same resolved Lines and pattern behind it.
         itemRender.FindAll("textarea").Count.ShouldBe(standaloneRender.FindAll("textarea").Count);
@@ -716,18 +683,11 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .AddField(x => x.Status, Configure)
             .Build();
 
-        var collectionConfig = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
-            .Build();
+        var collectionConfig = TextItemForm(Configure);
 
         // Act
         var standaloneRender = RenderForm(standaloneConfig);
-        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, collectionConfig));
+        var itemRender = this.RenderItemForm(NewOrder(), collectionConfig);
 
         // Assert - the parameter on both, and the attribute on the element the browser sees.
         standaloneRender.FindComponent<MudTextField<string>>().Instance.Required.ShouldBeTrue();
@@ -763,21 +723,14 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .AddField(x => x.Priority, Configure)
             .Build();
 
-        var collectionConfig = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item.AddField(x => x.Quantity, Configure)))
-            .Build();
+        var collectionConfig = NumericItemForm(Configure);
 
         // Act - the rendered components are kept, not just their instances, so the DOM assertions
         // below can read the element MudBlazor actually produced.
         var standaloneRender = RenderForm(standaloneConfig);
         var standalone = standaloneRender.FindComponent<MudNumericField<int>>().Instance;
 
-        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, collectionConfig));
+        var itemRender = this.RenderItemForm(NewBasket(), collectionConfig);
         var itemField = itemRender.FindComponent<MudNumericField<int>>().Instance;
 
         // Assert
@@ -842,21 +795,14 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .AddField(x => x.Status, Configure)
             .Build();
 
-        var collectionConfig = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
-            .Build();
+        var collectionConfig = TextItemForm(Configure);
 
         // Act
         RenderForm(standaloneConfig, new TestModel { Status = "standalone" })
             .Find(AdornmentButton)
             .Click();
 
-        Render<FormCraftComponent<OrderModel>>(parameters => parameters
-                .Add(p => p.Model, new OrderModel { Items = { new OrderItem { ProductName = "in-collection" } } })
-                .Add(p => p.Configuration, collectionConfig))
+        this.RenderItemForm(NewOrder("in-collection"), collectionConfig)
             .Find(AdornmentButton)
             .Click();
 
@@ -882,18 +828,11 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .AddField(x => x.Status, Configure)
             .Build();
 
-        var collectionConfig = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
-            .Build();
+        var collectionConfig = TextItemForm(Configure);
 
         // Act
         var standaloneRender = RenderForm(standaloneConfig);
-        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, collectionConfig));
+        var itemRender = this.RenderItemForm(NewOrder(), collectionConfig);
 
         // Assert - same parameters, and the same element actually rendered
         Presentation(itemRender.FindComponent<MudTextField<string>>().Instance)
@@ -929,18 +868,11 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .AddField(x => x.Status, Configure)
             .Build();
 
-        var collectionConfig = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
-            .Build();
+        var collectionConfig = TextItemForm(Configure);
 
         // Act
         var standaloneRender = RenderForm(standaloneConfig);
-        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, collectionConfig));
+        var itemRender = this.RenderItemForm(NewOrder(), collectionConfig);
 
         // Assert - neither path renders a textarea, both mask, and both agree on the line count.
         standaloneRender.FindAll("textarea").ShouldBeEmpty();
@@ -976,17 +908,10 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .AddField(x => x.Status, Configure)
             .Build();
 
-        var collectionConfig = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
-            .Build();
+        var collectionConfig = TextItemForm(Configure);
 
         var standaloneRender = RenderForm(standaloneConfig);
-        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
-            .Add(p => p.Configuration, collectionConfig));
+        var itemRender = this.RenderItemForm(NewOrder(), collectionConfig);
 
         // Assert - the toggle affordance itself is identical...
         Presentation(itemRender.FindComponent<MudTextField<string>>().Instance)
@@ -1106,17 +1031,6 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         field.UserAttributes.GetValueOrDefault("autocomplete"),
     ];
 
-    private class OrderModel
-    {
-        public List<OrderItem> Items { get; set; } = new();
-    }
-
-    private class OrderItem
-    {
-        public string ProductName { get; set; } = string.Empty;
-
-        public int Quantity { get; set; }
-    }
 
     [Fact]
     public void CustomTemplate_Should_Take_Precedence_Over_Options()

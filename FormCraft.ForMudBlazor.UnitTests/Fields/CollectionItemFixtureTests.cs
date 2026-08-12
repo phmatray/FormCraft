@@ -134,6 +134,57 @@ public class CollectionItemFixtureTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void RootFieldAndItemForm_Should_Render_The_Root_Field_Beside_The_Item_Field()
+    {
+        // Arrange & Act - the one shape none of the other builders produce: a top-level field
+        // ALONGSIDE the collection. ShrinkLabelKeyCollisionTests is the named consumer (#213), and
+        // for it the shape is load-bearing rather than incidental — its whole subject is a top-level
+        // field and an item field whose names collide, which cannot be expressed by a form that has
+        // only a collection in it.
+        var component = this.RenderItemForm(
+            CollectionItemFixture.NewNamedOrder(),
+            CollectionItemFixture.RootFieldAndItemForm());
+
+        // Assert - two text fields, the root one first
+        var fields = component.FindComponents<MudTextField<string>>();
+        fields.Count.ShouldBe(2);
+        fields[0].Instance.Label.ShouldBe("Name");
+        fields[1].Instance.Label.ShouldBe("Name");
+    }
+
+    [Fact]
+    public void RootFieldAndItemForm_Should_Apply_Both_Callers_Configurations()
+    {
+        // Arrange & Act - two callbacks, two destinations. A builder that wired both to the same
+        // field, or dropped one, would leave the collision suite configuring nothing.
+        var component = this.RenderItemForm(
+            CollectionItemFixture.NewNamedOrder(),
+            CollectionItemFixture.RootFieldAndItemForm(
+                root => root.WithLabel("Customer name"),
+                item => item.WithLabel("Product name")));
+
+        // Assert
+        var fields = component.FindComponents<MudTextField<string>>();
+        fields[0].Instance.Label.ShouldBe("Customer name");
+        fields[1].Instance.Label.ShouldBe("Product name");
+    }
+
+    [Fact]
+    public void NewNamedOrder_Should_Default_Blank_And_Honour_Its_Seeds()
+    {
+        // Arrange & Act
+        var blank = CollectionItemFixture.NewNamedOrder();
+        var seeded = CollectionItemFixture.NewNamedOrder("Ada", "Widget");
+
+        // Assert - both members are called Name on purpose; that collision is the point.
+        blank.Name.ShouldBe(string.Empty);
+        blank.Items.ShouldHaveSingleItem();
+        blank.Items[0].Name.ShouldBe(string.Empty);
+        seeded.Name.ShouldBe("Ada");
+        seeded.Items[0].Name.ShouldBe("Widget");
+    }
+
+    [Fact]
     public void NewOrder_Should_Leave_The_Product_Name_Blank_By_Default()
     {
         // Arrange & Act - CollectionRequiredTests depends on this: a seeded value would satisfy the

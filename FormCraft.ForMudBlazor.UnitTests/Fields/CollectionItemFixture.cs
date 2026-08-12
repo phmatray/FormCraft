@@ -70,6 +70,13 @@ internal static class CollectionItemFixture
         new() { Lines = { new PricedLine { Price = price } } };
 
     /// <summary>
+    /// Creates an order carrying a root-level <c>Name</c> beside a single item that is also called
+    /// <c>Name</c>, both blank unless seeded.
+    /// </summary>
+    internal static NamedOrderModel NewNamedOrder(string name = "", string itemName = "") =>
+        new() { Name = name, Items = { new NamedOrderItem { Name = itemName } } };
+
+    /// <summary>
     /// A collection whose item form holds one <c>string</c> field labelled "Product" — the text path.
     /// </summary>
     internal static IFormConfiguration<OrderModel> TextItemForm(
@@ -157,6 +164,37 @@ internal static class CollectionItemFixture
                         configure?.Invoke(field);
                     })))
             .Build();
+
+    /// <summary>
+    /// A root-level <c>string</c> field <i>beside</i> a collection whose item form holds a
+    /// <c>string</c> field of the same name — the only shape here that is not a form containing
+    /// nothing but a collection.
+    /// <para>
+    /// Both fields are called <c>Name</c> deliberately. Form-wide diagnostics key conflicts by field
+    /// identity, and a bare field name is unique only within one item form, so a top-level field and
+    /// an item field sharing a name are exactly what an under-qualified key merges (#213). Flattening
+    /// this onto the plain <see cref="OrderModel"/> would delete the subject.
+    /// </para>
+    /// </summary>
+    internal static IFormConfiguration<NamedOrderModel> RootFieldAndItemForm(
+        Action<FieldBuilder<NamedOrderModel, string>>? configureRoot = null,
+        Action<FieldBuilder<NamedOrderItem, string>>? configureItem = null) =>
+        FormBuilder<NamedOrderModel>
+            .Create()
+            .AddField(x => x.Name, field =>
+            {
+                field.WithLabel("Name");
+                configureRoot?.Invoke(field);
+            })
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.Name, field =>
+                    {
+                        field.WithLabel("Name");
+                        configureItem?.Invoke(field);
+                    })))
+            .Build();
 }
 
 /// <summary>Root model for the text path.</summary>
@@ -216,6 +254,23 @@ internal sealed class PricedBasketModel
 internal sealed class PricedLine
 {
     public decimal Price { get; set; }
+}
+
+/// <summary>
+/// Root model for the root-field-beside-a-collection shape. Its own <c>Name</c> and its item's
+/// <c>Name</c> collide by design — see <see cref="CollectionItemFixture.RootFieldAndItemForm"/>.
+/// </summary>
+internal sealed class NamedOrderModel
+{
+    public string Name { get; set; } = string.Empty;
+
+    public List<NamedOrderItem> Items { get; set; } = new();
+}
+
+/// <summary>Item for the collision shape — one <c>string</c> named to clash with the root field.</summary>
+internal sealed class NamedOrderItem
+{
+    public string Name { get; set; } = string.Empty;
 }
 
 /// <summary>
