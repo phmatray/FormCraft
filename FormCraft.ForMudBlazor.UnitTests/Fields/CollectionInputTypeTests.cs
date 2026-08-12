@@ -1,3 +1,6 @@
+using FormCraft.ForMudBlazor.UnitTests.TestSupport;
+using Microsoft.Extensions.Logging;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
@@ -20,6 +23,13 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// </summary>
 public class CollectionInputTypeTests : MudBlazorTestBase
 {
+    private readonly CapturingLoggerProvider _logs = new();
+
+    public CollectionInputTypeTests()
+    {
+        Services.AddLogging(builder => builder.AddProvider(_logs));
+    }
+
     [Fact]
     public void ItemField_With_AsPassword_Should_Render_A_Password_Input()
     {
@@ -298,6 +308,79 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         component.FindAll("textarea").ShouldBeEmpty();
         component.Find("input").GetAttribute("type").ShouldBe("password");
         component.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(1);
+    }
+
+    [Fact]
+    public void ItemField_With_A_Mask_That_Blanks_Values_Should_Warn_Once_For_The_Field()
+    {
+        // Arrange - a collection renders one component instance PER ROW, and the diagnostic fires
+        // from OnInitialized, so an unlatched warning reports a single field's CONFIGURATION once
+        // per row: fifty rows, fifty identical lines, and the signal is buried in its own noise.
+        // The latch is what makes this a report about a field rather than about a list.
+        var config = BuildConfiguration(field => field.WithAttribute("Mask", "(000) 000-0000"));
+
+        // Act
+        RenderCredentials(config, rows: 5);
+
+        // Assert
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("Secret");
+        warnings[0].ShouldContain("(000) 000-0000");
+    }
+
+    [Fact]
+    public void ItemField_Tripping_Two_Diagnostics_Should_Report_Both()
+    {
+        // Arrange - the reason the latch key carries the diagnostic CATEGORY and is not just the
+        // field name. One field can legitimately trip several diagnostics at once, and a latch
+        // shared between them would report whichever fired first and hide the rest for good. The
+        // code this replaced kept two separate HashSets for exactly this; the category-qualified key
+        // is how that survives now that the latch is shared infrastructure.
+        var config = BuildConfiguration(field => field
+            .WithAttribute("Mask", "(000) 000-0000")
+            .AsPassword()
+            .AsTextArea(lines: 4));
+
+        // Act
+        RenderCredentials(config, rows: 5);
+
+        // Assert - one masked-lines warning and one masked-value warning, each still latched to one
+        // per field rather than one per row.
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(2);
+        warnings.ShouldContain(w => w.Contains("masked"));
+        warnings.ShouldContain(w => w.Contains("(000) 000-0000"));
+    }
+
+    [Fact]
+    public void ItemField_With_A_Mask_Should_Not_Warn_When_Every_Row_Conforms()
+    {
+        // Arrange - the negative that keeps the latch honest. Nothing is rejected here, so the
+        // absence of a warning must come from the rule, not from a latch that swallowed it.
+        var config = BuildConfiguration(field => field.WithAttribute("Mask", "(000) 000-0000"));
+
+        // Act
+        RenderCredentials(config, rows: 5, value: "5551234567");
+
+        // Assert
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    private IRenderedComponent<FormCraftComponent<CredentialsModel>> RenderCredentials(
+        IFormConfiguration<CredentialsModel> config,
+        int rows,
+        string value = "N/A")
+    {
+        var model = new CredentialsModel();
+        for (var i = 0; i < rows; i++)
+        {
+            model.Items.Add(new Credential { Secret = value });
+        }
+
+        return Render<FormCraftComponent<CredentialsModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
     }
 
     private IRenderedComponent<FormCraftComponent<CredentialsModel>> RenderOrderForm(

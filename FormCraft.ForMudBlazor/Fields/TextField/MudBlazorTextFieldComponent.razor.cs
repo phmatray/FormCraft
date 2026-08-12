@@ -164,6 +164,19 @@ public partial class MudBlazorTextFieldComponent<TModel>
             return;
         }
 
+        // Latched per field, and latched AFTER the rule rather than before it. A collection renders
+        // one instance per row, so an unlatched warning fires once per ROW about a single field.
+        // But rows hold different values, and ShouldWarnOnce has a side effect: consulting it for a
+        // row whose value conforms would burn the latch on a row that had nothing to report, and
+        // whether the field ever got reported would then depend on row order.
+        //
+        // The key carries the diagnostic's category, so this cannot silence a different diagnostic
+        // that the same field also trips — the property the two separate HashSets used to provide.
+        if (!(ItemFieldScope?.ShouldWarnOnce(MaskedValueDiagnostic.Category, DiagnosticFieldKey) ?? true))
+        {
+            return;
+        }
+
         MaskedValueDiagnostic.Warn(
             DiagnosticServiceProvider,
             Context.Field.FieldName,
