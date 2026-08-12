@@ -39,11 +39,19 @@ jobs:
       # `if-no-files-found: ignore` covers the one legitimate miss: a run that fails in Compile,
       # before any test executes and therefore before `test-results/` exists.
       #
-      # Reading it: the log is UTF-16LE and carries ANSI colour escapes, so a plain `grep '^failed '`
-      # matches nothing and looks exactly like an empty artifact. Use:
+      # Reading it (measured against a deliberately reddened run, #231). The log is UTF-16LE and
+      # carries ANSI colour escapes, so a plain `grep '^failed '` matches nothing and looks exactly
+      # like an empty artifact. And it must be ONE iconv PER FILE: the artifact holds one log per
+      # test assembly, and concatenating them leaves the second file's BOM inline immediately before
+      # its first line — which is the line naming the first failure — so `^failed ` cannot match it
+      # either. Both traps fail the same silent way, which is why the loop is spelled out:
       #   gh run download <run-id> -n test-results -D /tmp/tr
-      #   iconv -f UTF-16LE -t UTF-8 /tmp/tr/*.log | sed $'s/\\x1b\\[[0-9;]*m//g' \
-      #     | grep -A5 '^failed '
+      #   for f in /tmp/tr/*.log; do
+      #     iconv -f UTF-16LE -t UTF-8 "$f" | sed $'s/\\x1b\\[[0-9;]*m//g' | grep -A5 '^failed '
+      #   done
+      # That prints the failing test names with their Shouldly detail and stack traces. The same
+      # run's *.trx carries each failure as outcome="Failed" under its fully-qualified testName, and
+      # the *.html is the same report rendered for a browser.
       - name: 'Publish: test-results'
         if: always()
         uses: actions/upload-artifact@v7
