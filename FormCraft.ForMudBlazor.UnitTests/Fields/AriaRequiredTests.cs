@@ -397,6 +397,67 @@ public class AriaRequiredTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void Required_MultipleFileUpload_Field_Should_Announce_Itself_The_Same_Way()
+    {
+        // Arrange - the two upload components diverging is the exact failure class this library keeps
+        // re-filing (#146, #177, #184, #189), so the multiple-file component gets the single-file
+        // component's assertions verbatim rather than a weaker version of them.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Attachments, f => f
+                .WithLabel("Supporting documents")
+                .Required("At least one document is required"))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert - the visible marker
+        component.FindAll(".mud-input-required").ShouldNotBeEmpty();
+
+        // Assert - and the programmatic association on the focusable button
+        var browse = component.FindAll(".mud-toolbar button")[0];
+        var describedBy = browse.GetAttribute("aria-describedby");
+        describedBy.ShouldNotBeNullOrWhiteSpace();
+
+        var hint = component.Find($"#{describedBy}");
+        hint.TextContent.ShouldContain("Supporting documents");
+        hint.TextContent.ShouldContain("required");
+    }
+
+    [Fact]
+    public void Two_Required_Upload_Fields_On_One_Form_Should_Not_Share_A_Description_Id()
+    {
+        // Arrange - the hint is referenced by id, so two upload fields colliding on one id would
+        // point both buttons at the same description and mislabel one of them
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f
+                .WithLabel("Passport scan")
+                .Required("A scan is required"))
+            .AddField(x => x.Attachments, f => f
+                .WithLabel("Supporting documents")
+                .Required("At least one document is required"))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert - one describedby per upload field, and the two differ
+        var describedBy = component
+            .FindAll(".mud-toolbar button[aria-describedby]")
+            .Select(b => b.GetAttribute("aria-describedby"))
+            .ToList();
+
+        describedBy.Count.ShouldBe(2);
+        describedBy.Distinct().Count().ShouldBe(2);
+
+        // Assert - and each resolves to its OWN field's requirement
+        component.Find($"#{describedBy[0]}").TextContent.ShouldContain("Passport scan");
+        component.Find($"#{describedBy[1]}").TextContent.ShouldContain("Supporting documents");
+    }
+
+    [Fact]
     public void FileUpload_Field_With_WithNativeRequired_False_Should_Suppress_Both_Channels()
     {
         // Arrange - the per-field opt-out has to reach this field type too, or ".WithNativeRequired
@@ -492,5 +553,9 @@ public class AriaRequiredTests : MudBlazorTestBase
         public string Country { get; set; } = string.Empty;
 
         public IBrowserFile? Upload { get; set; }
+
+        // Exactly IReadOnlyList<IBrowserFile> — that is what MudBlazorMultipleFileUploadRenderer
+        // matches on, so a different list type would silently render the single-file component.
+        public IReadOnlyList<IBrowserFile>? Attachments { get; set; }
     }
 }

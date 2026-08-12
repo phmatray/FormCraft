@@ -1,10 +1,17 @@
 @namespace FormCraft.ForMudBlazor
 @typeparam TModel
-@inherits FieldComponentBase<TModel, IReadOnlyList<IBrowserFile>?>
+@inherits MudBlazorFileUploadComponentBase<TModel, IReadOnlyList<IBrowserFile>?>
 
 @if (!string.IsNullOrEmpty(Label))
 {
-    <MudText Typo="Typo.body2" Class="mb-1">@Label</MudText>
+    @* The asterisk is aria-hidden: the requirement is conveyed programmatically by the button's
+       aria-describedby below, so announcing "star" here would only duplicate it. *@
+    <MudText Typo="Typo.body2" Class="mb-1">
+        @Label@if (NativeRequiredValue)
+        {
+            <span class="mud-input-required" aria-hidden="true">&nbsp;*</span>
+        }
+    </MudText>
 }
 
 <MudFileUpload @ref="@_fileUpload"
@@ -69,7 +76,8 @@
                OnClick="@OpenFilePickerAsync"
                Variant="@ButtonVariant"
                StartIcon="@Icons.Material.Filled.FolderOpen"
-               Size="Size.Small">
+               Size="Size.Small"
+               aria-describedby="@RequiredDescribedBy">
         Browse
     </MudButton>
     @if (CurrentValue?.Any() == true)
@@ -83,6 +91,13 @@
         </MudButton>
     }
 </MudToolBar>
+
+@if (NativeRequiredValue)
+{
+    @* Rendered outside the label's @if on purpose: an unlabelled required field has no visible
+       marker to carry, so this description is the only channel left to it. *@
+    <div id="@RequiredDescriptionId" style="@RequiredDescriptionStyle">@RequiredDescription</div>
+}
 
 @if (!string.IsNullOrEmpty(HelpText))
 {
