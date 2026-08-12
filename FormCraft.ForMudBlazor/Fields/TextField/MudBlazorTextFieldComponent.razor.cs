@@ -151,15 +151,29 @@ public partial class MudBlazorTextFieldComponent<TModel>
             return;
         }
 
-        var mask = TextMaskMap.Resolve(Mask);
-        if (mask is null)
+        string? maskedResult;
+        try
         {
+            var mask = TextMaskMap.Resolve(Mask);
+            if (mask is null)
+            {
+                return;
+            }
+
+            mask.SetText(CurrentValue);
+            maskedResult = mask.Text;
+        }
+        catch
+        {
+            // Ignored, on the same terms as the emitter's own guard: this mask instance exists ONLY
+            // to compute a diagnostic. Letting MudBlazor's pattern parsing or alignment throw from
+            // here would take down a field render for a warning nobody asked for — the exact
+            // failure MaskedValueDiagnostic.Warn wraps its own body to avoid. The real mask that
+            // renders the field is built separately by GetMask(); nothing here affects it.
             return;
         }
 
-        mask.SetText(CurrentValue);
-
-        if (!MaskedValueDiagnostic.Applies(CurrentValue, mask.Text))
+        if (!MaskedValueDiagnostic.Applies(CurrentValue, maskedResult))
         {
             return;
         }
@@ -177,12 +191,33 @@ public partial class MudBlazorTextFieldComponent<TModel>
             return;
         }
 
+        // Reported under the collection-qualified identity, not the bare field name — the same
+        // reason the LATCH keys on it. A form with Contacts[].Phone and Suppliers[].Phone masked
+        // over legacy data correctly emits two warnings, and naming both of them 'Phone' would
+        // leave the developer unable to tell which collection to audit.
         MaskedValueDiagnostic.Warn(
             DiagnosticServiceProvider,
-            Context.Field.FieldName,
-            Label,
+            DiagnosticFieldKey,
+            QualifiedLabel,
             Mask);
     }
+
+    /// <summary>
+    /// <see cref="FieldComponentBase{TModel, TValue}.Label"/>, qualified by the owning collection
+    /// when this is an item field, or <c>null</c> when the field has no label.
+    /// </summary>
+    /// <remarks>
+    /// A label is chosen for how it reads to an end user in one row, so it is no more unique across
+    /// collections than a bare field name is — two collections both labelling a field "Phone" is the
+    /// normal case, not a contrived one. Qualifying it keeps the message readable *and* unambiguous;
+    /// returning <c>null</c> for an unlabelled field lets the emitter fall back to
+    /// <see cref="MudBlazorFieldComponentBase{TModel, TValue}.DiagnosticFieldKey"/>, which is already
+    /// qualified.
+    /// </remarks>
+    private string? QualifiedLabel =>
+        ItemFieldScope is null || string.IsNullOrWhiteSpace(Label)
+            ? Label
+            : $"{ItemFieldScope.CollectionName}[].{Label}";
 
     protected override void OnParametersSet()
     {

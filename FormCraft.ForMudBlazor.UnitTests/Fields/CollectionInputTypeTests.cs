@@ -367,6 +367,53 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         _logs.Warnings.ShouldBeEmpty();
     }
 
+    [Fact]
+    public void ItemFields_Of_The_Same_Name_In_Two_Collections_Should_Be_Named_Apart()
+    {
+        // Arrange - the latch already counts these as the two separate fields they are, so both are
+        // reported. If both messages then say "Secret", the developer is told twice that something
+        // is wrong and never which collection to audit -- which is the ambiguity
+        // CollectionItemFieldScope.DiagnosticKey exists to remove, and it has to reach the MESSAGE
+        // and not just the latch key to be worth anything.
+        var model = new TwoCollectionModel();
+        model.Contacts.Add(new Credential { Secret = "N/A" });
+        model.Suppliers.Add(new Credential { Secret = "N/A" });
+
+        var config = FormBuilder<TwoCollectionModel>
+            .Create()
+            .AddCollectionField(x => x.Contacts, collection => collection
+                .WithLabel("Contacts")
+                .WithItemForm(item => item
+                    .AddField(x => x.Secret, field => field
+                        .WithLabel("Secret")
+                        .WithAttribute("Mask", "(000) 000-0000"))))
+            .AddCollectionField(x => x.Suppliers, collection => collection
+                .WithLabel("Suppliers")
+                .WithItemForm(item => item
+                    .AddField(x => x.Secret, field => field
+                        .WithLabel("Secret")
+                        .WithAttribute("Mask", "(000) 000-0000"))))
+            .Build();
+
+        // Act
+        Render<FormCraftComponent<TwoCollectionModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(2);
+        warnings.ShouldContain(w => w.Contains("Contacts[].Secret"));
+        warnings.ShouldContain(w => w.Contains("Suppliers[].Secret"));
+    }
+
+    private class TwoCollectionModel
+    {
+        public List<Credential> Contacts { get; set; } = new();
+
+        public List<Credential> Suppliers { get; set; } = new();
+    }
+
     private IRenderedComponent<FormCraftComponent<CredentialsModel>> RenderCredentials(
         IFormConfiguration<CredentialsModel> config,
         int rows,
@@ -385,13 +432,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
 
     private IRenderedComponent<FormCraftComponent<CredentialsModel>> RenderOrderForm(
         IFormConfiguration<CredentialsModel> config)
-    {
-        var model = new CredentialsModel { Items = { new Credential { Secret = "hunter2" } } };
-
-        return Render<FormCraftComponent<CredentialsModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
-    }
+        => RenderCredentials(config, rows: 1, value: "hunter2");
 
     private static IFormConfiguration<CredentialsModel> BuildConfiguration(
         Action<FieldBuilder<Credential, string>> configureItemField)
