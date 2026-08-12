@@ -519,6 +519,114 @@ public class RenderPipelineParityTests : MudBlazorTestBase
             .ShouldBe(standaloneRender.Find("input").GetAttribute("type"));
     }
 
+    [Theory]
+    [InlineData("0000-0000")]
+    [InlineData("(000) 000-0000")]
+    [InlineData("aaa-000")]
+    [InlineData("**-**")]
+    public void Mask_Should_Resolve_Identically_On_Both_Paths(string configured)
+    {
+        // Arrange - #211. Masks were the last entry on this class's "deliberately NOT compared" list:
+        // the component path read the string into a property and dropped it, and the collection path
+        // did not forward it at all, so `.WithAttribute("Mask", …)` was inert everywhere. Both paths
+        // now resolve through TextMaskMap, which is what makes them comparable rather than merely
+        // equally broken.
+        void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field.WithLabel("Value").WithAttribute("Mask", configured);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act
+        var standaloneRender = RenderForm(standaloneConfig);
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+
+        // Assert - the pattern and the mask TYPE, never the instance: each path builds its own IMask,
+        // so reference equality would fail for two identically-configured fields and prove nothing.
+        var standaloneMask = standaloneRender.FindComponent<MudTextField<string>>().Instance.Mask;
+        var itemMask = itemRender.FindComponent<MudTextField<string>>().Instance.Mask;
+
+        standaloneMask.ShouldNotBeNull();
+        itemMask.ShouldNotBeNull();
+        itemMask.Mask.ShouldBe(standaloneMask.Mask);
+
+        // The concrete type is asserted, across every pattern in the theory, because it is
+        // load-bearing rather than incidental. MudMask.SetMask preserves the user's text and caret
+        // only when the mask it is handed is of the SAME TYPE as the one it already holds:
+        //
+        //     if (_mask.GetType() == other.GetType()) { _mask.UpdateFrom(other); return; }
+        //     other.SetText(ReadText);
+        //     _mask = other;
+        //
+        // Both paths construct a new instance on every render, and Immediate="true" means a render
+        // per keystroke — so a resolver that returned a different IMask implementation for some
+        // patterns would swap the mask out mid-edit. Pinning the type over several patterns is what
+        // catches that.
+        standaloneMask.ShouldBeOfType<PatternMask>();
+        itemMask.ShouldBeOfType<PatternMask>();
+    }
+
+    [Theory]
+    [InlineData("0000-0000", "12345678", "1234-5678")]
+    [InlineData("(000) 000-0000", "5551234567", "(555) 123-4567")]
+    [InlineData("aaa-000", "abc123", "abc-123")]
+    public void A_Configured_Mask_Should_Conform_Typed_Input_On_Both_Paths(
+        string configured,
+        string typed,
+        string expected)
+    {
+        // Arrange - the half a parameter assertion cannot reach. The tests above prove an IMask with
+        // the right pattern is handed to MudBlazor; this proves the pattern actually means what a
+        // caller writing "(000) 000-0000" expects — that `0` takes a digit, `a` a letter, and every
+        // other character is a literal the mask inserts. A mask bound but interpreted differently
+        // would satisfy every other test in this file.
+        void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field.WithLabel("Value").WithAttribute("Mask", configured);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act - drive each path's own resolved mask, rather than a locally constructed one: a test
+        // that built its own PatternMask would pass even if the render paths bound something else.
+        var standaloneMask = RenderForm(standaloneConfig)
+            .FindComponent<MudTextField<string>>().Instance.Mask;
+        var itemMask = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+                .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+                .Add(p => p.Configuration, collectionConfig))
+            .FindComponent<MudTextField<string>>().Instance.Mask;
+
+        standaloneMask.ShouldNotBeNull();
+        itemMask.ShouldNotBeNull();
+        standaloneMask.Insert(typed);
+        itemMask.Insert(typed);
+
+        // Assert
+        standaloneMask.Text.ShouldBe(expected);
+        itemMask.Text.ShouldBe(expected);
+    }
+
     [Fact]
     public void NativeRequiredOptIn_Should_Be_Honoured_Identically_On_Both_Paths()
     {
@@ -784,9 +892,11 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     /// <item><c>EnablePasswordToggle</c> — component path only: <c>.AsPassword()</c> puts a
     /// visibility eye on a standalone field and nothing on an item field. The masking itself is
     /// compared (see <c>InputType</c> below); only the toggle affordance diverges.</item>
-    /// <item><c>Mask</c> — neither path renders one. FormCraft stores it as a string, MudBlazor's
-    /// parameter wants an <c>IMask</c>, and the component path's <c>GetMask()</c> is an
-    /// unimplemented stub that nothing calls. Listed so it is not mistaken for coverage.</item>
+    /// <item>✅ <b>Resolved in #211</b> — <c>Mask</c> used to render on neither path: FormCraft stores
+    /// it as a string, MudBlazor's parameter wants an <c>IMask</c>, and the component path's
+    /// <c>GetMask()</c> was an unimplemented stub that nothing called. Both paths now resolve the
+    /// string through <c>TextMaskMap</c>, and the resolved pattern is compared in
+    /// <c>Presentation()</c> below.</item>
     /// </list>
     /// <para>
     /// <c>InputType</c>, <c>Lines</c>, <c>MaxLength</c> and <c>Autocomplete</c> moved out of that
@@ -826,6 +936,10 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         field.InputType,
         field.Lines,
         field.MaxLength,
+        // The pattern, not the IMask: each path resolves its own instance (they must — a mask carries
+        // the live caret and text of the input it is attached to), so comparing the objects would
+        // report a divergence for two identically-configured fields.
+        field.Mask?.Mask,
         // MudTextField has no Autocomplete parameter; both paths emit a raw lowercase HTML
         // attribute, so the unmatched-attribute bag is where the comparison has to read it.
         field.UserAttributes.GetValueOrDefault("autocomplete"),

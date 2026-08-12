@@ -307,10 +307,18 @@ internal static class TextMaskMap
     /// Returns a fresh instance per call, deliberately. A mask is not a value: <see cref="BaseMask"/>
     /// carries the live <c>Text</c>, <c>CaretPos</c> and <c>Selection</c> of the input it is attached
     /// to, so one cached instance shared between two fields — or between two rows of the same
-    /// collection — would have them overwrite each other's editing state. Handing MudBlazor a new
-    /// instance on each render is what its API expects in return: <see cref="IMask.UpdateFrom"/>
-    /// copies the mask and its mask characters out of the supplied instance into the one the input
-    /// already owns, leaving that input's own state intact.
+    /// collection — would have them overwrite each other's editing state.
+    /// </para>
+    /// <para>
+    /// Fresh-per-render is what MudBlazor expects in return, and it is safe for a specific reason
+    /// worth stating, because a future change here could break it silently. <c>MudMask.SetMask</c>
+    /// keeps the instance it already owns and copies into it — <c>_mask.UpdateFrom(other)</c>,
+    /// preserving the user's text and caret — but <b>only when the supplied mask is of the same
+    /// type</b>; otherwise it adopts the new instance outright. Since a render happens on every
+    /// keystroke (<c>Immediate="true"</c>), a resolver that returned different <see cref="IMask"/>
+    /// implementations for different patterns would swap the mask out mid-edit. Always returning
+    /// <see cref="PatternMask"/> is therefore load-bearing, not incidental, and is pinned across
+    /// several patterns by <c>RenderPipelineParityTests.Mask_Should_Resolve_Identically_On_Both_Paths</c>.
     /// </para>
     /// </remarks>
     internal static IMask? Resolve(string? mask) =>
