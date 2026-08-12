@@ -221,7 +221,17 @@ public interface IUIFrameworkAdapter
 - No magic strings for property names
 
 #### Validation Behavior
-- `Required()` adds validation but NOT HTML5 required attribute
+- **The convention governs browser *constraint validation*, not accessibility annotations** (#199).
+  Those are different things, and conflating them is what left required fields silent to screen
+  readers. `Required()` still routes validation server-side and the browser still runs none — but a
+  required field must be *identified*, which is WCAG 2.1 3.3.2 (Level A)
+- `Required()` therefore DOES set MudBlazor's `Required` on both render paths, which emits
+  `aria-required="true"`, the `*` asterisk, and the HTML5 `required` attribute. MudBlazor derives all
+  three from one flag and they cannot be separated: `MudInput` splats `UserAttributes` and then writes
+  its own `required`/`aria-required` afterwards, so a caller-supplied value is always overwritten
+  (measured on 9.8.0). The HTML5 attribute is inert here because the form renders `novalidate`.
+  ⛔ Do not "restore the convention" by dropping this — that is #190, which #199 reversed, and it
+  reintroduces a Level A accessibility failure. `.WithNativeRequired(false)` is the per-field opt-out
 - Browser validation disabled via a `novalidate` attribute **rendered on the form** by
   `FormCraftComponent` (#206). It is a real attribute in the markup, so it applies during
   prerender/SSR, targets this component's own form rather than the first one on the page, and needs
@@ -230,7 +240,9 @@ public interface IUIFrameworkAdapter
   ran on the server pass, failed silently, and was blocked outright by a strict CSP
 - All validation through FluentValidation
 - Validation messages from server, not browser
-- MudBlazor components don't include `Required` attribute
+- MudBlazor components DO set `Required` for a `.Required(...)` field since #199 (see above); the
+  field types that bind it are text, numeric and date on both paths. Select, autocomplete, lookup,
+  LOV, file-upload and boolean fields bind none, so they are not announced — a known gap, not a rule
 
 #### Testing Patterns
 ```csharp
