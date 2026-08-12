@@ -422,6 +422,7 @@ public class RenderPipelineParityTests : MudBlazorTestBase
                 .WithVariant(Variant.Filled)
                 .AsPassword(enableVisibilityToggle: false)
                 .WithAttribute("MaxLength", 500)
+                .WithAttribute("Mask", "aaaa-0000")
                 .WithAutocomplete("current-password")
                 .Required("Product name is required");
 
@@ -455,6 +456,10 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         standalone.Variant.ShouldBe(Variant.Filled);
         standalone.InputType.ShouldBe(InputType.Password);
         standalone.MaxLength.ShouldBe(500);
+        // Without this the Mask entry in Presentation() would be a null-vs-null comparison — present
+        // in the array, proving nothing, and reading as coverage. Exactly the trap this method's own
+        // doc warns about, so the guard has to include the attribute that was just added to it.
+        standalone.Mask?.Mask.ShouldBe("aaaa-0000");
         standalone.UserAttributes.GetValueOrDefault("autocomplete").ShouldBe("current-password");
 
         // And guard against the subtler failure the parameter comparison cannot see: a value that
@@ -630,12 +635,11 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     [Fact]
     public void A_Mask_Combined_With_Lines_Should_Be_Resolved_Identically_On_Both_Paths()
     {
-        // Arrange - the combination MudBlazor cannot honour as written, checked for DRIFT rather than
-        // for a particular outcome. Past Lines > 1 MudBlazor renders a <textarea>, which cannot carry
-        // a mask, so the mask is dropped — the mirror image of #207, where a password field's Lines is
-        // dropped instead so the masking survives. What #211 must guarantee is that both render paths
-        // land in the same place, which is the property this file exists to defend; whether that place
-        // is the right one is a separate question (tracked as a follow-up on the PR).
+        // Arrange - mask plus multi-line, which unlike `.AsPassword()` + `Lines` (#207) IS honoured in
+        // full: MudTextField chooses its input implementation on `Mask == null` alone, so a masked
+        // field always renders a MudMask, and MudMask opens a <textarea> past one line while still
+        // masking. Neither setting is dropped. What #211 must guarantee is that both render paths land
+        // in the same place, which is what this asserts — the element choice AND the values behind it.
         void Configure<TOwner>(FieldBuilder<TOwner, string> field)
             where TOwner : new()
             => field.WithLabel("Value").AsTextArea(lines: 4).WithAttribute("Mask", "0000-0000");

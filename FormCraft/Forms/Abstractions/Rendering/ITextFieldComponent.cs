@@ -26,13 +26,12 @@ public interface ITextFieldComponent<TModel> : IFieldComponent<TModel>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A pattern is written one character per input position: <c>0</c> accepts a digit, <c>a</c> a
-    /// letter, and <c>*</c> either. Every other character is a literal that the field inserts as the
-    /// user types — so <c>"(000) 000-0000"</c> turns <c>5551234567</c> into <c>(555) 123-4567</c>.
-    /// </para>
-    /// <para>
-    /// The pattern is a string rather than a UI framework's mask type so this contract stays
-    /// framework-agnostic; each implementation translates it into whatever its own components take.
+    /// The pattern is an opaque string rather than a UI framework's mask type, so this contract stays
+    /// framework-agnostic: each implementation translates it into whatever its own components take,
+    /// and <b>defines the pattern language itself</b>. Consult the UI adapter in use for the
+    /// characters it accepts — this interface deliberately does not fix them, because pinning one
+    /// framework's syntax here would either bind every other adapter to it or make them silently
+    /// violate a documented core contract.
     /// </para>
     /// </remarks>
     string? Mask { get; set; }

@@ -68,7 +68,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
                 ConfiguredLines);
         }
         Autocomplete = GetAttribute<string?>("autocomplete");
-        Mask = GetAttribute<string?>("Mask");
+        Mask = GetAttribute<string?>(TextMaskMap.AttributeName);
 
         // Load adornment configuration
         var customAdornment = GetAttribute<Adornment?>("Adornment");
@@ -286,6 +286,19 @@ internal static class TextInputTypeMap
 internal static class TextMaskMap
 {
     /// <summary>
+    /// The attribute key a field configures a mask under: <c>.WithAttribute("Mask", "0000-0000")</c>.
+    /// </summary>
+    /// <remarks>
+    /// Named rather than spelled twice. Both render paths read this attribute, and extracting the
+    /// interpretation into <see cref="Resolve"/> while leaving the KEY as a literal in two files
+    /// would still allow them to drift: a typo in either one disables masking on that path alone,
+    /// which is the divergence class #211 exists to close. Mirrors
+    /// <c>MudBlazorFieldBuilderExtensions.AdornmentClickAttribute</c>; it lives here rather than
+    /// there because no builder method writes this one — callers pass the string themselves.
+    /// </remarks>
+    internal const string AttributeName = "Mask";
+
+    /// <summary>
     /// Maps a configured mask pattern onto MudBlazor's <see cref="IMask"/>, or <c>null</c> when the
     /// field configured none.
     /// </summary>
@@ -302,6 +315,14 @@ internal static class TextMaskMap
     /// input as soon as <c>Mask</c> is non-null, and that swap also makes it ignore <c>MaxLines</c>
     /// and <c>Sizing</c> — so an empty-but-present mask would quietly reroute every unmasked text
     /// field in the library through a different component.
+    /// </para>
+    /// <para>
+    /// The blank test is <see cref="string.IsNullOrWhiteSpace"/> rather than
+    /// <see cref="string.IsNullOrEmpty"/>, because a whitespace-only pattern is the same mistake
+    /// wearing a different hat and has a worse outcome. <c>" "</c> — easy to arrive at from
+    /// configuration binding or a trimmed-to-blank setting — is not "no mask": it is a mask whose
+    /// single position is a literal space, so the field takes the <c>MudMask</c> path AND accepts no
+    /// input at all. Treating it as unconfigured is the only reading that leaves the field usable.
     /// </para>
     /// <para>
     /// Returns a fresh instance per call, deliberately. A mask is not a value: <see cref="BaseMask"/>
@@ -322,5 +343,5 @@ internal static class TextMaskMap
     /// </para>
     /// </remarks>
     internal static IMask? Resolve(string? mask) =>
-        string.IsNullOrEmpty(mask) ? null : new PatternMask(mask);
+        string.IsNullOrWhiteSpace(mask) ? null : new PatternMask(mask);
 }

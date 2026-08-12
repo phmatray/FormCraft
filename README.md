@@ -66,11 +66,15 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
       .WithAttribute("Mask", "(000) 000-0000"))   // ← was inert, now masks as you type
   ```
 
-  Pattern characters are `0` (digit), `a` (letter) and `*` (letter or digit); every other character is a literal the mask inserts for you — so typing `5551234567` above yields `(555) 123-4567`.
+  Pattern characters are `0` (digit), `a` (letter) and `*` (letter or digit); every other character is a literal the mask inserts for you — so typing `5551234567` above yields `(555) 123-4567`. A blank pattern (`""` or whitespace) means *no mask*, so a setting that binds to empty leaves the field alone rather than making it reject every keystroke. Unlike `.AsPassword()` + `Lines` (#207), a mask combined with `AsTextArea(lines: > 1)` is honoured in full — you get a masked `<textarea>`.
 
-  **Behaviour change to be aware of.** A form that already passes `Mask` starts masking — the characters are now reformatted as they are typed, and a value that does not fit the pattern is no longer accepted verbatim. A field that configures no mask is untouched.
+  **Three things to check before you upgrade**, if you already pass `Mask` — it did nothing until now, so all three are newly reachable:
 
-  **One combination still cannot be honoured:** a mask together with `AsTextArea(lines: > 1)`. MudBlazor renders a `<textarea>` past one line, and a textarea cannot carry a mask, so the **mask** is the half that gets dropped. This is the mirror image of the `.AsPassword()` + `Lines` rule (#207), where the line count is dropped instead so the masking survives. Both render paths agree on it — pinned by a parity test — so it is a limitation rather than a divergence.
+  1. **The model stores the *masked* text.** With the mask above, `model.Phone` becomes `"(555) 123-4567"`, not `"5551234567"`. Validation, database columns and APIs keyed to raw digits will see the delimiters. (MudBlazor can strip them — `PatternMask.CleanDelimiters` — but FormCraft has no way to reach that yet; see the follow-up on #211.)
+  2. **An existing value that doesn't fit the pattern renders as an empty field** — while the model quietly keeps the original. The user sees a blank input, submits without touching it, and the old value survives. Worth auditing stored data against the pattern before turning a mask on.
+  3. **Masked fields render through MudBlazor's `MudMask`**, which MudBlazor documents as *"recommended to be used in WASM projects only because it has known problems in BSS, especially with high network latency"*. On Blazor Server, test the field under realistic latency before shipping it.
+
+  A field that configures no mask is untouched by all of this.
 
 - **Date collection item fields honour a configured adornment — and keep their calendar icon.** `.WithAdornment(...)` on a date field inside `.WithItemForm(...)` was accepted and silently dropped: the date path refused the forward because `MudDatePicker` defaults to `Adornment.End` with its own calendar icon, and forwarding an unset adornment would have erased it. Both now hold — MudDatePicker's End + calendar icon is the **default**, and a configured adornment wins (#217)
 

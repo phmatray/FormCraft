@@ -471,7 +471,8 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // defaults to, and keeping the frame layout per-CALL-SITE rather than per-configuration is
         // what makes the sequence numbers safe.
         builder.AddAttribute(startIndex++, "Mask",
-            TextMaskMap.Resolve(GetItemFieldAttribute<string?>(field, "Mask", null)));
+            TextMaskMap.Resolve(
+                GetItemFieldAttribute<string?>(field, TextMaskMap.AttributeName, null)));
 
         // Lowercase on purpose: MudTextField has no Autocomplete parameter, so this rides through
         // its unmatched-attribute bag onto the rendered <input> exactly as the component path's

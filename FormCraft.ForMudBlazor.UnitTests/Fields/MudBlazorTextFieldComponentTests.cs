@@ -844,13 +844,14 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void TextField_With_A_Mask_And_Lines_Should_Render_A_Single_Line_Input()
+    public void TextField_With_A_Mask_And_Lines_Should_Render_A_Masked_Textarea()
     {
-        // Arrange - #211, the mask/multi-line interaction, and the twin of #207's password/Lines rule.
-        // MudBlazor swaps MudTextField's whole input implementation for a MudMask once Mask is
-        // non-null, and a MudMask is an <input>: there is no such thing as a masked <textarea>. So the
-        // combination cannot be honoured as written, exactly as `.AsPassword()` + `Lines` could not.
-        // Pinned because it is a silent narrowing — nothing throws, the field just stops being tall.
+        // Arrange - #211, the mask/multi-line interaction. Unlike `.AsPassword()` + `Lines` (#207),
+        // this combination IS honoured: MudTextField picks its input implementation on `Mask == null`
+        // alone and never consults `Lines`, so a masked field always renders a MudMask — and MudMask
+        // itself opens a <textarea> past one line while still running its masking. So both settings
+        // survive, and neither is dropped. Measured rather than assumed, because the intuition that a
+        // textarea "cannot be masked" is wrong here and was briefly written into this repo's docs.
         var model = new TestModel();
         var config = FormBuilder<TestModel>
             .Create()
@@ -865,11 +866,95 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
             .Add(p => p.Model, model)
             .Add(p => p.Configuration, config));
 
-        // Assert - measured, not assumed: MudBlazor resolves this the other way round from #207's
-        // password rule. Past Lines > 1 it renders a <textarea>, and a textarea cannot carry a mask,
-        // so the MASK is what gets dropped here rather than the line count.
+        // Assert - the textarea is the MASK's own element, not a fallback that discarded it.
         component.FindAll("textarea").Count.ShouldBe(1);
         component.FindAll("input").ShouldBeEmpty();
+        component.FindComponents<MudMask>().Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void TextField_With_A_Mask_Should_Write_The_Masked_Text_To_The_Model()
+    {
+        // Arrange - the feature's actual contract, end to end. Every other mask test in this repo
+        // stops at "the right IMask object is attached", which would still pass if the
+        // oninput → MudMask → MudTextField → OnLocalValueChanged → Context.OnValueChanged chain were
+        // broken anywhere along it. This drives the rendered element instead.
+        //
+        // Note WHAT lands in the model: the masked text, delimiters and all, because
+        // PatternMask.CleanDelimiters defaults to false and FormCraft does not change it. A model
+        // bound to a masked field therefore stores "(555) 123-4567", not "5551234567" — which is a
+        // behaviour change for anyone whose storage or validation expects raw digits.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Act
+        component.Find("input").Input("5551234567");
+
+        // Assert
+        model.Phone.ShouldBe("(555) 123-4567");
+    }
+
+    [Fact]
+    public void TextField_With_A_Mask_Should_Blank_An_Existing_Value_That_Does_Not_Fit()
+    {
+        // Arrange - the upgrade hazard, pinned so it is known rather than discovered. A field whose
+        // stored value does not conform to the pattern renders EMPTY, while the model quietly keeps
+        // the original: MudBlazor's first parameter pass runs the value through the mask to build the
+        // display text, and does not write the result back. The user sees a blank field, submits
+        // without touching it, and the non-conforming value survives.
+        //
+        // This is not new behaviour in MudBlazor — it is newly REACHABLE, because until #211 the Mask
+        // attribute did nothing at all. Documented in the README's behaviour-change note; a
+        // diagnostic for it is filed as a follow-up rather than built here.
+        var model = new TestModel { Phone = "N/A" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.Find("input").GetAttribute("value").ShouldBeNullOrEmpty();
+        model.Phone.ShouldBe("N/A");
+    }
+
+    [Fact]
+    public void TextField_With_A_Blank_Mask_Should_Bind_No_Mask()
+    {
+        // Arrange - a whitespace-only pattern is not "a mask of one space", it is a
+        // configuration accident (a trimmed-to-blank setting, an empty config binding). Honouring it
+        // literally produces a field that routes through MudMask and then accepts no input at all,
+        // which is strictly worse than ignoring it.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "   "))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
     }
 
     private class NumericModel
