@@ -27,12 +27,7 @@ namespace FormCraft.UnitTests.Ci;
 /// </remarks>
 public class TestReportingTests
 {
-    private static readonly string RepoRoot = LocateRepoRoot();
-
-    /// <summary>Every workflow file, read once — these tests are pure text assertions over them.</summary>
-    private static readonly Dictionary<string, string> WorkflowText = ReadAllWorkflows();
-
-    private static readonly List<string> TestRunningWorkflows = DiscoverWorkflowsThatRunTests();
+    private static readonly IReadOnlyList<string> TestRunningWorkflows = DiscoverWorkflowsThatRunTests();
 
     /// <summary>
     /// The one step name all three workflows use for this upload. Asserted as a literal because it
@@ -68,33 +63,13 @@ public class TestReportingTests
         ["log"] = "--results-directory",
     };
 
-    private static string LocateRepoRoot()
-    {
-        // dir.Parent is DirectoryInfo?, so the variable has to be too — inferring DirectoryInfo
-        // from the initializer would fail the build under TreatWarningsAsErrors.
-        DirectoryInfo? dir = new(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "FormCraft.sln")))
-        {
-            dir = dir.Parent;
-        }
+    /// <summary>The build script, comment-stripped — the text every <c>Build.cs</c> claim below reads.</summary>
+    private static string BuildScript() =>
+        WorkflowSource.WithoutComments(WorkflowSource.ReadBuildScript(), "//");
 
-        dir.ShouldNotBeNull("could not locate FormCraft.sln above the test output directory");
-        return dir.FullName;
-    }
-
-    private static string WorkflowsDirectory => Path.Combine(RepoRoot, ".github", "workflows");
-
-    private static Dictionary<string, string> ReadAllWorkflows() =>
-        Directory
-            .EnumerateFiles(WorkflowsDirectory, "*.*")
-            .Where(f => f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase)
-                     || f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase))
-            .ToDictionary(f => Path.GetFileName(f), f => File.ReadAllText(f), StringComparer.Ordinal);
-
-    private static string ReadWorkflow(string fileName) => WorkflowText[fileName];
-
-    private static string ReadBuildScript() =>
-        File.ReadAllText(Path.Combine(RepoRoot, "build", "Build.cs"));
+    /// <summary>One workflow, comment-stripped — the text every workflow claim below reads.</summary>
+    private static string Workflow(string fileName) =>
+        WorkflowSource.WithoutComments(WorkflowSource.Read(fileName), "#");
 
     /// <summary>
     /// Every workflow that reaches Nuke's <c>Test</c> target, discovered rather than listed, so a
@@ -107,16 +82,10 @@ public class TestReportingTests
     /// <c>run:</c> prefix: a <c>run: |</c> block puts the command on a later line, and the repo
     /// documents <c>./build.sh</c> as the macOS/Linux entry point alongside <c>./build.cmd</c>.
     /// </remarks>
-    private static List<string> DiscoverWorkflowsThatRunTests() =>
-        WorkflowText
-            .Where(entry => Regex.IsMatch(
-                WithoutComments(entry.Value, "#"),
-                $@"\./build\.(cmd|sh|ps1)\s+({TargetsThatRunTests})\b"))
-            .Select(entry => entry.Key)
-            .Order(StringComparer.Ordinal)
-            .ToList();
+    private static IReadOnlyList<string> DiscoverWorkflowsThatRunTests() =>
+        WorkflowSource.Matching($@"\./build\.(cmd|sh|ps1)\s+({TargetsThatRunTests})\b");
 
-    private static List<string> WorkflowsThatRunTests()
+    private static IReadOnlyList<string> WorkflowsThatRunTests()
     {
         // The vacuity guard lives here rather than in one caller: every assertion below is of the
         // form "no workflow in this set offends", which an empty set satisfies trivially. A rename,
@@ -139,44 +108,11 @@ public class TestReportingTests
     private static bool Enables(string build, string option) =>
         Regex.IsMatch(build, Regex.Escape(option) + "(?![-A-Za-z])");
 
-    /// <summary>
-    /// Drops whole-line comments so a "not referenced" assertion fires on wiring rather than on
-    /// prose — these files carry long explanatory blocks about this very wiring, and without this a
-    /// documentation-only edit would turn the suite red for a reason unrelated to the build. Only
-    /// leading-<paramref name="marker" /> lines are stripped: a trailing-comment strip would also
-    /// mangle the "https://" in a URL.
-    /// </summary>
-    private static string WithoutComments(string text, string marker) =>
-        string.Join(
-            '\n',
-            text.Split('\n').Where(line => !line.TrimStart().StartsWith(marker, StringComparison.Ordinal)));
-
-    /// <summary>
-    /// A single step of a workflow, so an assertion about its <c>if:</c> or <c>path:</c> cannot be
-    /// satisfied by the same text sitting on some other step. Runs from the <c>- name:</c> line to
-    /// the start of the next list item, which covers the step's <c>if:</c>, <c>uses:</c> and
-    /// <c>with:</c>.
-    /// </summary>
-    private static string StepNamed(string workflowFile, string stepName)
-    {
-        var lines = WithoutComments(ReadWorkflow(workflowFile), "#").Split('\n');
-        var start = Array.FindIndex(
-            lines,
-            l => l.TrimStart().StartsWith($"- name: '{stepName}'", StringComparison.Ordinal));
-        start.ShouldBeGreaterThanOrEqualTo(0, $"{workflowFile} no longer has a step named '{stepName}'");
-
-        var end = Array.FindIndex(lines, start + 1, l => l.TrimStart().StartsWith("- ", StringComparison.Ordinal));
-        if (end < 0)
-        {
-            end = lines.Length;
-        }
-
-        return string.Join('\n', lines[start..end]);
-    }
+    private static string StepNamed(string workflowFile, string stepName) =>
+        WorkflowSource.StepNamed(Workflow(workflowFile), stepName, workflowFile);
 
     private static bool HasUploadStep(string workflowFile) =>
-        WithoutComments(ReadWorkflow(workflowFile), "#")
-            .Contains($"- name: '{UploadStepName}'", StringComparison.Ordinal);
+        Workflow(workflowFile).Contains($"- name: '{UploadStepName}'", StringComparison.Ordinal);
 
     [Fact]
     public void BuildScript_Should_Not_Set_The_VSTest_Properties_That_Mtp_Ignores()
@@ -185,7 +121,7 @@ public class TestReportingTests
         // Microsoft.Testing.Platform they are not merely ineffective, they are announced as
         // ignored (MTP0001) on every single run — warning noise in a repo whose entire build runs
         // under TreatWarningsAsErrors, which is exactly how readers get trained past warnings.
-        var build = WithoutComments(ReadBuildScript(), "//");
+        var build = BuildScript();
 
         build.ShouldNotContain("SetResultsDirectory");
         build.ShouldNotContain("SetLoggers");
@@ -197,7 +133,7 @@ public class TestReportingTests
         // The native equivalents, which the runner does honour. --results-directory carries the
         // most weight of the three: it is what puts the reports *and* the per-assembly diagnostic
         // log under test-results/, which is the single path all three workflows upload.
-        var build = WithoutComments(ReadBuildScript(), "//");
+        var build = BuildScript();
 
         Enables(build, "--results-directory").ShouldBeTrue();
         Enables(build, "--report-xunit-trx").ShouldBeTrue();
@@ -211,7 +147,7 @@ public class TestReportingTests
         // honoured today and silently dropped tomorrow, exactly as VSTestResultsDirectory was. #231
         // existed because nothing anywhere noticed months of empty output, so the build itself has
         // to notice.
-        var build = WithoutComments(ReadBuildScript(), "//");
+        var build = BuildScript();
 
         build.ShouldContain("Assert.NotEmpty");
         build.ShouldMatch(@"GlobFiles\(""\*\.trx""\)");
@@ -225,7 +161,7 @@ public class TestReportingTests
         // MTP world. Cross-checking the promise against the flags means the assertion cannot be
         // satisfied by copying a literal list, and a future format switch that updates one half
         // without the other turns red here.
-        var build = WithoutComments(ReadBuildScript(), "//");
+        var build = BuildScript();
 
         var promised = Regex
             .Matches(build, """\.Produces\(TestResultsDirectory\s*/\s*"\*\.(?<ext>[A-Za-z]+)"\)""")
