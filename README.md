@@ -103,14 +103,14 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
       .WithMask("(000) 000-0000", cleanDelimiters: true)) // model stores "5551234567"
 
   .AddField(x => x.Pin, field => field
-      .WithMask(new RegexMask("^[0-9]{0,4}$")))           // any MudBlazor IMask
+      .WithMask(() => new RegexMask("^[0-9]{0,4}$")))     // any MudBlazor IMask
   ```
 
   | Configuration | Resolved mask | Model receives |
   |---|---|---|
   | `.WithMask("0000-0000")` | `PatternMask` | `"1234-5678"` (delimited) |
   | `.WithMask("0000-0000", cleanDelimiters: true)` | `PatternMask` with `CleanDelimiters = true` | `"12345678"` |
-  | `.WithMask(new RegexMask(…))` | that instance | per that mask |
+  | `.WithMask(() => new RegexMask(…))` | what the factory returns | per that mask |
   | `.WithAttribute("Mask", "0000-0000")` | `PatternMask` | `"1234-5678"` — unchanged |
   | blank or whitespace pattern | none | value unchanged |
 
@@ -118,7 +118,9 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **A pre-built `IMask` used to be discarded silently.** `.WithAttribute("Mask", new RegexMask(…))` — the natural thing for a MudBlazor user to write — compiled, built and rendered while doing nothing at all: both render paths read that key as `string?`, so an `IMask` failed their type test and fell back to `null`, putting `RegexMask`, `BlockMask` and `MultiMask` out of reach. The new overload writes a separate, correctly-typed key.
 
-  ⚠️ **Two things to know about a mask you construct yourself.** It is a **prototype**, not the live mask — MudBlazor reads settings out of it rather than holding on to it — so configure it fully before passing it and do not mutate it afterwards. And a regex mask is matched against *partial* input, so its pattern must accept prefixes: `^[0-9]{0,4}$`, never `^[0-9]{4}$`, which never matches a shorter prefix and so blocks every keystroke.
+  **Why a factory and not the mask itself.** A mask is not a value: MudBlazor's `BaseMask` carries the live `Text`, `CaretPos` and `Selection` of the input it is attached to. One field configuration is shared by every row of a collection, so a mask stored in it would be handed to every row at once — and `MudMask.SetMask` keeps the object it is given rather than copying it whenever the type differs from the `PatternMask` it seeds itself with, which is the case for every `RegexMask`, `BlockMask` and `MultiMask`. Taking `Func<IMask>` gives each rendered field its own instance and keeps the built configuration immutable. Return the **same implementation type** on every call: MudBlazor preserves the user's text and caret only when the incoming mask matches the type it already holds, and a render happens on every keystroke.
+
+  ⚠️ **A regex mask is matched against *partial* input**, so its pattern must accept prefixes: `^[0-9]{0,4}$`, never `^[0-9]{4}$`, which never matches a shorter prefix and so blocks every keystroke.
 
   `.WithAttribute("Mask", "…")` keeps working and is unchanged — this is additive, not a migration. Both render paths resolve all of it through the same `TextMaskMap.Resolve`, so an ordinary field and one inside `.WithItemForm(...)` agree by construction.
 

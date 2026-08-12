@@ -656,14 +656,14 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void A_Prebuilt_IMask_Should_Resolve_Identically_On_Both_Paths()
+    public void A_Supplied_Mask_Should_Resolve_Identically_On_Both_Paths()
     {
-        // Arrange - #265's IMask overload, held to the same parity bar as the pattern above. A
-        // supplied instance takes a different branch of Resolve than a pattern string does, so it is
+        // Arrange - #265's factory overload, held to the same parity bar as the pattern above. A
+        // supplied mask takes a different branch of Resolve than a pattern string does, so it is
         // its own opportunity for the two paths to disagree.
         void Configure<TOwner>(FieldBuilder<TOwner, string> field)
             where TOwner : new()
-            => field.WithLabel("Value").WithMask(new RegexMask("^[0-9]{0,4}$"));
+            => field.WithLabel("Value").WithMask(() => new RegexMask("^[0-9]{0,4}$"));
 
         var standaloneConfig = FormBuilder<TestModel>
             .Create()
@@ -692,6 +692,45 @@ public class RenderPipelineParityTests : MudBlazorTestBase
 
         itemMask.Mask.ShouldBe(standaloneMask.Mask);
         itemMask.Mask.ShouldBe("^[0-9]{0,4}$");
+    }
+
+    [Fact]
+    public void A_Mask_Configured_Once_Should_Not_Be_Shared_Between_Collection_Rows()
+    {
+        // Arrange - every row of a collection reads the SAME IFieldConfiguration, so anything the
+        // configuration stores by reference is handed to every row's component. A BaseMask is not a
+        // value: it carries the live Text, CaretPos and Selection of the input it is attached to, and
+        // MudMask.SetMask adopts an incoming mask outright (`_mask = other`) whenever its type
+        // differs from the PatternMask it seeds itself with — which is every RegexMask, BlockMask and
+        // MultiMask. Two rows holding one instance therefore edit each other's text.
+        //
+        // Two rows, one configuration, and a mask the configuration cannot hand out twice by
+        // reference is the whole test.
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, field => field
+                    .WithLabel("Value")
+                    .WithMask(() => new RegexMask("^[0-9]{0,4}$")))))
+            .Build();
+
+        // Act
+        var render = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem(), new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+
+        // Assert
+        var masks = render.FindComponents<MudTextField<string>>()
+            .Select(c => c.Instance.Mask)
+            .ToList();
+
+        masks.Count.ShouldBe(2);
+        masks[0].ShouldNotBeNull();
+        masks[1].ShouldNotBeNull();
+        masks[0].ShouldNotBeSameAs(masks[1]);
+        masks[0].ShouldBeOfType<RegexMask>();
+        masks[1].ShouldBeOfType<RegexMask>();
     }
 
     [Theory]
