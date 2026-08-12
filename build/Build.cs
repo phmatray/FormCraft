@@ -91,18 +91,66 @@ class Build : NukeBuild
     Target Test => _ => _
         .DependsOn(Compile)
         .Produces(TestResultsDirectory / "*.trx")
-        .Produces(TestResultsDirectory / "*.xml")
+        .Produces(TestResultsDirectory / "*.html")
+        .Produces(TestResultsDirectory / "*.log")
         .Executes(() =>
         {
+            // Both test projects run on Microsoft.Testing.Platform (UseMicrosoftTestingPlatformRunner),
+            // which ignores DotNetTest's VSTest surface. This target used to call
+            // .SetResultsDirectory()/.SetLoggers(); `dotnet test` forwards those as the MSBuild
+            // properties VSTestResultsDirectory/VSTestLogger, and MTP drops both with warning
+            // MTP0001. So the target produced nothing at all while its .Produces(...) lines claimed
+            // otherwise — and `*.xml` named a file neither runner has ever written (#231).
+            //
+            // The options below are MTP's own and are honoured. Everything after `--` is forwarded
+            // verbatim to each test application, which is where xunit.v3's reporters live; they ship
+            // with the runner, so none of this needs an extra package reference.
+            //
+            // --results-directory carries the most weight of the three: besides the reports, it
+            // relocates MTP's per-assembly diagnostic log — the artifact #225 added, carrying the
+            // failing test names and Shouldly detail that never reach stdout — out of
+            // <project>/bin/<cfg>/<tfm>/TestResults/ and into test-results/. That is why all three
+            // workflows can now upload one directory and get both.
+            //
+            // Report file names are left at their defaults (<user>_<machine>_<timestamp>): the
+            // solution has two test assemblies writing into one directory, and a fixed
+            // --report-xunit-trx-filename would have the second silently overwrite the first.
+            //
+            // Which is also why the directory is emptied first. Timestamped names never collide, so
+            // nothing overwrites a previous run's reports — they simply accumulate, and a red run
+            // followed by a green one would leave a trx recording failures that no longer exist,
+            // published under an artifact the next reader takes for the current result. The tradeoff
+            // is deliberate: re-running a red suite to reproduce discards the first run's reports, so
+            // copy them out first if a flaky failure is what you are chasing. "This directory is the
+            // last run" is the less surprising of the two contracts, and `Clean` already reads that
+            // way. CI checks out fresh, so only a local `./build.sh Test` loop ever notices.
+            TestResultsDirectory.CreateOrCleanDirectory();
+
             DotNetTest(s => s
                 .SetProjectFile(Solution)
                 .SetConfiguration(Configuration)
                 .EnableNoRestore()
                 .EnableNoBuild()
-                .SetResultsDirectory(TestResultsDirectory)
-                .SetLoggers(
-                    "trx",
-                    $"html;LogFileName={TestResultsDirectory / "test-results.html"}"));
+                .SetProcessAdditionalArguments(
+                    "--",
+                    "--results-directory", TestResultsDirectory,
+                    "--report-xunit-trx",
+                    "--report-xunit-html"));
+
+            // Enforce the contract rather than merely declaring it — the whole point of #231. The
+            // defect it was filed about produced no error of any kind: `dotnet test` succeeded, the
+            // build went green, `.Produces(...)` named files nobody checked for, and the reporting
+            // stayed dead for months. The same silence is available to any future SDK or MTP release
+            // that stops honouring these options, exactly as `dotnet test` stopped honouring
+            // VSTestResultsDirectory. Then the workflows would upload an empty directory under
+            // `if-no-files-found: ignore` and nothing anywhere would say so. Cheapest possible guard,
+            // and it turns that whole class of regression into a failed build on the next run.
+            var reports = TestResultsDirectory.GlobFiles("*.trx");
+            Assert.NotEmpty(
+                reports,
+                $"The test run produced no *.trx under {TestResultsDirectory}. The reporters are "
+                + "wired but emitted nothing — check whether the runner still honours "
+                + "--results-directory / --report-xunit-trx (see #231).");
         });
 
     Target Pack => _ => _
