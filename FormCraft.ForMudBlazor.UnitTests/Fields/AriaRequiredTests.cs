@@ -311,21 +311,25 @@ public class AriaRequiredTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void Required_FileUpload_Field_Should_Stay_Unannotated()
+    public void Required_FileUpload_Field_Should_Announce_Itself_At_The_Label_And_The_Button()
     {
-        // Arrange - THE DECIDED FILE-UPLOAD CASE. Pinned as unannotated rather than fixed, and
-        // unlike the boolean case that is not a reversal waiting to happen.
+        // Arrange - THE FILE-UPLOAD CASE, now answered rather than pinned (#262). The rationale that
+        // kept it unannotated under #199 is kept here, because it is still the reason the hidden
+        // <input type="file"> is NOT the element being annotated:
         //
-        // MudFileUpload does accept Required and would emit aria-required on its <input
-        // type="file">. But FormCraft renders that input with `tabindex="-1"` and `opacity-0`
-        // beneath a custom drop zone, so it is deliberately OUT of the tab order: a screen-reader
-        // user never lands on the element the annotation would sit on, and the affordance they do
-        // reach is a MudButton that takes no such attribute. Annotating the hidden input would
-        // satisfy a DOM assertion while telling no user anything — the "forwarded but inert" failure
-        // this suite's sibling tests exist to catch.
+        //   MudFileUpload does accept Required and would emit aria-required on its <input
+        //   type="file">. But FormCraft renders that input with `tabindex="-1"` and `opacity-0`
+        //   beneath a custom drop zone, so it is deliberately OUT of the tab order: a screen-reader
+        //   user never lands on the element the annotation would sit on, and the affordance they do
+        //   reach is a MudButton that takes no such attribute. Annotating the hidden input would
+        //   satisfy a DOM assertion while telling no user anything — the "forwarded but inert"
+        //   failure this suite's sibling tests exist to catch.
         //
-        // Marking a required upload needs a label-level answer (the field's own <MudText> label, or
-        // aria-describedby on the button), which is a design decision rather than one more binding.
+        // What changed is that #199 made absence *mean* something. Every other required field now
+        // renders `*` and aria-required="true", so a silent upload beside them reads as OPTIONAL —
+        // a stronger wrong signal than the uniform silence it replaced. So the requirement is
+        // identified where the user actually is: the field's own <MudText> label (visible) and
+        // aria-describedby on the focusable MudButton (announced on focus).
         var config = FormBuilder<TestModel>
             .Create()
             .AddField(x => x.Upload, f => f.WithLabel("Passport scan").Required("A scan is required"))
@@ -334,9 +338,83 @@ public class AriaRequiredTests : MudBlazorTestBase
         // Act
         var component = RenderConfig(config);
 
-        // Assert - renders, does not throw, and carries no required annotation
-        component.FindComponent<MudFileUpload<IBrowserFile>>().Instance.Required.ShouldBeFalse();
+        // Assert - the visible marker, in the label FormCraft itself renders
+        component.FindAll(".mud-input-required").ShouldNotBeEmpty();
+
+        // Assert - the programmatic association, on the element that actually receives focus
+        var browse = component.FindAll(".mud-toolbar button")[0];
+        var describedBy = browse.GetAttribute("aria-describedby");
+        describedBy.ShouldNotBeNullOrWhiteSpace();
+
+        // Assert - and it resolves to text that names the requirement
+        var hint = component.Find($"#{describedBy}");
+        hint.TextContent.ShouldContain("Passport scan");
+        hint.TextContent.ShouldContain("required");
+    }
+
+    [Fact]
+    public void Required_FileUpload_Field_With_No_Label_Should_Still_Describe_The_Requirement()
+    {
+        // Arrange - the component renders its <MudText> label only inside an @if, so an unlabelled
+        // required field has no visible marker to attach one to. The button's description is then
+        // the only channel left, and it has to say something without a label to name.
+        //
+        // The empty WithLabel is what actually reaches that branch: FieldConfiguration's constructor
+        // defaults Label to the property name, so simply omitting .WithLabel(...) still yields the
+        // labelled path ("Upload"). Only an explicitly blank label is label-free.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel(string.Empty).Required("A scan is required"))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert - no label, so no visible marker to render...
         component.FindAll(".mud-input-required").ShouldBeEmpty();
+
+        // ...but the requirement still reaches the element that receives focus
+        var browse = component.FindAll(".mud-toolbar button")[0];
+        var describedBy = browse.GetAttribute("aria-describedby");
+        describedBy.ShouldNotBeNullOrWhiteSpace();
+        component.Find($"#{describedBy}").TextContent.ShouldContain("required");
+    }
+
+    [Fact]
+    public void Optional_FileUpload_Field_Should_Carry_Neither_Channel()
+    {
+        // Arrange & Act - the overwhelmingly common case must stay exactly as it was
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan"))
+            .Build();
+
+        var component = RenderConfig(config);
+
+        // Assert - no marker, and no dangling aria-describedby pointing at nothing
+        component.FindAll(".mud-input-required").ShouldBeEmpty();
+        component.FindAll(".mud-toolbar button")[0].HasAttribute("aria-describedby").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void FileUpload_Field_With_WithNativeRequired_False_Should_Suppress_Both_Channels()
+    {
+        // Arrange - the per-field opt-out has to reach this field type too, or ".WithNativeRequired
+        // (false)" would mean something different here than on the other eight (#199)
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f
+                .WithLabel("Passport scan")
+                .Required("A scan is required")
+                .WithNativeRequired(false))
+            .Build();
+
+        // Act
+        var component = RenderConfig(config);
+
+        // Assert - neither the visible marker nor the announced description
+        component.FindAll(".mud-input-required").ShouldBeEmpty();
+        component.FindAll(".mud-toolbar button")[0].HasAttribute("aria-describedby").ShouldBeFalse();
     }
 
     private static Task<IEnumerable<SelectOption<string>>> SearchAsync(
