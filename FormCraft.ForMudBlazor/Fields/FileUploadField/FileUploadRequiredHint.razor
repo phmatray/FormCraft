@@ -1,0 +1,23 @@
+@namespace FormCraft.ForMudBlazor
+
+@* The visually-hidden requirement description a file-upload field's Browse button points at with
+   aria-describedby (#262).
+
+   Shared by both upload components for the same reason as FileUploadRequiredMarker.
+
+   `mud-sr-only` is MudBlazor's own visually-hidden utility (present in 9.8.0), so this needs no
+   stylesheet of FormCraft's own and no hand-rolled inline clip rectangle. *@
+
+<div id="@Id" class="mud-sr-only">@Text</div>
+
+@code {
+    /// <summary>The element id the button's <c>aria-describedby</c> resolves to.</summary>
+    [Parameter]
+    [EditorRequired]
+    public string Id { get; set; } = default!;
+
+    /// <summary>The requirement, worded for a screen reader.</summary>
+    [Parameter]
+    [EditorRequired]
+    public string Text { get; set; } = default!;
+}
