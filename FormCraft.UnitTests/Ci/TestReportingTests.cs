@@ -151,6 +151,38 @@ public class TestReportingTests
         Regex.IsMatch(build, Regex.Escape(option) + "(?![-A-Za-z])");
 
     /// <summary>
+    /// Every glob the <c>Test</c> target promises under <c>TestResultsDirectory</c>, as written —
+    /// e.g. <c>**/*.trx</c>. Shared so the "is recursive" and "is backed by a reporter" assertions
+    /// read one list: a glob only one of them could see would let the pair disagree about what the
+    /// target actually promises.
+    /// </summary>
+    /// <remarks>
+    /// The vacuity guard lives here rather than in each caller, for the reason
+    /// <see cref="JobsThatRunTests" /> holds its own: every assertion over this list is of the form
+    /// "no promised glob offends", which an empty list satisfies trivially. A reformatted
+    /// <c>.Produces</c> line would empty it and turn both callers green while checking nothing, and
+    /// a third caller added later would have to remember to repeat the check.
+    /// </remarks>
+    private static List<string> PromisedGlobs(string build)
+    {
+        var promised = Regex
+            .Matches(build, """\.Produces\(TestResultsDirectory\s*/\s*"(?<glob>[^"]+)"\)""")
+            .Select(match => match.Groups["glob"].Value)
+            .ToList();
+
+        promised.ShouldNotBeEmpty("the Test target promises no test-results artifact at all");
+
+        return promised;
+    }
+
+    /// <summary>
+    /// The extension a promised glob resolves to — <c>trx</c> for both <c>*.trx</c> and
+    /// <c>**/*.trx</c>, so the reporter cross-check reads the same answer either side of #256's
+    /// move to per-project subdirectories.
+    /// </summary>
+    private static string ExtensionOf(string glob) => glob[(glob.LastIndexOf('.') + 1)..];
+
+    /// <summary>
     /// The upload step as it appears <em>within that job</em> — so an assertion about it cannot be
     /// answered by an identically-named step sitting in a sibling job.
     /// </summary>
@@ -193,7 +225,54 @@ public class TestReportingTests
         var build = WorkflowSource.BuildScript;
 
         build.ShouldContain("Assert.NotEmpty");
-        build.ShouldMatch(@"GlobFiles\(""\*\.trx""\)");
+
+        // `**/` optional: the reports moved into per-project subdirectories in #256, so the guard's
+        // own glob had to recurse to keep finding them. What is pinned is that the guard still
+        // counts *.trx files — not the depth it counts them at.
+        build.ShouldMatch(@"GlobFiles\(""(\*\*/)?\*\.trx""\)");
+    }
+
+    [Fact]
+    public void BuildScript_Should_Assert_A_Report_Per_Test_Project()
+    {
+        // "Some project emitted a trx" is a strictly weaker claim than "each did", and the gap is
+        // not hypothetical: with one suite reporting and the other silent, a whole-directory glob
+        // stays green while half the artifact is missing — the same nothing-happens silence #231
+        // was filed about, just at half scale. Since #256 each project owns a subdirectory, so the
+        // guard can and must be asked per project.
+        var build = WorkflowSource.BuildScript;
+
+        // The behaviour this whole issue turns on, and the one thing every other assertion here
+        // survives the loss of: the runner is pointed at a directory derived from the project. Drop
+        // it and both suites write into one directory under names that differ only by microsecond —
+        // #256 undone, with this file still green.
+        build.ShouldMatch(
+            @"TestResultsDirectory\s*/\s*project\.Name",
+            "the results directory is not derived per project, so the two suites' reports collide again");
+
+        build.ShouldNotMatch(
+            @"""--results-directory"",\s*TestResultsDirectory\s*,",
+            "the runner is handed the shared results directory rather than the project's own");
+
+        // Narrow on purpose. A future target may have perfectly good reason to glob the whole
+        // results directory; what must not come back is the *guard* doing so, since a single
+        // reporting suite is enough to satisfy it while the other emits nothing.
+        build.ShouldNotMatch(
+            @"TestResultsDirectory\.GlobFiles\(""\*\*/\*\.trx""\)",
+            "the report guard globs the whole results directory again, so one silent suite passes it");
+
+        // The trx is looked for in the project's own directory, not the shared one.
+        build.ShouldMatch(
+            @"ResultsDirectoryFor\(\w+\)\.GlobFiles\(""\*\.trx""\)",
+            "the report guard does not look for the trx in the project's own results directory");
+
+        // Matched on the crafted message rather than on the loop variable's identifier: renaming
+        // `project` or hoisting the string into a local is a refactor this test has no business
+        // reddening on. `\w+\.Name` still requires each entry to lead with the offending project,
+        // and the directory to follow it — the identity #256 exists to make recoverable.
+        build.ShouldMatch(
+            @"\{\w+\.Name\} \(nothing in \{ResultsDirectoryFor",
+            "the missing-report message does not name the project and directory that came up empty");
     }
 
     [Fact]
@@ -206,19 +285,34 @@ public class TestReportingTests
         // without the other turns red here.
         var build = WorkflowSource.BuildScript;
 
-        var promised = Regex
-            .Matches(build, """\.Produces\(TestResultsDirectory\s*/\s*"\*\.(?<ext>[A-Za-z]+)"\)""")
-            .Select(match => match.Groups["ext"].Value)
-            .ToList();
-
-        promised.ShouldNotBeEmpty("the Test target promises no test-results artifact at all");
-
         // Shouldly prints the collection on failure, so this names the offending extension.
-        var unbacked = promised
+        var unbacked = PromisedGlobs(build)
+            .Select(ExtensionOf)
             .Where(ext => !ReporterForExtension.TryGetValue(ext, out var option) || !Enables(build, option))
             .ToList();
 
         unbacked.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Test_Target_Should_Promise_Its_Artifacts_Recursively()
+    {
+        // Each test project writes into its own test-results/<project>/ subdirectory since #256, so
+        // the reports sit one level below where a flat `*.trx` glob looks.
+        //
+        // Nothing resolves these globs at runtime — AutoGenerate is false, so no workflow is
+        // generated from them, and all three workflows upload `path: test-results` wholesale. What
+        // a .Produces line does here is describe the shape on disk, and that is the entire reason
+        // to keep it honest: a promise still describing a flat layout the build no longer writes is
+        // the declared-but-untrue shape this file exists to catch, one file over from #231's.
+        var build = WorkflowSource.BuildScript;
+
+        // Shouldly prints the collection on failure, so this names the offending glob.
+        var flat = PromisedGlobs(build)
+            .Where(glob => !glob.StartsWith("**/", StringComparison.Ordinal))
+            .ToList();
+
+        flat.ShouldBeEmpty();
     }
 
     [Fact]

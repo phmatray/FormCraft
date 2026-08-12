@@ -1,0 +1,15 @@
+@namespace FormCraft.ForFluentUI
+@typeparam TModel
+@typeparam TValue where TValue : struct
+@inherits FluentUIFieldComponentBase<TModel, TValue>
+
+<FluentNumberInput TValue="TValue"
+                   @bind-Value="@_localValue"
+                   @bind-Value:after="OnLocalValueChanged"
+                   Label="@Label"
+                   Placeholder="@Placeholder"
+                   Required="@EffectiveNativeRequired"
+                   Disabled="@IsDisabled"
+                   ReadOnly="@IsReadOnly"
+                   aria-describedby="@AriaDescribedBy"
+                   @attributes="ExtraAttributes" />

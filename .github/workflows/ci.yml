@@ -53,9 +53,15 @@ jobs:
       #    first failure — on Linux always, and on macOS as soon as more than one file is piped in.
       #  - `-A30`, not `-A5`: Shouldly's difference table alone runs past twenty lines, so a smaller
       #    window cuts off the `at ...` stack frames — the part naming the offending line.
+      #  - `*/*.log`, not `*.log`: since #256 each test project writes into its own
+      #    test-results/<project>/ subdirectory, so the logs sit one level deeper than they used to.
+      #    A flat glob matches nothing here and therefore prints nothing — which is indistinguishable
+      #    from a suite that passed, the same false all-clear this recipe's other clauses exist to
+      #    prevent. The upside of the extra level: `== $f` now opens each block with the project
+      #    directory, so the output says which suite it is reading before it says what failed.
       #
       #   gh run download <run-id> -n test-results -D /tmp/tr
-      #   for f in /tmp/tr/*.log; do
+      #   for f in /tmp/tr/*/*.log; do
       #     echo "== $f"
       #     iconv -f UTF-16LE -t UTF-8 "$f" \
       #       | sed $'s/\\xef\\xbb\\xbf//g; s/\\x1b\\[[0-9;]*m//g' \
