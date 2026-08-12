@@ -58,6 +58,10 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **Date collection item fields honour a configured adornment — and keep their calendar icon.** `.WithAdornment(...)` on a date field inside `.WithItemForm(...)` was accepted and silently dropped: the date path refused the forward because `MudDatePicker` defaults to `Adornment.End` with its own calendar icon, and forwarding an unset adornment would have erased it. Both now hold — MudDatePicker's End + calendar icon is the **default**, and a configured adornment wins (#217)
+
+  **Worth knowing if you configure a start adornment on a date item field:** it is now really rendered, so it really does pin the label — and the `ShrinkLabel` diagnostic now says so, where it used to stay quiet because the adornment was being discarded.
+
 - **Numeric collection item fields honour a configured `Culture`.** The collection path hard-coded `CultureInfo.InvariantCulture` while an ordinary numeric field took a configurable one, so the same model with the same configuration parsed decimals differently inside and outside `.WithItemForm(...)` — typing `1,5` in a French locale gave different results depending on where the field sat. `InvariantCulture` remains the **default**, so a form that configures nothing is unaffected (#218)
 
 - **Collection item fields typed `long`, `float`, `short` or `byte` rendered *nothing at all* — they now render.** `RenderItemField` dispatched on `string`/`int`/`decimal`/`double`/`bool`/`DateTime` only, so a field of one of those four types emitted no input, no label and no validation message: an empty row, while the identical field outside a collection worked. `MudBlazorNumericFieldRenderer` has always accepted all seven numeric types (#209)
