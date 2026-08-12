@@ -45,12 +45,24 @@ public abstract class FluentUIFieldComponentBase<TModel, TValue> : FieldComponen
     /// field is optional and the attribute should be omitted entirely.
     /// </summary>
     /// <remarks>
-    /// Written explicitly rather than relying on <c>Required</c> to emit it. Fluent UI v5's
-    /// published documentation covers <c>aria-label</c>, <c>aria-live</c> and <c>aria-level</c> but
-    /// never <c>aria-required</c>, so the attribute this library's accessibility guarantee depends
-    /// on is not one the component library promises. Writing it here makes the guarantee ours, and
-    /// costs nothing if Fluent also emits it - Blazor resolves duplicate attributes
-    /// last-write-wins, and both writes carry the same value.
+    /// <para>
+    /// Written explicitly, and it is <b>load-bearing</b>: measured against
+    /// <c>Microsoft.FluentUI.AspNetCore.Components 5.0.0-rc.5-26219.1</c>, setting
+    /// <c>Required="true"</c> on <c>FluentTextInput</c> does <b>not</b> emit <c>aria-required</c>.
+    /// Removing this attribute fails <c>AriaRequiredTests</c> - that ablation was run rather than
+    /// assumed, precisely because the tests passed the first time and a passing test proves nothing
+    /// about which of two candidate sources satisfied it.
+    /// </para>
+    /// <para>
+    /// This is why the library's own guarantee cannot be delegated to Fluent's <c>Required</c> flag.
+    /// The published v5 documentation covers <c>aria-label</c>, <c>aria-live</c> and
+    /// <c>aria-level</c> and never mentions <c>aria-required</c>, which turned out to describe the
+    /// behaviour accurately.
+    /// </para>
+    /// <para>
+    /// Should a future Fluent release start emitting it too, this stays correct: Blazor resolves
+    /// duplicate attributes last-write-wins and both writes carry the same value.
+    /// </para>
     /// </remarks>
     protected string? AriaRequired => EffectiveNativeRequired ? "true" : null;
 }
