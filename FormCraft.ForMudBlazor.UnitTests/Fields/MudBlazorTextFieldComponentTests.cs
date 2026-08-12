@@ -957,6 +957,109 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
         component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
     }
 
+    [Fact]
+    public void TextField_With_WithMask_Should_Bind_A_PatternMask_Keeping_Delimiters()
+    {
+        // Arrange - the typed builder replacing `.WithAttribute("Mask", …)` (#265). The default must
+        // reproduce #211's behaviour exactly, delimiters and all: this overload is additive, and a
+        // caller migrating off the magic string must not find the model quietly storing something
+        // else afterwards.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask("0000-0000"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var mask = component.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<PatternMask>();
+        mask.Mask.ShouldBe("0000-0000");
+        mask.CleanDelimiters.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void TextField_With_WithMask_CleanDelimiters_Should_Bind_A_Stripping_PatternMask()
+    {
+        // Arrange - the knob #211 left unreachable. CleanDelimiters is what decides whether
+        // GetCleanText() strips the literals, and with no way to set it the model always received
+        // the delimited text — punctuation and all — with no opt-out.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask("0000-0000", cleanDelimiters: true))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var mask = component.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<PatternMask>();
+        mask.Mask.ShouldBe("0000-0000");
+        mask.CleanDelimiters.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void TextField_With_A_Blank_WithMask_Pattern_Should_Bind_No_Mask(string pattern)
+    {
+        // Arrange - the typed builder inherits #211's blank rule rather than restating it: a blank
+        // pattern reaching PatternMask("") would reroute an unmasked field through MudMask and drop
+        // MaxLines with it. Asserted through the new entry point because that is a second caller of
+        // Resolve, and a rule enforced on only one of them is the divergence class this repo keeps
+        // closing.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask(pattern))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
+    }
+
+    [Fact]
+    public void TextField_With_A_Blank_WithMask_Pattern_Should_Ignore_CleanDelimiters()
+    {
+        // Arrange - cleanDelimiters is meaningless without a pattern. It must not resurrect a mask
+        // the blank rule just suppressed, or "no mask + an option" would render a field that
+        // accepts no input — the exact outcome the blank rule exists to prevent.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask("  ", cleanDelimiters: true))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
+    }
+
     private class NumericModel
     {
         public int Quantity { get; set; }

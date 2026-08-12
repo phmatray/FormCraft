@@ -244,6 +244,69 @@ public static class MudBlazorFieldBuilderExtensions
     }
 
     /// <summary>
+    /// Configures an input mask on a text field, so the user types into a fixed pattern.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FieldBuilder instance for a string field.</param>
+    /// <param name="pattern">
+    /// The mask pattern. <c>0</c> accepts a digit, <c>a</c> a letter and <c>*</c> either; every other
+    /// character is a literal the mask inserts as the user types. A blank or whitespace-only pattern
+    /// configures no mask at all — see the remarks.
+    /// </param>
+    /// <param name="cleanDelimiters">
+    /// <c>false</c> (the default) stores the delimited text on the model — <c>"(555) 123-4567"</c>.
+    /// <c>true</c> strips the pattern's literals first, storing <c>"5551234567"</c>.
+    /// </param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// Replaces the magic string <c>.WithAttribute("Mask", "…")</c> that #211 made functional, for
+    /// the reason #204 replaced <c>.WithAttribute("Required", true)</c> with
+    /// <see cref="WithNativeRequired{TModel,TValue}"/>: a key the caller spells is undiscoverable and
+    /// one typo away from silently doing nothing. The raw form still works and writes the same
+    /// attribute — this is additive, not a migration.
+    /// </para>
+    /// <para>
+    /// <b><paramref name="cleanDelimiters"/> changes what the model stores</b>, which is why it is
+    /// opt-in and defaults to the behaviour #211 shipped. It maps onto
+    /// <c>PatternMask.CleanDelimiters</c>, which decides whether <c>GetCleanText()</c> strips the
+    /// literals; FormCraft never set it before #265, so a masked field always wrote the punctuation
+    /// to the model and storage or validators keyed to raw input had no way to ask for anything else.
+    /// </para>
+    /// <para>
+    /// A blank or whitespace-only <paramref name="pattern"/> resolves to no mask rather than to an
+    /// empty one, and <paramref name="cleanDelimiters"/> does not override that (#211). An empty
+    /// <c>PatternMask("")</c> would route an otherwise ordinary text field through <c>MudMask</c> —
+    /// which also drops <c>MaxLines</c> — and a whitespace pattern would additionally accept no
+    /// input at all.
+    /// </para>
+    /// <para>
+    /// Applies to the text render path only. Numeric and date fields do not consult
+    /// <see cref="TextMaskMap"/>, so this call compiles on a string field and is the only place it
+    /// has an effect.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Phone, field => field
+    ///     .WithMask("(000) 000-0000"))                       // model stores "(555) 123-4567"
+    ///
+    /// .AddField(x => x.Phone, field => field
+    ///     .WithMask("(000) 000-0000", cleanDelimiters: true)) // model stores "5551234567"
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, string> WithMask<TModel>(
+        this FieldBuilder<TModel, string> builder,
+        string pattern,
+        bool cleanDelimiters = false)
+        where TModel : new()
+    {
+        return builder
+            .WithAttribute(TextMaskMap.AttributeName, pattern)
+            .WithAttribute(TextMaskMap.CleanDelimitersAttribute, cleanDelimiters);
+    }
+
+    /// <summary>
     /// Adds an adornment (icon or text) to a text field.
     /// </summary>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>

@@ -22,6 +22,12 @@ public partial class MudBlazorTextFieldComponent<TModel>
     public string InputType { get; set; } = "text";
     public string? Autocomplete { get; set; }
     public string? Mask { get; set; }
+
+    /// <summary>
+    /// Whether <see cref="Mask"/> strips its literals out of the value the model receives (#265).
+    /// </summary>
+    public bool MaskCleanDelimiters { get; set; }
+
     public Adornment? Adornment { get; set; }
 
     /// <summary>
@@ -75,6 +81,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
         }
         Autocomplete = GetAttribute<string?>("autocomplete");
         Mask = GetAttribute<string?>(TextMaskMap.AttributeName);
+        MaskCleanDelimiters = GetAttribute(TextMaskMap.CleanDelimitersAttribute, false);
 
         // Load adornment configuration
         var customAdornment = GetAttribute<Adornment?>("Adornment");
@@ -158,7 +165,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
     /// <c>.WithAttribute("Mask", …)</c> looked supported while doing nothing. The resolution itself
     /// lives in <see cref="TextMaskMap"/> so the collection render path cannot drift from it.
     /// </remarks>
-    private IMask? GetMask() => TextMaskMap.Resolve(Mask);
+    private IMask? GetMask() => TextMaskMap.Resolve(Mask, MaskCleanDelimiters);
 
     private void TogglePasswordVisibility(string? value = null)
     {
@@ -316,6 +323,19 @@ internal static class TextMaskMap
     internal const string AttributeName = "Mask";
 
     /// <summary>
+    /// The attribute key <c>MudBlazorFieldBuilderExtensions.WithMask</c> stores its
+    /// <c>cleanDelimiters</c> argument under, and which both render paths read it back from (#265).
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="AttributeName"/> this key is written by a builder method rather than spelled
+    /// by the caller, and deliberately so: the issue considered exposing a second magic string
+    /// alongside <c>"Mask"</c> and rejected it, since two undiscoverable keys to spell correctly is
+    /// the situation #204 was filed about. It lives here rather than beside the builder because
+    /// <see cref="Resolve"/> is its only reader.
+    /// </remarks>
+    internal const string CleanDelimitersAttribute = "MaskCleanDelimiters";
+
+    /// <summary>
     /// Maps a configured mask pattern onto MudBlazor's <see cref="IMask"/>, or <c>null</c> when the
     /// field configured none.
     /// </summary>
@@ -359,6 +379,14 @@ internal static class TextMaskMap
     /// several patterns by <c>RenderPipelineParityTests.Mask_Should_Resolve_Identically_On_Both_Paths</c>.
     /// </para>
     /// </remarks>
-    internal static IMask? Resolve(string? mask) =>
-        string.IsNullOrWhiteSpace(mask) ? null : new PatternMask(mask);
+    /// <param name="mask">The configured pattern, or <c>null</c>/blank for no mask.</param>
+    /// <param name="cleanDelimiters">
+    /// Whether the resolved <see cref="PatternMask"/> strips the pattern's literals out of the value
+    /// it reports (#265). Meaningless without a pattern, and ignored there rather than allowed to
+    /// resurrect a mask the blank rule above suppressed.
+    /// </param>
+    internal static IMask? Resolve(string? mask, bool cleanDelimiters = false) =>
+        string.IsNullOrWhiteSpace(mask)
+            ? null
+            : new PatternMask(mask) { CleanDelimiters = cleanDelimiters };
 }
