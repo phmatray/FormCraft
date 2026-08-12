@@ -30,6 +30,79 @@ public static class FormCraftCascadingValues
     /// ShrinkLabel conflicts so the form can report them in a single warning (#181).
     /// </summary>
     public const string ShrinkLabelDiagnostics = "FormCraftShrinkLabelDiagnostics";
+
+    /// <summary>
+    /// Name of the cascading <see cref="CollectionItemFieldScope"/> supplied by
+    /// <c>CollectionFieldComponent</c> to the item fields it renders (#203). Absent — and therefore
+    /// null — for an ordinary field, which is how a component tells the two apart.
+    /// </summary>
+    public const string ItemFieldScope = "FormCraftItemFieldScope";
+}
+
+/// <summary>
+/// The nested context an item field renders in: which collection owns it, and the once-per-field
+/// latch its diagnostics need.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Introduced by #203, when collection item fields stopped being rendered by a hand-rolled
+/// <c>RenderTreeBuilder</c> path and started going through <see cref="IFieldRendererService"/> like
+/// every other field. That convergence is what this type pays for: the per-type components are now
+/// shared, so the two things the old path knew and a component does not — <i>which collection am I
+/// in</i> and <i>has this field already warned</i> — have to reach them some other way.
+/// </para>
+/// <para>
+/// Cascaded rather than passed as a parameter because it must reach every field component the
+/// service may select, including ones that do not exist yet. A field rendered outside a collection
+/// sees no scope at all.
+/// </para>
+/// </remarks>
+public sealed class CollectionItemFieldScope
+{
+    private readonly HashSet<string> _warnedOnce = [];
+
+    /// <summary>
+    /// Creates a scope for the collection field named <paramref name="collectionName"/>.
+    /// </summary>
+    /// <param name="collectionName">The owning collection field's name, e.g. <c>Items</c>.</param>
+    public CollectionItemFieldScope(string collectionName) => CollectionName = collectionName;
+
+    /// <summary>Gets the owning collection field's name.</summary>
+    public string CollectionName { get; }
+
+    /// <summary>
+    /// The identity a field inside this collection is reported under by the form-wide diagnostic
+    /// collectors: <c>&lt;collection&gt;[].&lt;field&gt;</c> (#213).
+    /// </summary>
+    /// <remarks>
+    /// Row-agnostic on purpose — the <c>[]</c> carries no index. These diagnostics describe a
+    /// field's <i>configuration</i>, so they are emitted once per field however many rows exist;
+    /// keying them to whichever row rendered first would read as though row 0 were special.
+    /// <para>
+    /// The qualification is load-bearing: <c>ShrinkLabelDiagnosticCollector</c> is form-wide and
+    /// keys by field identity, but a bare field name is unique only inside one item form — so a
+    /// top-level "Name" and an item "Name" overwrote each other, and so did item fields of the same
+    /// name in two different collections.
+    /// </para>
+    /// </remarks>
+    /// <param name="fieldName">The item field's own name.</param>
+    public string DiagnosticKey(string fieldName) => $"{CollectionName}[].{fieldName}";
+
+    /// <summary>
+    /// Returns <c>true</c> the first time a given key is presented, and <c>false</c> forever after.
+    /// </summary>
+    /// <remarks>
+    /// A collection renders one component instance <i>per row</i>, and a diagnostic that fires from
+    /// <c>OnInitialized</c> therefore fires once per row: a 50-item collection would emit 50
+    /// identical warnings about a single field's configuration. The hand-rolled path latched
+    /// exactly this way before #203; the latch simply moved here when the render did.
+    /// <para>
+    /// Not needed by the ShrinkLabel diagnostic, whose collector already dedupes by key — this is
+    /// for the ones that log directly, such as <see cref="MaskedLinesDiagnostic"/>.
+    /// </para>
+    /// </remarks>
+    /// <param name="key">The field identity to latch on, normally <see cref="DiagnosticKey"/>.</param>
+    public bool ShouldWarnOnce(string key) => _warnedOnce.Add(key);
 }
 
 /// <summary>
@@ -189,6 +262,25 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     [CascadingParameter(Name = FormCraftCascadingValues.ShrinkLabelDiagnostics)]
     public ShrinkLabelDiagnosticCollector? ShrinkLabelDiagnostics { get; set; }
 
+    /// <summary>
+    /// The collection this field is an item field of, or <c>null</c> when it is an ordinary field
+    /// (#203).
+    /// </summary>
+    [CascadingParameter(Name = FormCraftCascadingValues.ItemFieldScope)]
+    public CollectionItemFieldScope? ItemFieldScope { get; set; }
+
+    /// <summary>
+    /// The identity this field is reported under by the form-wide diagnostic collectors: its bare
+    /// field name, or <c>&lt;collection&gt;[].&lt;field&gt;</c> when it is an item field (#213).
+    /// </summary>
+    /// <remarks>
+    /// Deliberately distinct from <c>Context.Field.FieldName</c>, which is unique only within one
+    /// item form. Two collections with same-named item fields — or a top-level field colliding with
+    /// an item field — must be counted as the separate fields they are.
+    /// </remarks>
+    protected string DiagnosticFieldKey =>
+        ItemFieldScope?.DiagnosticKey(Context.Field.FieldName) ?? Context.Field.FieldName;
+
     private bool _shrinkLabelDiagnosticEmitted;
 
     /// <summary>
@@ -230,8 +322,10 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
 
         _shrinkLabelDiagnosticEmitted = true;
 
-        var fieldName = Context.Field.FieldName;
-        var field = Label ?? fieldName;
+        // The collector is form-wide and keys by identity, so an item field reports under its
+        // qualified key rather than its bare name (#213).
+        var fieldName = DiagnosticFieldKey;
+        var field = Label ?? Context.Field.FieldName;
 
         // Inside a FormCraftComponent, report to the form's collector so all conflicting fields
         // arrive in one warning. Rendered standalone there is no collector, so log directly

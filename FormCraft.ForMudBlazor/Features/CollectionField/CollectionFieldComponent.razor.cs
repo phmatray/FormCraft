@@ -89,6 +89,28 @@ public partial class CollectionFieldComponent<TModel, TItem>
     [CascadingParameter]
     private EditContext? EditContext { get; set; }
 
+    /// <summary>
+    /// The nested context cascaded to every item field this collection renders (#203).
+    /// </summary>
+    /// <remarks>
+    /// Created once and reused: it carries a once-per-field diagnostic latch, and a scope rebuilt
+    /// on each render would reset that latch and reintroduce the per-row warning flood it exists to
+    /// prevent. Rebuilt only if the collection is repointed at a different field, which would make
+    /// the old name — and the keys derived from it — wrong.
+    /// </remarks>
+    private CollectionItemFieldScope? _itemFieldScope;
+
+    /// <inheritdoc />
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        if (_itemFieldScope is null || _itemFieldScope.CollectionName != Configuration.FieldName)
+        {
+            _itemFieldScope = new CollectionItemFieldScope(Configuration.FieldName);
+        }
+    }
+
     private List<TItem> Items => Configuration.CollectionAccessor(Model);
 
     private bool HasReachedMax => Configuration.MaxItems > 0 && Items.Count >= Configuration.MaxItems;
@@ -220,68 +242,38 @@ public partial class CollectionFieldComponent<TModel, TItem>
         };
     }
 
+    /// <summary>
+    /// Renders one item field through <see cref="IFieldRendererService"/> — the same selector, and
+    /// therefore the same per-type component, that an ordinary field renders through (#203).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the whole of the convergence. What stood here before was a hand-rolled type switch
+    /// that reimplemented "render a field" with a <see cref="RenderTreeBuilder"/>, and every
+    /// presentation attribute added to the component path had to be added here too or silently go
+    /// missing — the defect behind #146, #177, #184 and #190, found reactively one attribute at a
+    /// time. Routing through the service removes the second implementation rather than syncing it.
+    /// </para>
+    /// <para>
+    /// No nested-model machinery is needed: the service is generic over the model and an item field
+    /// is already configured as <c>IFieldConfiguration&lt;TItem, object&gt;</c>, so the ITEM is
+    /// passed as the model and the component binds against <typeparamref name="TItem"/> directly.
+    /// </para>
+    /// <para>
+    /// What the item does not carry is the parent's identity, which is why the value callback still
+    /// goes through <see cref="UpdateItemFieldValue"/>: that writes the property on the item and then
+    /// notifies the parent <see cref="EditContext"/> under the nested
+    /// <c>&lt;collection&gt;[i].&lt;field&gt;</c> identifier (#91). Binding against the item while
+    /// reporting against the parent is the entire "nested context" this path requires.
+    /// </para>
+    /// </remarks>
     private RenderFragment RenderItemField(TItem item, IFieldConfiguration<TItem, object> field, int itemIndex)
-    {
-        return builder =>
-        {
-            var property = typeof(TItem).GetProperty(field.FieldName);
-            if (property == null) return;
-
-            var fieldType = property.PropertyType;
-            var underlyingType = Nullable.GetUnderlyingType(fieldType) ?? fieldType;
-            var value = property.GetValue(item);
-
-            if (fieldType == typeof(string))
-            {
-                RenderTextField(builder, field, value as string, itemIndex);
-            }
-            else if (underlyingType == typeof(int))
-            {
-                RenderNumericField<int>(builder, field, (int)(value ?? 0), itemIndex);
-            }
-            else if (underlyingType == typeof(decimal))
-            {
-                RenderNumericField<decimal>(builder, field, (decimal)(value ?? 0m), itemIndex);
-            }
-            else if (underlyingType == typeof(double))
-            {
-                RenderNumericField<double>(builder, field, (double)(value ?? 0.0), itemIndex);
-            }
-            // #209. These four were missing, and a missing arm here does not degrade — it emits NO
-            // frames at all: no input, no label, no validation message, just an empty row. The same
-            // field outside a collection rendered fine, because MudBlazorNumericFieldRenderer.CanRender
-            // accepts all seven numeric types. #191 made it worse by adding numeric WithAdornment
-            // overloads constrained to INumber<T>, which compile on exactly these types — so an
-            // adornment could be configured, without a warning, on a field that rendered nothing.
-            //
-            // CollectionNumericTypeTests drives its guard off CanRender rather than a copied list, so
-            // adding a type to the renderer without adding it here goes red.
-            else if (underlyingType == typeof(float))
-            {
-                RenderNumericField<float>(builder, field, (float)(value ?? 0f), itemIndex);
-            }
-            else if (underlyingType == typeof(long))
-            {
-                RenderNumericField<long>(builder, field, (long)(value ?? 0L), itemIndex);
-            }
-            else if (underlyingType == typeof(short))
-            {
-                RenderNumericField<short>(builder, field, (short)(value ?? (short)0), itemIndex);
-            }
-            else if (underlyingType == typeof(byte))
-            {
-                RenderNumericField<byte>(builder, field, (byte)(value ?? (byte)0), itemIndex);
-            }
-            else if (underlyingType == typeof(bool))
-            {
-                RenderBooleanField(builder, field, value ?? false, itemIndex);
-            }
-            else if (underlyingType == typeof(DateTime))
-            {
-                RenderDateTimeField(builder, field, value as DateTime?, itemIndex);
-            }
-        };
-    }
+        => FieldRendererService.RenderField(
+            item,
+            field,
+            EventCallback.Factory.Create<object?>(
+                this, value => UpdateItemFieldValue(itemIndex, field.FieldName, value)),
+            EventCallback.Factory.Create(this, NotifyCollectionChanged));
 
     private void RenderTextField(RenderTreeBuilder builder, IFieldConfiguration<TItem, object> field, string? value, int itemIndex)
     {

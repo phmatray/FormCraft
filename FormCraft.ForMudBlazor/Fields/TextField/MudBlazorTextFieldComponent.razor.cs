@@ -59,7 +59,13 @@ public partial class MudBlazorTextFieldComponent<TModel>
 
         // Emitted from OnInitialized, so once per component instance: the conflict is a
         // configuration fact and re-reporting it on every keystroke would drown the console.
-        if (MaskedLinesDiagnostic.Applies(configuredInputType, ConfiguredLines))
+        //
+        // Once per component instance is not once per FIELD inside a collection, though — there is
+        // one instance per row, so a 50-item collection would emit 50 identical warnings about a
+        // single field's configuration. The scope's latch is what the hand-rolled collection path
+        // used to do with a HashSet of its own before #203 routed item fields through here.
+        if (MaskedLinesDiagnostic.Applies(configuredInputType, ConfiguredLines)
+            && (ItemFieldScope?.ShouldWarnOnce(DiagnosticFieldKey) ?? true))
         {
             MaskedLinesDiagnostic.Warn(
                 DiagnosticServiceProvider,

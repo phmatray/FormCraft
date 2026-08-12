@@ -14,10 +14,12 @@ namespace FormCraft.ForMudBlazor.UnitTests.Components;
 /// <c>Items[i].Field</c> identifier, and what each of the four item field kinds actually renders.
 /// </para>
 /// <para>
-/// These describe <b>today</b>, not the target. Tests named <c>Today_…</c> pin a divergence from the
-/// component path that the convergence is expected to REMOVE — they are the inventory of deliberate
-/// behaviour changes, and each one flipping in #203 is the point rather than a regression. Every
-/// other test here must survive the refactor untouched.
+/// They were written against the hand-rolled path and describe what it did. Most assert behaviour
+/// the refactor had to carry across unchanged, and did. Four of them were named <c>Today_…</c> and
+/// asserted a divergence the convergence was expected to REMOVE; those four now assert the
+/// opposite, each carrying a <c>Was: Today_…</c> note naming what it used to claim. They are the
+/// inventory of this refactor's deliberate behaviour changes, and are what the release note is
+/// drawn from.
 /// </para>
 /// </remarks>
 public class CollectionRenderCharacterisationTests : MudBlazorTestBase
@@ -307,16 +309,18 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     }
 
     // ---------------------------------------------------------------------------------------
-    // Today_… : divergences from the component path that #203 is expected to REMOVE. Each of
-    // these flipping is a deliberate behaviour change, stated in the release note.
+    // The gains. Each of these was a `Today_…` test asserting the opposite when this file was
+    // written — a setting the component path honoured and the hand-rolled collection path
+    // dropped. Converging the paths flipped all four at once, without any of them being
+    // implemented individually, which is the argument for the refactor in one screen.
     // ---------------------------------------------------------------------------------------
 
     [Fact]
-    public void Today_A_Boolean_Item_Field_Ignores_DisplayStyle()
+    public void A_Boolean_Item_Field_Should_Honour_DisplayStyle()
     {
-        // A standalone bool field honours .WithAttribute("DisplayStyle", BooleanDisplayStyle.Switch)
-        // and renders a MudSwitch; RenderBooleanField hard-codes MudCheckBox and never reads it, so
-        // the same configuration renders differently inside .WithItemForm(...).
+        // Was: Today_A_Boolean_Item_Field_Ignores_DisplayStyle. RenderBooleanField hard-coded
+        // MudCheckBox and never read the attribute, so the same configuration rendered a checkbox
+        // inside .WithItemForm(...) and a switch outside it.
         var config = FormBuilder<MixedModel>
             .Create()
             .AddCollectionField(x => x.Rows, collection => collection
@@ -331,25 +335,27 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
             .Add(p => p.Model, new MixedModel { Rows = { new MixedRow() } })
             .Add(p => p.Configuration, config));
 
-        component.FindComponents<MudSwitch<bool>>().ShouldBeEmpty();
-        component.FindComponents<MudCheckBox<bool>>().Count.ShouldBe(1);
+        component.FindComponents<MudSwitch<bool>>().Count.ShouldBe(1);
+        component.FindComponents<MudCheckBox<bool>>().ShouldBeEmpty();
     }
 
     [Fact]
-    public void Today_A_Date_Item_Field_Is_Not_Editable()
+    public void A_Date_Item_Field_Should_Be_Editable_Like_A_Standalone_One()
     {
-        // The component path binds Editable="true" on MudDatePicker; the collection path binds
-        // nothing, so MudDatePicker's own default stands and the item field's date cannot be typed.
+        // Was: Today_A_Date_Item_Field_Is_Not_Editable. The component binds Editable="true"; the
+        // hand-rolled path bound nothing, so an item field's date could be picked but never typed.
         RenderMixedForm(new MixedModel { Rows = { new MixedRow() } }).Component
-            .FindComponent<MudDatePicker>().Instance.Editable.ShouldBeFalse();
+            .FindComponent<MudDatePicker>().Instance.Editable.ShouldBeTrue();
     }
 
     [Fact]
-    public void Today_A_Date_Item_Field_Ignores_MinDate_And_MaxDate()
+    public void A_Date_Item_Field_Should_Honour_MinDate_And_MaxDate()
     {
-        // MinDate/MaxDate are honoured by the component path (pinned by
-        // RenderPipelineParityTests.DateTimeField_Should_Pass_MinDate_And_MaxDate_To_DatePicker)
-        // and never forwarded here.
+        // Was: Today_A_Date_Item_Field_Ignores_MinDate_And_MaxDate. Honoured on the component path
+        // since the pipeline consolidation (pinned by
+        // RenderPipelineParityTests.DateTimeField_Should_Pass_MinDate_And_MaxDate_To_DatePicker),
+        // never forwarded by the collection path — so an item field silently accepted dates its
+        // standalone twin refused.
         var config = FormBuilder<MixedModel>
             .Create()
             .AddCollectionField(x => x.Rows, collection => collection
@@ -366,15 +372,16 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
                 .Add(p => p.Configuration, config))
             .FindComponent<MudDatePicker>().Instance;
 
-        picker.MinDate.ShouldBeNull();
-        picker.MaxDate.ShouldBeNull();
+        picker.MinDate.ShouldBe(new DateTime(2020, 1, 1));
+        picker.MaxDate.ShouldBe(new DateTime(2030, 12, 31));
     }
 
     [Fact]
-    public void Today_A_Numeric_Item_Field_Ignores_Min_Max_And_Step()
+    public void A_Numeric_Item_Field_Should_Honour_Min_And_Max()
     {
-        // The component path resolves Min/Max/Step (falling back to the type's own range); the
-        // collection path forwards none of them.
+        // Was: Today_A_Numeric_Item_Field_Ignores_Min_Max_And_Step. The bound range is what stops
+        // the spinner and the browser going out of range, so dropping it made an item field accept
+        // values its standalone twin rejected.
         var config = FormBuilder<MixedModel>
             .Create()
             .AddCollectionField(x => x.Rows, collection => collection
@@ -391,11 +398,8 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
                 .Add(p => p.Configuration, config))
             .FindComponent<MudNumericField<int>>().Instance;
 
-        // Asserted as "the configured value never arrives" rather than against MudBlazor's own
-        // default, so the test states the divergence itself and does not break when that default
-        // changes underneath it.
-        numeric.Min.ShouldNotBe(5);
-        numeric.Max.ShouldNotBe(50);
+        numeric.Min.ShouldBe(5);
+        numeric.Max.ShouldBe(50);
     }
 
     // ---------------------------------------------------------------------------------------
