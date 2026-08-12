@@ -3,15 +3,18 @@ namespace FormCraft.ForFluentUI;
 /// <summary>
 /// Fluent UI implementation of the boolean field renderer.
 /// </summary>
-/// <remarks>
-/// Stub: registered so the DI ordering is fixed from the start, but declines every field until its
-/// component lands. See #260 Task 5.
-/// </remarks>
 public class FluentUIBooleanFieldRenderer : FieldRendererBase
 {
     /// <inheritdoc />
-    protected override Type ComponentType => typeof(FluentUITextFieldComponent<>);
+    protected override Type ComponentType => typeof(FluentUIBooleanFieldComponent<>);
 
     /// <inheritdoc />
-    public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field) => false;
+    /// <remarks>
+    /// <c>bool?</c> is accepted and rendered as an ordinary two-state control, with null shown as
+    /// unchecked - the same treatment the MudBlazor adapter gives it. Fluent's three-state checkbox
+    /// would represent null honestly, but adopting it here would make the two adapters disagree
+    /// about what the same configuration means.
+    /// </remarks>
+    public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
+        => fieldType == typeof(bool) || fieldType == typeof(bool?);
 }
