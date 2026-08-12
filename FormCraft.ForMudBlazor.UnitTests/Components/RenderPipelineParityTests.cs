@@ -588,6 +588,133 @@ public class RenderPipelineParityTests : MudBlazorTestBase
     }
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Mask_Options_Should_Resolve_Identically_On_Both_Paths(bool cleanDelimiters)
+    {
+        // Arrange - #265's half of the mask parity question. The test above pins the PATTERN; this
+        // pins the OPTION that travels with it, which is the half that decides what the model
+        // actually stores. A path that resolved the same pattern with CleanDelimiters left at its
+        // default would satisfy every assertion above while writing "(555) 123-4567" where the other
+        // wrote "5551234567" — a divergence invisible to a pattern-only comparison.
+        //
+        // Since #203/#250 both paths render through the same MudBlazorTextFieldComponent, so this
+        // passes structurally rather than because two implementations were kept in step. That is
+        // exactly why it is worth pinning: the convergence is the thing that could regress, and a
+        // future change that reintroduces a separate item-field attribute reader would land on a
+        // green suite without it.
+        void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field.WithLabel("Value").WithMask("(000) 000-0000", cleanDelimiters);
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act
+        var standaloneRender = RenderForm(standaloneConfig);
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+
+        // Assert - type, pattern and option, never the instance: each path builds its own.
+        var standaloneMask = standaloneRender.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<PatternMask>();
+        var itemMask = itemRender.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<PatternMask>();
+
+        itemMask.Mask.ShouldBe(standaloneMask.Mask);
+        standaloneMask.CleanDelimiters.ShouldBe(cleanDelimiters);
+        itemMask.CleanDelimiters.ShouldBe(cleanDelimiters);
+    }
+
+    [Fact]
+    public void A_Supplied_Mask_Should_Resolve_Identically_On_Both_Paths()
+    {
+        // Arrange - #265's factory overload, held to the same parity bar as the pattern above. A
+        // supplied mask takes a different branch of Resolve than a pattern string does, so it is
+        // its own opportunity for the two paths to disagree.
+        void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field.WithLabel("Value").WithMask(() => new RegexMask("^[0-9]{0,4}$"));
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act
+        var standaloneRender = RenderForm(standaloneConfig);
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+
+        // Assert - the same implementation type on both, which is the property MudMask.SetMask cares
+        // about, and the same pattern.
+        var standaloneMask = standaloneRender.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<RegexMask>();
+        var itemMask = itemRender.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<RegexMask>();
+
+        itemMask.Mask.ShouldBe(standaloneMask.Mask);
+        itemMask.Mask.ShouldBe("^[0-9]{0,4}$");
+    }
+
+    [Fact]
+    public void A_Mask_Configured_Once_Should_Not_Be_Shared_Between_Collection_Rows()
+    {
+        // Arrange - every row of a collection reads the SAME IFieldConfiguration, so anything the
+        // configuration stores by reference is handed to every row's component. A BaseMask is not a
+        // value: it carries the live Text, CaretPos and Selection of the input it is attached to, and
+        // MudMask.SetMask adopts an incoming mask outright (`_mask = other`) whenever its type
+        // differs from the PatternMask it seeds itself with — which is every RegexMask, BlockMask and
+        // MultiMask. Two rows holding one instance therefore edit each other's text.
+        //
+        // Two rows, one configuration, and a mask the configuration cannot hand out twice by
+        // reference is the whole test.
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, field => field
+                    .WithLabel("Value")
+                    .WithMask(() => new RegexMask("^[0-9]{0,4}$")))))
+            .Build();
+
+        // Act
+        var render = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem(), new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+
+        // Assert
+        var masks = render.FindComponents<MudTextField<string>>()
+            .Select(c => c.Instance.Mask)
+            .ToList();
+
+        masks.Count.ShouldBe(2);
+        masks[0].ShouldNotBeNull();
+        masks[1].ShouldNotBeNull();
+        masks[0].ShouldNotBeSameAs(masks[1]);
+        masks[0].ShouldBeOfType<RegexMask>();
+        masks[1].ShouldBeOfType<RegexMask>();
+    }
+
+    [Theory]
     [InlineData("0000-0000", "12345678", "1234-5678")]
     [InlineData("(000) 000-0000", "5551234567", "(555) 123-4567")]
     [InlineData("aaa-000", "abc123", "abc-123")]

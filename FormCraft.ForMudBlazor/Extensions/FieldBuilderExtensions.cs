@@ -244,6 +244,141 @@ public static class MudBlazorFieldBuilderExtensions
     }
 
     /// <summary>
+    /// Configures an input mask on a text field, so the user types into a fixed pattern.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FieldBuilder instance for a string field.</param>
+    /// <param name="pattern">
+    /// The mask pattern. <c>0</c> accepts a digit, <c>a</c> a letter and <c>*</c> either; every other
+    /// character is a literal the mask inserts as the user types. A blank or whitespace-only pattern
+    /// configures no mask at all — see the remarks.
+    /// </param>
+    /// <param name="cleanDelimiters">
+    /// <c>false</c> (the default) stores the delimited text on the model — <c>"(555) 123-4567"</c>.
+    /// <c>true</c> strips the pattern's literals first, storing <c>"5551234567"</c>.
+    /// </param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// Replaces the magic string <c>.WithAttribute("Mask", "…")</c> that #211 made functional, for
+    /// the reason #204 replaced <c>.WithAttribute("Required", true)</c> with
+    /// <see cref="WithNativeRequired{TModel,TValue}"/>: a key the caller spells is undiscoverable and
+    /// one typo away from silently doing nothing. The raw form still works and writes the same
+    /// attribute — this is additive, not a migration.
+    /// </para>
+    /// <para>
+    /// <b><paramref name="cleanDelimiters"/> changes what the model stores</b>, which is why it is
+    /// opt-in and defaults to the behaviour #211 shipped. It maps onto
+    /// <c>PatternMask.CleanDelimiters</c>, which decides whether <c>GetCleanText()</c> strips the
+    /// literals; FormCraft never set it before #265, so a masked field always wrote the punctuation
+    /// to the model and storage or validators keyed to raw input had no way to ask for anything else.
+    /// </para>
+    /// <para>
+    /// A blank or whitespace-only <paramref name="pattern"/> resolves to no mask rather than to an
+    /// empty one, and <paramref name="cleanDelimiters"/> does not override that (#211). An empty
+    /// <c>PatternMask("")</c> would route an otherwise ordinary text field through <c>MudMask</c> —
+    /// which also drops <c>MaxLines</c> — and a whitespace pattern would additionally accept no
+    /// input at all.
+    /// </para>
+    /// <para>
+    /// Applies to the text render path only. Numeric and date fields do not consult
+    /// <see cref="TextMaskMap"/>, so this call compiles on a string field and is the only place it
+    /// has an effect.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Phone, field => field
+    ///     .WithMask("(000) 000-0000"))                       // model stores "(555) 123-4567"
+    ///
+    /// .AddField(x => x.Phone, field => field
+    ///     .WithMask("(000) 000-0000", cleanDelimiters: true)) // model stores "5551234567"
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, string> WithMask<TModel>(
+        this FieldBuilder<TModel, string> builder,
+        string pattern,
+        bool cleanDelimiters = false)
+        where TModel : new()
+    {
+        return builder
+            .WithAttribute(TextMaskMap.AttributeName, pattern)
+            .WithAttribute(TextMaskMap.CleanDelimitersAttribute, cleanDelimiters)
+            // Clears any factory a previous call configured, so the last WithMask on a field wins.
+            // Without this the two overloads would accumulate instead of override, and a caller
+            // refining a shared helper's mask would find their own later call silently ignored.
+            .WithAttribute(TextMaskMap.MaskFactoryAttribute, null!);
+    }
+
+    /// <summary>
+    /// Configures a MudBlazor mask of your own construction on a text field — <c>RegexMask</c>,
+    /// <c>BlockMask</c>, <c>MultiMask</c>, or a <c>PatternMask</c> you configured yourself.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="maskFactory">
+    /// Builds the mask. Called <b>once per rendered field</b>, so every field — and every row of a
+    /// collection — gets its own instance. Must return the same implementation type on every call;
+    /// see the remarks.
+    /// </param>
+    /// <param name="builder">The FieldBuilder instance for a string field.</param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>A factory rather than an instance, deliberately.</b> A mask is not a value:
+    /// <c>BaseMask</c> carries the live <c>Text</c>, <c>CaretPos</c> and <c>Selection</c> of the
+    /// input it is attached to. One field configuration is shared by every row of a collection, so
+    /// an <see cref="MudBlazor.IMask"/> stored in it would be handed to every row — and
+    /// <c>MudMask.SetMask</c> does not defensively copy: it keeps the instance it is given
+    /// (<c>_mask = other</c>) whenever the type differs from the <c>PatternMask</c> it seeds itself
+    /// with, which is the case for every <c>RegexMask</c>, <c>BlockMask</c> and <c>MultiMask</c> —
+    /// exactly the types this overload exists to reach. Two rows would then share one editing state.
+    /// Taking a factory makes that unrepresentable, and keeps the built configuration immutable as
+    /// <c>CLAUDE.md</c> requires.
+    /// </para>
+    /// <para>
+    /// Before #265 this configuration was unreachable. <c>.WithAttribute("Mask", new RegexMask(…))</c>
+    /// — the natural thing to write — compiled, built and rendered while doing nothing at all: both
+    /// render paths read that key as <c>string?</c>, and an <see cref="MudBlazor.IMask"/> fails the
+    /// <c>value is T</c> test and falls back to <c>null</c>. This overload writes a separate,
+    /// correctly-typed key instead.
+    /// </para>
+    /// <para>
+    /// <b>Return the same type every time.</b> <c>MudMask.SetMask</c> preserves the user's text and
+    /// caret only when the incoming mask matches the type it already holds; a factory that varied
+    /// its return type would reset the field mid-edit, since a render happens on every keystroke.
+    /// </para>
+    /// <para>
+    /// The last <c>WithMask</c> call on a field wins: this one clears a pattern configured earlier,
+    /// and the pattern overload clears a factory configured earlier. <c>cleanDelimiters</c> does not
+    /// apply here — set the equivalent on the mask you construct.
+    /// </para>
+    /// <para>
+    /// A regex mask is matched against <b>partial</b> input, so its pattern must accept prefixes:
+    /// use open-ended quantifiers like <c>^[0-9]{0,5}$</c>. An exact <c>^[0-9]{5}$</c> never matches
+    /// a shorter prefix and blocks every keystroke.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Pin, field => field
+    ///     .WithMask(() => new RegexMask("^[0-9]{0,4}$")))
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, string> WithMask<TModel>(
+        this FieldBuilder<TModel, string> builder,
+        Func<MudBlazor.IMask> maskFactory)
+        where TModel : new()
+    {
+        ArgumentNullException.ThrowIfNull(maskFactory);
+
+        return builder
+            .WithAttribute(TextMaskMap.MaskFactoryAttribute, maskFactory)
+            // Clears a pattern configured earlier, so the last WithMask on a field wins.
+            .WithAttribute(TextMaskMap.AttributeName, null!)
+            .WithAttribute(TextMaskMap.CleanDelimitersAttribute, false);
+    }
+
+    /// <summary>
     /// Adds an adornment (icon or text) to a text field.
     /// </summary>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>

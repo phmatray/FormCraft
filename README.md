@@ -95,11 +95,42 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Three things to check before you upgrade**, if you already pass `Mask` — it did nothing until now, so all three are newly reachable:
 
-  1. **The model stores the *masked* text.** With the mask above, `model.Phone` becomes `"(555) 123-4567"`, not `"5551234567"`. Validation, database columns and APIs keyed to raw digits will see the delimiters. (MudBlazor can strip them — `PatternMask.CleanDelimiters` — but FormCraft has no way to reach that yet; see the follow-up on #211.)
+  1. **The model stores the *masked* text.** With the mask above, `model.Phone` becomes `"(555) 123-4567"`, not `"5551234567"`. Validation, database columns and APIs keyed to raw digits will see the delimiters. This is still the default, but it is no longer the only option: `.WithMask("(000) 000-0000", cleanDelimiters: true)` stores `"5551234567"` instead — see the `.WithMask(...)` entry below (#265).
   2. **An existing value that doesn't fit the pattern renders as an empty field** — while the model quietly keeps the original. The user sees a blank input, submits without touching it, and the old value survives. Worth auditing stored data against the pattern before turning a mask on.
   3. **Masked fields render through MudBlazor's `MudMask`**, which MudBlazor documents as *"recommended to be used in WASM projects only because it has known problems in BSS, especially with high network latency"*. On Blazor Server, test the field under realistic latency before shipping it.
 
   A field that configures no mask is untouched by all of this.
+
+- **`.WithMask(...)` — a typed builder for masks, replacing the `"Mask"` magic string.** The entry above made masks work; the only way to reach one was still `.WithAttribute("Mask", "…")`, which is undiscoverable, unchecked by the compiler, and one typo away from silently doing nothing — the defect #204 closed for `.WithNativeRequired()`. There is now a typed builder, and it reaches two configurations the string never could (#265)
+
+  ```csharp
+  .AddField(x => x.Phone, field => field
+      .WithMask("(000) 000-0000"))                        // model stores "(555) 123-4567"
+
+  .AddField(x => x.Phone, field => field
+      .WithMask("(000) 000-0000", cleanDelimiters: true)) // model stores "5551234567"
+
+  .AddField(x => x.Pin, field => field
+      .WithMask(() => new RegexMask("^[0-9]{0,4}$")))     // any MudBlazor IMask
+  ```
+
+  | Configuration | Resolved mask | Model receives |
+  |---|---|---|
+  | `.WithMask("0000-0000")` | `PatternMask` | `"1234-5678"` (delimited) |
+  | `.WithMask("0000-0000", cleanDelimiters: true)` | `PatternMask` with `CleanDelimiters = true` | `"12345678"` |
+  | `.WithMask(() => new RegexMask(…))` | what the factory returns | per that mask |
+  | `.WithAttribute("Mask", "0000-0000")` | `PatternMask` | `"1234-5678"` — unchanged |
+  | blank or whitespace pattern | none | value unchanged |
+
+  **`cleanDelimiters` is the answer to point 1 above.** The model storing the delimited text used to be unavoidable, because `PatternMask.CleanDelimiters` was unreachable from FormCraft. It is opt-in, so the default keeps #211's behaviour and a form you do not touch is unaffected.
+
+  **A pre-built `IMask` used to be discarded silently.** `.WithAttribute("Mask", new RegexMask(…))` — the natural thing for a MudBlazor user to write — compiled, built and rendered while doing nothing at all: both render paths read that key as `string?`, so an `IMask` failed their type test and fell back to `null`, putting `RegexMask`, `BlockMask` and `MultiMask` out of reach. The new overload writes a separate, correctly-typed key.
+
+  **Why a factory and not the mask itself.** A mask is not a value: MudBlazor's `BaseMask` carries the live `Text`, `CaretPos` and `Selection` of the input it is attached to. One field configuration is shared by every row of a collection, so a mask stored in it would be handed to every row at once — and `MudMask.SetMask` keeps the object it is given rather than copying it whenever the type differs from the `PatternMask` it seeds itself with, which is the case for every `RegexMask`, `BlockMask` and `MultiMask`. Taking `Func<IMask>` gives each rendered field its own instance and keeps the built configuration immutable. Return the **same implementation type** on every call: MudBlazor preserves the user's text and caret only when the incoming mask matches the type it already holds, and a render happens on every keystroke.
+
+  ⚠️ **A regex mask is matched against *partial* input**, so its pattern must accept prefixes: `^[0-9]{0,4}$`, never `^[0-9]{4}$`, which never matches a shorter prefix and so blocks every keystroke.
+
+  `.WithAttribute("Mask", "…")` keeps working and is unchanged — this is additive, not a migration. Both render paths resolve all of it through the same `TextMaskMap.Resolve`, so an ordinary field and one inside `.WithItemForm(...)` agree by construction. One wrinkle if you *mix* the two on a single field: the raw form sets only the pattern, so a `cleanDelimiters: true` from an earlier `.WithMask(...)` call on that field stays in effect. Prefer `.WithMask(...)`, which clears whatever the other overload configured.
 
 - **Required fields are now announced to assistive technology, on both render paths.** A `.Required("…")` field rendered `aria-required="false"` — not merely silent, but an affirmatively wrong statement to a screen reader — so a screen-reader user got no indication which fields were mandatory until submission failed. That is a WCAG 2.1 **3.3.2 Labels or Instructions** (Level A) failure. Both the ordinary field path and the collection item path now resolve MudBlazor's `Required` from `.Required(...)`, so the field is announced identically inside and outside `.WithItemForm(...)` (#199)
 
