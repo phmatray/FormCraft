@@ -1060,6 +1060,61 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
         component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
     }
 
+    [Fact]
+    public void TextField_With_A_Prebuilt_IMask_Should_Bind_That_Mask()
+    {
+        // Arrange - the third gap #265 closes. `.WithAttribute("Mask", new RegexMask(…))` is the
+        // natural thing for a MudBlazor user to write and it compiled, built and rendered while
+        // doing nothing: both paths read the attribute as string?, whose `value is T` test fails for
+        // an IMask and falls back to null. So RegexMask, BlockMask and MultiMask were unreachable.
+        //
+        // The regex is open-ended (`{0,4}`, not `{4}`) because MudBlazor matches it against partial
+        // input: an exact quantifier never matches a shorter prefix and blocks every keystroke.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask(new RegexMask("^[0-9]{0,4}$")))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert - the type and the pattern, not the instance.
+        var mask = component.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<RegexMask>();
+        mask.Mask.ShouldBe("^[0-9]{0,4}$");
+    }
+
+    [Fact]
+    public void TextField_With_Both_A_Pattern_And_An_Instance_Should_Prefer_The_Instance()
+    {
+        // Arrange - the precedence rule from the spec. Reachable by chaining both overloads on one
+        // field, and the answer must be deterministic rather than order-of-attribute-read: the
+        // instance is the more specific configuration, so it wins.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask("0000-0000")
+                .WithMask(new RegexMask("^[0-9]{0,4}$")))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<RegexMask>()
+            .Mask.ShouldBe("^[0-9]{0,4}$");
+    }
+
     private class NumericModel
     {
         public int Quantity { get; set; }

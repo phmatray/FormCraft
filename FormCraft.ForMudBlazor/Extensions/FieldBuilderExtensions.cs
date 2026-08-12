@@ -307,6 +307,57 @@ public static class MudBlazorFieldBuilderExtensions
     }
 
     /// <summary>
+    /// Configures a pre-built MudBlazor mask on a text field — <c>RegexMask</c>, <c>BlockMask</c>,
+    /// <c>MultiMask</c>, or a <c>PatternMask</c> you configured yourself.
+    /// </summary>
+    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
+    /// <param name="builder">The FieldBuilder instance for a string field.</param>
+    /// <param name="mask">
+    /// The mask to apply. Treated as a <b>prototype</b> — see the remarks before reusing one.
+    /// </param>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// ⚠️ <b>The argument is a prototype, not the live mask, and must not be mutated after this
+    /// call.</b> MudBlazor reads settings out of it rather than treating it as a value:
+    /// <c>MudMask.SetMask</c> copies via <c>_mask.UpdateFrom(other)</c> when the incoming mask is of
+    /// the same type as the one it holds. Mutating the instance afterwards changes what every field
+    /// configured from it resolves to, at a moment no render is expecting. Configure it fully, pass
+    /// it, and leave it alone.
+    /// </para>
+    /// <para>
+    /// Before #265 this configuration was unreachable. <c>.WithAttribute("Mask", new RegexMask(…))</c>
+    /// — the natural thing to write — compiled, built and rendered while doing nothing at all: both
+    /// render paths read that key as <c>string?</c>, and an <see cref="MudBlazor.IMask"/> fails the
+    /// <c>value is T</c> test and falls back to <c>null</c>. This overload writes a separate,
+    /// correctly-typed key instead.
+    /// </para>
+    /// <para>
+    /// Wins over <see cref="WithMask{TModel}(FieldBuilder{TModel,string},string,bool)"/> if a field
+    /// somehow configures both: the instance is the more specific instruction. <c>cleanDelimiters</c>
+    /// does not apply here — set the equivalent on the mask you construct.
+    /// </para>
+    /// <para>
+    /// A regex mask is matched against <b>partial</b> input, so its pattern must accept prefixes:
+    /// use open-ended quantifiers like <c>^[0-9]{0,5}$</c>. An exact <c>^[0-9]{5}$</c> never matches
+    /// a shorter prefix and blocks every keystroke.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Pin, field => field
+    ///     .WithMask(new RegexMask("^[0-9]{0,4}$")))
+    /// </code>
+    /// </example>
+    public static FieldBuilder<TModel, string> WithMask<TModel>(
+        this FieldBuilder<TModel, string> builder,
+        MudBlazor.IMask mask)
+        where TModel : new()
+    {
+        return builder.WithAttribute(TextMaskMap.MaskInstanceAttribute, mask);
+    }
+
+    /// <summary>
     /// Adds an adornment (icon or text) to a text field.
     /// </summary>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>

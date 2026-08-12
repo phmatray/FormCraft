@@ -655,6 +655,45 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         itemMask.CleanDelimiters.ShouldBe(cleanDelimiters);
     }
 
+    [Fact]
+    public void A_Prebuilt_IMask_Should_Resolve_Identically_On_Both_Paths()
+    {
+        // Arrange - #265's IMask overload, held to the same parity bar as the pattern above. A
+        // supplied instance takes a different branch of Resolve than a pattern string does, so it is
+        // its own opportunity for the two paths to disagree.
+        void Configure<TOwner>(FieldBuilder<TOwner, string> field)
+            where TOwner : new()
+            => field.WithLabel("Value").WithMask(new RegexMask("^[0-9]{0,4}$"));
+
+        var standaloneConfig = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Status, Configure)
+            .Build();
+
+        var collectionConfig = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item.AddField(x => x.ProductName, Configure)))
+            .Build();
+
+        // Act
+        var standaloneRender = RenderForm(standaloneConfig);
+        var itemRender = Render<FormCraftComponent<OrderModel>>(parameters => parameters
+            .Add(p => p.Model, new OrderModel { Items = { new OrderItem() } })
+            .Add(p => p.Configuration, collectionConfig));
+
+        // Assert - the same implementation type on both, which is the property MudMask.SetMask cares
+        // about, and the same pattern.
+        var standaloneMask = standaloneRender.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<RegexMask>();
+        var itemMask = itemRender.FindComponent<MudTextField<string>>().Instance.Mask
+            .ShouldBeOfType<RegexMask>();
+
+        itemMask.Mask.ShouldBe(standaloneMask.Mask);
+        itemMask.Mask.ShouldBe("^[0-9]{0,4}$");
+    }
+
     [Theory]
     [InlineData("0000-0000", "12345678", "1234-5678")]
     [InlineData("(000) 000-0000", "5551234567", "(555) 123-4567")]

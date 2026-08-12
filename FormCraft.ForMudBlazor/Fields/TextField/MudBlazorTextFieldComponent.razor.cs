@@ -28,6 +28,11 @@ public partial class MudBlazorTextFieldComponent<TModel>
     /// </summary>
     public bool MaskCleanDelimiters { get; set; }
 
+    /// <summary>
+    /// A caller-supplied MudBlazor mask, which takes precedence over <see cref="Mask"/> (#265).
+    /// </summary>
+    public IMask? SuppliedMask { get; set; }
+
     public Adornment? Adornment { get; set; }
 
     /// <summary>
@@ -82,6 +87,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
         Autocomplete = GetAttribute<string?>("autocomplete");
         Mask = GetAttribute<string?>(TextMaskMap.AttributeName);
         MaskCleanDelimiters = GetAttribute(TextMaskMap.CleanDelimitersAttribute, false);
+        SuppliedMask = GetAttribute<IMask?>(TextMaskMap.MaskInstanceAttribute);
 
         // Load adornment configuration
         var customAdornment = GetAttribute<Adornment?>("Adornment");
@@ -165,7 +171,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
     /// <c>.WithAttribute("Mask", …)</c> looked supported while doing nothing. The resolution itself
     /// lives in <see cref="TextMaskMap"/> so the collection render path cannot drift from it.
     /// </remarks>
-    private IMask? GetMask() => TextMaskMap.Resolve(Mask, MaskCleanDelimiters);
+    private IMask? GetMask() => TextMaskMap.Resolve(Mask, MaskCleanDelimiters, SuppliedMask);
 
     private void TogglePasswordVisibility(string? value = null)
     {
@@ -336,6 +342,20 @@ internal static class TextMaskMap
     internal const string CleanDelimitersAttribute = "MaskCleanDelimiters";
 
     /// <summary>
+    /// The attribute key <c>MudBlazorFieldBuilderExtensions.WithMask</c> stores a caller-supplied
+    /// <see cref="IMask"/> under, and which both render paths read it back from (#265).
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="AttributeName"/> rather than sharing it, because that key is typed
+    /// <c>string?</c> at both readers and an <see cref="IMask"/> written to it fails their
+    /// <c>value is T</c> test and reads back as <c>null</c> — which is exactly how
+    /// <c>.WithAttribute("Mask", new RegexMask(…))</c> came to compile, render and do nothing.
+    /// Widening that key to <c>object?</c> instead would make every existing reader re-test the
+    /// type; a second key keeps each one monomorphic.
+    /// </remarks>
+    internal const string MaskInstanceAttribute = "MaskInstance";
+
+    /// <summary>
     /// Maps a configured mask pattern onto MudBlazor's <see cref="IMask"/>, or <c>null</c> when the
     /// field configured none.
     /// </summary>
@@ -385,8 +405,29 @@ internal static class TextMaskMap
     /// it reports (#265). Meaningless without a pattern, and ignored there rather than allowed to
     /// resurrect a mask the blank rule above suppressed.
     /// </param>
-    internal static IMask? Resolve(string? mask, bool cleanDelimiters = false) =>
-        string.IsNullOrWhiteSpace(mask)
+    /// <param name="suppliedMask">
+    /// <para>
+    /// A caller-supplied <see cref="IMask"/> (#265), which wins over <paramref name="mask"/> when
+    /// both are configured: it is the more specific instruction, and a deterministic rule is what
+    /// stops the answer depending on the order the two attributes happen to be read in.
+    /// </para>
+    /// <para>
+    /// Returned as-is rather than copied, which is the one place this method does not hand out a
+    /// fresh instance per call. That is deliberate but narrow: MudBlazor treats the value as a
+    /// <b>prototype</b> it reads settings out of, so the caller must not mutate it after
+    /// configuring the field. Type stability is preserved — the same instance is by definition the
+    /// same type on every render — which is the property <c>MudMask.SetMask</c> actually tests.
+    /// </para>
+    /// </param>
+    internal static IMask? Resolve(string? mask, bool cleanDelimiters = false, IMask? suppliedMask = null)
+    {
+        if (suppliedMask is not null)
+        {
+            return suppliedMask;
+        }
+
+        return string.IsNullOrWhiteSpace(mask)
             ? null
             : new PatternMask(mask) { CleanDelimiters = cleanDelimiters };
+    }
 }
