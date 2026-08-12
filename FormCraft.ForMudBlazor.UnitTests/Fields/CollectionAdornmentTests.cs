@@ -3,12 +3,22 @@ using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
-/// Tests that collection item fields honor <c>.WithAdornment(...)</c> (#184). These render through
-/// CollectionFieldComponent's imperative RenderTreeBuilder path, which resolves presentation
-/// attributes in AddCommonFieldAttributes rather than through MudBlazorFieldComponentBase — so it
-/// needs its own coverage. Before #184 the three adornment attributes were silently dropped here
-/// while the component path forwarded them, so the same builder call rendered differently
-/// depending on whether the field sat inside <c>.WithItemForm(...)</c>.
+/// Tests that collection item fields honor <c>.WithAdornment(...)</c> (#184).
+/// <para>
+/// Written when item fields rendered through CollectionFieldComponent's own imperative
+/// RenderTreeBuilder path, which resolved presentation attributes in <c>AddCommonFieldAttributes</c>
+/// rather than through <c>MudBlazorFieldComponentBase</c> — so it needed coverage of its own. Before
+/// #184 the three adornment attributes were silently dropped there while the component path
+/// forwarded them, so the same builder call rendered differently depending on whether the field sat
+/// inside <c>.WithItemForm(...)</c>.
+/// </para>
+/// <para>
+/// #203 deleted that second path: item fields go through <c>IFieldRendererService</c> like every
+/// other field, so these assertions now exercise the same component a standalone field does. They
+/// are kept — and kept passing unmodified — precisely because that is the claim worth holding: the
+/// behaviour #184 had to add by hand is now inherited, and this suite is what would notice if the
+/// item placement ever stopped inheriting it.
+/// </para>
 /// <para>
 /// Models and item-form builders come from <see cref="CollectionItemFixture"/> (#205). The text-path
 /// tests render <c>NewOrder("Widget")</c> — the <b>seeded</b> value — because an adornment is about
@@ -107,23 +117,55 @@ public class CollectionAdornmentTests : MudBlazorTestBase
     [Fact]
     public void BooleanItemField_With_An_Adornment_Should_Render_Without_One()
     {
-        // Arrange & Act - MudCheckBox has no adornment concept at all, so RenderBooleanField sets its
-        // own attributes and takes no part in the forward. Configuring one must be inert, not a throw.
+        // Arrange - MudCheckBox has no adornment concept at all, so configuring one must be inert
+        // rather than a throw.
+        //
+        // The REASON changed in #203, and the change is the point. This used to be inert because
+        // RenderBooleanField was a bespoke renderer that set its own attributes and took no part in
+        // the adornment forward — inert by omission, on a path that also silently ignored
+        // DisplayStyle and every other shared setting. It is now inert because
+        // MudBlazorBooleanFieldComponent — the very same component a standalone bool field renders
+        // through — binds no adornment either. Same observable result, arrived at by inheritance
+        // instead of by a second implementation happening to lack the feature.
+        //
+        // So the assertion is strengthened to say what actually matters now: not merely "no icon",
+        // but "the same as the standalone field", which is what stops this becoming a divergence
+        // again the day MudCheckBox grows an adornment.
+        var standaloneConfig = FormBuilder<BasketLine>
+            .Create()
+            .AddField(x => x.IsGift, field => field
+                .WithLabel("Gift")
+                .WithAttribute("Adornment", Adornment.Start)
+                .WithAttribute("AdornmentIcon", Icons.Material.Filled.Search))
+            .Build();
+
+        // Act
         var component = this.RenderItemForm(NewBasket(), BooleanItemForm(field => field
             .WithAttribute("Adornment", Adornment.Start)
             .WithAttribute("AdornmentIcon", Icons.Material.Filled.Search)));
 
+        var standalone = Render<FormCraftComponent<BasketLine>>(parameters => parameters
+            .Add(p => p.Model, new BasketLine())
+            .Add(p => p.Configuration, standaloneConfig));
+
         // Assert
-        component.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Gift");
+        var itemCheckbox = component.FindComponent<MudCheckBox<bool>>().Instance;
+        itemCheckbox.Label.ShouldBe("Gift");
         component.Markup.ShouldNotContain(Icons.Material.Filled.Search);
+
+        // ...and the standalone field is inert in exactly the same way, which is the convergence.
+        standalone.Markup.ShouldNotContain(Icons.Material.Filled.Search);
+        itemCheckbox.Label.ShouldBe(standalone.FindComponent<MudCheckBox<bool>>().Instance.Label);
     }
 
     [Fact]
     public void DateItemField_Should_Keep_Its_Calendar_Icon()
     {
-        // Arrange & Act - MudDatePicker's own default is Adornment.End with a calendar icon, unlike the
-        // text and numeric fields whose default is None. Forwarding an unset adornment onto it
-        // would silently erase that icon, so the date path deliberately does not take the forward.
+        // Arrange & Act - MudDatePicker's own default is Adornment.End with a calendar icon, unlike
+        // the text and numeric fields whose default is None. Binding an UNSET adornment onto it
+        // would silently erase that icon, which is why the date component supplies MudDatePicker's
+        // own defaults rather than the base class's None (#217, moved into the component by #203).
+        // The sibling test below pins the other half: a configured adornment still wins.
         var component = this.RenderItemForm(NewAppointment(), DateItemForm());
 
         // Assert

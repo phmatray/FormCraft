@@ -66,6 +66,41 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **One adapter per application:** `AddFormCraftFluentUI()` throws if the MudBlazor adapter is already registered, because renderer selection is first-match-wins and a mixed container would silently render a half-Material form. ⚠️ The guard is one-directional — registering MudBlazor *after* Fluent is not caught yet. Fluent UI Blazor v5 is still an RC, so this package depends on a prerelease.
 
+- **Collection item fields now render through the same components as every other field.** Fields inside `.WithItemForm(...)` used to be built by a second, hand-written renderer, so every presentation feature had to be implemented twice — which is where #146 (`Variant`), #177 (`ShrinkLabel`), #184 (adornments) and #190 (`Required`) each came from, one bug report at a time. That renderer is gone: item fields go through `IFieldRendererService` like everything else, and inherit present and future field capabilities by construction rather than by vigilance (#203)
+
+  No API changed, and a form that configures nothing renders as before. Settings that an item field previously accepted and silently ignored now take effect:
+
+  | Setting on a field inside `.WithItemForm(...)` | Before | Now |
+  |---|---|---|
+  | `.AsPassword(enableVisibilityToggle: true)` | masked, but no show/hide eye | the eye is rendered and works |
+  | `DisplayStyle = BooleanDisplayStyle.Switch` on a `bool` | always a checkbox | renders a switch |
+  | `MinDate` / `MaxDate` on a date | ignored | honoured |
+  | typing into a date field | picker only | editable, like a standalone date field |
+  | `Min` / `Max` / `Step` on a numeric | ignored | honoured |
+
+  **Worth knowing:** a `bool` item field gains `DisplayStyle`, not the whole shared presentation set — `MudCheckBox` has no `Variant`, `Placeholder` or adornment to give it. Configuring those on a `bool` stays inert, exactly as it is on a standalone `bool` field. `.WithAttribute("Required", true)` was already path-independent as of #204 and is unchanged here.
+
+- **⚠️ `.WithAdornment(...)` on an ordinary date field is now honoured.** It used to be accepted and silently dropped on the *component* path, the mirror image of the collection-path bug #217 fixed — `MudDatePicker` defaults to `Adornment.End` with its own calendar icon, and the component declined to bind an adornment at all rather than erase it. It now supplies MudDatePicker's own defaults, so an unconfigured field still renders End + the calendar icon and a configured adornment wins (#203)
+
+  If you had `.WithAdornment(..., Adornment.Start)` on a date field and had not noticed it doing nothing, it will now render — and, being a real start adornment, it pins the label, so the `ShrinkLabel` diagnostic will now report it.
+- **`Mask` works — on both render paths.** `.WithAttribute("Mask", …)` was accepted and silently did nothing anywhere: FormCraft stores the mask as a string, MudBlazor's parameter takes an `IMask`, and the conversion had never been written. The component path read the string into a property whose only consumer was a `GetMask()` stub that returned `null` and that nothing called; the collection path deliberately did not forward it at all, precisely so the two would not diverge. The conversion now exists and both paths bind it, so a mask applies to an ordinary field and to one inside `.WithItemForm(...)` alike (#211)
+
+  ```csharp
+  .AddField(x => x.Phone, field => field
+      .WithLabel("Phone")
+      .WithAttribute("Mask", "(000) 000-0000"))   // ← was inert, now masks as you type
+  ```
+
+  Pattern characters are `0` (digit), `a` (letter) and `*` (letter or digit); every other character is a literal the mask inserts for you — so typing `5551234567` above yields `(555) 123-4567`. A blank pattern (`""` or whitespace) means *no mask*, so a setting that binds to empty leaves the field alone rather than making it reject every keystroke. Unlike `.AsPassword()` + `Lines` (#207), a mask combined with `AsTextArea(lines: > 1)` is honoured in full — you get a masked `<textarea>`.
+
+  **Three things to check before you upgrade**, if you already pass `Mask` — it did nothing until now, so all three are newly reachable:
+
+  1. **The model stores the *masked* text.** With the mask above, `model.Phone` becomes `"(555) 123-4567"`, not `"5551234567"`. Validation, database columns and APIs keyed to raw digits will see the delimiters. (MudBlazor can strip them — `PatternMask.CleanDelimiters` — but FormCraft has no way to reach that yet; see the follow-up on #211.)
+  2. **An existing value that doesn't fit the pattern renders as an empty field** — while the model quietly keeps the original. The user sees a blank input, submits without touching it, and the old value survives. Worth auditing stored data against the pattern before turning a mask on.
+  3. **Masked fields render through MudBlazor's `MudMask`**, which MudBlazor documents as *"recommended to be used in WASM projects only because it has known problems in BSS, especially with high network latency"*. On Blazor Server, test the field under realistic latency before shipping it.
+
+  A field that configures no mask is untouched by all of this.
+
 - **Required fields are now announced to assistive technology, on both render paths.** A `.Required("…")` field rendered `aria-required="false"` — not merely silent, but an affirmatively wrong statement to a screen reader — so a screen-reader user got no indication which fields were mandatory until submission failed. That is a WCAG 2.1 **3.3.2 Labels or Instructions** (Level A) failure. Both the ordinary field path and the collection item path now resolve MudBlazor's `Required` from `.Required(...)`, so the field is announced identically inside and outside `.WithItemForm(...)` (#199)
 
   **What comes with it.** MudBlazor drives three things from one flag, so the visible `*` asterisk and the HTML5 `required` attribute return alongside the ARIA annotation — they are not separable. The asterisk is itself a *visible* WCAG 3.3.2 identification. The HTML5 attribute is **inert for validation**: FormCraft forms render `novalidate` (#206), so the browser runs no constraint validation and messages still come from your validator. This reverses the collection-path half of #190 deliberately; what #190 actually fixed — the two paths disagreeing — stays fixed, and `RenderPipelineParityTests` now compares `aria-required` on both.
@@ -158,7 +193,7 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Behaviour change to be aware of.** Forms that already use `.AsPassword()` inside a collection **start masking** — the characters stop being visible. If any workflow relied on reading those values off the screen, it will notice. The same path now also forwards `Lines`, `MaxLength` and `autocomplete`, so multi-line item fields honour their configured height, length limits apply, and password managers can fill item fields.
 
-  **Scope.** The visibility-toggle eye that `.AsPassword()` puts on an ordinary field is still not drawn on an item field; the masking no longer depends on it. `Mask` remains unimplemented on **both** render paths — FormCraft stores it as a string, MudBlazor wants an `IMask`, and the conversion has never been written — so `.WithAttribute("Mask", …)` is inert everywhere rather than newly inconsistent. The parity test introduced with the #184 entry below now compares `InputType`, `Lines`, `MaxLength` and `autocomplete` instead of listing them as known divergences.
+  **Scope.** The visibility-toggle eye that `.AsPassword()` puts on an ordinary field is still not drawn on an item field; the masking no longer depends on it. `Mask` was left unimplemented on **both** render paths at the time — FormCraft stored it as a string, MudBlazor wanted an `IMask`, and the conversion had never been written — so `.WithAttribute("Mask", …)` was inert everywhere rather than newly inconsistent; that has since been closed (see the `Mask` entry under **Unreleased**). The parity test introduced with the #184 entry below now compares `InputType`, `Lines`, `MaxLength` and `autocomplete` instead of listing them as known divergences.
 
 - **`.WithAdornment(...)`'s `onClick` handler now fires — on both render paths.** The parameter was accepted, documented and then thrown away: `WithAdornment` never wrote it anywhere, so a search or visibility-toggle icon rendered, invited a click, and did nothing. It now runs on an ordinary field and on one inside `.WithItemForm(...)` alike, receiving the field's current value (#192)
 

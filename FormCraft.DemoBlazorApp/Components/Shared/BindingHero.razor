@@ -1,0 +1,79 @@
+@namespace FormCraft.DemoBlazorApp.Components.Shared
+
+@*
+    The binding: one chain of C# on the left, the form it produced on the right.
+    Both sides are generated from the same field list, so they cannot disagree —
+    and the form is a real FormCraftComponent, not a picture of one.
+*@
+<div class="fc-binding"
+     data-active="@(_active ?? "")"
+     data-active-index="@ActiveIndex()">
+
+    <section class="fc-binding__panel" aria-label="Form definition">
+        <header class="fc-binding__head">
+            <span class="fc-eyebrow">ContactForm.razor.cs</span>
+        </header>
+
+        <div class="fc-code" @onmouseleave="@(() => _active = null)">
+            <div class="fc-code-line">
+                <span class="t-key">var</span><span> config = </span><span class="t-type">FormBuilder</span><span>&lt;</span><span class="t-type">Contact</span><span>&gt;.</span><span class="t-call">Create</span><span>()</span>
+            </div>
+
+            @foreach (var field in EnabledFields())
+            {
+                <div class="fc-code-line fc-code-line--field @(_active == field.Key ? "is-bound" : "") @(_justAdded == field.Key ? "is-new" : "")"
+                     data-key="@field.Key"
+                     @onmouseenter="@(() => _active = field.Key)">
+                    <span class="fc-code-indent">    </span>
+                    @foreach (var token in field.Tokens)
+                    {
+                        <span class="@token.Kind">@token.Text</span>
+                    }
+                </div>
+            }
+
+            <div class="fc-code-line">
+                <span class="fc-code-indent">    </span><span>.</span><span class="t-call">Build</span><span>();</span>
+            </div>
+        </div>
+
+        <footer class="fc-binding__toggles">
+            <span class="fc-binding__toggles-label">Fields</span>
+            @foreach (var field in AllFields)
+            {
+                var on = _enabled.Contains(field.Key);
+                <button type="button"
+                        class="fc-chip @(on ? "is-on" : "")"
+                        aria-pressed="@on"
+                        @onclick="@(() => Toggle(field.Key))"
+                        @onmouseenter="@(() => _active = on ? field.Key : null)"
+                        @onmouseleave="@(() => _active = null)"
+                        @onfocus="@(() => _active = on ? field.Key : null)"
+                        @onblur="@(() => _active = null)">
+                    <span class="fc-chip__mark" aria-hidden="true">@(on ? "−" : "+")</span>
+                    @field.Label
+                </button>
+            }
+        </footer>
+    </section>
+
+    <section class="fc-binding__panel fc-binding__panel--render" aria-label="Rendered form">
+        <header class="fc-binding__head">
+            <span class="fc-eyebrow">Rendered</span>
+            @if (_submitted)
+            {
+                <span class="fc-valid-tag">Submitted</span>
+            }
+        </header>
+
+        <div class="fc-binding__render">
+            @if (_configuration is not null)
+            {
+                <FormCraftComponent TModel="Contact"
+                                    Model="@_model"
+                                    Configuration="@_configuration"
+                                    OnValidSubmit="@HandleSubmit" />
+            }
+        </div>
+    </section>
+</div>

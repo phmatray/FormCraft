@@ -391,9 +391,12 @@ public class DemoRegistry : IDemoRegistry
 
     private static readonly Dictionary<string, (string Name, string Icon, Color Color)> LevelInfoMap = new()
     {
-        [Levels.Beginner] = ("Beginner", Icons.Material.Filled.School, Color.Success),
-        [Levels.Intermediate] = ("Intermediate", Icons.Material.Filled.TrendingUp, Color.Warning),
-        [Levels.Advanced] = ("Advanced", Icons.Material.Filled.Whatshot, Color.Error)
+        // All three share the primary colour on purpose. Difficulty is a scale, not a
+        // status, and the old green/amber/red made "Advanced" look like an error.
+        // LevelMeter draws the scale itself.
+        [Levels.Beginner] = ("Beginner", Icons.Material.Filled.School, Color.Primary),
+        [Levels.Intermediate] = ("Intermediate", Icons.Material.Filled.TrendingUp, Color.Primary),
+        [Levels.Advanced] = ("Advanced", Icons.Material.Filled.Whatshot, Color.Primary)
     };
 
     private static readonly string[] LevelOrder = [Levels.Beginner, Levels.Intermediate, Levels.Advanced];

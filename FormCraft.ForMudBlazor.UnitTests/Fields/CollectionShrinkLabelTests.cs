@@ -1,11 +1,19 @@
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
-/// Tests that collection item fields honor the configurable ShrinkLabel (#177). These
-/// render through CollectionFieldComponent's imperative RenderTreeBuilder path, which
-/// resolves presentation attributes in AddCommonFieldAttributes rather than through
-/// MudBlazorFieldComponentBase — so it needs its own resolver and its own coverage.
+/// Tests that collection item fields honor the configurable ShrinkLabel (#177).
 /// </summary>
+/// <remarks>
+/// Written when item fields rendered through CollectionFieldComponent's imperative
+/// RenderTreeBuilder path, which resolved ShrinkLabel in its own <c>GetItemFieldShrinkLabel</c>
+/// rather than through <c>MudBlazorFieldComponentBase.EffectiveShrinkLabel</c> — a duplicate
+/// resolver, hence duplicate coverage.
+/// <para>
+/// #203 removed that duplicate: item fields resolve ShrinkLabel through the one component property,
+/// including the form-level cascade fallback these tests exercise. They pass unmodified and are kept
+/// as the guard that the item placement keeps inheriting it.
+/// </para>
+/// </remarks>
 public class CollectionShrinkLabelTests : MudBlazorTestBase
 {
     [Fact]

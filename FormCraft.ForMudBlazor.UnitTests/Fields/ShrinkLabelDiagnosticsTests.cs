@@ -431,12 +431,23 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void Should_Not_Warn_For_A_Date_Field_That_Renders_No_Adornment()
+    public void Should_Warn_About_A_Start_Adornment_On_A_Date_Field()
     {
-        // Arrange - #212. MudDatePicker keeps its own calendar adornment and FormCraft's date
-        // components deliberately bind none of ours (#184, #191), so a configured start adornment is
-        // dropped. The label therefore floats exactly as asked — and the diagnostic used to tell the
-        // developer to remove a setting that was working.
+        // Arrange - inverted by #203, for the same reason and under the same rule that #217 inverted
+        // the collection-path twin above (Should_Warn_About_An_Adornment_On_A_Collection_Date_Item_Field).
+        //
+        // This test used to assert SILENCE, and was right to under #212: FormCraft's date component
+        // bound none of our adornments, so a configured start adornment was dropped, the label
+        // floated exactly as asked, and warning would have told the developer to remove a setting
+        // that was working. #183's rule — the diagnostic judges what a path RENDERS, not what was
+        // configured — pointed at silence given that behaviour.
+        //
+        // #203 converged the two render paths onto this component, which meant the component had to
+        // learn #217's date adornment binding or date ITEM fields would have silently lost it. So a
+        // configured start adornment is now really drawn here too, it really does pin the label, and
+        // warning is the correct answer under exactly the same unchanged rule.
+        //
+        // The two tests asserting opposite things was the divergence; them agreeing is the fix.
         var config = FormBuilder<TestModel>
             .Create()
             .AddField(x => x.When, f => f
@@ -448,6 +459,30 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
         // Act - through the popover-providing host: MudDatePicker logs its own unrelated
         // "Missing <MudPopoverProvider />" warning otherwise, which this logger would capture and
         // which has nothing to do with ShrinkLabel.
+        RenderFormWithPopover(config);
+
+        // Assert
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("When");
+        warnings[0].ShouldContain("Adornment");
+    }
+
+    [Fact]
+    public void Should_Not_Warn_For_A_Date_Field_That_Configures_No_Adornment()
+    {
+        // Arrange - the other half of the pair, and the one that keeps #212 honest: MudDatePicker's
+        // OWN calendar adornment sits at the End, where it cannot displace a floating label. An
+        // unconfigured date field must therefore stay silent even though this component now binds an
+        // adornment unconditionally.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.When, f => f
+                .WithLabel("When")
+                .WithShrinkLabel(false))
+            .Build();
+
+        // Act
         RenderFormWithPopover(config);
 
         // Assert

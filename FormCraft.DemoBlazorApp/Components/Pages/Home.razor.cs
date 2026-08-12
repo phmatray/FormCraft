@@ -4,15 +4,29 @@ namespace FormCraft.DemoBlazorApp.Components.Pages;
 
 public partial class Home
 {
-    private async Task CopyToClipboard(string text, bool isPM)
+    private const string InstallCommand = "dotnet add package FormCraft.ForMudBlazor";
+
+    private bool _copiedInstall;
+
+    private async Task CopyInstall()
     {
         try
         {
-            await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            _copiedInstall = await JS.InvokeAsync<bool>("formcraftCopy", InstallCommand);
         }
-        catch (Exception)
+        catch (JSException)
         {
-            // Fallback if clipboard API is not available
+            _copiedInstall = false;
         }
+
+        if (!_copiedInstall)
+        {
+            return;
+        }
+
+        StateHasChanged();
+        await Task.Delay(2000);
+        _copiedInstall = false;
+        StateHasChanged();
     }
 }

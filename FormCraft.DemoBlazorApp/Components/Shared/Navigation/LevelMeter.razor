@@ -1,0 +1,36 @@
+@namespace FormCraft.DemoBlazorApp.Components.Shared.Navigation
+
+@*
+    Difficulty is a scale, so it is drawn as one. The previous green/amber/red
+    chips read as status — "Advanced" in red looked like something had gone wrong.
+*@
+<span class="fc-level" title="@($"{Label} — level {Filled} of 3")">
+    <span class="fc-level__dots" aria-hidden="true">
+        @for (var i = 1; i <= 3; i++)
+        {
+            <span class="fc-level__dot @(i <= Filled ? "is-on" : "")"></span>
+        }
+    </span>
+    <span class="fc-level__label">@Label</span>
+</span>
+
+@code {
+    /// <summary>Level key: beginner, intermediate or advanced.</summary>
+    [Parameter] public string Level { get; set; } = "";
+
+    private int Filled => Level switch
+    {
+        "beginner" => 1,
+        "intermediate" => 2,
+        "advanced" => 3,
+        _ => 0
+    };
+
+    private string Label => Level switch
+    {
+        "beginner" => "Beginner",
+        "intermediate" => "Intermediate",
+        "advanced" => "Advanced",
+        _ => ""
+    };
+}

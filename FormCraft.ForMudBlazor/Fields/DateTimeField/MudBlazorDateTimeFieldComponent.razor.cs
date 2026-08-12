@@ -1,8 +1,52 @@
+using MudBlazor;
+
 namespace FormCraft.ForMudBlazor;
 
 public partial class MudBlazorDateTimeFieldComponent<TModel>
 {
     private DateTime? _localValue;
+
+    /// <summary>
+    /// The adornment this picker renders: the configured one, otherwise MudDatePicker's own
+    /// <see cref="MudBlazor.Adornment.End"/> (#217).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This component deliberately took no part in the #184 adornment forward, because MudDatePicker
+    /// — unlike MudTextField and MudNumericField — defaults to an End adornment carrying a calendar
+    /// icon, and binding an unset <see cref="MudBlazorFieldComponentBase{TModel, TValue}.EffectiveAdornment"/>
+    /// (which falls back to <see cref="MudBlazor.Adornment.None"/>) would have erased that icon from
+    /// every date field.
+    /// </para>
+    /// <para>
+    /// The cost of abstaining was that <c>.WithAdornment(...)</c> on a date field was accepted and
+    /// silently dropped — the same class of silent discard #184, #191 and #192 each closed
+    /// elsewhere. Supplying MudDatePicker's own defaults resolves both at once: an unconfigured
+    /// field still renders End + the calendar icon, and a configured adornment now wins.
+    /// </para>
+    /// <para>
+    /// #217 fixed exactly this on the imperative collection path. #203 converged the two paths onto
+    /// this component, so the fix has to live here or date item fields would silently lose it.
+    /// </para>
+    /// </remarks>
+    private Adornment DateAdornment => GetAttribute<Adornment?>("Adornment") ?? Adornment.End;
+
+    /// <summary>
+    /// The icon for <see cref="DateAdornment"/>: the configured one, otherwise MudDatePicker's own
+    /// calendar icon.
+    /// </summary>
+    private string? DateAdornmentIcon =>
+        GetAttribute<string?>("AdornmentIcon") ?? Icons.Material.Filled.Event;
+
+    /// <summary>
+    /// This component binds an adornment, so the ShrinkLabel diagnostic judges the value it
+    /// actually renders (#212) rather than staying silent.
+    /// </summary>
+    /// <remarks>
+    /// An unconfigured field reports <see cref="MudBlazor.Adornment.End"/>, which never conflicts
+    /// with a floating label; only a deliberately configured Start adornment warns.
+    /// </remarks>
+    protected override Adornment? RenderedAdornment => DateAdornment;
 
     public DateTimeInputMode InputMode { get; set; } = DateTimeInputMode.Date;
     public string? Format { get; set; } = "yyyy-MM-dd";
