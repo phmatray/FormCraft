@@ -727,21 +727,18 @@ public partial class CollectionFieldComponent<TModel, TItem>
             : fallback;
 
     /// <summary>
-    /// Resolves MudBlazor's <c>Required</c> for an item field exactly as the component path does
-    /// (#199): the explicit <c>.WithNativeRequired(...)</c> opt-in when the field sets one,
-    /// otherwise <see cref="IFieldConfiguration{TModel, TValue}.IsRequired"/>.
+    /// Resolves MudBlazor's <c>Required</c> for an item field (#199) through
+    /// <see cref="NativeRequired.Resolve"/> — the same single implementation the component path
+    /// uses, so the two cannot drift.
     /// </summary>
     /// <remarks>
-    /// Cannot go through <see cref="GetItemFieldAttribute{T}"/>: that helper collapses "not
-    /// configured" and "configured false" into the same fallback, which would make
+    /// Deliberately not routed through <see cref="GetItemFieldAttribute{T}"/>: that helper collapses
+    /// "not configured" and "configured false" into one fallback, which would make
     /// <c>.WithNativeRequired(false)</c> on a <c>.Required(...)</c> field silently re-acquire the
-    /// decoration it was written to suppress. The explicit value has to win in both directions, so
-    /// presence is tested separately from value.
+    /// decoration it was written to suppress.
     /// </remarks>
     private static bool GetItemFieldRequired(IFieldConfiguration<TItem, object> field)
-        => field.AdditionalAttributes.TryGetValue("Required", out var configured) && configured is bool optIn
-            ? optIn
-            : field.IsRequired;
+        => NativeRequired.Resolve(field.AdditionalAttributes, field.IsRequired);
 
     /// <summary>
     /// Builds the adornment click callback for a text item field (#192), or <c>default</c> when the

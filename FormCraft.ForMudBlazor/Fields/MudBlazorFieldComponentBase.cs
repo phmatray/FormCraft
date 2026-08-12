@@ -173,10 +173,7 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// </para>
     /// </remarks>
     protected bool EffectiveNativeRequired =>
-        Context.Field.AdditionalAttributes.TryGetValue("Required", out var configured)
-        && configured is bool optIn
-            ? optIn
-            : IsRequired;
+        NativeRequired.Resolve(Context.Field.AdditionalAttributes, IsRequired);
 
     /// <summary>
     /// Service provider used to resolve an optional <see cref="ILoggerFactory"/> for the
@@ -288,6 +285,38 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// </summary>
     private string? ShrinkLabelConflict() =>
         ShrinkLabelDiagnostic.Conflict(Placeholder, RenderedAdornment);
+}
+
+/// <summary>
+/// The single implementation of the native-required rule (#199), shared by the component render
+/// path (<see cref="MudBlazorFieldComponentBase{TModel, TValue}"/>) and the imperative
+/// RenderTreeBuilder path used for collection item fields — the same arrangement
+/// <see cref="ShrinkLabelDiagnostic"/> uses, and for the same reason: a rule the two paths must
+/// agree on gets one implementation, so <c>RenderPipelineParityTests</c> is guarding against
+/// regressions rather than against a copy-paste drifting.
+/// </summary>
+internal static class NativeRequired
+{
+    /// <summary>The attribute name carrying the explicit opt-in/opt-out.</summary>
+    internal const string AttributeName = "Required";
+
+    /// <summary>
+    /// Whether MudBlazor's <c>Required</c> should be set: the explicit
+    /// <c>.WithNativeRequired(...)</c> attribute when the field sets one, otherwise the field's own
+    /// <c>IsRequired</c>.
+    /// </summary>
+    /// <remarks>
+    /// Presence is tested separately from value on purpose. Collapsing "not configured" and
+    /// "configured false" into one fallback — which a plain get-with-default does — would make
+    /// <c>.WithNativeRequired(false)</c> on a <c>.Required(...)</c> field silently re-acquire the
+    /// decoration it was written to suppress. The explicit value has to win in both directions.
+    /// </remarks>
+    /// <param name="additionalAttributes">The field's configured additional attributes.</param>
+    /// <param name="isRequired">The field's own required flag, used when nothing is configured.</param>
+    internal static bool Resolve(IReadOnlyDictionary<string, object> additionalAttributes, bool isRequired)
+        => additionalAttributes.TryGetValue(AttributeName, out var configured) && configured is bool optIn
+            ? optIn
+            : isRequired;
 }
 
 /// <summary>
