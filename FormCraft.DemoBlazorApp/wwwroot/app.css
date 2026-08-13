@@ -162,7 +162,15 @@ h1:focus {
    Page Transitions
    ========================================================================== */
 
-.mud-main-content > .mud-container {
+/*
+   Anchored to #main-content, not .mud-main-content. MainLayout wraps @Body in <div id="main-content">,
+   which pushed a demo page's MudContainer to a grandchild of .mud-main-content and silently stopped
+   the old child combinator from matching it — the only element it still reached was the footer's own
+   container, a sibling of the wrapper. Anchoring here re-establishes the page transition and does not
+   care how many wrappers MudMainContent grows next, since #main-content is the element @Body renders
+   into. Kept as a child combinator so it animates the page's own container, not every nested one.
+*/
+#main-content > .mud-container {
     animation: fadeIn 0.2s ease-out;
 }
 

@@ -34,6 +34,19 @@ public partial class MainLayout : IAsyncDisposable
         }
     }
 
+    private bool _isApple;
+
+    /// <summary>
+    /// The modifier shown on the search trigger's <c>kbd</c> hint.
+    /// </summary>
+    /// <remarks>
+    /// The registered handler accepts <c>metaKey || ctrlKey</c>, so both are genuinely live; only the
+    /// label needed to stop claiming ⌘ on platforms that do not have one. Falls back to "Ctrl K" until
+    /// the platform probe resolves, which is the right way round — ⌘ is the minority platform and the
+    /// wrong hint is only wrong for one frame.
+    /// </remarks>
+    private string ShortcutHint => _isApple ? "⌘K" : "Ctrl K";
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
@@ -50,6 +63,20 @@ public partial class MainLayout : IAsyncDisposable
 
             _selfRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("formcraftShortcuts.register", _selfRef);
+
+            // Deliberately its own try, not the enclosing one. This probe is cosmetic — it picks a
+            // label — whereas the theme work above has already put fc-dark on <body>. Sharing a catch
+            // would let a missing helper (a cached older app.js) skip the StateHasChanged() below,
+            // leaving MudThemeProvider light against a dark body: a half-themed page, which is worse
+            // than the documented "starts in light mode" fallback.
+            try
+            {
+                _isApple = await JS.InvokeAsync<bool>("formcraftShortcuts.isApple");
+            }
+            catch (JSException)
+            {
+                // Keep the Ctrl K default.
+            }
 
             StateHasChanged();
         }

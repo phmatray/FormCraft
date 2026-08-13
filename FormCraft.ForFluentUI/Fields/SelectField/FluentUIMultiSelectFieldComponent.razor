@@ -1,0 +1,19 @@
+@namespace FormCraft.ForFluentUI
+@typeparam TModel
+@typeparam TItem
+@inherits FluentUIFieldComponentBase<TModel, IEnumerable<TItem>>
+
+<FluentSelect TOption="SelectOption<TItem>"
+              TValue="TItem"
+              Multiple="true"
+              Items="@Options"
+              OptionValue="@(option => option.Value)"
+              OptionText="@(option => option.Label)"
+              SelectedItems="@_selectedOptions"
+              SelectedItemsChanged="@HandleSelectedItemsChangedAsync"
+              Label="@Label"
+              Placeholder="@Placeholder"
+              Required="@EffectiveNativeRequired"
+              Disabled="@IsDisabled"
+              aria-describedby="@AriaDescribedBy"
+              aria-required="@AriaRequired" />
