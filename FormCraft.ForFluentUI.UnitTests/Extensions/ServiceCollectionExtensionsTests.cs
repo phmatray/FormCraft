@@ -90,6 +90,47 @@ public class ServiceCollectionExtensionsTests
         var ex = Should.Throw<InvalidOperationException>(() => services.AddFormCraftFluentUI());
 
         ex.Message.ShouldContain("mutually exclusive");
+        // Both adapters named, so the message is actionable from either direction.
+        ex.Message.ShouldContain("FormCraft.ForMudBlazor");
+        ex.Message.ShouldContain("FormCraft.ForFluentUI");
+    }
+
+    [Fact]
+    public void AddFormCraftFluentUI_Should_Throw_In_Either_Registration_Order()
+    {
+        // Arrange - the mirror of the MudBlazor suite's reverse-order test (#279). Pinned from both
+        // sides on purpose: the defect being fixed was a guard that existed in exactly one of the
+        // two packages, and a single-sided test is what let that ship.
+        var mudFirst = new ServiceCollection();
+        mudFirst.AddFormCraft();
+        mudFirst.AddFormCraftMudBlazor();
+
+        var fluentFirst = new ServiceCollection();
+        fluentFirst.AddFormCraft();
+        fluentFirst.AddFormCraftFluentUI();
+
+        // Act
+        var mudFirstEx = Should.Throw<InvalidOperationException>(() => mudFirst.AddFormCraftFluentUI());
+        var fluentFirstEx = Should.Throw<InvalidOperationException>(() => fluentFirst.AddFormCraftMudBlazor());
+
+        // Assert - both orders fail, and each names the adapter that was already there first.
+        mudFirstEx.Message.ShouldStartWith("FormCraft.ForMudBlazor is already registered");
+        fluentFirstEx.Message.ShouldStartWith("FormCraft.ForFluentUI is already registered");
+    }
+
+    [Fact]
+    public void AddFormCraftFluentUI_Can_Be_Called_Twice_Without_Tripping_The_Adapter_Guard()
+    {
+        // Arrange - the guard must exclude the registering assembly, or re-registering the SAME
+        // adapter reads as a conflict with itself.
+        var services = new ServiceCollection();
+        services.AddFormCraft();
+
+        // Act & Assert - Should not throw
+        services.AddFormCraftFluentUI();
+        services.AddFormCraftFluentUI();
+
+        services.BuildServiceProvider().GetService<IFieldRendererService>().ShouldNotBeNull();
     }
 
     private sealed class CustomTestRenderer : FieldRendererBase
