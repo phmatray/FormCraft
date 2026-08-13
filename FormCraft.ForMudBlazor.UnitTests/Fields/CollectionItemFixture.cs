@@ -347,7 +347,8 @@ internal static class CollectionItemFixture
     /// </remarks>
     internal static IFormConfiguration<NamedOrderModel> RootFieldAndItemForm(
         Action<FieldBuilder<NamedOrderModel, string>>? configureRoot = null,
-        Action<FieldBuilder<NamedOrderItem, string>>? configureItem = null) =>
+        Action<FieldBuilder<NamedOrderItem, string>>? configureItem = null,
+        Action<CollectionFieldBuilder<NamedOrderModel, NamedOrderItem>>? configureCollection = null) =>
         FormBuilder<NamedOrderModel>
             .Create()
             .AddField(x => x.Name, field =>
@@ -355,14 +356,18 @@ internal static class CollectionItemFixture
                 field.WithLabel("Name");
                 configureRoot?.Invoke(field);
             })
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.Name, field =>
-                    {
-                        field.WithLabel("Item name");
-                        configureItem?.Invoke(field);
-                    })))
+            .AddCollectionField(x => x.Items, collection =>
+            {
+                collection
+                    .WithLabel("Items")
+                    .WithItemForm(item => item
+                        .AddField(x => x.Name, field =>
+                        {
+                            field.WithLabel("Item name");
+                            configureItem?.Invoke(field);
+                        }));
+                configureCollection?.Invoke(collection);
+            })
             .Build();
 }
 

@@ -516,4 +516,36 @@ public class CollectionItemFixtureTests : MudBlazorTestBase
         reorderable.FindAll("button[aria-label='Move up']").ShouldNotBeEmpty();
         plain.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
     }
+
+    [Fact]
+    public void RootFieldAndItemForm_Should_Apply_The_Callers_Collection_Configuration()
+    {
+        // Arrange & Act - three callbacks now, two of which target fields and one the collection.
+        // A mis-wire is easy in that shape, so this asserts the new one reaches the collection AND
+        // that the two existing ones still reach their own fields — a builder that routed the root
+        // callback into the collection would otherwise pass a test that only looked at reordering.
+        var reorderable = this.RenderItemForm(
+            CollectionItemFixture.NewNamedOrder(),
+            CollectionItemFixture.RootFieldAndItemForm(
+                root => root.WithLabel("Customer name"),
+                item => item.WithLabel("Product name"),
+                collection => collection.AllowReorder()));
+
+        // ...and the same form WITHOUT the collection callback: the negative half, which is what
+        // makes this a test of the parameter rather than of MudBlazor's defaults.
+        var plain = this.RenderItemForm(
+            CollectionItemFixture.NewNamedOrder(),
+            CollectionItemFixture.RootFieldAndItemForm(
+                root => root.WithLabel("Customer name"),
+                item => item.WithLabel("Product name")));
+
+        // Assert - the collection callback reaches the collection...
+        reorderable.FindAll("button[aria-label='Move up']").ShouldNotBeEmpty();
+        plain.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
+
+        // ...and the field callbacks still reach their own fields
+        var fields = reorderable.FindComponents<MudTextField<string>>();
+        fields[0].Instance.Label.ShouldBe("Customer name");
+        fields[1].Instance.Label.ShouldBe("Product name");
+    }
 }
