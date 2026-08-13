@@ -1,14 +1,20 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 
-namespace FormCraft.ForMudBlazor;
+namespace FormCraft;
 
 /// <summary>
 /// A validation component that integrates Dynamic Form validation with Blazor's EditContext.
 /// This component handles both form-level and field-level validation using the configured validators.
 /// Add this component inside an EditForm to enable dynamic validation.
 /// </summary>
-/// <typeparam name="TModel"></typeparam>
+/// <remarks>
+/// UI-framework-agnostic — it references only <c>Microsoft.AspNetCore.Components</c>. It shipped
+/// inside <c>FormCraft.ForMudBlazor</c> until #279, which is why the second adapter had to write its
+/// own copy of the non-collection half rather than reuse this one. Every adapter's form container
+/// now renders this component.
+/// </remarks>
+/// <typeparam name="TModel">The form's model type.</typeparam>
 public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TModel : new()
 {
     [Inject]

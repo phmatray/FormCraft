@@ -17,7 +17,7 @@
    FormCraft validates server-side and documents that the browser produces no native validation
    bubbles. That guarantee is only as good as this attribute. *@
 <EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit" novalidate="novalidate">
-    <FluentUIDynamicFormValidator TModel="TModel" Configuration="@Configuration" @ref="_validator" />
+    <DynamicFormValidator TModel="TModel" Configuration="@Configuration" @ref="_validator" />
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
         @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
