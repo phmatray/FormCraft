@@ -122,8 +122,12 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         {
             foreach (var collectionField in collectionConfig.CollectionFields)
             {
-                var errors = await ValidateCollectionFieldAsync(model, collectionField);
-                foreach (var error in errors)
+                // ONE traversal produces both message shapes. Asking for them separately meant
+                // running every item field's validator twice per pass, because the flat-message call
+                // already performs the per-item walk internally (#329).
+                var result = await ValidateCollectionAsync(model, collectionField);
+
+                foreach (var error in result.Messages)
                 {
                     _messageStore.Add(_editContext.Field(collectionField.FieldName), error);
                 }
@@ -131,8 +135,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                 // Additionally attach per-item errors to nested field identifiers
                 // (e.g. Items[0].ProductName) so ValidationMessage/ValidationSummary
                 // and FieldValidationMessage can display them natively.
-                var itemErrors = await ValidateCollectionItemsAsync(model, collectionField);
-                foreach (var itemError in itemErrors)
+                foreach (var itemError in result.ItemErrors)
                 {
                     _messageStore.Add(
                         CreateCollectionItemFieldIdentifier(collectionField.FieldName, itemError.ItemIndex, itemError.FieldName),
@@ -155,16 +158,23 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         return field.IsVisible;
     }
 
-    private async Task<List<string>> ValidateCollectionFieldAsync(TModel model, ICollectionFieldConfigurationBase collectionField)
+    /// <summary>
+    /// Runs one validation pass over a collection field and returns both message shapes.
+    /// </summary>
+    /// <remarks>
+    /// Replaces the pair of calls this method used to make. <c>ValidateAllAsync</c> is non-generic in
+    /// its return type precisely so it can be invoked reflectively here without knowing the item type.
+    /// </remarks>
+    private async Task<CollectionValidationResult> ValidateCollectionAsync(TModel model, ICollectionFieldConfigurationBase collectionField)
     {
         // Use reflection to create the typed validator and invoke it
         var validatorType = typeof(CollectionFieldValidator<,>).MakeGenericType(typeof(TModel), collectionField.ItemType);
         var validator = Activator.CreateInstance(validatorType, collectionField);
 
-        var validateMethod = validatorType.GetMethod("ValidateAsync");
-        if (validateMethod == null) return new List<string>();
+        var validateMethod = validatorType.GetMethod("ValidateAllAsync");
+        if (validateMethod == null) return new CollectionValidationResult([], []);
 
-        var task = (Task<List<string>>)validateMethod.Invoke(validator, new object[] { model!, ServiceProvider })!;
+        var task = (Task<CollectionValidationResult>)validateMethod.Invoke(validator, new object[] { model!, ServiceProvider })!;
         return await task;
     }
 
