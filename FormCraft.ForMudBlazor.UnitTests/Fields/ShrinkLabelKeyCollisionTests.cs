@@ -55,32 +55,18 @@ public class ShrinkLabelKeyCollisionTests : MudBlazorTestBase
         // Arrange - the collision this issue does not name. Each CollectionFieldComponent has its
         // own once-per-field latch, so nothing local catches this; the clash exists only in the
         // form-wide collector, which is why the key must carry the owning collection's name.
-        var config = FormBuilder<TwoCollectionModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.Name, f => f
-                        .WithLabel("Item name")
-                        .WithPlaceholder("e.g. Widget")
-                        .WithShrinkLabel(false))))
-            .AddCollectionField(x => x.Extras, collection => collection
-                .WithLabel("Extras")
-                .WithItemForm(item => item
-                    .AddField(x => x.Name, f => f
-                        .WithLabel("Extra name")
-                        .WithPlaceholder("e.g. Gift wrap")
-                        .WithShrinkLabel(false))))
-            .Build();
+        var config = TwoCollectionItemForm(
+            contact => contact
+                .WithLabel("Item name")
+                .WithPlaceholder("e.g. Widget")
+                .WithShrinkLabel(false),
+            supplier => supplier
+                .WithLabel("Extra name")
+                .WithPlaceholder("e.g. Gift wrap")
+                .WithShrinkLabel(false));
 
         // Act
-        Render<FormCraftComponent<TwoCollectionModel>>(parameters => parameters
-            .Add(p => p.Model, new TwoCollectionModel
-            {
-                Items = { new NamedOrderItem() },
-                Extras = { new NamedOrderItem() }
-            })
-            .Add(p => p.Configuration, config));
+        this.RenderItemForm(NewTwoCollections(), config);
 
         // Assert
         var warnings = _logs.Warnings;
@@ -123,13 +109,4 @@ public class ShrinkLabelKeyCollisionTests : MudBlazorTestBase
         warnings[0].ShouldContain("1 field(s)");
     }
 
-    /// <summary>
-    /// Stays local: two collections on one model is this suite's own shape, and no other suite needs
-    /// it. Its item type is the fixture's, so the model pair is no longer duplicated here.
-    /// </summary>
-    private class TwoCollectionModel
-    {
-        public List<NamedOrderItem> Items { get; set; } = new();
-        public List<NamedOrderItem> Extras { get; set; } = new();
-    }
 }

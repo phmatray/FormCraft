@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Components;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
 
-public partial class AttributeBasedForms : ComponentBase
+// Base supplied by @inherits DemoComponentBase in the .razor (see AsyncValueProviderDemo).
+public partial class AttributeBasedForms
 {
     private UserRegistrationModel _model = new();
     private IFormConfiguration<UserRegistrationModel>? _formConfiguration;
@@ -88,14 +89,22 @@ public partial class AttributeBasedForms : ComponentBase
         StateHasChanged();
 
         // Simulate async operation
-        await Task.Delay(1500);
+        if (!await DelayAsync(1500))
+        {
+            return;
+        }
 
         _isSubmitting = false;
         _isSubmitted = true;
         StateHasChanged();
 
-        // Hide success message after 5 seconds
-        await Task.Delay(5000);
+        // Hide success message after 5 seconds. This is the longest window on the site, so it is the
+        // one a visitor is most likely to navigate away inside.
+        if (!await DelayAsync(5000))
+        {
+            return;
+        }
+
         _isSubmitted = false;
         StateHasChanged();
     }

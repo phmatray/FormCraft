@@ -90,6 +90,53 @@ public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldCo
         HasLabel ? $"{Label} is required." : "This file upload is required.";
 
     /// <summary>
+    /// Tracks which field this instance's cached properties were loaded from (#298).
+    /// </summary>
+    /// <remarks>
+    /// The upload components sit on their own base rather than
+    /// <see cref="MudBlazorFieldComponentBase{TModel, TValue}"/>, but they cache configuration in
+    /// exactly the same way — <c>Accept</c>, <c>MaxFileSize</c>, <c>UploadMode</c> and the rest, read
+    /// once in <c>OnInitialized</c> — so they have the same staleness bug and need the same hook. The
+    /// shared piece is the tracker; only this wiring is repeated.
+    /// </remarks>
+    private readonly FieldConfigurationTracker _fieldTracker = new();
+
+    /// <inheritdoc />
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        RefreshFieldConfigurationIfChanged();
+    }
+
+    /// <inheritdoc />
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        RefreshFieldConfigurationIfChanged();
+    }
+
+    private void RefreshFieldConfigurationIfChanged()
+    {
+        if (_fieldTracker.HasChanged(Context?.Field))
+        {
+            OnFieldConfigurationChanged();
+        }
+    }
+
+    /// <summary>
+    /// Reads everything this component caches from <c>Context.Field</c>. Called once per field (#298).
+    /// </summary>
+    /// <remarks>
+    /// Override this instead of loading configuration in <c>OnInitialized</c>, and assign every cached
+    /// property on every call — including back to its default. The override is a reload, not a patch:
+    /// a property left untouched because the new field does not declare that attribute keeps the
+    /// <i>previous</i> field's value, which is the same bug in a smaller box.
+    /// </remarks>
+    protected virtual void OnFieldConfigurationChanged()
+    {
+    }
+
+    /// <summary>
     /// The field's <b>Browse</b> button, captured by <c>@ref</c> in both upload components.
     /// </summary>
     /// <remarks>
@@ -117,59 +164,13 @@ public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldCo
     /// requirement at the exact moment clearing makes the field unsatisfied.
     /// </para>
     /// <para>
-    /// <b>Failures are swallowed on purpose, and the catch list is deliberately wide.</b> The clear
-    /// itself has already succeeded by the time this runs — the value is gone and the model is
-    /// notified — so moving focus is the courtesy on top. Letting it throw would turn a working
-    /// clear into an unhandled exception, which on Blazor Server tears down the circuit and takes
-    /// every other field's state with it: far worse than the focus bug being fixed.
-    /// </para>
-    /// <para>
-    /// ⛔ <b>Do not narrow this to the "obvious" cases.</b> The likely failure is
-    /// <see cref="JSException"/> — <c>domWrapper.focus</c> raises <i>"Unable to focus an invalid
-    /// element"</i> when the button has left the DOM, which is reachable here: assigning
-    /// <c>CurrentValue</c> raises <c>OnValueChanged</c>, and a parent that hides the field
-    /// (<c>WithVisibilityProvider</c>) or drops the collection row can unmount Browse before the
-    /// awaited interop call reaches the browser. The rest cover a dropped circuit
-    /// (<see cref="JSDisconnectedException"/>), the interop timeout
-    /// (<see cref="OperationCanceledException"/>), a component disposed mid-clear
-    /// (<see cref="ObjectDisposedException"/>), and interop issued before the client is connected —
-    /// prerender/SSR — where <c>RemoteJSRuntime</c> raises
-    /// <see cref="InvalidOperationException"/>. That last clause is broader than its one named
-    /// cause and knowingly so; the null check below does <b>not</b> cover prerender, because
-    /// component reference captures are assigned while the render batch is applied and so run on
-    /// the server pass too.
+    /// <b>Failures are swallowed, and the null case is ordinary</b> — both handled by
+    /// <see cref="FocusRestore.FocusSafelyAsync(MudBaseButton?)"/>, which is shared with every other control that
+    /// unmounts or disables itself (#318). The reasoning for the wide catch list, and the standing
+    /// ⛔ against narrowing it, live there rather than being restated per caller. Note the null
+    /// check does <b>not</b> stand in for the prerender guard: component reference captures are
+    /// assigned while the render batch is applied, so <c>@ref</c> is set on the server pass too.
     /// </para>
     /// </remarks>
-    protected async Task FocusBrowseAsync()
-    {
-        if (BrowseButton is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await BrowseButton.FocusAsync();
-        }
-        catch (JSException)
-        {
-            // The element is no longer focusable — typically gone from the DOM.
-        }
-        catch (JSDisconnectedException)
-        {
-            // The circuit is gone; there is nothing left to focus.
-        }
-        catch (OperationCanceledException)
-        {
-            // The interop call timed out or was cancelled.
-        }
-        catch (ObjectDisposedException)
-        {
-            // The component was torn down mid-clear.
-        }
-        catch (InvalidOperationException)
-        {
-            // No usable JS runtime behind the reference yet — the prerender/SSR pass.
-        }
-    }
+    protected Task FocusBrowseAsync() => FocusRestore.FocusSafelyAsync(BrowseButton);
 }

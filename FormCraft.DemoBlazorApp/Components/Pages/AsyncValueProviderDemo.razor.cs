@@ -6,7 +6,9 @@ using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
 
-public partial class AsyncValueProviderDemo : ComponentBase
+// The base comes from @inherits DemoComponentBase in the .razor; restating ComponentBase here would
+// be a second, different base declaration for the same partial class (CS0263).
+public partial class AsyncValueProviderDemo
 {
     private AddressModel _model = new();
     private IFormConfiguration<AddressModel>? _formConfig;
@@ -120,7 +122,11 @@ public partial class AsyncValueProviderDemo : ComponentBase
         new DemoDocumentationValidator().ValidateOrThrow(Documentation);
 
         // Simulate loading countries from API
-        await Task.Delay(800);
+        if (!await DelayAsync(800))
+        {
+            return;
+        }
+
         _countriesLoaded = true;
         StateHasChanged();
 
@@ -156,8 +162,12 @@ public partial class AsyncValueProviderDemo : ComponentBase
                         _loadingStates = true;
                         StateHasChanged();
 
-                        // Simulate API call
-                        await Task.Delay(500);
+                        // Simulate API call. This lambda is held by the form configuration and closes
+                        // over the component, so it can outlive the page just as a handler can.
+                        if (!await DelayAsync(500))
+                        {
+                            return;
+                        }
 
                         var states = StatesByCountry.GetValueOrDefault(country) ?? [];
                         foreach (var state in states)
@@ -187,7 +197,10 @@ public partial class AsyncValueProviderDemo : ComponentBase
                         StateHasChanged();
 
                         // Simulate API call
-                        await Task.Delay(400);
+                        if (!await DelayAsync(400))
+                        {
+                            return;
+                        }
 
                         var cities = CitiesByState.GetValueOrDefault(state) ?? [];
                         foreach (var city in cities)
@@ -216,7 +229,11 @@ public partial class AsyncValueProviderDemo : ComponentBase
 
     private async Task<bool> ValidatePostalCodeAsync(string postalCode)
     {
-        // Simulate async validation against external service
+        // Simulate async validation against external service.
+        // ⛔ Deliberately a raw Task.Delay, not DelayAsync. This method renders nothing — it returns a
+        // validation verdict — so there is no disposed-component render to guard. Routing it through
+        // DelayAsync would force a bool return on the disposed path, and the only bools available here
+        // mean "valid" or "invalid": a torn-down page would start answering validation questions.
         await Task.Delay(300);
 
         if (string.IsNullOrEmpty(postalCode))
@@ -237,7 +254,10 @@ public partial class AsyncValueProviderDemo : ComponentBase
         _isSubmitting = true;
         StateHasChanged();
 
-        await Task.Delay(1500);
+        if (!await DelayAsync(1500))
+        {
+            return;
+        }
 
         _submitted = true;
         _isSubmitting = false;

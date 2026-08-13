@@ -336,6 +336,68 @@ public class CollectionItemFixtureTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void TwoCollectionItemForm_Should_Render_Both_Collections_Item_Fields()
+    {
+        // Arrange & Act - the shape whose whole purpose is that the two item fields share a member
+        // name (both bind OrderItem.ProductName) while belonging to different collections.
+        var component = this.RenderItemForm(
+            CollectionItemFixture.NewTwoCollections(),
+            CollectionItemFixture.TwoCollectionItemForm());
+
+        // Assert - two text fields, one per collection, in declaration order
+        var fields = component.FindComponents<MudTextField<string>>();
+        fields.Count.ShouldBe(2);
+        fields[0].Instance.Label.ShouldBe("Contact name");
+        fields[1].Instance.Label.ShouldBe("Supplier name");
+    }
+
+    [Fact]
+    public void TwoCollectionItemForm_Should_Route_Each_Callback_To_Its_Own_Collection()
+    {
+        // Arrange & Act - two callbacks, two destinations. A builder wiring both to one collection
+        // would leave the diagnostic suites configuring only half the form while looking configured.
+        var component = this.RenderItemForm(
+            CollectionItemFixture.NewTwoCollections(),
+            CollectionItemFixture.TwoCollectionItemForm(
+                configureContact: field => field.WithLabel("Renamed contact"),
+                configureSupplier: field => field.WithLabel("Renamed supplier")));
+
+        // Assert - count first: if the builder regressed to attaching both item forms to one
+        // collection, only one field renders and fields[1] throws IndexOutOfRange, turning the
+        // defect this test names into a stack trace instead of a diagnosis.
+        var fields = component.FindComponents<MudTextField<string>>();
+        fields.Count.ShouldBe(2);
+        fields[0].Instance.Label.ShouldBe("Renamed contact");
+        fields[1].Instance.Label.ShouldBe("Renamed supplier");
+    }
+
+    [Fact]
+    public void NewTwoCollections_Should_Seed_One_Row_In_Each_Collection()
+    {
+        // Arrange & Act
+        var blank = CollectionItemFixture.NewTwoCollections();
+        var seeded = CollectionItemFixture.NewTwoCollections("Ada", "Acme");
+
+        // Assert - in the model...
+        blank.Contacts.ShouldHaveSingleItem();
+        blank.Suppliers.ShouldHaveSingleItem();
+        blank.Contacts[0].ProductName.ShouldBe(string.Empty);
+        // Both halves: with only the Contacts one asserted, changing the `supplier` default to a
+        // non-empty value would leave ShrinkLabelKeyCollisionTests silently seeded when it calls
+        // NewTwoCollections() expecting two blank rows.
+        blank.Suppliers[0].ProductName.ShouldBe(string.Empty);
+        seeded.Contacts[0].ProductName.ShouldBe("Ada");
+        seeded.Suppliers[0].ProductName.ShouldBe("Acme");
+
+        // ...and in what renders, so a builder binding both fields to the same collection is caught
+        var fields = this
+            .RenderItemForm(seeded, CollectionItemFixture.TwoCollectionItemForm())
+            .FindComponents<MudTextField<string>>();
+        fields[0].Instance.Value.ShouldBe("Ada");
+        fields[1].Instance.Value.ShouldBe("Acme");
+    }
+
+    [Fact]
     public void NewOrderWithItems_Should_Create_One_Item_Per_Name()
     {
         // Arrange & Act - the multi-row factory. Several suites need more than one row (a per-row
