@@ -67,10 +67,19 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
     private Task OpenFilePickerAsync()
         => _fileUpload?.OpenFilePickerAsync() ?? Task.CompletedTask;
 
-    private Task ClearAsync()
+    private async Task ClearAsync()
     {
         CurrentValue = new List<IBrowserFile>();
-        return _fileUpload?.ClearAsync() ?? Task.CompletedTask;
+
+        if (_fileUpload is not null)
+        {
+            await _fileUpload.ClearAsync();
+        }
+
+        // Clear All's own @if is now false, so the button the user activated has unmounted. Move
+        // focus deliberately or it falls to <body> (#281). Reuses the shared base member so this
+        // component and the single-file one cannot drift.
+        await FocusBrowseAsync();
     }
 
     private void RemoveFile(IBrowserFile fileToRemove)

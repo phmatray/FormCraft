@@ -10,6 +10,7 @@
 <CascadingValue TValue="Variant?" Name="@FormCraftCascadingValues.DefaultVariant" Value="@DefaultVariant">
 <CascadingValue TValue="bool?" Name="@FormCraftCascadingValues.DefaultShrinkLabel" Value="@DefaultShrinkLabel">
 <CascadingValue TValue="ShrinkLabelDiagnosticCollector" Name="@FormCraftCascadingValues.ShrinkLabelDiagnostics" Value="@_shrinkLabelDiagnostics" IsFixed="true">
+<CascadingValue TValue="FormDiagnosticScope" Name="@FormCraftCascadingValues.FormDiagnosticScope" Value="@_formDiagnosticScope" IsFixed="true">
 @* `novalidate` is rendered here, as a real attribute on the form EditForm emits (#206).
 
    It used to be bolted on after the fact by
@@ -127,6 +128,7 @@
         </MudButton>
     }
 </EditForm>
+</CascadingValue>
 </CascadingValue>
 </CascadingValue>
 </CascadingValue>

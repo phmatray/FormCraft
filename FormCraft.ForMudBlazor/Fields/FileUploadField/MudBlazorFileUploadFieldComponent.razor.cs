@@ -65,10 +65,18 @@ public partial class MudBlazorFileUploadFieldComponent<TModel>
     private Task OpenFilePickerAsync()
         => _fileUpload?.OpenFilePickerAsync() ?? Task.CompletedTask;
 
-    private Task ClearAsync()
+    private async Task ClearAsync()
     {
         CurrentValue = null;
-        return _fileUpload?.ClearAsync() ?? Task.CompletedTask;
+
+        if (_fileUpload is not null)
+        {
+            await _fileUpload.ClearAsync();
+        }
+
+        // Clear's own @if is now false, so the button the user activated has unmounted. Move focus
+        // deliberately or it falls to <body> (#281).
+        await FocusBrowseAsync();
     }
 
     private string GetHeight()
