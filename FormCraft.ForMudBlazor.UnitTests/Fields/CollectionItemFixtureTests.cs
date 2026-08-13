@@ -484,99 +484,128 @@ public class CollectionItemFixtureTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void TextItemForm_Should_Apply_The_Callers_Collection_Configuration()
+    public void Each_Item_Form_Should_Apply_The_Callers_Collection_Configuration()
     {
-        // Arrange & Act - AllowReorder is a property of the COLLECTION, not of a field, so no field
-        // callback can reach it. Without this parameter a suite needing a collection-level setting
-        // has to hand-roll the whole configuration, and keeps its own model copy with it — the
-        // duplication this fixture exists to remove.
-        var reorderable = this.RenderItemForm(
-            CollectionItemFixture.NewOrder(),
+        // Arrange & Act - AllowReorder belongs to the COLLECTION, not to a field, so no field
+        // callback can reach it. Until #300 only MultiFieldItemForm took a collection callback, and
+        // any suite needing one on a single-field item form had to hand-roll the whole
+        // configuration — keeping its own model copy with it, which is the duplication this fixture
+        // exists to remove.
+        //
+        // Every model below carries TWO rows deliberately. CollectionFieldComponent renders Move up
+        // with Disabled="@(index == 0)", so a one-row collection renders the control permanently
+        // inert: a mere "the button exists" assertion would hold for a form on which reordering
+        // cannot actually happen.
+        var text = this.RenderItemForm(
+            CollectionItemFixture.NewOrderWithItems("A", "B"),
             CollectionItemFixture.TextItemForm(
                 configureCollection: collection => collection.AllowReorder()));
-
-        // ...and the same form WITHOUT the callback, which is the half that makes this a test of the
-        // callback rather than of MudBlazor. Asserting only that the buttons appear would stay green
-        // if reordering ever became the default, or if a regression rendered the controls
-        // unconditionally — proving nothing about the parameter the test is named for.
-        var plain = this.RenderItemForm(
-            CollectionItemFixture.NewOrder(),
-            CollectionItemFixture.TextItemForm());
-
-        // Assert - reorder controls only render when the collection allows reordering
-        reorderable.FindAll("button[aria-label='Move up']").ShouldNotBeEmpty();
-        plain.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
-    }
-
-    [Fact]
-    public void NumericItemForm_Should_Apply_The_Callers_Collection_Configuration()
-    {
-        // Arrange & Act - NumericItemForm and BooleanItemForm configure the SAME collection
-        // (BasketModel.Lines) on the same root model, so a passing test for one says nothing about
-        // the other: each builder wires its own callback and each needs its own proof.
-        var reorderable = this.RenderItemForm(
-            CollectionItemFixture.NewBasket(),
+        var numeric = this.RenderItemForm(
+            new BasketModel { Lines = { new BasketLine(), new BasketLine() } },
             CollectionItemFixture.NumericItemForm(
                 configureCollection: collection => collection.AllowReorder()));
-        var plain = this.RenderItemForm(
-            CollectionItemFixture.NewBasket(),
-            CollectionItemFixture.NumericItemForm());
-
-        // Assert - reorder controls only render when the collection allows reordering
-        reorderable.FindAll("button[aria-label='Move up']").ShouldNotBeEmpty();
-        plain.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
-    }
-
-    [Fact]
-    public void DateItemForm_Should_Apply_The_Callers_Collection_Configuration()
-    {
-        // Arrange & Act
-        var reorderable = this.RenderItemForm(
-            CollectionItemFixture.NewAppointment(),
+        var date = this.RenderItemForm(
+            new AppointmentModel { Slots = { new AppointmentSlot(), new AppointmentSlot() } },
             CollectionItemFixture.DateItemForm(
                 configureCollection: collection => collection.AllowReorder()));
-        var plain = this.RenderItemForm(
-            CollectionItemFixture.NewAppointment(),
-            CollectionItemFixture.DateItemForm());
-
-        // Assert - reorder controls only render when the collection allows reordering
-        reorderable.FindAll("button[aria-label='Move up']").ShouldNotBeEmpty();
-        plain.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
-    }
-
-    [Fact]
-    public void BooleanItemForm_Should_Apply_The_Callers_Collection_Configuration()
-    {
-        // Arrange & Act - the other half of the BasketModel.Lines pair; see NumericItemForm's
-        // self-test for why sharing a collection property does not let one stand in for the other.
-        var reorderable = this.RenderItemForm(
-            CollectionItemFixture.NewBasket(),
+        var boolean = this.RenderItemForm(
+            new BasketModel { Lines = { new BasketLine(), new BasketLine() } },
             CollectionItemFixture.BooleanItemForm(
                 configureCollection: collection => collection.AllowReorder()));
-        var plain = this.RenderItemForm(
-            CollectionItemFixture.NewBasket(),
-            CollectionItemFixture.BooleanItemForm());
+        var dec = this.RenderItemForm(
+            new PricedBasketModel { Lines = { new PricedLine(), new PricedLine() } },
+            CollectionItemFixture.DecimalItemForm(
+                configureCollection: collection => collection.AllowReorder()));
 
-        // Assert - reorder controls only render when the collection allows reordering
-        reorderable.FindAll("button[aria-label='Move up']").ShouldNotBeEmpty();
-        plain.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
+        // ...and each form WITHOUT the callback, the half that makes this a test of the callback
+        // rather than of MudBlazor. Asserting only that the controls appear would stay green if
+        // reordering ever became the default, or if a regression rendered them unconditionally —
+        // proving nothing about the parameter the test is named for.
+        //
+        // Numeric and Boolean are both here even though they configure the SAME collection
+        // (BasketModel.Lines): they are separate builders wiring separate callbacks, so one passing
+        // says nothing about the other.
+        var plainText = this.RenderItemForm(
+            CollectionItemFixture.NewOrderWithItems("A", "B"),
+            CollectionItemFixture.TextItemForm());
+        var plainNumeric = this.RenderItemForm(
+            new BasketModel { Lines = { new BasketLine(), new BasketLine() } },
+            CollectionItemFixture.NumericItemForm());
+        var plainDate = this.RenderItemForm(
+            new AppointmentModel { Slots = { new AppointmentSlot(), new AppointmentSlot() } },
+            CollectionItemFixture.DateItemForm());
+        var plainBoolean = this.RenderItemForm(
+            new BasketModel { Lines = { new BasketLine(), new BasketLine() } },
+            CollectionItemFixture.BooleanItemForm());
+        var plainDecimal = this.RenderItemForm(
+            new PricedBasketModel { Lines = { new PricedLine(), new PricedLine() } },
+            CollectionItemFixture.DecimalItemForm());
+
+        // Assert - usable reorder controls, and only where the caller asked for them
+        ShouldOfferReordering(text);
+        ShouldOfferReordering(numeric);
+        ShouldOfferReordering(date);
+        ShouldOfferReordering(boolean);
+        ShouldOfferReordering(dec);
+
+        ShouldNotOfferReordering(plainText);
+        ShouldNotOfferReordering(plainNumeric);
+        ShouldNotOfferReordering(plainDate);
+        ShouldNotOfferReordering(plainBoolean);
+        ShouldNotOfferReordering(plainDecimal);
     }
 
     [Fact]
-    public void DecimalItemForm_Should_Apply_The_Callers_Collection_Configuration()
+    public void Each_Item_Forms_Collection_Callback_Should_Run_After_The_Fixtures_Own_Configuration()
     {
-        // Arrange & Act
-        var reorderable = this.RenderItemForm(
-            CollectionItemFixture.NewPricedBasket(),
-            CollectionItemFixture.DecimalItemForm(
-                configureCollection: collection => collection.AllowReorder()));
-        var plain = this.RenderItemForm(
-            CollectionItemFixture.NewPricedBasket(),
-            CollectionItemFixture.DecimalItemForm());
+        // Arrange & Act - the invoke ORDER is half the contract, and AllowReorder cannot pin it: it
+        // is an independent setter that reads the same whether the caller's callback runs before or
+        // after the fixture's own WithLabel/WithItemForm. Overriding the label can only succeed if
+        // the caller runs LAST — the same property Each_Item_Form_Should_Apply_The_Callers_
+        // Configuration pins for the field callback ("the callback runs after the default label, so
+        // it can override it"). Without this test all six builders could invoke the callback first
+        // and every other assertion here would stay green.
+        var forms = new IRenderedComponent<IComponent>[]
+        {
+            this.RenderItemForm(
+                CollectionItemFixture.NewOrder(),
+                CollectionItemFixture.TextItemForm(
+                    configureCollection: collection => collection.WithLabel("Renamed"))),
+            this.RenderItemForm(
+                CollectionItemFixture.NewBasket(),
+                CollectionItemFixture.NumericItemForm(
+                    configureCollection: collection => collection.WithLabel("Renamed"))),
+            this.RenderItemForm(
+                CollectionItemFixture.NewAppointment(),
+                CollectionItemFixture.DateItemForm(
+                    configureCollection: collection => collection.WithLabel("Renamed"))),
+            this.RenderItemForm(
+                CollectionItemFixture.NewBasket(),
+                CollectionItemFixture.BooleanItemForm(
+                    configureCollection: collection => collection.WithLabel("Renamed"))),
+            this.RenderItemForm(
+                CollectionItemFixture.NewPricedBasket(),
+                CollectionItemFixture.DecimalItemForm(
+                    configureCollection: collection => collection.WithLabel("Renamed"))),
+            this.RenderItemForm(
+                CollectionItemFixture.NewNamedOrder(),
+                CollectionItemFixture.RootFieldAndItemForm(
+                    configureCollection: collection => collection.WithLabel("Renamed"))),
 
-        // Assert - reorder controls only render when the collection allows reordering
-        reorderable.FindAll("button[aria-label='Move up']").ShouldNotBeEmpty();
-        plain.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
+            // MultiFieldItemForm has carried the parameter since #282; asserting it here is what
+            // makes the ordering uniform across all SEVEN builders rather than the six #300 touched.
+            this.RenderItemForm(
+                CollectionItemFixture.NewMixedItems(new MixedItem()),
+                CollectionItemFixture.MultiFieldItemForm(
+                    configureCollection: collection => collection.WithLabel("Renamed"))),
+        };
+
+        // Assert - the caller's label won, so its callback ran after the fixture set its own.
+        // The collection's label renders as the header MudText (Typo.h6).
+        foreach (var form in forms)
+        {
+            form.Find("h6").TextContent.Trim().ShouldBe("Renamed");
+        }
     }
 
     [Fact]
@@ -587,7 +616,7 @@ public class CollectionItemFixtureTests : MudBlazorTestBase
         // that the two existing ones still reach their own fields — a builder that routed the root
         // callback into the collection would otherwise pass a test that only looked at reordering.
         var reorderable = this.RenderItemForm(
-            CollectionItemFixture.NewNamedOrder(),
+            new NamedOrderModel { Items = { new NamedOrderItem(), new NamedOrderItem() } },
             CollectionItemFixture.RootFieldAndItemForm(
                 root => root.WithLabel("Customer name"),
                 item => item.WithLabel("Product name"),
@@ -596,18 +625,47 @@ public class CollectionItemFixtureTests : MudBlazorTestBase
         // ...and the same form WITHOUT the collection callback: the negative half, which is what
         // makes this a test of the parameter rather than of MudBlazor's defaults.
         var plain = this.RenderItemForm(
-            CollectionItemFixture.NewNamedOrder(),
-            CollectionItemFixture.RootFieldAndItemForm(
-                root => root.WithLabel("Customer name"),
-                item => item.WithLabel("Product name")));
+            new NamedOrderModel { Items = { new NamedOrderItem(), new NamedOrderItem() } },
+            CollectionItemFixture.RootFieldAndItemForm());
 
         // Assert - the collection callback reaches the collection...
-        reorderable.FindAll("button[aria-label='Move up']").ShouldNotBeEmpty();
-        plain.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
+        ShouldOfferReordering(reorderable);
+        ShouldNotOfferReordering(plain);
 
-        // ...and the field callbacks still reach their own fields
+        // ...and adding a third callback did not re-route the two that were already there
         var fields = reorderable.FindComponents<MudTextField<string>>();
         fields[0].Instance.Label.ShouldBe("Customer name");
         fields[1].Instance.Label.ShouldBe("Product name");
     }
+
+    /// <summary>
+    /// Asserts that a rendered collection offers <em>usable</em> reorder controls — the observable
+    /// effect of <c>AllowReorder()</c>, and therefore the proof that a builder's collection callback
+    /// reached the collection.
+    /// </summary>
+    /// <remarks>
+    /// The enabled-ness check is the point. <c>CollectionFieldComponent</c> disables Move up on row
+    /// 0 and Move down on the last row, so on a one-row collection both controls render and both are
+    /// permanently inert — "a Move up button exists" is true of a form that cannot be reordered.
+    /// Callers therefore pass two-row models, and this asserts one control per row with the second
+    /// one live.
+    /// </remarks>
+    private static void ShouldOfferReordering<TModel>(
+        IRenderedComponent<FormCraftComponent<TModel>> component)
+        where TModel : new()
+    {
+        var moveUp = component.FindAll("button[aria-label='Move up']");
+        moveUp.Count.ShouldBe(2);
+        moveUp[0].HasAttribute("disabled").ShouldBeTrue();
+        moveUp[1].HasAttribute("disabled").ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// The negative control for <see cref="ShouldOfferReordering{TModel}"/>: no callback, so the
+    /// collection never allows reordering and the controls are absent rather than merely disabled.
+    /// </summary>
+    private static void ShouldNotOfferReordering<TModel>(
+        IRenderedComponent<FormCraftComponent<TModel>> component)
+        where TModel : new()
+        => component.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
 }

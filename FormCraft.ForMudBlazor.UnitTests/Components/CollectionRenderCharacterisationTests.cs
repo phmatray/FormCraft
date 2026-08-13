@@ -397,9 +397,10 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
             }
         });
 
-        return Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
+        // ...and the render goes through the fixture's own helper too, which is the rest of "built
+        // from the fixture": this was the last hand-rolled Model/Configuration wiring in a suite
+        // that already calls RenderItemForm everywhere else.
+        return this.RenderItemForm(model, config);
     }
 
     /// <summary>
