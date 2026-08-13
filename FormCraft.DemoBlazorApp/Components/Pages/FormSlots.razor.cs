@@ -6,7 +6,8 @@ using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
 
-public partial class FormSlots : IDisposable
+// IDisposable comes from DemoComponentBase (via @inherits in the .razor), so it is not restated here.
+public partial class FormSlots
 {
     private ContactModel _model = new();
     private IFormConfiguration<ContactModel> _formConfiguration = null!;
@@ -159,7 +160,10 @@ public partial class FormSlots : IDisposable
         StateHasChanged();
 
         // Simulate API call
-        await Task.Delay(1500);
+        if (!await DelayAsync(1500))
+        {
+            return;
+        }
 
         _activeStep = 2;
         _isSubmitted = true;
@@ -265,9 +269,12 @@ public partial class FormSlots : IDisposable
             """;
     }
 
-    public void Dispose()
+    // Overrides DemoComponentBase.Dispose rather than implementing IDisposable separately: the base
+    // owns the delay token, this component owns the timer, and both must be torn down.
+    public override void Dispose()
     {
         _countdownTimer?.Stop();
         _countdownTimer?.Dispose();
+        base.Dispose();
     }
 }

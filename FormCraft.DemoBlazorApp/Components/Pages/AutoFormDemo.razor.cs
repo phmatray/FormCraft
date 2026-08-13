@@ -96,7 +96,10 @@ public partial class AutoFormDemo
         StateHasChanged();
 
         // Simulate API call
-        await Task.Delay(1500);
+        if (!await DelayAsync(1500))
+        {
+            return;
+        }
 
         _isPlainSubmitted = true;
         _isPlainSubmitting = false;
