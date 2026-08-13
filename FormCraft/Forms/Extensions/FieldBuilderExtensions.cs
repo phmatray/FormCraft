@@ -200,6 +200,65 @@ public static class FieldBuilderExtensions
                 value => string.IsNullOrEmpty(value?.ToString()) || IsValidEmail(value.ToString()!),
                 errorMessage ?? "Please enter a valid email address");
         }
+
+        /// <summary>
+        /// Overrides whether this field renders the UI framework's native required decoration — the
+        /// HTML5 <c>required</c> attribute, <c>aria-required</c>, and the framework's required
+        /// styling (the asterisk) on the rendered input. Pass <c>false</c> to suppress a decoration
+        /// that <c>.Required(...)</c> would otherwise produce.
+        /// </summary>
+        /// <param name="enabled">
+        /// <c>true</c> (default) to force the decoration on a field that never called
+        /// <c>.Required(...)</c>; <c>false</c> to suppress it on one that did. Either way the
+        /// explicit value wins over the inference — this method is an override, not merely an opt-in.
+        /// </param>
+        /// <returns>The FieldBuilder instance for method chaining.</returns>
+        /// <remarks>
+        /// <para>
+        /// ⚠️ <b>This changes no validation.</b> It is presentation only. <c>.Required("…")</c> is
+        /// what makes a field actually required — it registers a validator, and FormCraft's
+        /// validation is server-side with messages from the validator you configured. Passing
+        /// <c>false</c> here suppresses the decoration and leaves that validation entirely intact.
+        /// </para>
+        /// <para>
+        /// ⛔ <b>Think twice before passing <c>false</c> on a <c>.Required(...)</c> field.</b> Since
+        /// #199 a required field renders <c>aria-required="true"</c> so assistive technology
+        /// announces it; suppressing that puts <c>aria-required="false"</c> back on a genuinely
+        /// required input, which states the opposite of the truth to a screen reader and is a
+        /// WCAG 2.1 3.3.2 (Level A) failure. If the visible asterisk is what you want gone, restyle
+        /// the framework's required class instead. Legitimate uses of <c>false</c> are fields whose
+        /// requirement is conditional or communicated elsewhere.
+        /// </para>
+        /// <para>
+        /// Lives in core rather than in an adapter because the value it writes is read by every
+        /// adapter through <see cref="NativeRequired.Resolve"/>. It shipped in
+        /// <c>FormCraft.ForMudBlazor</c> in #204 and moved here in #279, once a second adapter had
+        /// to tell its users to type the raw <c>.WithAttribute("Required", …)</c> form instead. The
+        /// namespace is unchanged — <c>FormCraft</c> in both packages — so existing call sites
+        /// compile untouched.
+        /// </para>
+        /// <para>
+        /// Replaces the documented magic string <c>.WithAttribute("Required", true)</c> from #193,
+        /// which is undiscoverable and one typo away from silently doing nothing (#204). The raw
+        /// form still works and writes the same attribute — this is additive.
+        /// </para>
+        /// <para>
+        /// Forms render <c>novalidate</c> (#206), so the browser does not enforce the attribute on a
+        /// FormCraft form; what it buys is the semantics and the styling, not native validation
+        /// bubbles.
+        /// </para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// .AddField(x => x.Email, field => field
+        ///     .Required("Email is required")   // the validation
+        ///     .WithNativeRequired())           // the decoration
+        /// </code>
+        /// </example>
+        public FieldBuilder<TModel, TValue> WithNativeRequired(bool enabled = true)
+        {
+            return builder.WithAttribute(NativeRequired.AttributeName, enabled);
+        }
     }
 
     /// <param name="builder">The FieldBuilder instance for a string field.</param>
