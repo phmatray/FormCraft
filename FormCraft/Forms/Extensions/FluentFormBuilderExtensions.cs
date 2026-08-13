@@ -325,7 +325,7 @@ public static class FluentFormBuilderExtensions
             });
         }
     }
-    
+
     #region Helper Methods
 
     private static string BuildRangeMessage<TValue>(bool hasMin, bool hasMax, TValue min, TValue max)

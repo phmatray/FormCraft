@@ -61,8 +61,10 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     {
         get
         {
-            if (_isLoading) return Icons.Material.Filled.HourglassEmpty;
-            if (CurrentValue != null && !IsMultiSelect) return Icons.Material.Filled.Clear;
+            if (_isLoading)
+                return Icons.Material.Filled.HourglassEmpty;
+            if (CurrentValue != null && !IsMultiSelect)
+                return Icons.Material.Filled.Clear;
             return Icons.Material.Filled.Search;
         }
     }
@@ -89,7 +91,8 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
 
     private void InitializeDataProvider()
     {
-        if (_lovConfig == null) return;
+        if (_lovConfig == null)
+            return;
 
         var factory = ServiceProvider.GetService(typeof(ILovDataProviderFactory)) as ILovDataProviderFactory;
         if (factory != null)
@@ -140,7 +143,8 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     /// </summary>
     private async Task HandleAdornmentClick()
     {
-        if (IsDisabled || IsReadOnly) return;
+        if (IsDisabled || IsReadOnly)
+            return;
 
         // If there's a value and it's single select, clear it
         if (CurrentValue != null && !IsMultiSelect)
@@ -157,7 +161,8 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     /// </summary>
     private async Task OpenLovDialog()
     {
-        if (_lovConfig == null || _dataProvider == null) return;
+        if (_lovConfig == null || _dataProvider == null)
+            return;
 
         _isLoading = true;
         StateHasChanged();
@@ -208,7 +213,8 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
         _selectedItems.Clear();
         _selectedItems.AddRange(items);
 
-        if (_lovConfig == null) return;
+        if (_lovConfig == null)
+            return;
 
         if (IsMultiSelect)
         {
@@ -249,7 +255,8 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     /// </summary>
     private async Task ApplyFieldMappings(TItem item)
     {
-        if (_lovConfig == null || Context.Model == null) return;
+        if (_lovConfig == null || Context.Model == null)
+            return;
 
         // Apply each mapping directly
         foreach (var mapping in _lovConfig.FieldMappings)

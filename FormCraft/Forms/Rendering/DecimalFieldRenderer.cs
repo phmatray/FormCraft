@@ -29,7 +29,8 @@ public class DecimalFieldRenderer : FieldRendererBase<decimal>
 
         protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder)
         {
-            if (Context == null) return;
+            if (Context == null)
+                return;
 
             var sequence = 0;
             builder.OpenElement(sequence++, "div");

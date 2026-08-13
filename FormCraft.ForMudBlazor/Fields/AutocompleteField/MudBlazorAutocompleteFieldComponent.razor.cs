@@ -77,7 +77,8 @@ public partial class MudBlazorAutocompleteFieldComponent<TModel, TValue>
             var labelList = optionsList.Select(o => (Value: o.Value, Label: o.Label)).ToList();
             _toStringFunc = v =>
             {
-                if (v == null) return string.Empty;
+                if (v == null)
+                    return string.Empty;
                 var match = labelList.FirstOrDefault(item => EqualityComparer<TValue>.Default.Equals(item.Value, v));
                 return match.Label ?? v.ToString() ?? string.Empty;
             };

@@ -143,7 +143,7 @@ public static class FieldBuilderExtensions
             return builder.WithAttribute("MultiSelectOptions", selectOptions);
         }
     }
-    
+
     /// <param name="builder">The FieldBuilder instance for a numeric field.</param>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
     /// <typeparam name="TValue">The numeric type of the field value.</typeparam>

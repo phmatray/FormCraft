@@ -333,7 +333,8 @@ public static class AttributeFormBuilderExtensions
             field.WithAttribute("pattern", pattern.Pattern);
             field.WithValidator(value =>
             {
-                if (value == null) return true;
+                if (value == null)
+                    return true;
                 return System.Text.RegularExpressions.Regex.IsMatch(value.ToString()!, pattern.Pattern);
             }, pattern.ErrorMessage ?? "Invalid format");
         }

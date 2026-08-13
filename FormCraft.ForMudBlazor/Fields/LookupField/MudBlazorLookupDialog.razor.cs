@@ -55,16 +55,19 @@ public partial class MudBlazorLookupDialog : ComponentBase
 
     private void ExtractColumnDefinitions()
     {
-        if (Columns == null) return;
+        if (Columns == null)
+            return;
 
         // The columns parameter is a List<LookupColumn<TItem>> stored as object.
         // We use reflection to extract column info.
         var columnsType = Columns.GetType();
-        if (!columnsType.IsGenericType) return;
+        if (!columnsType.IsGenericType)
+            return;
 
         var enumerableInterface = columnsType.GetInterfaces()
             .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
-        if (enumerableInterface == null) return;
+        if (enumerableInterface == null)
+            return;
 
         foreach (var col in (System.Collections.IEnumerable)Columns)
         {
@@ -103,14 +106,16 @@ public partial class MudBlazorLookupDialog : ComponentBase
 
             // Invoke the data provider delegate
             var task = ((Delegate)DataProvider).DynamicInvoke(query) as Task;
-            if (task == null) return new TableData<object> { Items = Array.Empty<object>(), TotalItems = 0 };
+            if (task == null)
+                return new TableData<object> { Items = Array.Empty<object>(), TotalItems = 0 };
 
             await task;
 
             // Get the result from the completed task
             var resultProp = task.GetType().GetProperty("Result");
             var result = resultProp?.GetValue(task);
-            if (result == null) return new TableData<object> { Items = Array.Empty<object>(), TotalItems = 0 };
+            if (result == null)
+                return new TableData<object> { Items = Array.Empty<object>(), TotalItems = 0 };
 
             // Extract Items and TotalCount from LookupResult<TItem>
             var itemsProp = result.GetType().GetProperty("Items");

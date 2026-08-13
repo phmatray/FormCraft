@@ -441,10 +441,10 @@ class Build : NukeBuild
             Serilog.Log.Information("  - Current version: {Version}", CurrentVersion);
         })
         .DependsOn(Publish);
-        // Note: the GitHub Release is created exclusively by release-please, in
-        // .github/workflows/release-please.yml, which then runs this publish in the same job.
-        // Do NOT add a release-creating target back into this chain — two producers would race
-        // to create a release for the same tag (already_exists errors).
+    // Note: the GitHub Release is created exclusively by release-please, in
+    // .github/workflows/release-please.yml, which then runs this publish in the same job.
+    // Do NOT add a release-creating target back into this chain — two producers would race
+    // to create a release for the same tag (already_exists errors).
 
     Target Release => _ => _
         .Description("Creates a new release (NuGet + GitHub)")

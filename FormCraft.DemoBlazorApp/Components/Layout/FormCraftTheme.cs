@@ -115,67 +115,107 @@ public static class FormCraftTheme
             // declared parts — so it earns the largest type on the page.
             H1 = new H1Typography
             {
-                FontFamily = DisplayFont, FontSize = "3.4rem", FontWeight = "800",
-                LineHeight = "1.02", LetterSpacing = "-0.03em"
+                FontFamily = DisplayFont,
+                FontSize = "3.4rem",
+                FontWeight = "800",
+                LineHeight = "1.02",
+                LetterSpacing = "-0.03em"
             },
             H2 = new H2Typography
             {
-                FontFamily = DisplayFont, FontSize = "2.6rem", FontWeight = "800",
-                LineHeight = "1.06", LetterSpacing = "-0.028em"
+                FontFamily = DisplayFont,
+                FontSize = "2.6rem",
+                FontWeight = "800",
+                LineHeight = "1.06",
+                LetterSpacing = "-0.028em"
             },
             H3 = new H3Typography
             {
-                FontFamily = DisplayFont, FontSize = "2.1rem", FontWeight = "700",
-                LineHeight = "1.1", LetterSpacing = "-0.024em"
+                FontFamily = DisplayFont,
+                FontSize = "2.1rem",
+                FontWeight = "700",
+                LineHeight = "1.1",
+                LetterSpacing = "-0.024em"
             },
             H4 = new H4Typography
             {
-                FontFamily = DisplayFont, FontSize = "1.65rem", FontWeight = "700",
-                LineHeight = "1.15", LetterSpacing = "-0.02em"
+                FontFamily = DisplayFont,
+                FontSize = "1.65rem",
+                FontWeight = "700",
+                LineHeight = "1.15",
+                LetterSpacing = "-0.02em"
             },
             H5 = new H5Typography
             {
-                FontFamily = DisplayFont, FontSize = "1.3rem", FontWeight = "700",
-                LineHeight = "1.2", LetterSpacing = "-0.015em"
+                FontFamily = DisplayFont,
+                FontSize = "1.3rem",
+                FontWeight = "700",
+                LineHeight = "1.2",
+                LetterSpacing = "-0.015em"
             },
             H6 = new H6Typography
             {
-                FontFamily = DisplayFont, FontSize = "1.075rem", FontWeight = "600",
-                LineHeight = "1.3", LetterSpacing = "-0.01em"
+                FontFamily = DisplayFont,
+                FontSize = "1.075rem",
+                FontWeight = "600",
+                LineHeight = "1.3",
+                LetterSpacing = "-0.01em"
             },
             Subtitle1 = new Subtitle1Typography
             {
-                FontFamily = BodyFont, FontSize = "1rem", FontWeight = "500", LineHeight = "1.5"
+                FontFamily = BodyFont,
+                FontSize = "1rem",
+                FontWeight = "500",
+                LineHeight = "1.5"
             },
             Subtitle2 = new Subtitle2Typography
             {
-                FontFamily = BodyFont, FontSize = "0.875rem", FontWeight = "600", LineHeight = "1.45"
+                FontFamily = BodyFont,
+                FontSize = "0.875rem",
+                FontWeight = "600",
+                LineHeight = "1.45"
             },
             Body1 = new Body1Typography
             {
-                FontFamily = BodyFont, FontSize = "0.9375rem", FontWeight = "400", LineHeight = "1.6"
+                FontFamily = BodyFont,
+                FontSize = "0.9375rem",
+                FontWeight = "400",
+                LineHeight = "1.6"
             },
             Body2 = new Body2Typography
             {
-                FontFamily = BodyFont, FontSize = "0.875rem", FontWeight = "400", LineHeight = "1.55"
+                FontFamily = BodyFont,
+                FontSize = "0.875rem",
+                FontWeight = "400",
+                LineHeight = "1.55"
             },
             // Buttons keep sentence case: a control is named for what it does, and
             // SHOUTING CAPS makes long labels ("Read the documentation") hard to scan.
             Button = new ButtonTypography
             {
-                FontFamily = BodyFont, FontSize = "0.875rem", FontWeight = "600",
-                LineHeight = "1.75", LetterSpacing = "0.01em", TextTransform = "none"
+                FontFamily = BodyFont,
+                FontSize = "0.875rem",
+                FontWeight = "600",
+                LineHeight = "1.75",
+                LetterSpacing = "0.01em",
+                TextTransform = "none"
             },
             Caption = new CaptionTypography
             {
-                FontFamily = BodyFont, FontSize = "0.78rem", FontWeight = "400", LineHeight = "1.4"
+                FontFamily = BodyFont,
+                FontSize = "0.78rem",
+                FontWeight = "400",
+                LineHeight = "1.4"
             },
             // Overline is the eyebrow role, and every eyebrow on this site is mono.
             Overline = new OverlineTypography
             {
                 FontFamily = ["IBM Plex Mono", "ui-monospace", "monospace"],
-                FontSize = "0.72rem", FontWeight = "500", LineHeight = "1.6",
-                LetterSpacing = "0.16em", TextTransform = "uppercase"
+                FontSize = "0.72rem",
+                FontWeight = "500",
+                LineHeight = "1.6",
+                LetterSpacing = "0.16em",
+                TextTransform = "uppercase"
             }
         }
     };
