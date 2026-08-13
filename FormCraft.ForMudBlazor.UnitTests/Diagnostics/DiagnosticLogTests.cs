@@ -98,14 +98,25 @@ public class DiagnosticLogTests
     public void Warn_Should_Not_Log_When_No_LoggerFactory_Is_Registered()
     {
         // Arrange - the other half of the no-factory case: it degrades silently rather than
-        // falling back to some other sink.
+        // reaching for some other sink.
+        //
+        // The provider is registered as a bare ILoggerProvider — deliberately, and it is what gives
+        // this test teeth. `AddLogging` would register an ILoggerFactory and make it the positive
+        // case; leaving the provider out of the container altogether would wire `logs` to nothing,
+        // so the assertion below could not fail whatever DiagnosticLog did. Registered but
+        // factory-less, the provider is genuinely reachable and the only missing piece is the one
+        // door DiagnosticLog is allowed to use.
         var logs = new CapturingLoggerProvider();
-        var services = new ServiceCollection().BuildServiceProvider();
+        var services = new ServiceCollection()
+            .AddSingleton<ILoggerProvider>(logs)
+            .BuildServiceProvider();
 
         // Act
         DiagnosticLog.Warn(services, Category, "Field '{Field}' is misconfigured.", "Phone");
 
-        // Assert
+        // Assert - the premise first, so a future edit that registers a factory fails loudly here
+        // rather than turning the real assertion into a tautology again.
+        services.GetService<ILoggerFactory>().ShouldBeNull();
         logs.Warnings.ShouldBeEmpty();
     }
 
