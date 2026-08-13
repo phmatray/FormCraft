@@ -248,5 +248,4 @@ public class CollectionAdornmentTests : MudBlazorTestBase
             .Select(p => p.Instance.Date)
             .ShouldBe(new DateTime?[] { new DateTime(2030, 12, 31), new DateTime(2020, 1, 1) });
     }
-
 }

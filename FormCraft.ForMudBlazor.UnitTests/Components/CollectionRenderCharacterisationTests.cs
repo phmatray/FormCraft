@@ -433,5 +433,4 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
 
         return (host.FindComponent<FormCraftComponent<MixedItemModel>>(), editContext);
     }
-
 }
