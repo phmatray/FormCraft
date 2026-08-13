@@ -39,6 +39,25 @@ public static class AdapterRegistration
     }
 
     /// <summary>
+    /// First-party adapter assemblies, recognised by their renderers even when they never called
+    /// <see cref="EnsureSingleAdapter"/>.
+    /// </summary>
+    /// <remarks>
+    /// A compatibility fallback, not the primary mechanism. An adapter published <i>before</i> #279
+    /// does not call in, so a container mixing a current adapter with an already-released one would
+    /// otherwise go unguarded — which is the same "it only works if both sides agree" failure this
+    /// class exists to remove, arriving as version skew instead of as package placement. Matched in
+    /// full rather than by a <c>FormCraft.For*</c> prefix: a prefix also matches test and consumer
+    /// assemblies, and a custom <see cref="IFieldRenderer"/> registered from one of those then reads
+    /// as a rival adapter and blocks a legitimate registration.
+    /// </remarks>
+    private static readonly string[] KnownAdapterAssemblies =
+    [
+        "FormCraft.ForMudBlazor",
+        "FormCraft.ForFluentUI"
+    ];
+
+    /// <summary>
     /// Throws when a <i>different</i> FormCraft UI adapter has already claimed
     /// <paramref name="services"/>, and otherwise records this one as the container's adapter. Call
     /// it first thing in every <c>AddFormCraft&lt;Framework&gt;()</c> method.
@@ -65,14 +84,18 @@ public static class AdapterRegistration
             .Select(descriptor => (descriptor.ImplementationInstance as AdapterMarker)?.AssemblyName)
             .FirstOrDefault(name => name is not null);
 
+        // Same adapter registering again — idempotent, and not a conflict with itself. Returning
+        // here also keeps the container to one marker.
+        if (string.Equals(claimed, registeringAssemblyName, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        // No marker means either no adapter, or one that predates this mechanism.
+        claimed ??= FindUnmarkedAdapter(services, registeringAssemblyName);
+
         if (claimed is not null)
         {
-            if (string.Equals(claimed, registeringAssemblyName, StringComparison.Ordinal))
-            {
-                // Same adapter registering again — idempotent, and not a conflict with itself.
-                return;
-            }
-
             throw new InvalidOperationException(
                 $"{claimed} is already registered, so {registeringAssemblyName} cannot be added to " +
                 "the same container. FormCraft UI adapters are mutually exclusive - register " +
@@ -83,6 +106,19 @@ public static class AdapterRegistration
 
         services.AddSingleton(new AdapterMarker(registeringAssemblyName));
     }
+
+    /// <summary>
+    /// Finds a first-party adapter that registered renderers without calling
+    /// <see cref="EnsureSingleAdapter"/>, excluding the one registering now.
+    /// </summary>
+    private static string? FindUnmarkedAdapter(IServiceCollection services, string registeringAssemblyName)
+        => services
+            .Where(descriptor => descriptor.ServiceType == typeof(IFieldRenderer))
+            .Select(descriptor => descriptor.ImplementationType?.Assembly.GetName().Name)
+            .FirstOrDefault(name =>
+                name is not null
+                && !string.Equals(name, registeringAssemblyName, StringComparison.Ordinal)
+                && KnownAdapterAssemblies.Contains(name, StringComparer.Ordinal));
 
     /// <summary>
     /// Whether a UI adapter has already claimed <paramref name="services"/>.

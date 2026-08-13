@@ -26,6 +26,27 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
     [Parameter]
     public IFormConfiguration<TModel> Configuration { get; set; } = null!;
 
+    /// <summary>
+    /// Whether collection fields are validated. Defaults to <c>true</c>; set it to <c>false</c> in
+    /// an adapter whose container does not render collection/item-form fields.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠️ <b>Not a preference — a correctness requirement for such an adapter.</b> A collection
+    /// error is attached to the collection's own field identifier, so a container that renders no
+    /// control for it also renders no <c>ValidationMessage</c> for it. The form then reports
+    /// invalid with nothing on screen to explain why and no input the user could correct, and since
+    /// submit is gated on the result, the submit button silently stops working.
+    /// </para>
+    /// <para>
+    /// This is why <c>FluentUIDynamicFormValidator</c> omitted the collection half while it existed
+    /// (#260), and the flag is how that decision survives sharing one implementation (#279). Turn it
+    /// back on for an adapter once that adapter renders collection fields — not before.
+    /// </para>
+    /// </remarks>
+    [Parameter]
+    public bool ValidateCollections { get; set; } = true;
+
     private EditContext? _editContext;
     private ValidationMessageStore? _messageStore;
 
@@ -94,8 +115,10 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             }
         }
 
-        // Validate collection fields
-        if (Configuration is ICollectionFormConfiguration<TModel> collectionConfig)
+        // Validate collection fields. FormConfiguration<TModel> always implements the interface, so
+        // ValidateCollections is what actually decides this for an adapter that renders no
+        // collection UI - see the parameter's remarks.
+        if (ValidateCollections && Configuration is ICollectionFormConfiguration<TModel> collectionConfig)
         {
             foreach (var collectionField in collectionConfig.CollectionFields)
             {
@@ -173,7 +196,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             // Nested collection item identifiers (Items[0].ProductName) are validated
             // against the owning collection field's item form configuration.
             var nestedMatch = CollectionItemFieldPattern.Match(e.FieldIdentifier.FieldName);
-            if (nestedMatch.Success)
+            if (ValidateCollections && nestedMatch.Success)
             {
                 await ValidateCollectionItemFieldAsync(e.FieldIdentifier, nestedMatch);
                 return;

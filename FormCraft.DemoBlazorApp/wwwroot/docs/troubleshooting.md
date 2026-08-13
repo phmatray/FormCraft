@@ -28,13 +28,19 @@ protected override void OnInitialized()
 ```
 
 3. **Verify EditForm setup**:
-```html
+```razor
+@using FormCraft
+
 <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit">
     <DataAnnotationsValidator />
     <DynamicFormValidator TModel="MyModel" Configuration="@formConfig" />
     <!-- form content -->
 </EditForm>
 ```
+
+> ⚠️ If this markup fails to compile (RZ10012 / CS0246), you are missing `@using FormCraft`.
+> `DynamicFormValidator<TModel>` moved from `FormCraft.ForMudBlazor` to the shared `FormCraft`
+> namespace in 3.2.0, so the adapter's `@using` alone no longer resolves it.
 
 ### Field Not Rendering
 
