@@ -32,7 +32,7 @@
         <button type="button" class="fc-search-trigger" @onclick="OpenPaletteFromToolbar">
             <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" />
             <span class="fc-search-trigger__label">Search demos</span>
-            <kbd class="fc-kbd">⌘K</kbd>
+            <kbd class="fc-kbd">@ShortcutHint</kbd>
         </button>
 
         <MudTooltip Text="@(_isDarkMode ? "Switch to light theme" : "Switch to dark theme")">

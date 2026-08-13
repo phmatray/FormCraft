@@ -101,7 +101,12 @@ build/                          # NUKE build automation
 ```
 
 ### Target Frameworks
-- **net8.0**, **net9.0** and **net10.0** - Multi-targeting for .NET 8, .NET 9 and .NET 10
+- **net8.0** and **net10.0** — multi-targeting for .NET 8 and .NET 10. All three shipping projects
+  (`FormCraft`, `FormCraft.ForMudBlazor`, `FormCraft.ForFluentUI`) declare
+  `<TargetFrameworks>net8.0;net10.0</TargetFrameworks>`; the demo app is `net10.0` only.
+  ⛔ There is **no net9.0 target** — this file claimed one until #285. The csproj files are the
+  authority here, so verify against them before re-adding a framework to this list; a demo page
+  advertising `net8.0 · net10.0` is correct, not stale.
 
 ### Core Design Patterns
 
@@ -306,6 +311,30 @@ because it lives in core rather than in one of the two packages that need it.
   components since #203 (one hint per row), two forms over one model collide the same way, and two
   nested fields can share a member name. A test using two *different* fields cannot catch this —
   different names never collide; the real case is the same field rendered twice
+- **A control whose `@if` depends on the value its own handler clears must move focus deliberately**
+  — otherwise activating it unmounts the element the keyboard user is standing on and focus falls to
+  `<body>`, restarting the next <kbd>Tab</kbd> from the top of the document (WCAG 2.1 **2.4.3 Focus
+  Order**, Level A). Both upload components' **Clear** buttons are exactly this shape, so
+  `ClearAsync` ends by awaiting `FocusBrowseAsync()` — shared on
+  `MudBlazorFileUploadComponentBase`, per-instance via `@ref`, so focus lands on the *cleared*
+  field's Browse button rather than the first upload on the page (#281). **Browse** is the target
+  because it carries #262's `aria-describedby`, so the requirement is announced at the moment
+  clearing makes the field unsatisfied. ⚠️ Only the *helper* is shared — the `@ref` and the
+  `await FocusBrowseAsync()` are one line each in **both** components' markup, and the null guard
+  makes a dropped `@ref` silent, so a new upload component needs its own focus test. ⛔ Don't let
+  the focus call throw, and **don't narrow its catch list**: the clear has already succeeded, so a
+  failed focus must stay a no-op. `JSException` is the likely one — `domWrapper.focus` raises it
+  for an element that has left the DOM, which `OnValueChanged` can cause between the clear and the
+  awaited interop call. Losing that catch escapes the click handler and tears down a Server
+  circuit; `A_Failing_Focus_Call_Should_Not_Break_A_*_Clear` pins it
+- **Asserting focus in bUnit: assert the interop call, not DOM state.** bUnit models no real focus.
+  `MudButton.FocusAsync()` records `Blazor._internal.domWrapper.focus` with the target
+  `ElementReference` as `Arguments[0]` (measured on bUnit 2.9.0 / MudBlazor 9.8.0). MudButton exposes
+  **no public** `ElementReference` — it lives in a private `MudBaseButton._elementReference` — and
+  bUnit renders `blazor:elementReference` **empty**, so to say *which* button was focused, learn its
+  id through the public API: call `FocusAsync()` on the candidate and read the id back off the
+  recording (the id survives the clear re-render). ⛔ Don't reflect into MudBlazor's private field;
+  it breaks on any patch release. See `FileUploadClearFocusTests`
 
 #### Testing Patterns
 ```csharp

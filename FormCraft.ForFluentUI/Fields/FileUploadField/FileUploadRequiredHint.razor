@@ -1,0 +1,27 @@
+@namespace FormCraft.ForFluentUI
+
+@* The visually-hidden requirement description a file-upload field's browse control points at with
+   aria-describedby (#262, #278).
+
+   Shared by both upload components for the same reason as FileUploadRequiredMarker.
+
+   The clip-rect style is inline rather than a utility class: unlike MudBlazor's `mud-sr-only`,
+   Fluent UI Blazor v5 ships no visually-hidden utility this package can rely on, and a stylesheet
+   of FormCraft's own would have to be registered by every host application — a setup step whose
+   omission would silently turn this description into visible clutter. *@
+
+<div id="@Id"
+     data-testid="formcraft-upload-required-hint"
+     style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">@Text</div>
+
+@code {
+    /// <summary>The element id the browse control's <c>aria-describedby</c> resolves to.</summary>
+    [Parameter]
+    [EditorRequired]
+    public string Id { get; set; } = default!;
+
+    /// <summary>The requirement, worded for a screen reader.</summary>
+    [Parameter]
+    [EditorRequired]
+    public string Text { get; set; } = default!;
+}

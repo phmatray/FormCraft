@@ -70,6 +70,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FormCraft.ForFluentUI.UnitTests", "FormCraft.ForFluentUI.UnitTests\FormCraft.ForFluentUI.UnitTests.csproj", "{C46DBEAF-0B78-42CE-8086-1C76C2ABE0BA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FormCraft.DemoFluentApp", "FormCraft.DemoFluentApp\FormCraft.DemoFluentApp.csproj", "{B3D92252-4AD1-49C2-B150-B74EE7B5FD6D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -174,6 +176,18 @@ Global
 		{C46DBEAF-0B78-42CE-8086-1C76C2ABE0BA}.Release|x64.Build.0 = Release|Any CPU
 		{C46DBEAF-0B78-42CE-8086-1C76C2ABE0BA}.Release|x86.ActiveCfg = Release|Any CPU
 		{C46DBEAF-0B78-42CE-8086-1C76C2ABE0BA}.Release|x86.Build.0 = Release|Any CPU
+		{B3D92252-4AD1-49C2-B150-B74EE7B5FD6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3D92252-4AD1-49C2-B150-B74EE7B5FD6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3D92252-4AD1-49C2-B150-B74EE7B5FD6D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B3D92252-4AD1-49C2-B150-B74EE7B5FD6D}.Debug|x64.Build.0 = Debug|Any CPU
+		{B3D92252-4AD1-49C2-B150-B74EE7B5FD6D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B3D92252-4AD1-49C2-B150-B74EE7B5FD6D}.Debug|x86.Build.0 = Debug|Any CPU
+		{B3D92252-4AD1-49C2-B150-B74EE7B5FD6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3D92252-4AD1-49C2-B150-B74EE7B5FD6D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3D92252-4AD1-49C2-B150-B74EE7B5FD6D}.Release|x64.ActiveCfg = Release|Any CPU
+		{B3D92252-4AD1-49C2-B150-B74EE7B5FD6D}.Release|x64.Build.0 = Release|Any CPU
+		{B3D92252-4AD1-49C2-B150-B74EE7B5FD6D}.Release|x86.ActiveCfg = Release|Any CPU
+		{B3D92252-4AD1-49C2-B150-B74EE7B5FD6D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
