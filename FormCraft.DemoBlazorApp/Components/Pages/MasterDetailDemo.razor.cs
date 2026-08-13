@@ -192,7 +192,11 @@ public partial class MasterDetailDemo
         StateHasChanged();
 
         // Simulate API call persisting the whole aggregate (header + lines)
-        await Task.Delay(1500);
+        if (!await DelayAsync(1500))
+        {
+            return;
+        }
+
 
         _isSubmitted = true;
         _isSubmitting = false;

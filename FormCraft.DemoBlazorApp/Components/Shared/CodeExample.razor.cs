@@ -43,15 +43,34 @@ public partial class CodeExample
         try
         {
             await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", Code);
+
+            // The interop above is an await of its own, and it completes before any delay token
+            // exists — so the component can already be gone by the time we get here.
+            if (IsDisposed)
+            {
+                return;
+            }
+
             _copied = true;
             StateHasChanged();
-            await Task.Delay(2000);
+
+            if (!await DelayAsync(2000))
+            {
+                return;
+            }
+
             _copied = false;
             StateHasChanged();
         }
+        // Kept deliberately broad. This is the same fallback #285 restored in Home.CopyInstall, and
+        // the failure modes are the ones that do NOT derive from JSException: JSDisconnectedException,
+        // InvalidOperationException ("interop calls cannot be issued at this time") and
+        // TaskCanceledException on the interop timeout. Copying to the clipboard is a convenience —
+        // no failure of it should reach the visitor, who can still select the text.
         catch (Exception)
         {
-            // Fallback if clipboard API is not available
+            // Clipboard API unavailable, or the call could not be issued. Leave _copied as it is:
+            // if the write never happened there is no "copied" state to clear.
         }
     }
 
