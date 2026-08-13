@@ -59,9 +59,12 @@
                         @foreach (var row in _rows)
                         {
                             var captured = row;
+                            @* Keyboard parity with the pointer: see the note on the lookup field's
+                               grid - this inline panel is the only way to select a value. *@
                             <tr role="button"
                                 tabindex="0"
                                 @onclick="@(() => SelectRowAsync(captured))"
+                                @onkeydown="@(e => HandleRowKeyDownAsync(e, captured))"
                                 data-testid="formcraft-lov-row">
                                 @foreach (var column in Columns)
                                 {

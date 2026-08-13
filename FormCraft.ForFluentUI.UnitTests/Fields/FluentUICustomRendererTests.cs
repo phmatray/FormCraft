@@ -59,10 +59,12 @@ public class FluentUICustomRendererTests : FluentUITestBase
     [Fact]
     public void Rating_Renderer_Should_Honour_A_Configured_Maximum()
     {
-        // Act
+        // Act - "MaxRating" is the key the library actually writes and that the MudBlazor rating
+        // reads. An earlier version of this test used an invented "MaxValue", so it agreed with the
+        // component and both were wrong: a real configuration got five stars whatever it asked for.
         var component = RenderRating(f => f
             .WithLabel("Score")
-            .WithAttribute("MaxValue", 3)
+            .WithAttribute("MaxRating", 3)
             .WithCustomRenderer(typeof(FluentUIRatingRenderer)));
 
         // Assert

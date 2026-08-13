@@ -100,6 +100,55 @@ public class FluentUILookupFieldComponentTests : FluentUITestBase
     }
 
     [Fact]
+    public async Task A_Row_Should_Be_Selectable_From_The_Keyboard()
+    {
+        // Arrange - the inline grid is the ONLY selection path, so a row that is focusable but not
+        // operable by keyboard leaves the field unusable without a pointer.
+        var model = new TripModel();
+        var component = RenderLookup(model);
+        await component.Find("[data-testid=formcraft-lookup-open]").ClickAsync(new());
+
+        // Act
+        await component.FindAll("[data-testid=formcraft-lookup-row]")[1]
+            .KeyDownAsync(new Microsoft.AspNetCore.Components.Web.KeyboardEventArgs { Key = "Enter" });
+
+        // Assert
+        model.CityId.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task A_Row_Should_Also_Accept_Space()
+    {
+        // Arrange
+        var model = new TripModel();
+        var component = RenderLookup(model);
+        await component.Find("[data-testid=formcraft-lookup-open]").ClickAsync(new());
+
+        // Act
+        await component.FindAll("[data-testid=formcraft-lookup-row]")[0]
+            .KeyDownAsync(new Microsoft.AspNetCore.Components.Web.KeyboardEventArgs { Key = " " });
+
+        // Assert
+        model.CityId.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task An_Unrelated_Key_Should_Not_Select_A_Row()
+    {
+        // Arrange - arrow keys move focus; they must not commit a value
+        var model = new TripModel();
+        var component = RenderLookup(model);
+        await component.Find("[data-testid=formcraft-lookup-open]").ClickAsync(new());
+
+        // Act
+        await component.FindAll("[data-testid=formcraft-lookup-row]")[1]
+            .KeyDownAsync(new Microsoft.AspNetCore.Components.Web.KeyboardEventArgs { Key = "ArrowDown" });
+
+        // Assert
+        model.CityId.ShouldBe(0);
+    }
+
+    [Fact]
     public void A_Required_Lookup_Should_Announce_Itself()
     {
         // Act

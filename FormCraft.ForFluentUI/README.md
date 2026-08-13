@@ -82,10 +82,16 @@ button that silently did nothing on an app which had not added the provider is t
 failure this library avoids elsewhere, so the picker is rendered where it cannot fail to appear.
 
 ⚠️ **`.AsLookup(...)` for Fluent lives in `FormCraft.ForFluentUI.Extensions`**, not in namespace
-`FormCraft`, because the MudBlazor package already publishes a method of that name there and a
-project referencing both would get `CS0121` on every call. Add
+`FormCraft`, because the MudBlazor package already publishes a method of that name there. Add
 `using FormCraft.ForFluentUI.Extensions;` and call it as usual. Both write the same attributes, so
 either package's `.AsLookup(...)` renders correctly under either adapter.
+
+Note that the separate namespace does not, on its own, let a project reference **both** packages and
+call these by extension syntax: extension lookup spans every imported namespace at once, and the
+signatures are identical, so such a project gets `CS0121`. One adapter per application — the
+supported configuration — never hits it. If you genuinely need both referenced, call the method
+statically (`FluentUIFieldBuilderExtensions.AsLookup(field, …)`) or use an `extern alias`; this
+library's own test project does the former.
 
 ## Custom renderers
 

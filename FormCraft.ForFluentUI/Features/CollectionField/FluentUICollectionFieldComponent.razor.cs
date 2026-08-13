@@ -171,7 +171,17 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
                 builder.AddContent(2, RenderItemField(item, field, capturedIndex));
                 builder.OpenComponent<FieldHelpText>(3);
                 builder.AddAttribute(4, "Text", field.HelpText);
-                builder.AddAttribute(5, "Id", FieldHelpText.IdFor(capturedFieldName));
+                // Only the FIRST row's help text carries the id. Every row shows the hint - it is
+                // the same text, since it comes from one field configuration - but a document may
+                // hold the id once: `formcraft-help-{FieldName}` is not row-scoped, so giving it to
+                // every row emitted N elements sharing an id, which is invalid HTML and points each
+                // input at whichever one the browser resolved first.
+                //
+                // Not fixed by scoping the id per row: the input's own `aria-describedby` comes
+                // from FluentUIFieldComponentBase.AriaDescribedBy, which derives it from the field
+                // name alone and cannot see the row. Leaving exactly one holder keeps that link
+                // resolving, to an element carrying precisely the text the row would have shown.
+                builder.AddAttribute(5, "Id", capturedIndex == 0 ? FieldHelpText.IdFor(capturedFieldName) : null);
                 builder.CloseComponent();
                 // Surface validation messages attached to the nested field identifier
                 // (e.g. Lines[0].Product) next to the item field input.

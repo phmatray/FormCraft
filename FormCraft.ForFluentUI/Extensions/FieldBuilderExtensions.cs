@@ -4,10 +4,24 @@ namespace FormCraft.ForFluentUI.Extensions;
 /// Fluent UI-specific <see cref="FieldBuilder{TModel, TValue}"/> extensions.
 /// </summary>
 /// <remarks>
-/// ⚠️ <b>Deliberately not in namespace <c>FormCraft</c>.</b> The MudBlazor package publishes
-/// <c>MudBlazorFieldBuilderExtensions</c> into that namespace with methods of these names, and a
-/// project referencing both packages would get <c>CS0121</c> on every call. Living here means the
-/// two can coexist and a consumer opts in with <c>using FormCraft.ForFluentUI.Extensions;</c>.
+/// <para>
+/// Deliberately not in namespace <c>FormCraft</c>. The MudBlazor package publishes
+/// <c>MudBlazorFieldBuilderExtensions</c> into that namespace with methods of these names, so
+/// declaring these there too would make them ambiguous for any project that referenced both.
+/// </para>
+/// <para>
+/// ⚠️ <b>The separate namespace does not by itself make the two coexist.</b> Extension-method
+/// lookup considers every imported namespace at once, so a project that references both packages
+/// and writes <c>using FormCraft;</c> (which it must, for <c>FormBuilder</c>) alongside
+/// <c>using FormCraft.ForFluentUI.Extensions;</c> still gets <c>CS0121</c> on a
+/// <c>.WithNativeRequired(...)</c> or <c>.AsLookup(...)</c> call - the signatures are identical.
+/// What the separate namespace buys is that the ambiguity is <i>avoidable</i>: it does not arise at
+/// all in the normal case of one adapter per application, and where both are referenced the call
+/// can be disambiguated by invoking the method statically
+/// (<c>FluentUIFieldBuilderExtensions.WithNativeRequired(field)</c>) or with an
+/// <c>extern alias</c>. This library's own test project takes the static route, because it
+/// references both adapters in order to prove they refuse to co-register.
+/// </para>
 /// </remarks>
 public static class FluentUIFieldBuilderExtensions
 {

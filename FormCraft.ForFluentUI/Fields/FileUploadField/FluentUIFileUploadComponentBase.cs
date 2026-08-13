@@ -67,4 +67,53 @@ public abstract class FluentUIFileUploadComponentBase<TModel, TValue> : FluentUI
     /// </summary>
     protected string RequiredDescription =>
         HasLabel ? $"{Label} is required." : "This file upload is required.";
+
+    // -------------------------------------------------------------------------------------------
+    // Upload constraints.
+    //
+    // These read the FileUploadConfiguration object that .AsFileUpload(...) and
+    // .AsMultipleFileUpload(...) actually write, falling back to the raw attribute keys the
+    // MudBlazor components accept. Reading only the raw keys - which an earlier draft of this
+    // adapter did - meant every constraint configured through the public builder API was silently
+    // ignored: .AsFileUpload(acceptedFileTypes: [".pdf"], maxFileSize: 2_000_000) rendered an
+    // upload that took any file up to the default cap, with no error. The keys are also NOT the
+    // ones the object uses (MaxFileSize/MaxFiles vs MaximumFileSize/MaximumFileCount), so guessing
+    // from the MudBlazor component's fallbacks alone reproduces the same silence.
+    //
+    // Centralised here rather than in each component for the reason this base class exists: two
+    // copies of a rule drift, and a constraint that applies to single uploads but not multiple
+    // ones is exactly the kind of divergence nobody notices until a user uploads a 500 MB file.
+    // -------------------------------------------------------------------------------------------
+
+    /// <summary>The configuration object the builder extensions write, when one was configured.</summary>
+    private FileUploadConfiguration? UploadConfiguration =>
+        GetAttribute<FileUploadConfiguration>("FileUploadConfiguration");
+
+    /// <summary>
+    /// The <c>accept</c> list for the file input, as a comma-separated string, or <c>null</c> when
+    /// every type is allowed.
+    /// </summary>
+    protected string? AcceptedFileTypes
+    {
+        get
+        {
+            var configured = UploadConfiguration?.AcceptedFileTypes;
+            if (configured is { Length: > 0 })
+            {
+                return string.Join(",", configured);
+            }
+
+            return GetAttribute<string>("Accept");
+        }
+    }
+
+    /// <summary>The largest accepted file in bytes. Defaults to 10 MB, matching MudBlazor.</summary>
+    protected long MaximumFileSize =>
+        UploadConfiguration?.MaxFileSize
+        ?? GetAttribute("MaxFileSize", GetAttribute("MaximumFileSize", 10L * 1024 * 1024));
+
+    /// <summary>The most files that may be chosen at once.</summary>
+    protected int MaximumFileCount =>
+        UploadConfiguration?.MaxFiles
+        ?? GetAttribute("MaxFiles", GetAttribute("MaximumFileCount", 10));
 }

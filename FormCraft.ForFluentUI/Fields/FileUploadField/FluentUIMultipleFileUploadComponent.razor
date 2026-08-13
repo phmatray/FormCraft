@@ -1,6 +1,6 @@
 @namespace FormCraft.ForFluentUI
 @typeparam TModel
-@inherits FluentUIFileUploadComponentBase<TModel, List<IBrowserFile>>
+@inherits FluentUIFileUploadComponentBase<TModel, IReadOnlyList<IBrowserFile>>
 
 <div class="formcraft-file-upload">
     @if (HasLabel)
@@ -14,7 +14,7 @@
     }
 
     <FluentInputFile Multiple="true"
-                     Accept="@Accept"
+                     Accept="@AcceptedFileTypes"
                      Disabled="@IsDisabled"
                      Mode="InputFileMode.Stream"
                      MaximumFileCount="@MaximumFileCount"
@@ -34,6 +34,15 @@
     @if (NativeRequiredValue)
     {
         <FileUploadRequiredHint Id="@RequiredDescriptionId" Text="@RequiredDescription" />
+    }
+
+    @if (TooManyFilesError is not null)
+    {
+        <FluentMessageBar Intent="MessageBarIntent.Error"
+                          AllowDismiss="false"
+                          data-testid="formcraft-upload-too-many">
+            @TooManyFilesError
+        </FluentMessageBar>
     }
 
     @foreach (var file in SelectedFiles)

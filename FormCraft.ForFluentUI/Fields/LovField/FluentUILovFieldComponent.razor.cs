@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,6 +22,7 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
     private readonly List<TItem> _rows = [];
     private readonly List<TItem> _selectedItems = [];
     private ILovConfiguration<TItem, TValue>? _lovConfig;
+    private int _loadTicket;
     private bool _isOpen;
     private bool _isLoading;
     private string _searchText = string.Empty;
@@ -78,6 +80,17 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
         await LoadRowsAsync();
     }
 
+    /// <summary>
+    /// Selects a row from the keyboard, matching the pointer's behaviour on Enter and Space.
+    /// </summary>
+    private async Task HandleRowKeyDownAsync(KeyboardEventArgs args, TItem row)
+    {
+        if (args.Key is "Enter" or " " or "Spacebar")
+        {
+            await SelectRowAsync(row);
+        }
+    }
+
     private async Task LoadRowsAsync()
     {
         if (_lovConfig is null)
@@ -85,18 +98,30 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
             return;
         }
 
+        // Only the newest load publishes - see the lookup component for why an immediate,
+        // undebounced search box otherwise lets a slower query overwrite a newer one.
+        var ticket = ++_loadTicket;
         _isLoading = true;
-        _rows.Clear();
 
         try
         {
             var query = new LovQuery { SearchText = _searchText, StartIndex = 0, Count = 50 };
             var result = await ResolveDataAsync(query);
+
+            if (ticket != _loadTicket)
+            {
+                return;
+            }
+
+            _rows.Clear();
             _rows.AddRange(result.Items);
         }
         finally
         {
-            _isLoading = false;
+            if (ticket == _loadTicket)
+            {
+                _isLoading = false;
+            }
         }
     }
 
@@ -127,8 +152,6 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
             return;
         }
 
-        var value = _lovConfig.ValueSelector(row);
-
         if (IsMultiSelect)
         {
             if (!_selectedItems.Contains(row))
@@ -147,9 +170,7 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
         }
 
         await ApplyFieldMappingsAsync(row);
-
-        SetValueWithoutNotification(value);
-        await Context.OnValueChanged.InvokeAsync(value);
+        await PublishSelectionAsync();
     }
 
     private async Task RemoveSelectedAsync(TItem row)
@@ -162,9 +183,47 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
         _selectedItems.Remove(row);
         _displayText = string.Join(", ", _selectedItems.Select(_lovConfig.DisplaySelector));
 
-        var value = _selectedItems.Count > 0 ? _lovConfig.ValueSelector(_selectedItems[0]) : default;
+        await PublishSelectionAsync();
+    }
+
+    /// <summary>
+    /// Writes the current selection to the model: the whole set in multi-select mode, the single
+    /// chosen value otherwise.
+    /// </summary>
+    /// <remarks>
+    /// Multi-select must publish <b>every</b> selected value, matching the MudBlazor component,
+    /// which casts the value list to <c>TValue</c>. Publishing only the row that was just clicked -
+    /// as an earlier draft did - showed N chips while the model held one value, so selecting A then
+    /// B stored B alone and everything but the last pick was lost with nothing on screen saying so.
+    /// <para>
+    /// The cast is guarded rather than blind: multi-select is only meaningful when the bound
+    /// property is itself a collection, and a configuration that turns it on over a scalar property
+    /// would otherwise throw <see cref="InvalidCastException"/> from a click handler. Falling back
+    /// to the first value keeps such a form working exactly as the single-select case does.
+    /// </para>
+    /// </remarks>
+    private async Task PublishSelectionAsync()
+    {
+        var value = ResolveSelectionValue();
         SetValueWithoutNotification(value);
         await Context.OnValueChanged.InvokeAsync(value);
+    }
+
+    private TValue? ResolveSelectionValue()
+    {
+        if (_lovConfig is null || _selectedItems.Count == 0)
+        {
+            return default;
+        }
+
+        var values = _selectedItems.Select(_lovConfig.ValueSelector).ToList();
+
+        if (!IsMultiSelect)
+        {
+            return values[0];
+        }
+
+        return values is TValue typedList ? typedList : values[0];
     }
 
     /// <summary>

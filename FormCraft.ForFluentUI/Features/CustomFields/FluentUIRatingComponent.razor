@@ -32,8 +32,16 @@
 </div>
 
 @code {
-    /// <summary>The highest score offered, from <c>.WithAttribute("MaxValue", ...)</c>.</summary>
-    private int MaxValue => GetAttribute("MaxValue", 5);
+    /// <summary>
+    /// The highest score offered, from <c>.AsRating(maxRating: ...)</c>.
+    /// </summary>
+    /// <remarks>
+    /// The key is <c>"MaxRating"</c> - what the builder writes and what
+    /// <c>MudBlazorRatingComponent</c> reads. An earlier draft invented <c>"MaxValue"</c>, which
+    /// nothing in the library writes, so a configured maximum was ignored and every rating rendered
+    /// five stars.
+    /// </remarks>
+    private int MaxValue => GetAttribute("MaxRating", 5);
 
     private async Task HandleScoreSelectedAsync(int score)
     {

@@ -125,6 +125,35 @@ public class CollectionFieldTests : FluentUITestBase
     }
 
     [Fact]
+    public void Item_Help_Text_Should_Not_Emit_Duplicate_Element_Ids_Across_Rows()
+    {
+        // Arrange - the help-text id is derived from the field name alone, so rendering it per row
+        // once emitted N elements sharing one id: invalid HTML, and every row's aria-describedby
+        // resolving to whichever the browser found first.
+        var config = FormBuilder<OrderModel>.Create()
+            .AddCollectionField(x => x.Lines, collection => collection
+                .WithLabel("Order lines")
+                .AllowAdd("Add line")
+                .AllowRemove()
+                .WithItemForm(item => item
+                    .AddField(x => x.Product, f => f
+                        .WithLabel("Product")
+                        .WithHelpText("The catalogue name."))))
+            .Build();
+
+        // Act - three rows of the same field
+        var component = Render<FormCraftComponent<OrderModel>>(p => p
+            .Add(c => c.Model, new OrderModel { Lines = { new OrderLine(), new OrderLine(), new OrderLine() } })
+            .Add(c => c.Configuration, config));
+
+        // Assert - the hint still shows on every row, but exactly one element claims the id
+        var helpElements = component.FindAll(".formcraft-field-help");
+        helpElements.Count.ShouldBe(3);
+        helpElements.Count(e => !string.IsNullOrEmpty(e.Id)).ShouldBe(1);
+        component.FindAll($"#{FieldHelpText.IdFor("Product")}").Count.ShouldBe(1);
+    }
+
+    [Fact]
     public void A_Required_Item_Field_Should_Announce_Itself_Like_A_Standalone_One()
     {
         // Arrange - the accessibility guarantee must not depend on where the field sits (#199)

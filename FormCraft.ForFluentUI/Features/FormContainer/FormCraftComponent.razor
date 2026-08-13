@@ -217,7 +217,6 @@
                 .Where(f => !groupedFieldNames.Contains(f.FieldName))
                 .OrderBy(f => f.Order);
 
-            var sequence = 0;
             foreach (var field in ungrouped)
             {
                 if (!ShouldShowField(field))
@@ -225,8 +224,15 @@
                     continue;
                 }
 
-                builder.OpenElement(sequence++, "div");
-                builder.AddContent(sequence++, RenderFieldWithMessages(field));
+                // Constant sequence numbers, NOT a running counter. Blazor's diff treats a sequence
+                // number as a source position, so a counter that advances per iteration shifts
+                // every later field's number the moment a VisibleWhen(...) field appears or
+                // disappears - and the diff then rebuilds those subtrees instead of patching them,
+                // discarding focus and component state in the fields below. Repeating 0/1 across
+                // iterations is the documented pattern for loops, and is what RenderItemFields in
+                // the collection component does.
+                builder.OpenElement(0, "div");
+                builder.AddContent(1, RenderFieldWithMessages(field));
                 builder.CloseElement();
             }
         };

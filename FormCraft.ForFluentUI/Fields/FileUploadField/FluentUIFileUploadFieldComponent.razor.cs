@@ -16,12 +16,6 @@ public partial class FluentUIFileUploadFieldComponent<TModel>
     /// </summary>
     private string BrowseButtonId => _browseButtonId;
 
-    /// <summary>The accepted file types, from <c>.WithAttribute("Accept", ...)</c>.</summary>
-    private string? Accept => GetAttribute<string>("Accept");
-
-    /// <summary>The largest accepted file, in bytes. Defaults to 10 MB, as MudBlazor's does.</summary>
-    private long MaximumFileSize => GetAttribute("MaximumFileSize", 10L * 1024 * 1024);
-
     /// <summary>The chosen file's name, shown back to the user once one is picked.</summary>
     private string? SelectedFileName => CurrentValue?.Name;
 

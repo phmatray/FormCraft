@@ -44,6 +44,48 @@ public class FluentUIFileUploadFieldComponentTests : FluentUITestBase
     }
 
     [Fact]
+    public void The_Canonical_Multi_Upload_Type_Should_Render()
+    {
+        // Arrange - IReadOnlyList<IBrowserFile> is the type core's .AsMultipleFileUpload(...) is
+        // declared on, so this is what a form built through the public API actually carries.
+        // Matching only List<> left it falling through to "Unsupported field type".
+        var config = FormBuilder<UploadModel>.Create()
+            .AddField(x => x.Documents, f => f.WithLabel("Documents"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<UploadModel>>(p => p
+            .Add(c => c.Model, new UploadModel())
+            .Add(c => c.Configuration, config));
+
+        // Assert
+        component.FindComponent<FluentInputFile>().Instance.Multiple.ShouldBeTrue();
+        component.Markup.ShouldNotContain("Unsupported field type");
+    }
+
+    [Fact]
+    public void Upload_Constraints_Configured_Through_The_Builder_Should_Reach_The_Input()
+    {
+        // Arrange - .AsFileUpload(...) writes a FileUploadConfiguration, not the raw attribute
+        // keys; reading only the raw keys silently accepted every type at the default size cap.
+        var config = FormBuilder<UploadModel>.Create()
+            .AddField(x => x.Resume, f => f
+                .WithLabel("Resume")
+                .AsFileUpload(acceptedFileTypes: [".pdf", ".docx"], maxFileSize: 2 * 1024 * 1024))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<UploadModel>>(p => p
+            .Add(c => c.Model, new UploadModel())
+            .Add(c => c.Configuration, config));
+
+        // Assert
+        var input = component.FindComponent<FluentInputFile>().Instance;
+        input.Accept.ShouldBe(".pdf,.docx");
+        input.MaximumFileSize.ShouldBe(2 * 1024 * 1024);
+    }
+
+    [Fact]
     public void A_File_Field_Should_Render_Its_Label()
     {
         // Act
@@ -128,7 +170,10 @@ public class FluentUIFileUploadFieldComponentTests : FluentUITestBase
         /// <summary>A single file.</summary>
         public IBrowserFile? Resume { get; set; }
 
-        /// <summary>Several files.</summary>
+        /// <summary>Several files, as a concrete list.</summary>
         public List<IBrowserFile> Attachments { get; set; } = [];
+
+        /// <summary>Several files, typed as core's <c>.AsMultipleFileUpload(...)</c> declares them.</summary>
+        public IReadOnlyList<IBrowserFile> Documents { get; set; } = [];
     }
 }

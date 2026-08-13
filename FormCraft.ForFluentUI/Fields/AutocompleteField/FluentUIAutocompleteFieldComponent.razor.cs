@@ -34,7 +34,30 @@ public partial class FluentUIAutocompleteFieldComponent<TModel, TValue>
             "AutocompleteSearchFunc");
         _optionProvider = GetAttribute<object>("AutocompleteOptionProvider");
 
-        if (CurrentValue is not null)
+        SyncSelectedOption();
+    }
+
+    /// <inheritdoc />
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        // Re-sync when the model changes from outside this component - a value provider, a
+        // dependency, a form reset. Building the option only in OnInitialized left the box showing
+        // the previous selection after any of those, while the model already held the new value.
+        // FluentUIMultiSelectFieldComponent re-syncs for the same reason.
+        SyncSelectedOption();
+    }
+
+    private void SyncSelectedOption()
+    {
+        if (CurrentValue is null)
+        {
+            _selectedOption = null;
+            return;
+        }
+
+        if (_selectedOption is null || !EqualityComparer<TValue>.Default.Equals(_selectedOption.Value, CurrentValue))
         {
             _selectedOption = new SelectOption<TValue>(CurrentValue, DisplayFor(CurrentValue));
         }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components.Web;
 using System.Collections;
 
 namespace FormCraft.ForFluentUI;
@@ -29,6 +30,7 @@ public partial class FluentUILookupFieldComponent<TModel, TValue>
 {
     private readonly List<object> _rows = [];
     private List<LookupColumnView> _columns = [];
+    private int _loadTicket;
     private bool _isOpen;
     private bool _isLoading;
     private string _searchText = string.Empty;
@@ -72,6 +74,17 @@ public partial class FluentUILookupFieldComponent<TModel, TValue>
         await LoadRowsAsync();
     }
 
+    /// <summary>
+    /// Selects a row from the keyboard, matching the pointer's behaviour on Enter and Space.
+    /// </summary>
+    private async Task HandleRowKeyDownAsync(KeyboardEventArgs args, object row)
+    {
+        if (args.Key is "Enter" or " " or "Spacebar")
+        {
+            await SelectRowAsync(row);
+        }
+    }
+
     private async Task LoadRowsAsync()
     {
         var dataProvider = GetAttribute<object>("LookupDataProvider");
@@ -80,8 +93,13 @@ public partial class FluentUILookupFieldComponent<TModel, TValue>
             return;
         }
 
+        // Each load claims a ticket, and only the newest one is allowed to publish. The search box
+        // is immediate and undebounced, so two keystrokes put two loads in flight; without this the
+        // slower one could land last and leave the grid showing results for a query the user has
+        // already moved past - and could clear the spinner while the newer load was still running.
+        var ticket = ++_loadTicket;
+
         _isLoading = true;
-        _rows.Clear();
 
         try
         {
@@ -92,6 +110,13 @@ public partial class FluentUILookupFieldComponent<TModel, TValue>
             }
 
             await task;
+
+            if (ticket != _loadTicket)
+            {
+                return;
+            }
+
+            _rows.Clear();
 
             // LookupResult<TItem>.Items, reached without naming TItem.
             var result = task.GetType().GetProperty("Result")?.GetValue(task);
@@ -108,7 +133,10 @@ public partial class FluentUILookupFieldComponent<TModel, TValue>
         }
         finally
         {
-            _isLoading = false;
+            if (ticket == _loadTicket)
+            {
+                _isLoading = false;
+            }
         }
     }
 

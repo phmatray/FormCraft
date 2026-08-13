@@ -55,9 +55,15 @@
                         @foreach (var row in _rows)
                         {
                             var captured = row;
+                            @* @onkeydown as well as @onclick: role="button" + tabindex="0" makes the
+                               row reachable by keyboard, and without a key handler a keyboard-only
+                               user could tab onto every candidate and select none of them. This
+                               inline grid is the ONLY selection path (the modal was rejected), so
+                               that would leave the field unusable rather than merely awkward. *@
                             <tr role="button"
                                 tabindex="0"
                                 @onclick="@(() => SelectRowAsync(captured))"
+                                @onkeydown="@(e => HandleRowKeyDownAsync(e, captured))"
                                 data-testid="formcraft-lookup-row">
                                 @foreach (var column in Columns)
                                 {
