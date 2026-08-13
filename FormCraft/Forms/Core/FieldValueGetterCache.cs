@@ -32,7 +32,20 @@ namespace FormCraft;
 /// The entry is never invalidated, so this assumes a configuration's <c>ValueExpression</c> keeps
 /// reading the same member for that configuration's lifetime. That is the fluent builder's
 /// immutable-after-<c>Build()</c> contract, and <see cref="FieldConfiguration{TModel, TValue}" />
-/// enforces it by assigning the expression in its constructor.
+/// enforces it by assigning the expression in its constructor. A caller that hands
+/// <see cref="IFieldRendererService.RenderField" /> a configuration which re-targets its expression
+/// after first use would keep seeing the original member; use a separate configuration instance per
+/// binding instead.
+/// </para>
+/// <para>
+/// <b>This is the only such cache — deliberately.</b> #269 introduced an equivalent one private to
+/// <see cref="FieldRendererService" />; #312 retired it in favour of this one rather than leave two
+/// mechanisms for one concept. Because both paths key off the same configuration instance, a field
+/// that is rendered <i>and</i> validated now compiles its getter once in total, not once per path.
+/// The alternative considered and rejected was widening
+/// <see cref="IFieldConfiguration{TModel, TValue}" /> with a compiled-getter member: it would let each
+/// configuration own its memo, but it is a public API change binding on every external implementer,
+/// for no behaviour a per-instance key does not already provide.
 /// </para>
 /// </remarks>
 internal static class FieldValueGetterCache<TModel>
