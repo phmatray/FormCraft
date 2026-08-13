@@ -36,6 +36,89 @@ public static class FormCraftCascadingValues
     /// null — for an ordinary field, which is how a component tells the two apart.
     /// </summary>
     public const string ItemFieldScope = "FormCraftItemFieldScope";
+
+    /// <summary>
+    /// Name of the cascading <see cref="FormDiagnosticScope"/> supplied by
+    /// <see cref="FormCraftComponent{TModel}"/> to every field it renders (#304). Absent — and
+    /// therefore null — for a field rendered standalone through <see cref="IFieldRendererService"/>
+    /// with no form around it.
+    /// </summary>
+    public const string FormDiagnosticScope = "FormCraftFormDiagnosticScope";
+}
+
+/// <summary>
+/// The once-per-(diagnostic, field) latch shared by the two diagnostic scopes.
+/// </summary>
+/// <remarks>
+/// <para>
+/// One type rather than a copy in each scope, on the same grounds as #284: the diagnostics family
+/// grows by copying its nearest neighbour, and a `HashSet` plus a key format is precisely the size of
+/// thing that gets retyped rather than reused. #304 needed a second latch, which made this the moment
+/// to have one.
+/// </para>
+/// <para>
+/// ⛔ The <c>category</c> is part of the key, not decoration — a single field can legitimately trip
+/// several diagnostics (a masked multi-line password whose adornment is displaced trips two), and
+/// latching them together would report only the first and hide the rest for good (#274).
+/// </para>
+/// </remarks>
+internal sealed class DiagnosticOnceLatch
+{
+    private readonly HashSet<string> _warnedOnce = [];
+
+    /// <summary>
+    /// Returns <c>true</c> the first time a given (diagnostic, field) pair is presented, and
+    /// <c>false</c> forever after.
+    /// </summary>
+    /// <param name="category">The diagnostic's logger category.</param>
+    /// <param name="key">The field identity to latch on.</param>
+    internal bool ShouldWarnOnce(string category, string key) => _warnedOnce.Add($"{category}|{key}");
+}
+
+/// <summary>
+/// The form-wide diagnostic latch: reports each (diagnostic, field) pair once per <b>form</b>, however
+/// many times the field's component is destroyed and re-created (#304).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Why a component-level flag cannot do this job.</b> Every other latch in the package lives on the
+/// component instance — <c>_shrinkLabelDiagnosticEmitted</c>, <c>_maskedValueReportingSettled</c> — and
+/// a re-mount is by definition a new instance with fresh fields. <c>.VisibleWhen(...)</c> gating a
+/// field, or a wizard step revisited, therefore re-reported a configuration fact that had not changed,
+/// once per toggle. This outlives the component because the <i>form</i> owns it.
+/// </para>
+/// <para>
+/// <b>How it differs from <see cref="CollectionItemFieldScope"/>.</b> That one is owned by a
+/// collection and answers "has this field reported for any <i>row</i>" — one instance per collection,
+/// keyed by the collection-qualified field name. This is owned by the form and answers "has this field
+/// reported at all". A field inside a collection consults the item scope and never reaches this;
+/// see <c>MudBlazorFieldComponentBase.ShouldReport</c>, which tries them in that order.
+/// </para>
+/// <para>
+/// <b>Scoped to one form deliberately.</b> Two forms over the same model each get their own instance,
+/// so each reports — they are separate forms, and suppressing the second one's warning because the
+/// first already spoke would hide a real diagnostic from whoever is looking at the second.
+/// </para>
+/// </remarks>
+public sealed class FormDiagnosticScope
+{
+    private readonly DiagnosticOnceLatch _latch = new();
+
+    /// <summary>
+    /// Returns <c>true</c> the first time a given (diagnostic, field) pair is presented to this form,
+    /// and <c>false</c> forever after.
+    /// </summary>
+    /// <remarks>
+    /// ⛔ This mutates: consulting it burns the latch. Call it only once the diagnostic's rule has
+    /// already said yes, or a field with nothing to report spends the one warning it was owed (#274).
+    /// </remarks>
+    /// <param name="category">
+    /// The diagnostic's logger category, e.g. <see cref="MaskedLinesDiagnostic.Category"/>.
+    /// </param>
+    /// <param name="key">
+    /// The field identity to latch on, normally <c>MudBlazorFieldComponentBase.DiagnosticFieldKey</c>.
+    /// </param>
+    public bool ShouldWarnOnce(string category, string key) => _latch.ShouldWarnOnce(category, key);
 }
 
 /// <summary>
@@ -58,7 +141,7 @@ public static class FormCraftCascadingValues
 /// </remarks>
 public sealed class CollectionItemFieldScope
 {
-    private readonly HashSet<string> _warnedOnce = [];
+    private readonly DiagnosticOnceLatch _latch = new();
 
     /// <summary>
     /// Creates a scope for the collection field named <paramref name="collectionName"/>.
@@ -117,7 +200,7 @@ public sealed class CollectionItemFieldScope
     /// The diagnostic's logger category, e.g. <see cref="MaskedLinesDiagnostic.Category"/>.
     /// </param>
     /// <param name="key">The field identity to latch on, normally <see cref="DiagnosticKey"/>.</param>
-    public bool ShouldWarnOnce(string category, string key) => _warnedOnce.Add($"{category}|{key}");
+    public bool ShouldWarnOnce(string category, string key) => _latch.ShouldWarnOnce(category, key);
 }
 
 /// <summary>

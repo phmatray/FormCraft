@@ -91,6 +91,17 @@ public partial class FormCraftComponent<TModel>
     /// </summary>
     private readonly ShrinkLabelDiagnosticCollector _shrinkLabelDiagnostics = new();
 
+    /// <summary>
+    /// This form's diagnostic latch (#304), cascaded to every field it renders.
+    /// </summary>
+    /// <remarks>
+    /// A readonly field initialised once per component, deliberately — created in the markup or in a
+    /// lifecycle method it would be rebuilt on re-render and latch nothing. Cascaded with
+    /// <c>IsFixed="true"</c> for the same reason the collector above is: the reference never changes,
+    /// so subscribers need no change notifications.
+    /// </remarks>
+    private readonly FormDiagnosticScope _formDiagnosticScope = new();
+
     private EditContext? _editContext;
     private DynamicFormValidator<TModel>? _validator;
     private string? _csrfToken;
