@@ -67,8 +67,24 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// </para>
 /// <para>
 /// Models are deliberately dumb and stable — no behaviour, no validation attributes, no computed
-/// members. Everything a suite wants to vary goes through the <c>configure</c> callback on the item-form
-/// builders instead, so a change here cannot ripple into what an unrelated suite asserts.
+/// members. Everything a suite wants to vary goes through a callback on the item-form builders
+/// instead, so a change here cannot ripple into what an unrelated suite asserts.
+/// </para>
+/// <para>
+/// There are <b>two</b> such callbacks on every builder, and the split is by target rather than by
+/// convenience: <c>configure</c> (or the per-field <c>configureText</c>/<c>configureNumeric</c>/… on
+/// <see cref="MultiFieldItemForm"/>) reaches a <i>field</i>, while <c>configureCollection</c> reaches
+/// the <i>collection</i> — <c>AllowReorder</c>, <c>AllowAdd</c>, <c>WithMinItems</c> and the rest,
+/// which no field callback can express. Until #300 only <see cref="MultiFieldItemForm"/> had the
+/// latter, so a suite needing a collection-level setting on a single-field item form hand-rolled the
+/// whole configuration; the parameter is now uniform across every builder here.
+/// </para>
+/// <para>
+/// Both callbacks run <b>after</b> the builder has applied its own label and item form, so a caller
+/// can override those. That ordering is the contract, and it is pinned by
+/// <c>CollectionItemFixtureTests.Each_Item_Forms_Collection_Callback_Should_Run_After_The_Fixtures_Own_Configuration</c>
+/// — a reorder-only test cannot catch a builder that invokes the callback first, because
+/// <c>AllowReorder</c> is an independent setter that reads the same either way.
 /// </para>
 /// </summary>
 internal static class CollectionItemFixture
@@ -121,70 +137,112 @@ internal static class CollectionItemFixture
     /// <summary>
     /// A collection whose item form holds one <c>string</c> field labelled "Product" — the text path.
     /// </summary>
+    /// <param name="configure">Configures the item's field. Runs after its default label, so it can override it.</param>
+    /// <param name="configureCollection">
+    /// Configures the <i>collection</i> — <c>AllowReorder</c>, <c>AllowAdd</c>, <c>WithMinItems</c>
+    /// and the rest, none of which a field callback can reach. Runs after this builder has set the
+    /// label and the item form, so it can override those too (#300).
+    /// </param>
     internal static IFormConfiguration<OrderModel> TextItemForm(
-        Action<FieldBuilder<OrderItem, string>>? configure = null) =>
+        Action<FieldBuilder<OrderItem, string>>? configure = null,
+        Action<CollectionFieldBuilder<OrderModel, OrderItem>>? configureCollection = null) =>
         FormBuilder<OrderModel>
             .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.ProductName, field =>
-                    {
-                        field.WithLabel("Product");
-                        configure?.Invoke(field);
-                    })))
+            .AddCollectionField(x => x.Items, collection =>
+            {
+                collection
+                    .WithLabel("Items")
+                    .WithItemForm(item => item
+                        .AddField(x => x.ProductName, field =>
+                        {
+                            field.WithLabel("Product");
+                            configure?.Invoke(field);
+                        }));
+                configureCollection?.Invoke(collection);
+            })
             .Build();
 
     /// <summary>
     /// A collection whose item form holds one <c>int</c> field labelled "Quantity" — the numeric path.
     /// </summary>
+    /// <param name="configure">Configures the item's field. Runs after its default label, so it can override it.</param>
+    /// <param name="configureCollection">
+    /// Configures the <i>collection</i> rather than a field; runs last, after the label and item
+    /// form. See <see cref="TextItemForm"/> for the full contract (#300).
+    /// </param>
     internal static IFormConfiguration<BasketModel> NumericItemForm(
-        Action<FieldBuilder<BasketLine, int>>? configure = null) =>
+        Action<FieldBuilder<BasketLine, int>>? configure = null,
+        Action<CollectionFieldBuilder<BasketModel, BasketLine>>? configureCollection = null) =>
         FormBuilder<BasketModel>
             .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.Quantity, field =>
-                    {
-                        field.WithLabel("Quantity");
-                        configure?.Invoke(field);
-                    })))
+            .AddCollectionField(x => x.Lines, collection =>
+            {
+                collection
+                    .WithLabel("Lines")
+                    .WithItemForm(item => item
+                        .AddField(x => x.Quantity, field =>
+                        {
+                            field.WithLabel("Quantity");
+                            configure?.Invoke(field);
+                        }));
+                configureCollection?.Invoke(collection);
+            })
             .Build();
 
     /// <summary>
     /// A collection whose item form holds one <c>DateTime</c> field labelled "When" — the date path.
     /// </summary>
+    /// <param name="configure">Configures the item's field. Runs after its default label, so it can override it.</param>
+    /// <param name="configureCollection">
+    /// Configures the <i>collection</i> rather than a field; runs last, after the label and item
+    /// form. See <see cref="TextItemForm"/> for the full contract (#300).
+    /// </param>
     internal static IFormConfiguration<AppointmentModel> DateItemForm(
-        Action<FieldBuilder<AppointmentSlot, DateTime>>? configure = null) =>
+        Action<FieldBuilder<AppointmentSlot, DateTime>>? configure = null,
+        Action<CollectionFieldBuilder<AppointmentModel, AppointmentSlot>>? configureCollection = null) =>
         FormBuilder<AppointmentModel>
             .Create()
-            .AddCollectionField(x => x.Slots, collection => collection
-                .WithLabel("Slots")
-                .WithItemForm(item => item
-                    .AddField(x => x.When, field =>
-                    {
-                        field.WithLabel("When");
-                        configure?.Invoke(field);
-                    })))
+            .AddCollectionField(x => x.Slots, collection =>
+            {
+                collection
+                    .WithLabel("Slots")
+                    .WithItemForm(item => item
+                        .AddField(x => x.When, field =>
+                        {
+                            field.WithLabel("When");
+                            configure?.Invoke(field);
+                        }));
+                configureCollection?.Invoke(collection);
+            })
             .Build();
 
     /// <summary>
     /// A collection whose item form holds one <c>bool</c> field labelled "Gift" — the checkbox, the
     /// one component that binds neither adornments nor <c>Required</c>.
     /// </summary>
+    /// <param name="configure">Configures the item's field. Runs after its default label, so it can override it.</param>
+    /// <param name="configureCollection">
+    /// Configures the <i>collection</i> rather than a field; runs last, after the label and item
+    /// form. Distinct from <see cref="NumericItemForm"/>'s despite both configuring
+    /// <c>BasketModel.Lines</c> — separate builders wire separate callbacks (#300).
+    /// </param>
     internal static IFormConfiguration<BasketModel> BooleanItemForm(
-        Action<FieldBuilder<BasketLine, bool>>? configure = null) =>
+        Action<FieldBuilder<BasketLine, bool>>? configure = null,
+        Action<CollectionFieldBuilder<BasketModel, BasketLine>>? configureCollection = null) =>
         FormBuilder<BasketModel>
             .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.IsGift, field =>
-                    {
-                        field.WithLabel("Gift");
-                        configure?.Invoke(field);
-                    })))
+            .AddCollectionField(x => x.Lines, collection =>
+            {
+                collection
+                    .WithLabel("Lines")
+                    .WithItemForm(item => item
+                        .AddField(x => x.IsGift, field =>
+                        {
+                            field.WithLabel("Gift");
+                            configure?.Invoke(field);
+                        }));
+                configureCollection?.Invoke(collection);
+            })
             .Build();
 
     /// <summary>
@@ -193,18 +251,28 @@ internal static class CollectionItemFixture
     /// <c>MudNumericField&lt;int&gt;</c>, so a suite that asserts on one has said nothing about the
     /// other; culture-sensitive parsing in particular only shows up on the decimal one.
     /// </summary>
+    /// <param name="configure">Configures the item's field. Runs after its default label, so it can override it.</param>
+    /// <param name="configureCollection">
+    /// Configures the <i>collection</i> rather than a field; runs last, after the label and item
+    /// form. See <see cref="TextItemForm"/> for the full contract (#300).
+    /// </param>
     internal static IFormConfiguration<PricedBasketModel> DecimalItemForm(
-        Action<FieldBuilder<PricedLine, decimal>>? configure = null) =>
+        Action<FieldBuilder<PricedLine, decimal>>? configure = null,
+        Action<CollectionFieldBuilder<PricedBasketModel, PricedLine>>? configureCollection = null) =>
         FormBuilder<PricedBasketModel>
             .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.Price, field =>
-                    {
-                        field.WithLabel("Price");
-                        configure?.Invoke(field);
-                    })))
+            .AddCollectionField(x => x.Lines, collection =>
+            {
+                collection
+                    .WithLabel("Lines")
+                    .WithItemForm(item => item
+                        .AddField(x => x.Price, field =>
+                        {
+                            field.WithLabel("Price");
+                            configure?.Invoke(field);
+                        }));
+                configureCollection?.Invoke(collection);
+            })
             .Build();
 
     /// <summary>
@@ -260,11 +328,12 @@ internal static class CollectionItemFixture
     /// those two; the others still render, which is what makes the row mixed.
     /// </para>
     /// <para>
-    /// <paramref name="configureCollection"/> is the one callback here that reaches the
-    /// <i>collection</i> rather than a field. The reorder test needs <c>.AllowReorder()</c>, which is
-    /// a property of the collection, and without it that suite would have to hand-roll the whole
-    /// configuration — and would keep its own model copy along with it, which is the duplication
-    /// this member exists to remove.
+    /// <paramref name="configureCollection"/> is the callback that reaches the <i>collection</i>
+    /// rather than a field: the reorder test needs <c>.AllowReorder()</c>, a property of the
+    /// collection, and without it that suite would have to hand-roll the whole configuration — and
+    /// would keep its own model copy along with it, the duplication this member exists to remove.
+    /// This member had it first (#282); #300 gave every other builder here the same parameter, so it
+    /// is no longer special — see the class summary for the ordering contract it shares with them.
     /// </para>
     /// </remarks>
     internal static IFormConfiguration<MixedItemModel> MultiFieldItemForm(
@@ -391,9 +460,17 @@ internal static class CollectionItemFixture
     /// labels would buy nothing and would leave a caller unable to tell the root field from the item
     /// field in a rendered form.
     /// </remarks>
+    /// <param name="configureRoot">Configures the top-level field. Runs after its default label.</param>
+    /// <param name="configureItem">Configures the item's field. Runs after its default label.</param>
+    /// <param name="configureCollection">
+    /// Configures the <i>collection</i> rather than either field; appended last so every existing
+    /// call site, positional or named, still compiles. See <see cref="TextItemForm"/> for the full
+    /// contract (#300).
+    /// </param>
     internal static IFormConfiguration<NamedOrderModel> RootFieldAndItemForm(
         Action<FieldBuilder<NamedOrderModel, string>>? configureRoot = null,
-        Action<FieldBuilder<NamedOrderItem, string>>? configureItem = null) =>
+        Action<FieldBuilder<NamedOrderItem, string>>? configureItem = null,
+        Action<CollectionFieldBuilder<NamedOrderModel, NamedOrderItem>>? configureCollection = null) =>
         FormBuilder<NamedOrderModel>
             .Create()
             .AddField(x => x.Name, field =>
@@ -401,14 +478,18 @@ internal static class CollectionItemFixture
                 field.WithLabel("Name");
                 configureRoot?.Invoke(field);
             })
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.Name, field =>
-                    {
-                        field.WithLabel("Item name");
-                        configureItem?.Invoke(field);
-                    })))
+            .AddCollectionField(x => x.Items, collection =>
+            {
+                collection
+                    .WithLabel("Items")
+                    .WithItemForm(item => item
+                        .AddField(x => x.Name, field =>
+                        {
+                            field.WithLabel("Item name");
+                            configureItem?.Invoke(field);
+                        }));
+                configureCollection?.Invoke(collection);
+            })
             .Build();
 }
 

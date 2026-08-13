@@ -371,34 +371,36 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
         bool allowAdd = false,
         bool allowRemove = false)
     {
-        var config = FormBuilder<OrderModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection =>
+        // The label and the one-string-field item form are byte-identical to TextItemForm's, so the
+        // only thing this suite varies is the three flags — and configureCollection (#300) is how a
+        // caller reaches settings that belong to the collection rather than to a field.
+        //
+        // They stay CONDITIONAL. Applying them unconditionally would render an Add button on every
+        // call, and the sibling tests locate it with FindComponent<MudButton>(), which throws when
+        // it is absent and matches a newly-rendered one when it is not expected — so the flags are
+        // load-bearing for what those tests assert, not just for what this helper builds.
+        var config = TextItemForm(configureCollection: collection =>
+        {
+            if (allowReorder)
             {
-                collection.WithLabel("Items");
-                if (allowReorder)
-                {
-                    collection.AllowReorder();
-                }
+                collection.AllowReorder();
+            }
 
-                if (allowAdd)
-                {
-                    collection.AllowAdd();
-                }
+            if (allowAdd)
+            {
+                collection.AllowAdd();
+            }
 
-                if (allowRemove)
-                {
-                    collection.AllowRemove();
-                }
+            if (allowRemove)
+            {
+                collection.AllowRemove();
+            }
+        });
 
-                collection.WithItemForm(item => item
-                    .AddField(x => x.ProductName, field => field.WithLabel("Product")));
-            })
-            .Build();
-
-        return Render<FormCraftComponent<OrderModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
+        // ...and the render goes through the fixture's own helper too, which is the rest of "built
+        // from the fixture": this was the last hand-rolled Model/Configuration wiring in a suite
+        // that already calls RenderItemForm everywhere else.
+        return this.RenderItemForm(model, config);
     }
 
     /// <summary>
