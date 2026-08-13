@@ -39,11 +39,17 @@
       --filter-class FormCraft.ForMudBlazor.UnitTests.Fields.AriaRequiredTests
     # total: 34 (of 464)
     ```
-  - **Flags:** `--filter-class`, `--filter-method`, `--filter-namespace`, their `--filter-not-*`
-    counterparts, and `--filter-uid`. `*` wildcards work at either end
-    (`--filter-class '*GitignoreTests'` → 6). ⚠️ **`--filter-method` wants the fully-qualified
-    name** (`<namespace>.<class>.<method>`) — a bare method name matches **nothing** and does not
-    say so; a wildcard (`--filter-method '*Clearing_A_Standalone*'`) is the ergonomic escape.
+  - **Flags** (`--help` on the host lists them all): `--filter-class`, `--filter-method`,
+    `--filter-namespace`, `--filter-trait`, `--filter-uid`, `--filter-query`, plus a
+    `--filter-not-*` counterpart for class/method/namespace/trait. `*` wildcards work at either end
+    (`--filter-class '*GitignoreTests'` → 6).
+    - ⚠️ **`--filter-method` wants the fully-qualified name** (`<namespace>.<class>.<method>`) —
+      a bare method name matches **nothing** and does not say so; a wildcard
+      (`--filter-method '*Clearing_A_Standalone*'`) is the ergonomic escape.
+    - ⚠️ **`--filter-trait` is dead weight here:** no test in this repo carries a `[Trait]`, so
+      `--filter-trait 'Category=Builder'` returns `Zero tests ran`. Note `CLAUDE.md` still
+      advertises `dotnet test --filter "Category=Builder"`, which is wrong twice over — the option
+      is inert *and* the trait does not exist. Filter by class or namespace instead.
   - ⛔ **`dotnet test --filter …` really is inert** — the true half of the advice this bullet
     replaced. It is a VSTest option forwarded as an MSBuild property that MTP ignores, warning
     `MTP0001: VSTest-specific properties are set but will be ignored … VSTestTestCaseFilter` while
