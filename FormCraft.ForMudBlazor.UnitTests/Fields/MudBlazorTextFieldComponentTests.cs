@@ -1038,6 +1038,133 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void TextField_With_A_Mask_Should_Warn_When_A_Rejected_Value_Arrives_After_First_Render()
+    {
+        // Arrange - #283(a). The canonical legacy-data case, and the one #266 could not see: the
+        // field renders before the fetch resolves, so CurrentValue is empty at OnInitialized and the
+        // diagnostic returns early. The value then lands, the field renders blank, the model keeps
+        // "N/A" -- the exact divergence #266 exists to report, unreported.
+        //
+        //     protected override async Task OnInitializedAsync()
+        //         => _model.Phone = await _api.GetPhoneAsync();   // "N/A"
+        //
+        // The spec's stated reason for the initial-value framing -- "a field the user legitimately
+        // cleared must not warn on a later render" -- is already covered independently, because the
+        // rule requires a NON-BLANK stored value. Clearing a field can never satisfy it, so emitting
+        // later costs nothing.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Nothing was stored at first render, so there was nothing to report yet. Asserted rather
+        // than assumed: a warning here would make the post-arrival count below meaningless.
+        _logs.Warnings.ShouldBeEmpty();
+
+        // Act - the fetch resolves and the model is populated from outside the component.
+        model.Phone = "N/A";
+        component.Render();
+
+        // Assert - reported once, naming the field and the pattern like the OnInitialized path does.
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("Phone");
+        warnings[0].ShouldContain("(000) 000-0000");
+    }
+
+    [Fact]
+    public void TextField_With_A_Mask_Should_Warn_Only_Once_Across_Later_Renders()
+    {
+        // Arrange - #283(a). Moving the emit off OnInitialized removes the thing that used to make
+        // "once per component lifetime" true for free. A plain field has no CollectionItemFieldScope
+        // and therefore no latch, so without a component-level one the warning would re-fire on every
+        // external model change -- flooding the console of the developer it is meant to help, which
+        // is how a useful diagnostic gets muted.
+        var model = new TestModel { Phone = "N/A" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Act - a second non-conforming value arrives, then a plain re-render.
+        model.Phone = "unknown";
+        component.Render();
+        component.Render();
+
+        // Assert
+        _logs.Warnings.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void TextField_With_A_Mask_Should_Not_Warn_When_The_User_Types_Into_It()
+    {
+        // Arrange - #283(a). The load-bearing negative for the widened emit point: this reports
+        // STORED data, never live editing. A user part-way through typing holds a value the mask has
+        // not finished formatting, and re-checking on every keystroke would report the field being
+        // filled in correctly. ShouldReloadValue() is what tells an external model change apart from
+        // an in-flight edit, and this pins that the emit sits downstream of it.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Act - a partial entry, then a completed one.
+        component.Find("input").Input("555");
+        component.Find("input").Input("5551234567");
+
+        // Assert
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void TextField_With_A_Mask_Should_Not_Warn_When_The_User_Clears_It()
+    {
+        // Arrange - #283(a). The case the "initial value" framing was chosen to protect, kept
+        // honest now that the framing is gone: a field the user emptied on purpose must stay silent.
+        // It does so through the rule rather than the emit point -- Applies requires a non-blank
+        // stored value, and a cleared field has none.
+        var model = new TestModel { Phone = "5551234567" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Act - cleared from outside the component, the harsher of the two ways to reach a blank
+        // value: it goes through the external-change path the new emit point sits on.
+        model.Phone = string.Empty;
+        component.Render();
+
+        // Assert
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void TextField_With_A_Blank_Mask_Should_Bind_No_Mask()
     {
         // Arrange - a whitespace-only pattern is not "a mask of one space", it is a

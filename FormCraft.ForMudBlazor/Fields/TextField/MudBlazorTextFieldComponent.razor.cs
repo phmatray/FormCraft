@@ -9,6 +9,20 @@ public partial class MudBlazorTextFieldComponent<TModel>
     private bool _passwordVisible;
     private string? _localValue;
 
+    /// <summary>
+    /// Whether this instance has already emitted the masked-value diagnostic (#283).
+    /// </summary>
+    /// <remarks>
+    /// Needed because the emit is no longer confined to <see cref="OnInitialized"/>. That confinement
+    /// was what made "at most once per component lifetime" true for free, and only a field inside a
+    /// collection has a <see cref="MudBlazorFieldComponentBase{TModel, TValue}.ItemFieldScope"/> latch
+    /// to fall back on — an ordinary field has none, so without this a form whose model is written
+    /// repeatedly (a dependency callback, a poll, a reset) would re-report the same field on every
+    /// external change. The scope latch stays: it answers a different question, once per FIELD across
+    /// every row, which a per-instance flag cannot.
+    /// </remarks>
+    private bool _maskedValueReported;
+
     public int Lines { get; set; } = 1;
 
     /// <summary>
@@ -156,10 +170,19 @@ public partial class MudBlazorTextFieldComponent<TModel>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Called from <see cref="OnInitialized"/>, so it judges the value the field was *given* rather
-    /// than one the user has since edited. That framing is what keeps it quiet when someone
-    /// legitimately clears a field: the emptiness that matters is the one that was there before
-    /// anyone touched it.
+    /// Called from <see cref="OnInitialized"/> and, since #283, from the external-model-change branch
+    /// of <see cref="OnParametersSet"/> — so it judges any value the field is *given*, not only the
+    /// one it happened to hold at first render. Confining it to init made it blind to the canonical
+    /// legacy-data case, a model populated by an async fetch that resolves after the field is already
+    /// on screen.
+    /// </para>
+    /// <para>
+    /// Widening the emit point does not widen what is reported to values the *user* produced, on two
+    /// counts. The caller is the external-change branch, which an in-flight edit cannot reach; and
+    /// the rule itself requires a non-blank stored value, so a field the user legitimately cleared
+    /// can never satisfy it. That second point is worth stating because it, rather than the init-only
+    /// framing, was always what made the cleared-field case safe — the framing's stated
+    /// justification was load-bearing in the prose and redundant in the code.
     /// </para>
     /// <para>
     /// The masked result is computed the same way <c>MudBaseInput</c> is about to compute it — run
@@ -214,6 +237,17 @@ public partial class MudBlazorTextFieldComponent<TModel>
             return;
         }
 
+        // Two latches, both consulted AFTER the rule rather than before it, and in this order.
+        //
+        // The instance latch (#283) is what keeps "at most once per component lifetime" true now
+        // that the emit is no longer confined to OnInitialized; it is checked first because it is
+        // free and side-effect-free, and because an instance that has already reported must not
+        // consult the shared latch again.
+        if (_maskedValueReported)
+        {
+            return;
+        }
+
         // Latched per field, and latched AFTER the rule rather than before it. A collection renders
         // one instance per row, so an unlatched warning fires once per ROW about a single field.
         // But rows hold different values, and ShouldWarnOnce has a side effect: consulting it for a
@@ -226,6 +260,8 @@ public partial class MudBlazorTextFieldComponent<TModel>
         {
             return;
         }
+
+        _maskedValueReported = true;
 
         // Reported under the collection-qualified identity, not the bare field name — the same
         // reason the LATCH keys on it. A form with Contacts[].Phone and Suppliers[].Phone masked
@@ -264,6 +300,21 @@ public partial class MudBlazorTextFieldComponent<TModel>
         if (CurrentValue != _localValue)
         {
             _localValue = CurrentValue;
+
+            // #283(a). The second emit point, and the one that covers the canonical legacy-data
+            // case: a model populated AFTER first render — an async fetch, a
+            // `.DependsOn(...).WithValueProvider(...)`, a form reset — was empty when OnInitialized
+            // ran its check, so the field rendered blank and the divergence went unreported.
+            //
+            // This branch is the external-model-change signal rather than merely "a render
+            // happened", which is what keeps it off the keystroke path.
+            // FieldComponentBase.OnParametersSet reloads CurrentValue from the model only when its
+            // private ShouldReloadValue() says the component and the model have SETTLED and then
+            // diverged; an in-flight user edit fails that test, and by the time it settles
+            // SetValueWithoutNotification has already made CurrentValue and _localValue agree, so
+            // this condition is false. Reached through the same condition that was already here
+            // for exactly that reason, rather than a second one that could drift from it.
+            WarnIfMaskBlanksTheStoredValue();
         }
     }
 
