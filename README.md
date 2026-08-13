@@ -70,7 +70,9 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Autocomplete, multi-select, file upload, lookup and LOV all render** (#278). Two things worth knowing: the lookup and LOV pickers are **inline panels rather than modals**, because Fluent v5's dialog service draws nothing unless the host app adds a `FluentDialogProvider` and a Browse button that silently did nothing would be worse than a different presentation; and a required **file upload** is announced by a visible `*` on its label plus an `aria-describedby` hint on the Browse button rather than `aria-required` on the hidden input, following the same measurement as #262.
 
-  **Not yet covered:** custom renderers (colour picker, rating, slider).
+  **Custom renderers ship too** — slider, rating and colour picker, via `.WithCustomRenderer(typeof(FluentUISliderRenderer))` and friends. The rating is a row of labelled buttons rather than Fluent's `FluentRatingDisplay`, which exposes `Value` but no `ValueChanged` and would have shown a score it silently refused to change.
+
+  **Run the showcase** with `cd FormCraft.DemoFluentApp && dotnet run`. It is a second demo app rather than a page in the existing one because the adapters cannot share a DI container and Blazor has no per-subtree service provider.
 
   **One adapter per application:** `AddFormCraftFluentUI()` throws if the MudBlazor adapter is already registered, because renderer selection is first-match-wins and a mixed container would silently render a half-Material form. ⚠️ The guard is one-directional — registering MudBlazor *after* Fluent is not caught yet. Fluent UI Blazor v5 is still an RC, so this package depends on a prerelease.
 

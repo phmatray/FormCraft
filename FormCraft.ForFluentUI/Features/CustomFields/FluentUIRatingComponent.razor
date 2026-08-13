@@ -1,0 +1,43 @@
+@namespace FormCraft.ForFluentUI
+@typeparam TModel
+@inherits FieldComponentBase<TModel, int>
+
+@if (!string.IsNullOrEmpty(Label))
+{
+    <FluentLabel Weight="LabelWeight.Semibold">@Label</FluentLabel>
+}
+
+@* One focusable, labelled button per point, rather than Fluent's FluentRatingDisplay.
+
+   Measured against Microsoft.FluentUI.AspNetCore.Components 5.0.0-rc.5: FluentRatingDisplay
+   exposes `Value` but NO `ValueChanged` and no click handling — it is a read-only display, as its
+   name says. Binding a form field to it would render the current score correctly and then silently
+   refuse every edit, which is the failure mode this library keeps refusing elsewhere.
+
+   Buttons also carry the accessibility the glyphs alone would not: each is reachable by keyboard,
+   names the score it sets, and reports whether it is currently part of the selection. *@
+<div class="formcraft-rating" role="group" aria-label="@(Label ?? "Rating")">
+    @for (var i = 1; i <= MaxValue; i++)
+    {
+        var score = i;
+        <FluentButton Appearance="ButtonAppearance.Transparent"
+                      Disabled="@IsDisabled"
+                      OnClick="@(() => HandleScoreSelectedAsync(score))"
+                      aria-label="@($"Rate {score} out of {MaxValue}")"
+                      aria-pressed="@((score <= CurrentValue).ToString().ToLowerInvariant())"
+                      data-testid="formcraft-rating-star">
+            @(score <= CurrentValue ? "★" : "☆")
+        </FluentButton>
+    }
+</div>
+
+@code {
+    /// <summary>The highest score offered, from <c>.WithAttribute("MaxValue", ...)</c>.</summary>
+    private int MaxValue => GetAttribute("MaxValue", 5);
+
+    private async Task HandleScoreSelectedAsync(int score)
+    {
+        SetValueWithoutNotification(score);
+        await Context.OnValueChanged.InvokeAsync(score);
+    }
+}

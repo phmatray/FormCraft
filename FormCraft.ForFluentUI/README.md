@@ -87,9 +87,35 @@ project referencing both would get `CS0121` on every call. Add
 `using FormCraft.ForFluentUI.Extensions;` and call it as usual. Both write the same attributes, so
 either package's `.AsLookup(...)` renders correctly under either adapter.
 
+## Custom renderers
+
+Three ship with the package, used via `.WithCustomRenderer(...)` rather than registered globally —
+registering them would turn every `double` into a slider and every `string` into a colour picker:
+
+```csharp
+.AddField(x => x.Volume, f => f.WithCustomRenderer(typeof(FluentUISliderRenderer)))
+.AddField(x => x.Score,  f => f.WithCustomRenderer(typeof(FluentUIRatingRenderer)))
+.AddField(x => x.Colour, f => f.WithCustomRenderer(typeof(FluentUIColorPickerRenderer)))
+```
+
+The rating renders a row of focusable, labelled buttons rather than Fluent's `FluentRatingDisplay`.
+Measured against `5.0.0-rc.5`: that component exposes `Value` but no `ValueChanged` and no click
+handling — it is a read-only display, so a field bound to it would show the score and silently refuse
+every edit.
+
+## Running the showcase
+
+```bash
+cd FormCraft.DemoFluentApp && dotnet run
+```
+
+A **separate** app from `FormCraft.DemoBlazorApp` on purpose: the two adapters are mutually exclusive
+in one DI container, and Blazor has no per-subtree service provider, so a Fluent page cannot live
+inside the MudBlazor demo whatever it injects.
+
 ## Not yet covered
 
-- Custom renderers (colour picker, rating, slider).
+Nothing outstanding against the MudBlazor adapter's feature set.
 
 See the follow-ups on [#260](https://github.com/phmatray/FormCraft/issues/260).
 
