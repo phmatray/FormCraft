@@ -101,7 +101,12 @@ build/                          # NUKE build automation
 ```
 
 ### Target Frameworks
-- **net8.0**, **net9.0** and **net10.0** - Multi-targeting for .NET 8, .NET 9 and .NET 10
+- **net8.0** and **net10.0** — multi-targeting for .NET 8 and .NET 10. All three shipping projects
+  (`FormCraft`, `FormCraft.ForMudBlazor`, `FormCraft.ForFluentUI`) declare
+  `<TargetFrameworks>net8.0;net10.0</TargetFrameworks>`; the demo app is `net10.0` only.
+  ⛔ There is **no net9.0 target** — this file claimed one until #285. The csproj files are the
+  authority here, so verify against them before re-adding a framework to this list; a demo page
+  advertising `net8.0 · net10.0` is correct, not stale.
 
 ### Core Design Patterns
 

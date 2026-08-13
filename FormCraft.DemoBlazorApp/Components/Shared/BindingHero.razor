@@ -21,7 +21,11 @@
 
             @foreach (var field in EnabledFields())
             {
-                <div class="fc-code-line fc-code-line--field @(_active == field.Key ? "is-bound" : "") @(_justAdded == field.Key ? "is-new" : "")"
+                @* Keyed by field so a toggled-off line is destroyed rather than reused by the next
+                   field to take its index — which is what lets the is-new flash replay on a re-add
+                   now that nothing clears the class on a timer. *@
+                <div @key="field.Key"
+                     class="fc-code-line fc-code-line--field @(_active == field.Key ? "is-bound" : "") @(_justAdded == field.Key ? "is-new" : "")"
                      data-key="@field.Key"
                      @onmouseenter="@(() => _active = field.Key)">
                     <span class="fc-code-indent">    </span>
@@ -42,9 +46,14 @@
             @foreach (var field in AllFields)
             {
                 var on = _enabled.Contains(field.Key);
+                @*
+                    aria-pressed takes an explicit string, never @on. Blazor's bool attribute overload
+                    renders a valueless aria-pressed="" when true and omits the attribute entirely when
+                    false, so a screen reader is told nothing about the toggle in either state.
+                *@
                 <button type="button"
                         class="fc-chip @(on ? "is-on" : "")"
-                        aria-pressed="@on"
+                        aria-pressed="@(on ? "true" : "false")"
                         @onclick="@(() => Toggle(field.Key))"
                         @onmouseenter="@(() => _active = on ? field.Key : null)"
                         @onmouseleave="@(() => _active = null)"

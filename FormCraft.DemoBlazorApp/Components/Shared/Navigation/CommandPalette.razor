@@ -12,6 +12,7 @@
                    placeholder="Search demos and documentation"
                    aria-label="Search demos and documentation"
                    aria-controls="fc-palette-results"
+                   aria-activedescendant="@ActiveOptionId"
                    autocomplete="off"
                    value="@_query"
                    @oninput="OnQueryChanged"
@@ -38,10 +39,16 @@
                         var index = _results.IndexOf(demo);
                         var selected = index == _selectedIndex;
 
+                        @*
+                            aria-selected takes an explicit string for the same reason the hero's chips
+                            do: the bool overload renders aria-selected="" when true and drops it when
+                            false, so role="option" never announces as selected either way.
+                        *@
                         <button type="button"
                                 class="fc-palette__row @(selected ? "is-selected" : "")"
+                                id="@OptionId(demo)"
                                 role="option"
-                                aria-selected="@selected"
+                                aria-selected="@(selected ? "true" : "false")"
                                 @onclick="@(() => Go(demo))"
                                 @onmouseenter="@(() => _selectedIndex = index)">
                             <MudIcon Icon="@demo.Icon" Size="Size.Small" Class="fc-palette__row-icon" />

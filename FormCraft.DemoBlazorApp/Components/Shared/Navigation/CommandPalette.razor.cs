@@ -91,6 +91,13 @@ public partial class CommandPalette
             .OrderByDescending(x => x.Score)
             .ThenBy(x => x.Demo.Title)
             .Select(x => x.Demo)
+            // Flattened through the SAME grouping the markup renders, so this list is in DOM order.
+            // _selectedIndex indexes it, and the view derives each row's index from it, so the two
+            // must agree: score alone can interleave a documentation hit between two demos, which the
+            // grouped render then pulls to the bottom — arrowing would jump over a row and wrap early.
+            // The empty-query branch above already sorts documentation last for the same reason.
+            .GroupBy(d => d.Category)
+            .SelectMany(g => g)
             .ToList();
     }
 
@@ -184,4 +191,36 @@ public partial class CommandPalette
 
     private static string GroupLabel(string category) =>
         category == "documentation" ? "Documentation" : "Demos";
+
+    /// <summary>
+    /// A stable DOM id for a result row, keyed on the demo's route id rather than its position.
+    /// </summary>
+    /// <remarks>
+    /// The id has to follow the demo through a re-filter. An index-based id would be handed to a
+    /// different demo as soon as the query changed — and once the list shortens, would name a row that
+    /// no longer exists, leaving <c>aria-activedescendant</c> pointing at nothing.
+    /// <para>
+    /// The '/' replacement matters: the seven documentation ids are route-shaped
+    /// (<c>docs/getting-started</c>). A raw slash is legal in an HTML id and works with
+    /// <c>getElementById</c>, but it is not a valid CSS identifier — so the obvious next step,
+    /// <c>querySelector('#' + id)</c> to scroll the active row into view, would throw on exactly
+    /// those seven rows.
+    /// </para>
+    /// </remarks>
+    private static string OptionId(DemoMetadata demo) =>
+        $"fc-palette-option-{demo.Id.Replace('/', '-')}";
+
+    /// <summary>
+    /// The id of the highlighted row, or <c>null</c> when there is no row to point at.
+    /// </summary>
+    /// <remarks>
+    /// Bound to the search input's <c>aria-activedescendant</c>, which is what makes arrowing through
+    /// results announce anything: the <c>is-selected</c> class is a purely visual cue. Returning
+    /// <c>null</c> rather than <c>""</c> matters — Blazor omits a null attribute, whereas an empty one
+    /// would claim an active descendant with an unresolvable id while the palette shows no results.
+    /// </remarks>
+    private string? ActiveOptionId =>
+        _selectedIndex >= 0 && _selectedIndex < _results.Count
+            ? OptionId(_results[_selectedIndex])
+            : null;
 }
