@@ -137,6 +137,116 @@ public class FileUploadClearFocusTests : MudBlazorTestBase
         LastFocusedElementId().ShouldBe(browseId);
     }
 
+    [Fact]
+    public async Task Clearing_A_Multiple_File_Upload_Should_Move_Focus_To_That_Fields_Browse_Button()
+    {
+        // Arrange - the multiple-file component has the same defect for the same reason: "Clear All"
+        // is gated on `CurrentValue?.Any() == true`, which its own handler falsifies. The two
+        // components drifting apart is the failure class this library keeps re-filing (#146, #177,
+        // #184, #189), so it is asserted here rather than assumed to follow from the shared base.
+        var model = new TestModel { Uploads = new List<IBrowserFile> { new StubBrowserFile() } };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Uploads, f => f.WithLabel("Certificates").Required("A certificate is required"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        var field = component.FindComponent<MudBlazorMultipleFileUploadComponent<TestModel>>();
+        var browseId = await LearnElementIdAsync(component, field.FindComponents<MudButton>()[0].Instance);
+        var focusesBeforeClear = FocusCount();
+
+        // Act
+        var buttons = field.FindAll(".mud-toolbar button");
+        buttons.Count.ShouldBe(2);
+        await component.InvokeAsync(() => buttons[1].Click());
+
+        // Assert - "Clear All" unmounted itself, and focus was moved rather than dropped
+        field.FindAll(".mud-toolbar button").Count.ShouldBe(1);
+        FocusCount().ShouldBe(focusesBeforeClear + 1);
+        LastFocusedElementId().ShouldBe(browseId);
+    }
+
+    [Fact]
+    public async Task Clearing_A_Standalone_Multiple_File_Upload_Should_Focus_Browse_Without_Throwing()
+    {
+        // Arrange - the standalone path, mirroring the single-file component's coverage exactly
+        var model = new TestModel { Uploads = new List<IBrowserFile> { new StubBrowserFile() } };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Uploads, f => f.WithLabel("Certificates").Required("A certificate is required"))
+            .Build();
+
+        var context = new FieldRenderContext<TestModel>
+        {
+            Model = model,
+            Field = config.Fields.First(),
+            ActualFieldType = typeof(IReadOnlyList<IBrowserFile>),
+            CurrentValue = model.Uploads,
+        };
+
+        var component = Render<MudBlazorMultipleFileUploadComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Context, context));
+
+        var browseId = await LearnElementIdAsync(component, component.FindComponents<MudButton>()[0].Instance);
+        var focusesBeforeClear = FocusCount();
+
+        // Act
+        var buttons = component.FindAll(".mud-toolbar button");
+        buttons.Count.ShouldBe(2);
+        await component.InvokeAsync(() => buttons[1].Click());
+
+        // Assert
+        FocusCount().ShouldBe(focusesBeforeClear + 1);
+        LastFocusedElementId().ShouldBe(browseId);
+    }
+
+    [Fact]
+    public async Task Clearing_The_Second_Of_Two_Upload_Fields_Should_Focus_That_Fields_Own_Browse()
+    {
+        // Arrange - the edge case that a single-field test cannot catch: focus must land on the
+        // CLEARED field's Browse button, not on the first one in the document. The per-instance
+        // @ref is what makes this hold; a static or form-level reference would pass every other
+        // test in this file and fail here.
+        var model = new TestModel
+        {
+            Upload = new StubBrowserFile(),
+            SecondUpload = new StubBrowserFile(),
+        };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan").Required("A scan is required"))
+            .AddField(x => x.SecondUpload, f => f.WithLabel("Visa scan").Required("A scan is required"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Scoped per field rather than by a flat index, so an unrelated button elsewhere in the
+        // form (the submit button, another field) cannot silently shift what is being asserted.
+        var fields = component.FindComponents<MudBlazorFileUploadFieldComponent<TestModel>>();
+        fields.Count.ShouldBe(2);
+
+        var firstBrowseId = await LearnElementIdAsync(component, fields[0].FindComponents<MudButton>()[0].Instance);
+        var secondBrowseId = await LearnElementIdAsync(component, fields[1].FindComponents<MudButton>()[0].Instance);
+        firstBrowseId.ShouldNotBe(secondBrowseId);
+        var focusesBeforeClear = FocusCount();
+
+        // Act - clear the SECOND field
+        var secondFieldButtons = fields[1].FindAll(".mud-toolbar button");
+        secondFieldButtons.Count.ShouldBe(2);
+        await component.InvokeAsync(() => secondFieldButtons[1].Click());
+
+        // Assert - focus went to the second field's Browse, and the first field was left alone
+        FocusCount().ShouldBe(focusesBeforeClear + 1);
+        LastFocusedElementId().ShouldBe(secondBrowseId);
+        LastFocusedElementId().ShouldNotBe(firstBrowseId);
+        fields[0].FindAll(".mud-toolbar button").Count.ShouldBe(2);
+    }
+
     /// <summary>
     /// How many focus requests have been recorded so far.
     /// </summary>
