@@ -107,8 +107,11 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
       | `"N/A5551234567"` | `(555) 123-4567` | ✅ the digits survived, the `N/A` marker did not |
       | `"5551234567"` | `(555) 123-4567` | — reformatting is the mask working |
       | `"555 123 4567"` | `(555) 123-4567` | — same, even though the stored value had its own separators |
+      | `"123 45 6789"` under `000-00-0000` | `123-45-6789` | — same again, and the separators aren't the mask's either |
 
-      The middle row is the one worth knowing about: nothing looks wrong on screen, so the message quotes the text the field displays, which is what lets you check it against the record. Reformatting stays silent whichever way `cleanDelimiters` is set — the rule compares both sides with the mask's own literals removed, so the flag cannot turn a reformat into a false alarm or hide a real discard. A mask FormCraft cannot read that way — a `RegexMask` from the factory overload, or one carrying a `Transformation` — falls back to reporting outright rejection only, rather than guessing.
+      The `+1` row is the one worth knowing about: nothing looks wrong on screen, so the message quotes the text the field displays, which is what lets you check it against the record.
+
+      **Reformatting stays silent however the value happens to be punctuated.** The rule reduces both sides to the characters that carry the data — dropping punctuation, the mask's own literals, and its placeholder padding — and compares those, so stored data keeps its meaning whether it arrives as `5551234567`, `555 123 4567` or `555.123.4567`, and whether or not those separators are the ones the mask spells. That matters because legacy data is punctuated however whoever stored it felt like, which is rarely the way a newly-added mask is. `cleanDelimiters` does not enter into it either way. A mask FormCraft cannot read like that — a `RegexMask` from the factory overload, or one carrying a `Transformation` — falls back to reporting outright rejection only, rather than guessing.
 
       **It also fires for values that arrive after the field is on screen** (#283) — the async-fetch case, where the model is populated once the request resolves and the field was empty at first render. It was previously checked only at initialisation, so precisely the legacy data most likely to predate the mask went unreported. It never fires for a value *you* type, and never for a field you clear: it reports stored data, not live editing.
 

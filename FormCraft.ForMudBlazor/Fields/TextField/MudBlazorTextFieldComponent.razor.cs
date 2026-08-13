@@ -10,9 +10,11 @@ public partial class MudBlazorTextFieldComponent<TModel>
     private string? _localValue;
 
     /// <summary>
-    /// Whether this instance has already emitted the masked-value diagnostic (#283).
+    /// Whether this instance is done with the masked-value diagnostic — it either reported, or
+    /// learned that another row already had (#283).
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Needed because the emit is no longer confined to <see cref="OnInitialized"/>. That confinement
     /// was what made "at most once per component lifetime" true for free, and only a field inside a
     /// collection has a <see cref="MudBlazorFieldComponentBase{TModel, TValue}.ItemFieldScope"/> latch
@@ -20,8 +22,18 @@ public partial class MudBlazorTextFieldComponent<TModel>
     /// repeatedly (a dependency callback, a poll, a reset) would re-report the same field on every
     /// external change. The scope latch stays: it answers a different question, once per FIELD across
     /// every row, which a per-instance flag cannot.
+    /// </para>
+    /// <para>
+    /// "Settled" rather than "reported", and checked before any work rather than after it, because
+    /// the emit path is no longer cold. Resolving a mask allocates, and on the #265 factory path it
+    /// invokes arbitrary caller code; doing that on every external model change of every masked
+    /// field, forever, is the cost of asking the question late. A row that loses the race for the
+    /// scope latch never reports at all, and <c>ShouldWarnOnce</c> is a <c>HashSet.Add</c> that can
+    /// never go back to <c>true</c> — so such a row is just as finished as one that did report, and
+    /// recording that is what keeps the other 49 rows of a collection from redoing the work.
+    /// </para>
     /// </remarks>
-    private bool _maskedValueReported;
+    private bool _maskedValueReportingSettled;
 
     public int Lines { get; set; } = 1;
 
@@ -113,7 +125,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
         // actually render — which since #265 may come from a factory rather than the pattern string
         // — so it cannot run until both are loaded, or it would report on a mask the field does not
         // use.
-        WarnIfMaskBlanksTheStoredValue();
+        WarnIfMaskChangesTheStoredValue();
 
         // Load adornment configuration
         var customAdornment = GetAttribute<Adornment?>("Adornment");
@@ -166,7 +178,8 @@ public partial class MudBlazorTextFieldComponent<TModel>
     }
 
     /// <summary>
-    /// Reports a stored value that the configured mask rejects outright (#266).
+    /// Reports a stored value that the configured mask rejects outright (#266) or partly discards
+    /// (#283).
     /// </summary>
     /// <remarks>
     /// <para>
@@ -198,8 +211,17 @@ public partial class MudBlazorTextFieldComponent<TModel>
     /// <c>null</c> without constructing one.
     /// </para>
     /// </remarks>
-    private void WarnIfMaskBlanksTheStoredValue()
+    private void WarnIfMaskChangesTheStoredValue()
     {
+        // First, and before any work: this instance has nothing left to say, so resolving a mask and
+        // running a value through it would be pure waste on a path that now runs on every external
+        // model change. Safe to consult early precisely because it has no side effect on anything
+        // shared — unlike ShouldWarnOnce below, which must stay after the rule (#274).
+        if (_maskedValueReportingSettled)
+        {
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(CurrentValue))
         {
             return;
@@ -207,7 +229,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
 
         string? maskedResult;
         string? pattern;
-        string? literals;
+        string? decoration;
         try
         {
             var mask = GetMask();
@@ -216,16 +238,18 @@ public partial class MudBlazorTextFieldComponent<TModel>
                 return;
             }
 
+            mask.SetText(CurrentValue);
+            maskedResult = mask.Text;
+
+            // Both read AFTER SetText, so they describe the mask that produced `maskedResult` rather
+            // than the one it started as. MudBlazor's MultiMask derives from PatternMask and rewrites
+            // its own Mask as it matches, so reading the pattern first can quote — and strip the
+            // decoration of — a different mask than the one that rendered the text (#283).
+            //
             // Read off the resolved mask, not from the Mask property: a factory-supplied mask has
             // its own pattern and no configured string to quote back.
             pattern = mask.Mask;
-
-            // Read BEFORE SetText, so the rule is judged on the mask's configuration rather than on
-            // whatever state feeding it a value leaves behind (#283).
-            literals = MaskedValueDiagnostic.LiteralsOf(mask);
-
-            mask.SetText(CurrentValue);
-            maskedResult = mask.Text;
+            decoration = MaskedValueDiagnostic.DecorationOf(mask);
         }
         catch
         {
@@ -238,18 +262,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
             return;
         }
 
-        if (!MaskedValueDiagnostic.Applies(CurrentValue, maskedResult, literals))
-        {
-            return;
-        }
-
-        // Two latches, both consulted AFTER the rule rather than before it, and in this order.
-        //
-        // The instance latch (#283) is what keeps "at most once per component lifetime" true now
-        // that the emit is no longer confined to OnInitialized; it is checked first because it is
-        // free and side-effect-free, and because an instance that has already reported must not
-        // consult the shared latch again.
-        if (_maskedValueReported)
+        if (!MaskedValueDiagnostic.Applies(CurrentValue, maskedResult, decoration))
         {
             return;
         }
@@ -264,10 +277,14 @@ public partial class MudBlazorTextFieldComponent<TModel>
         // that the same field also trips — the property the two separate HashSets used to provide.
         if (!(ItemFieldScope?.ShouldWarnOnce(MaskedValueDiagnostic.Category, DiagnosticFieldKey) ?? true))
         {
+            // Another row got there first, and that verdict is permanent — so this instance is done
+            // too, and must stop re-resolving its mask on every later model change.
+            _maskedValueReportingSettled = true;
+
             return;
         }
 
-        _maskedValueReported = true;
+        _maskedValueReportingSettled = true;
 
         // Reported under the collection-qualified identity, not the bare field name — the same
         // reason the LATCH keys on it. A form with Contacts[].Phone and Suppliers[].Phone masked
@@ -321,7 +338,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
             // SetValueWithoutNotification has already made CurrentValue and _localValue agree, so
             // this condition is false. Reached through the same condition that was already here
             // for exactly that reason, rather than a second one that could drift from it.
-            WarnIfMaskBlanksTheStoredValue();
+            WarnIfMaskChangesTheStoredValue();
         }
     }
 

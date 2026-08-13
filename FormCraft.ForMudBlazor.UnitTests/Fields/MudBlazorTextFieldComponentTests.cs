@@ -1250,6 +1250,66 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
     }
 
     [Theory]
+    [InlineData("000-00-0000", "123 45 6789", "123-45-6789")]
+    [InlineData("000.000.0000", "555-123-4567", "555.123.4567")]
+    [InlineData("0000 0000 0000 0000", "4111-1111-1111-1111", "4111 1111 1111 1111")]
+    [InlineData("0000000000", "555-123-4567", "5551234567")]
+    public void TextField_With_A_Mask_Should_Not_Warn_When_The_Value_Is_Punctuated_Unlike_The_Mask(
+        string pattern,
+        string stored,
+        string expectedDisplay)
+    {
+        // Arrange - end-to-end regression for the false-positive class that an earlier #283 draft
+        // shipped past a green suite, because every mask test used "(000) 000-0000" -- whose own
+        // decoration happens to contain the space and hyphen the test values were punctuated with.
+        // Legacy data carries whatever separators it was stored with, and they are rarely the ones a
+        // newly-added mask spells. Every row here is intact data being reformatted, and every one of
+        // them warned under that draft.
+        var model = new TestModel { Phone = stored };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", pattern))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert - nothing was lost, so nothing is reported.
+        component.Find("input").GetAttribute("value").ShouldBe(expectedDisplay);
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void TextField_With_A_Placeholder_Mask_Should_Not_Warn_On_A_Short_Value()
+    {
+        // Arrange - a PatternMask carrying a Placeholder pads the positions a short value does not
+        // reach, so the rendered text is LONGER than what was stored. Counting the padding as data
+        // reports a discard for characters the mask ADDED -- on every value shorter than the pattern,
+        // which for a variable-length field is essentially every value. Reachable only through the
+        // #265 factory overload, which is how this is configured here.
+        var model = new TestModel { Phone = "55512345" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask(() => new PatternMask("(000) 000-0000") { Placeholder = '_' }))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert - the padding is visible in the display, and is not mistaken for lost data.
+        component.Find("input").GetAttribute("value").ShouldBe("(555) 123-45__");
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void TextField_With_A_CleanDelimiters_Mask_Should_Not_Warn_On_A_Reformat(bool cleanDelimiters)

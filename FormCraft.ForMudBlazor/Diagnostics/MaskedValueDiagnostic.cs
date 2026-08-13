@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
@@ -5,15 +6,23 @@ using MudBlazor;
 namespace FormCraft.ForMudBlazor;
 
 /// <summary>
-/// Reports a stored value that a configured mask rendered as blank (#266).
+/// Reports a stored value that a configured mask blanked (#266) or partly discarded (#283).
 /// </summary>
 /// <remarks>
 /// <para>
-/// The mechanism is MudBlazor's, not FormCraft's: on the first parameter pass <c>MudBaseInput</c>
-/// builds its display text by running the value through the mask with <c>updateValue: false</c>. A
-/// value the mask rejects collapses to empty, and because <c>updateValue</c> is false the model is
-/// never written back. The developer sees a blank field, the user submits without touching it, and
-/// the non-conforming value survives — with nothing logged and nothing thrown.
+/// The mechanism is MudBlazor's, not FormCraft's: <c>MudBaseInput</c> builds its display text by
+/// running the value through the mask with <c>updateValue: false</c>. Whatever the mask cannot place
+/// is dropped, and because <c>updateValue</c> is false the model is never written back. The user
+/// submits without touching the field and the non-conforming value survives — with nothing logged
+/// and nothing thrown.
+/// </para>
+/// <para>
+/// Two shapes, one consequence. The value collapses to empty, which is at least visibly wrong; or
+/// the mask keeps the characters that happen to fit and drops the rest, which is not visibly wrong
+/// at all — <c>"+1 555 123 4567"</c> under <c>(000) 000-0000</c> displays <c>(155) 512-3456</c>, a
+/// plausible phone number that is not the one on record. #266 reported only the first; #283 widened
+/// it to both, on the grounds that the display and the model diverge either way and the silent shape
+/// is the harder one to notice.
 /// </para>
 /// <para>
 /// Not new MudBlazor behaviour, but newly *reachable*: until #211 the <c>Mask</c> attribute did
@@ -57,11 +66,21 @@ internal static class MaskedValueDiagnostic
     /// is not.
     /// </para>
     /// <para>
-    /// The widened rule strips the mask's own literals from both sides and compares what is left. A
-    /// reformat only ever moves literals around, so the two sides reduce to the same characters; a
-    /// discard loses characters no reformatting could restore. Stripping <i>both</i> sides is what
-    /// keeps stored data that carries its own separators — <c>555 123 4567</c>, <c>555-123-4567</c>,
-    /// the normal shape of legacy data — from reading as a discard.
+    /// The widened rule reduces both sides to the characters that carry the <i>data</i> — dropping
+    /// punctuation and the mask's own decoration — and compares those. A reformat only rearranges
+    /// decoration, so the two sides reduce to the same characters; a discard loses characters no
+    /// reformatting could restore.
+    /// </para>
+    /// <para>
+    /// "Carries the data" is two conditions, and getting it down to one produces false positives in
+    /// opposite directions. Dropping only the <b>mask's literals</b> leaves the stored value's own
+    /// punctuation in place, so <c>000-00-0000</c> over a stored <c>"123 45 6789"</c> compares
+    /// <c>"123 45 6789"</c> against <c>"123456789"</c> and reports a discard for data that is
+    /// completely intact — legacy data carries its own separators, and they are rarely the pattern's.
+    /// Dropping only <b>non-alphanumerics</b> fails the other way: a pattern may spell a literal that
+    /// is itself alphanumeric (<c>+1 000-0000</c> contributes a <c>1</c>), which the rendered side
+    /// then holds and the stored side does not. So both apply: keep a character only if it could
+    /// match one of the mask's placeholders <b>and</b> is not decoration the mask contributes.
     /// </para>
     /// <para>
     /// The blank test stays an explicit disjunct rather than being folded into that comparison,
@@ -77,11 +96,12 @@ internal static class MaskedValueDiagnostic
     /// </remarks>
     /// <param name="configuredValue">The value held by the model before the mask was applied.</param>
     /// <param name="maskedResult">What that value renders as once run through the mask.</param>
-    /// <param name="maskLiterals">
-    /// The characters the mask inserts as decoration, from <see cref="LiteralsOf"/>, or <c>null</c>
-    /// when they could not be determined — in which case only the total-collapse test applies.
+    /// <param name="maskDecoration">
+    /// The characters the mask contributes rather than takes from the value, from
+    /// <see cref="DecorationOf"/>, or <c>null</c> when they could not be determined — in which case
+    /// only the total-collapse test applies.
     /// </param>
-    internal static bool Applies(string? configuredValue, string? maskedResult, string? maskLiterals)
+    internal static bool Applies(string? configuredValue, string? maskedResult, string? maskDecoration)
     {
         if (string.IsNullOrWhiteSpace(configuredValue))
         {
@@ -89,42 +109,65 @@ internal static class MaskedValueDiagnostic
         }
 
         // #266's rule, unchanged and checked first: something was stored and nothing came out.
-        if (string.IsNullOrWhiteSpace(maskedResult))
+        if (RendersEmpty(maskedResult))
         {
             return true;
         }
 
-        // LiteralsOf could not answer without guessing (a non-pattern or transforming mask). Report
+        // DecorationOf could not answer without guessing (a non-pattern or transforming mask). Report
         // nothing beyond the collapse case above rather than invent a verdict — the cost of a wrong
         // "yes" here is a warning on every value of a correctly configured field.
-        if (maskLiterals is null)
+        if (maskDecoration is null)
         {
             return false;
         }
 
         return !string.Equals(
-            WithoutLiterals(configuredValue, maskLiterals),
-            WithoutLiterals(maskedResult, maskLiterals),
+            DataCharacters(configuredValue, maskDecoration),
+            DataCharacters(maskedResult, maskDecoration),
             StringComparison.Ordinal);
     }
 
     /// <summary>
-    /// <paramref name="value"/> with every one of the mask's literal characters removed.
+    /// Whether the field renders nothing at all — #266's original signal.
     /// </summary>
     /// <remarks>
-    /// Applied to the stored value and the rendered text alike, which is the whole point: it reduces
-    /// both to the characters the mask treats as significant, so the comparison sees data rather than
-    /// punctuation. Ordinal throughout — these are literal characters from a pattern, not text being
-    /// collated.
+    /// One predicate with one home, because two callers depend on it: <see cref="Applies"/> decides
+    /// whether to report, and <see cref="Warn"/> decides which of the two messages to write. Spelling
+    /// it twice would let the rule and its explanation drift — a later refinement to the rule would
+    /// leave the emitter telling a developer their field "renders empty" while it is in fact
+    /// displaying a wrong value, which is the confusion the two messages exist to prevent.
     /// </remarks>
-    /// <param name="value">The stored value or the rendered text.</param>
-    /// <param name="literals">The mask's literal characters, from <see cref="LiteralsOf"/>.</param>
-    private static string WithoutLiterals(string value, string literals) =>
-        string.Concat(value.Where(c => !literals.Contains(c)));
+    /// <param name="maskedResult">What the field displays.</param>
+    internal static bool RendersEmpty([NotNullWhen(false)] string? maskedResult) =>
+        string.IsNullOrWhiteSpace(maskedResult);
 
     /// <summary>
-    /// The characters <paramref name="mask"/> inserts as decoration, or <c>null</c> when they cannot
-    /// be determined (#283).
+    /// <paramref name="value"/> reduced to the characters that carry data rather than format it.
+    /// </summary>
+    /// <remarks>
+    /// Applied to the stored value and the rendered text alike, which is the whole point: it puts
+    /// both in the same terms so the comparison sees data rather than punctuation.
+    /// <para>
+    /// A character survives only if it could match one of the mask's placeholders — approximated by
+    /// <see cref="char.IsLetterOrDigit(char)"/>, the union of the default <c>0</c>/<c>a</c>/<c>*</c>
+    /// alphabet — <b>and</b> is not something the mask itself contributes. A caller who narrows
+    /// <c>MaskChars</c> to a punctuation class through the #265 factory therefore has a character
+    /// treated as noise that the mask considers significant; that direction under-reports, which is
+    /// the side to err on.
+    /// </para>
+    /// <para>
+    /// Ordinal throughout — these are pattern characters, not text being collated.
+    /// </para>
+    /// </remarks>
+    /// <param name="value">The stored value or the rendered text.</param>
+    /// <param name="decoration">What the mask contributes, from <see cref="DecorationOf"/>.</param>
+    private static string DataCharacters(string value, string decoration) =>
+        new(value.Where(c => char.IsLetterOrDigit(c) && !decoration.Contains(c)).ToArray());
+
+    /// <summary>
+    /// The characters <paramref name="mask"/> contributes rather than takes from the value, or
+    /// <c>null</c> when they cannot be determined (#283).
     /// </summary>
     /// <remarks>
     /// <para>
@@ -136,10 +179,14 @@ internal static class MaskedValueDiagnostic
     /// correctly-masked field. Pinned by <c>MaskedValueDiagnosticTests</c>'s characterisation block.
     /// </para>
     /// <para>
-    /// Derived from the pattern rather than hardcoded: a literal is any pattern character that is not
-    /// one of the mask's own placeholders, and <c>MaskChars</c> is where those live. Reading them off
-    /// the instance keeps this correct for a caller who supplies custom <c>MaskChars</c> through the
-    /// #265 factory, which a hardcoded <c>0</c>/<c>a</c>/<c>*</c> list would silently get wrong.
+    /// Two sources, both read off the instance rather than hardcoded. The pattern's <b>literals</b>
+    /// are its characters that are not one of the mask's own placeholders, and <c>MaskChars</c> is
+    /// where those placeholders live — so a caller supplying custom <c>MaskChars</c> through the #265
+    /// factory is handled, which a hardcoded <c>0</c>/<c>a</c>/<c>*</c> list would get wrong. The
+    /// <b>placeholder</b> is what <c>PatternMask</c> pads unfilled positions with: a mask configured
+    /// with one renders <c>(555) 123-45__</c> for a short value, and counting those pad characters as
+    /// data would report a discard for characters the mask <i>added</i> — every value shorter than
+    /// the pattern, on every render.
     /// </para>
     /// <para>
     /// Returns <c>null</c> — meaning "no opinion", which <see cref="Applies"/> reads as a fall back to
@@ -149,7 +196,11 @@ internal static class MaskedValueDiagnostic
     /// <item>
     /// a mask that is not a <see cref="PatternMask"/>. The #265 factory can supply any
     /// <see cref="IMask"/>, and a <c>RegexMask</c>'s <c>Mask</c> is a regular expression whose
-    /// non-placeholder characters are metacharacters, not decoration.
+    /// non-placeholder characters are metacharacters, not decoration. Note the hierarchy on 9.8.0:
+    /// <c>RegexMask</c> and <c>BlockMask</c> land here, while <c>DateMask</c> and <c>MultiMask</c>
+    /// derive from <see cref="PatternMask"/> and take the path below — correctly, since both spell a
+    /// real pattern. <c>MultiMask</c> rewrites its own <c>Mask</c> as it matches, which is why the
+    /// caller reads the pattern and the decoration <i>after</i> feeding the mask its value.
     /// </item>
     /// <item>
     /// a mask carrying a <c>Transformation</c>. That hook rewrites characters as they are consumed —
@@ -162,7 +213,7 @@ internal static class MaskedValueDiagnostic
     /// </list>
     /// </remarks>
     /// <param name="mask">The mask that produced the rendered text.</param>
-    internal static string? LiteralsOf(IMask mask)
+    internal static string? DecorationOf(IMask mask)
     {
         if (mask is not PatternMask pattern
             || pattern.Mask is null
@@ -173,8 +224,14 @@ internal static class MaskedValueDiagnostic
         }
 
         var placeholders = pattern.MaskChars.Select(maskChar => maskChar.Char).ToHashSet();
+        var decoration = pattern.Mask.Where(c => !placeholders.Contains(c));
 
-        return new string(pattern.Mask.Where(c => !placeholders.Contains(c)).Distinct().ToArray());
+        if (pattern.Placeholder is { } pad)
+        {
+            decoration = decoration.Append(pad);
+        }
+
+        return new string(decoration.Distinct().ToArray());
     }
 
     /// <summary>
@@ -216,7 +273,9 @@ internal static class MaskedValueDiagnostic
                 "leaves the stored value unchanged. Correct the data, widen the mask, or drop the " +
                 "mask if the stored format is intentional.";
 
-            if (string.IsNullOrWhiteSpace(maskedResult))
+            // The SAME predicate Applies used to reach its verdict, not a second copy of it: the
+            // wording must follow from the decision rather than re-derive it.
+            if (RendersEmpty(maskedResult))
             {
                 logger?.LogWarning(
                     "Field '{Field}' holds a value that its mask '{Mask}' rejects, so the field " +
