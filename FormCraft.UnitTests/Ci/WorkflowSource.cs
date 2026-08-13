@@ -243,6 +243,13 @@ internal static class WorkflowSource
     /// ambiguous one still quietly picks a winner, which is the same silent wrong answer wearing a
     /// different hat.
     /// </para>
+    /// <para>
+    /// The slice starts at the step's own <c>- </c> list item rather than at the <c>id:</c> line, so
+    /// this returns the same shape <see cref="StepNamed" /> does for the same step — its <c>- name:</c>
+    /// where it has one, its <c>- uses:</c> where it does not. Starting at the <c>id:</c> excluded the
+    /// step's own name, which made the two primitives disagree about what "a step" is and left this
+    /// one unable to assert anything about the name at all.
+    /// </para>
     /// </remarks>
     internal static string StepWithId(string scope, string stepId, string? scopeDescription = null)
     {
@@ -252,10 +259,16 @@ internal static class WorkflowSource
         matches.Count.ShouldBeLessThan(
             2,
             $"{scopeDescription ?? "the searched text"} has {matches.Count} steps claiming `id: {stepId}` — an ambiguous id cannot be resolved to one step");
-        matches.ShouldNotBeEmpty(
+
+        // Both "no such id" and "an id belonging to no list item" are absence: the second is a
+        // malformed scope, and slicing it from line 0 would hand back the file's preamble dressed up
+        // as a step. One message covers both because the caller's remedy is the same either way.
+        var header = matches.Count == 1 ? HeaderAtOrAbove(lines, matches[0]) : -1;
+        header.ShouldBeGreaterThanOrEqualTo(
+            0,
             $"{scopeDescription ?? "the searched text"} no longer has a step with `id: {stepId}`");
 
-        return StepFrom(lines, matches[0]);
+        return StepFrom(lines, header);
     }
 
     /// <summary>
@@ -275,7 +288,12 @@ internal static class WorkflowSource
         // the id being looked for, and RegexOptions.Compiled pays its cost up front — strictly a loss
         // for the handful of scans a run performs. The shape mirrors JobsKey's, trailing-comment
         // tolerance included.
-        var key = new Regex($@"^id:\s*{Regex.Escape(stepId)}\s*(#.*)?$");
+        //
+        // The optional `- ` covers `- id: login`, where the id is the list item's first key. That is
+        // legal and common, no workflow here currently writes it, and an anchored `^id:` would lose
+        // it — reporting a step that is plainly present as absent. Loud, unlike the bug this replaces,
+        // but still a wrong answer, and the walk-back stops on that same line as the step's header.
+        var key = new Regex($@"^(- )?id:\s*{Regex.Escape(stepId)}\s*(#.*)?$");
 
         var matches = new List<int>();
         for (var index = 0; index < lines.Length; index++)
@@ -287,6 +305,30 @@ internal static class WorkflowSource
         }
 
         return matches;
+    }
+
+    /// <summary>
+    /// The nearest line at or above <paramref name="from" /> that opens a list item, or <c>-1</c> when
+    /// there is none — the step's own <c>- </c> header.
+    /// </summary>
+    /// <remarks>
+    /// Starts <em>at</em> <paramref name="from" /> rather than above it, so an id written on the list
+    /// item itself (<c>- id: login</c>) finds that line instead of running past it into the previous
+    /// step. Returning <c>-1</c> rather than falling back to 0 is what makes a malformed scope read as
+    /// absent: an <c>id:</c> under some <c>env:</c> block belongs to no step, and a slice from the top
+    /// of the file would answer a question the scope cannot answer.
+    /// </remarks>
+    private static int HeaderAtOrAbove(string[] lines, int from)
+    {
+        for (var index = from; index >= 0; index--)
+        {
+            if (lines[index].TrimStart().StartsWith("- ", StringComparison.Ordinal))
+            {
+                return index;
+            }
+        }
+
+        return -1;
     }
 
     /// <summary>

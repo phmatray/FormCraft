@@ -19,9 +19,9 @@ public class TrustedPublishingWorkflowTests
     /// same expression sitting on some other step.
     /// </summary>
     /// <remarks>
-    /// Deliberately reads the workflow *unstripped*. The scan runs from the <c>id:</c> line to the
-    /// next list item, so the slice carries whatever explanatory comments sit between the step and
-    /// its successor — harmless here, because every claim below is about a line these files spell
+    /// Deliberately reads the workflow *unstripped*. The scan runs from the step's own <c>- </c> list
+    /// item to the next one, so the slice carries whatever explanatory comments sit between the step
+    /// and its successor — harmless here, because every claim below is about a line these files spell
     /// as wiring (<c>if:</c>, <c>uses:</c>) rather than as prose.
     /// </remarks>
     private static string StepWithId(string workflowFile, string stepId) =>

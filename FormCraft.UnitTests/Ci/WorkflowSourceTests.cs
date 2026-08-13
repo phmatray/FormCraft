@@ -187,6 +187,64 @@ public class WorkflowSourceTests
     }
 
     [Fact]
+    public void StepWithId_Should_Return_The_Step_From_Its_Own_Header()
+    {
+        // The second half of #267: the scan started at the `id:` line, so the "step" it returned
+        // excluded the step's own `- name:` — it could not be used to assert anything *about* the
+        // name, and it silently differed in shape from what StepNamed returns for the very same step.
+        // Two primitives on one reader answering the same question differently is how the looser of
+        // them drifts unnoticed.
+        var step = WorkflowSource.StepWithId(WorkflowSource.Read("release-please.yml"), "login");
+
+        step.ShouldContain("- name: NuGet login");
+
+        // Still bounded above by the next step, which is what the slice has always been for.
+        step.ShouldNotContain("- name: 'Run: Pack");
+    }
+
+    [Fact]
+    public void StepWithId_Should_Treat_An_Id_Outside_Any_Step_As_Absent()
+    {
+        // Walking back has to be allowed to fail. An `id:` key that belongs to no list item is not a
+        // step, and slicing from line 0 would hand the caller the file's preamble dressed up as one —
+        // a wrong answer of exactly the kind the anchored match was added to stop, arriving by the
+        // other door.
+        const string Malformed = """
+                                 jobs:
+                                   publish:
+                                     env:
+                                       id: login
+                                 """;
+
+        var error = Should.Throw<ShouldAssertException>(
+            () => WorkflowSource.StepWithId(Malformed, "login", "the fixture"));
+
+        error.Message.ShouldContain("no longer has a step with `id: login`");
+    }
+
+    [Fact]
+    public void StepWithId_Should_Find_An_Id_Written_On_The_List_Item_Line()
+    {
+        // `- id: login` is legal, common in the wild, and the one shape an anchored `^id:` match
+        // loses that the old substring scan handled. Losing it fails in the opposite direction to
+        // #267's bug — loudly, reporting a step that is plainly present as gone — which is a better
+        // failure but still a wrong answer, and one no workflow in this repo would currently catch.
+        const string Steps = """
+                             steps:
+                               - id: login
+                                 uses: NuGet/login@v1
+                             """;
+
+        var step = WorkflowSource.StepWithId(Steps, "login");
+
+        // The matched line *is* the header here, so the walk-back must stop on it rather than run
+        // past it to `steps:`.
+        step.ShouldContain("- id: login");
+        step.ShouldContain("uses: NuGet/login@v1");
+        step.ShouldNotContain("steps:");
+    }
+
+    [Fact]
     public void Matching_Should_Find_The_Workflows_That_Invoke_The_Build()
     {
         // The discovery primitive the whole TestReportingTests family rests on: it decides which
