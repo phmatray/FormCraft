@@ -7,7 +7,8 @@ using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
 
-public partial class FluentValidationDemo : ComponentBase
+// Base supplied by @inherits DemoComponentBase in the .razor (see AsyncValueProviderDemo).
+public partial class FluentValidationDemo
 {
     private CustomerModel _model = new();
     private IFormConfiguration<CustomerModel>? _formConfig;
@@ -100,7 +101,11 @@ public partial class FluentValidationDemo : ComponentBase
         StateHasChanged();
 
         // Simulate async operation
-        await Task.Delay(1500);
+        if (!await DelayAsync(1500))
+        {
+            return;
+        }
+
 
         _submitted = true;
         _successfulValidations++;

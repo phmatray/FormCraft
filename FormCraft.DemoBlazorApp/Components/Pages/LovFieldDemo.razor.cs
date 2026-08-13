@@ -156,7 +156,11 @@ public partial class LovFieldDemo
         StateHasChanged();
 
         // Simulate API call
-        await Task.Delay(1500);
+        if (!await DelayAsync(1500))
+        {
+            return;
+        }
+
 
         _isSubmitted = true;
         _isSubmitting = false;

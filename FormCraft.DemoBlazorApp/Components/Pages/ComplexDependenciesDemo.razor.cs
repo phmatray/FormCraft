@@ -6,7 +6,8 @@ using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
 
-public partial class ComplexDependenciesDemo : ComponentBase
+// Base supplied by @inherits DemoComponentBase in the .razor (see AsyncValueProviderDemo).
+public partial class ComplexDependenciesDemo
 {
     private OrderModel _model = new();
     private IFormConfiguration<OrderModel>? _formConfig;
@@ -212,7 +213,10 @@ public partial class ComplexDependenciesDemo : ComponentBase
         _isSubmitting = true;
         StateHasChanged();
 
-        await Task.Delay(1500);
+        if (!await DelayAsync(1500))
+        {
+            return;
+        }
 
         _submitted = true;
         _isSubmitting = false;

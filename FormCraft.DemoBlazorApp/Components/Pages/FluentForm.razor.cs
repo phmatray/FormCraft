@@ -115,7 +115,10 @@ public partial class FluentForm
         StateHasChanged();
 
         // Simulate API call
-        await Task.Delay(2000);
+        if (!await DelayAsync(2000))
+        {
+            return;
+        }
 
         _isSubmitted = true;
         _isSubmitting = false;
