@@ -280,6 +280,124 @@ public class FieldConfigurationRefreshTests : MudBlazorTestBase
         ReferenceEquals(after[0], secondRowComponent).ShouldBeTrue();
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // One representative bound attribute per field type. The text field is covered above; these are
+    // the other component families, each migrated to the hook by the same mechanical edit — which is
+    // exactly the kind of change that is easy to get subtly wrong in one file out of eleven and never
+    // notice, because nothing fails until someone swaps a configuration in production.
+    // ---------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void NumericField_Should_Rebind_Its_Format_When_The_Configuration_Is_Swapped()
+    {
+        // Arrange
+        var model = new NumericModel { Amount = 3 };
+
+        var component = Render<FormCraftComponent<NumericModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, NumericConfiguration("N0")));
+
+        component.FindComponent<MudNumericField<int>>().Instance.Format.ShouldBe("N0");
+
+        // Act
+        component.Render(parameters => parameters.Add(p => p.Configuration, NumericConfiguration("N2")));
+
+        // Assert
+        component.FindComponent<MudNumericField<int>>().Instance.Format.ShouldBe("N2");
+    }
+
+    [Fact]
+    public void BooleanField_Should_Swap_Between_Checkbox_And_Switch_With_The_Configuration()
+    {
+        // Arrange - the boolean component wires the hook locally, because it derives from
+        // FieldComponentBase directly rather than from either MudBlazor base. That makes it the one
+        // most likely to be missed, and DisplayStyle is visible in the render tree rather than merely
+        // in a property.
+        var model = new BooleanModel();
+
+        var component = Render<FormCraftComponent<BooleanModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, BooleanConfiguration(BooleanDisplayStyle.Checkbox)));
+
+        component.FindComponents<MudCheckBox<bool>>().Count.ShouldBe(1);
+        component.FindComponents<MudSwitch<bool>>().ShouldBeEmpty();
+
+        // Act
+        component.Render(parameters => parameters
+            .Add(p => p.Configuration, BooleanConfiguration(BooleanDisplayStyle.Switch)));
+
+        // Assert
+        component.FindComponents<MudSwitch<bool>>().Count.ShouldBe(1);
+        component.FindComponents<MudCheckBox<bool>>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void SelectField_Should_Rebind_Its_Options_When_The_Configuration_Is_Swapped()
+    {
+        // Arrange - the nastier half of the reload contract. `ResolveOptions` returns the CURRENT
+        // Options for a field that configures none, so a component that did not clear first would
+        // offer the user choices belonging to a field no longer on screen.
+        var model = new SelectModel { Choice = "a" };
+
+        var component = Render<FormCraftComponent<SelectModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, SelectConfiguration("a", "b", "c")));
+
+        component.FindComponent<MudSelect<string>>().Instance.ShouldNotBeNull();
+
+        // Act - the replacement field offers a single, different option.
+        component.Render(parameters => parameters
+            .Add(p => p.Configuration, SelectConfiguration("z")));
+
+        // Assert
+        var options = component.FindComponent<MudBlazorSelectFieldComponent<SelectModel, string>>()
+            .Instance.Options
+            .Select(o => o.Value)
+            .ToList();
+        options.ShouldBe(["z"]);
+    }
+
+    private static IFormConfiguration<NumericModel> NumericConfiguration(string format) =>
+        FormBuilder<NumericModel>
+            .Create()
+            .AddField(x => x.Amount, field => field
+                .WithLabel("Amount")
+                .WithAttribute("Format", format))
+            .Build();
+
+    private static IFormConfiguration<BooleanModel> BooleanConfiguration(BooleanDisplayStyle style) =>
+        FormBuilder<BooleanModel>
+            .Create()
+            .AddField(x => x.IsActive, field => field
+                .WithLabel("Active")
+                .WithAttribute("DisplayStyle", style))
+            .Build();
+
+    private static IFormConfiguration<SelectModel> SelectConfiguration(params string[] values) =>
+        FormBuilder<SelectModel>
+            .Create()
+            .AddField(x => x.Choice, field => field
+                .WithLabel("Choice")
+                .WithAttribute(
+                    "Options",
+                    values.Select(v => new SelectOption<string>(v, v.ToUpperInvariant())).ToList()))
+            .Build();
+
+    private class NumericModel
+    {
+        public int Amount { get; set; }
+    }
+
+    private class BooleanModel
+    {
+        public bool IsActive { get; set; }
+    }
+
+    private class SelectModel
+    {
+        public string Choice { get; set; } = string.Empty;
+    }
+
     private static IFormConfiguration<TestModel> MaskedConfiguration(string pattern) =>
         FormBuilder<TestModel>
             .Create()

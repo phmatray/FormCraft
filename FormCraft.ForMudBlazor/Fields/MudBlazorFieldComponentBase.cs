@@ -355,20 +355,9 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     protected virtual bool SuppressShrinkLabelDiagnostic => false;
 
     /// <summary>
-    /// The field whose configuration is currently cached in this instance's properties (#298).
+    /// Tracks which field this instance's cached properties were loaded from (#298).
     /// </summary>
-    /// <remarks>
-    /// Compared by reference, and that is the whole mechanism. A built
-    /// <see cref="IFieldConfiguration{TModel, TValue}"/> is immutable and handed out by reference, so
-    /// "same object" answers exactly the question being asked — <i>am I still showing the field I
-    /// loaded?</i> — for nothing. #269 keys its compiled-getter cache on the same property.
-    /// <para>
-    /// A value-based key such as <c>FieldName</c> would be wrong, not merely slower: two collections
-    /// can each hold a field called <c>Phone</c>, which is the collision #283's diagnostic key already
-    /// had to qualify around.
-    /// </para>
-    /// </remarks>
-    private object? _loadedField;
+    private readonly FieldConfigurationTracker _fieldTracker = new();
 
     /// <inheritdoc />
     protected override void OnInitialized()
@@ -398,22 +387,16 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// Calls <see cref="OnFieldConfigurationChanged"/> when, and only when, the field changed.
     /// </summary>
     /// <remarks>
-    /// The guard is what makes this affordable. <see cref="OnParametersSet"/> runs on every keystroke
-    /// (fields bind with <c>Immediate="true"</c>), and reloading unconditionally would repeat a
-    /// dictionary lookup and a type test for every attribute the component reads — eight of them on
-    /// the text field — per character typed. One reference comparison replaces all of it.
+    /// The guard — see <see cref="FieldConfigurationTracker"/> — is what makes this affordable:
+    /// <see cref="OnParametersSet"/> runs on every keystroke, so the alternative is re-reading every
+    /// attribute per character typed.
     /// </remarks>
     private void RefreshFieldConfigurationIfChanged()
     {
-        var field = (object?)Context?.Field;
-
-        if (ReferenceEquals(field, _loadedField))
+        if (_fieldTracker.HasChanged(Context?.Field))
         {
-            return;
+            OnFieldConfigurationChanged();
         }
-
-        _loadedField = field;
-        OnFieldConfigurationChanged();
     }
 
     /// <summary>

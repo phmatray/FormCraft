@@ -68,9 +68,16 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     }
 
     /// <inheritdoc />
-    protected override void OnInitialized()
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#298). The data provider is rebuilt with
+    /// it: it is derived from the configuration, so keeping the old one would have the field querying
+    /// the previous field's source.
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
     {
-        base.OnInitialized();
+        base.OnFieldConfigurationChanged();
 
         _lovConfig = GetAttribute<ILovConfiguration<TItem, TValue>>("LovConfiguration");
 
