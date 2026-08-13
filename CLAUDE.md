@@ -388,22 +388,40 @@ because it lives in core rather than in one of the two packages that need it.
   components since #203 (one hint per row), two forms over one model collide the same way, and two
   nested fields can share a member name. A test using two *different* fields cannot catch this —
   different names never collide; the real case is the same field rendered twice
-- **A control whose `@if` depends on the value its own handler clears must move focus deliberately**
-  — otherwise activating it unmounts the element the keyboard user is standing on and focus falls to
-  `<body>`, restarting the next <kbd>Tab</kbd> from the top of the document (WCAG 2.1 **2.4.3 Focus
-  Order**, Level A). Both upload components' **Clear** buttons are exactly this shape, so
-  `ClearAsync` ends by awaiting `FocusBrowseAsync()` — shared on
-  `MudBlazorFileUploadComponentBase`, per-instance via `@ref`, so focus lands on the *cleared*
-  field's Browse button rather than the first upload on the page (#281). **Browse** is the target
-  because it carries #262's `aria-describedby`, so the requirement is announced at the moment
-  clearing makes the field unsatisfied. ⚠️ Only the *helper* is shared — the `@ref` and the
-  `await FocusBrowseAsync()` are one line each in **both** components' markup, and the null guard
-  makes a dropped `@ref` silent, so a new upload component needs its own focus test. ⛔ Don't let
-  the focus call throw, and **don't narrow its catch list**: the clear has already succeeded, so a
-  failed focus must stay a no-op. `JSException` is the likely one — `domWrapper.focus` raises it
-  for an element that has left the DOM, which `OnValueChanged` can cause between the clear and the
-  awaited interop call. Losing that catch escapes the click handler and tears down a Server
-  circuit; `A_Failing_Focus_Call_Should_Not_Break_A_*_Clear` pins it
+- **A control that unmounts *or disables* itself on activation must move focus deliberately** —
+  otherwise the element the keyboard user is standing on stops being focusable, focus falls to
+  `<body>`, and the next <kbd>Tab</kbd> restarts from the top of the document (WCAG 2.1 **2.4.3
+  Focus Order**, Level A). Both variants count: an `@if` over the value the handler mutates
+  (upload **Clear**/chip close, collection **delete**/**Add**), and a `Disabled` binding the handler
+  can make true (collection **move up/down** at the ends — browsers drop focus from a
+  newly-disabled element). Every one of them routes through **`FocusRestore.FocusSafelyAsync`**
+  (#281, #318). Targets: Clear and chip-close → the field's **Browse** button, because it carries
+  #262's `aria-describedby` so the requirement is announced exactly when removal makes the field
+  unsatisfied; row delete → the delete button taking the vacated slot, else the previous row's, else
+  **Add**, else the collection header; **Add** → the new row's header, *not* its delete button
+  (<kbd>Enter</kbd> there would undo the add) and not a field (they render through
+  `IFieldRendererService` and expose no reference); a move → the same row's still-enabled move
+  button, so focus follows the *item* rather than sitting on an index that now controls a different
+  one. ⚠️ **Only the helper is shared** — each `@ref` and call site is written per component, and
+  the null guard makes a dropped `@ref` silent, so a new control needs its own focus test.
+  ⛔ **Don't narrow the catch list**: the action has already succeeded, so a failed focus must stay a
+  no-op. `JSException` is the likely one — `domWrapper.focus` raises it for an element that has left
+  the DOM, which `OnValueChanged` can cause between the mutation and the awaited interop call.
+  Losing that catch escapes the click handler and tears down a Server circuit;
+  `A_Failing_Focus_Call_Should_Not_Break_A_*_Clear` and `FocusRestoreTests` pin it
+- ⛔ **A `@ref` on a *component* is captured once, when that component is created — it is NOT re-run
+  on later renders.** So a per-index reference store must **not** be cleared each render to prune
+  stale entries: doing so permanently loses the references for rows that were merely retained, and
+  every subsequent focus falls through to the next target in the chain (measured under #318 —
+  removals silently focused **Add**). Let the entries outlive their rows and decide from what is
+  rendered *now* instead: bounds-check the index against `Items.Count` **and** re-evaluate the
+  markup's own gate (`CanRemove && !HasReachedMin`), since reaching `MinItems` unmounts every row's
+  delete button at once. Element references (`@ref` on plain HTML) *are* re-captured each render —
+  the two behave differently, which is why the row header fallback is an `ElementReference`
+- **Move focus from `OnAfterRenderAsync`, not from the handler.** The row you are aiming at may not
+  exist, or may not be at that index, until the next render batch is applied — reading the captures
+  inside the handler hands back the pre-action state. Set a pending-index field, act on it after the
+  render (`_focusAfterRemovalFrom` / `_focusRowAfterRender` in `CollectionFieldComponent`)
 - **Asserting focus in bUnit: assert the interop call, not DOM state.** bUnit models no real focus.
   `MudButton.FocusAsync()` records `Blazor._internal.domWrapper.focus` with the target
   `ElementReference` as `Arguments[0]` (measured on bUnit 2.9.0 / MudBlazor 9.8.0). MudButton exposes
@@ -411,7 +429,13 @@ because it lives in core rather than in one of the two packages that need it.
   bUnit renders `blazor:elementReference` **empty**, so to say *which* button was focused, learn its
   id through the public API: call `FocusAsync()` on the candidate and read the id back off the
   recording (the id survives the clear re-render). ⛔ Don't reflect into MudBlazor's private field;
-  it breaks on any patch release. See `FileUploadClearFocusTests`
+  it breaks on any patch release. The helpers live once on **`FocusAssertingTestBase`**
+  (`TestSupport/`) — `FocusCount()`, `LastFocusedElementId()`, `LearnElementIdAsync(...)` (takes
+  `MudBaseButton`, so it covers `MudIconButton` too) and `FailTheFocusInterop()`. See
+  `FileUploadClearFocusTests`, `CollectionFocusTests`, `FocusRestoreTests`
+- **`Loose` JSInterop makes focus always succeed, so a "does not throw" test proves nothing** unless
+  it makes the call fail — use `FailTheFocusInterop()`. Without it the catch block has zero coverage,
+  which is exactly how a missing `catch (JSException)` shipped under #281
 
 #### Testing Patterns
 ```csharp

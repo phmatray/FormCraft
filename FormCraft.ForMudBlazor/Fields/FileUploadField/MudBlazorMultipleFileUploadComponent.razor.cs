@@ -82,13 +82,23 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
         await FocusBrowseAsync();
     }
 
-    private void RemoveFile(IBrowserFile fileToRemove)
+    private async Task RemoveFile(IBrowserFile fileToRemove)
     {
         if (CurrentValue != null)
         {
             var fileList = CurrentValue.ToList();
             fileList.Remove(fileToRemove);
             CurrentValue = fileList;
+        }
+
+        // ONLY when that was the last file. The chip loop is keyless, so with files still left the
+        // diff *retains* the close button the user activated — it simply becomes the next file's —
+        // and focus was never lost. Moving it to Browse anyway would make removing three files mean
+        // tabbing back into the chip stack twice. It is the empty case that unmounts the whole chip
+        // stack and "Clear All" together, leaving Browse as the only survivor (#318).
+        if (CurrentValue?.Any() != true)
+        {
+            await FocusBrowseAsync();
         }
     }
 

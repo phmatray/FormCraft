@@ -55,6 +55,22 @@ class Build : NukeBuild
     AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
     AbsolutePath TestResultsDirectory => RootDirectory / "test-results";
 
+    /// <summary>
+    /// The report kinds the <see cref="Test" /> target both promises and proves it emitted, per
+    /// project. ONE list, read twice — by <c>.Produces(...)</c> and by the post-run guard — because
+    /// the thing being designed out is the second hand-maintained copy, not just today's gap: #256
+    /// made the guard per-project but left it asking only about the trx, so a runner that kept
+    /// honouring --report-xunit-trx while dropping --report-xunit-html would have shipped half an
+    /// artifact with every build, test and workflow still green (#276). Adding a reporter here now
+    /// guards it by construction.
+    ///
+    /// *.log is promised alongside these and deliberately NOT listed here. It is written by
+    /// `dotnet test`'s MSBuild integration via --results-directory, not by an MTP reporter, so it
+    /// fails for entirely different reasons; folding it in would make one guard reason about two
+    /// mechanisms at once. Its own guard, if it earns one, belongs in its own change.
+    /// </summary>
+    static readonly string[] ReporterBackedReports = ["*.trx", "*.html"];
+
     Target Clean => _ => _
         .Before(Restore)
         .Executes(() =>
@@ -143,8 +159,12 @@ class Build : NukeBuild
 
     Target Test => _ => _
         .DependsOn(Compile)
-        .Produces(TestResultsDirectory / "**/*.trx")
-        .Produces(TestResultsDirectory / "**/*.html")
+        // Derived from the same list the post-run guard reads, so the promise and the check cannot
+        // drift — which is the whole failure mode #276 was filed about. Adding a reporter to
+        // ReporterBackedReports promises it AND guards it in one edit.
+        .Produces(ReporterBackedReports.Select(report => (string)(TestResultsDirectory / "**" / report)).ToArray())
+        // Promised but deliberately unguarded — see ReporterBackedReports for why the .log is a
+        // different mechanism rather than the same oversight this target just closed.
         .Produces(TestResultsDirectory / "**/*.log")
         .Executes(() =>
         {
@@ -302,10 +322,29 @@ class Build : NukeBuild
             // from DotNetTest the moment any suite went red, skipping the guard on exactly the runs
             // whose artifact someone was about to download. A sibling suite going red no longer
             // stops a genuine reporter regression from being reported.
+            // Asked PER PROMISED KIND, not just of the trx (#276). Until this, the target declared
+            // three artifacts and enforced one: a future xunit.v3 or MTP release that stopped
+            // honouring --report-xunit-html while keeping --report-xunit-trx would have passed the
+            // per-project guard, passed both text assertions in Ci/ (they read the FLAGS, not the
+            // output), and uploaded under `if-no-files-found: ignore` — the html half of the
+            // artifact gone with nothing anywhere saying so. Same silence as #231, half the scale.
+            //
+            // The kinds come from ReporterBackedReports rather than a literal set here, so the
+            // promise above and this check are one list read twice and cannot drift apart.
+            //
+            // One entry per offending PROJECT, listing every kind it is missing, rather than one
+            // entry per (project, kind): a suite that emitted neither report is one problem to go
+            // and look at, not two.
             var missingReports = testProjects
                 .Where(project => !failed.Contains(project.Name))
-                .Where(project => !ResultsDirectoryFor(project).GlobFiles("*.trx").Any())
-                .Select(project => $"{project.Name} (nothing in {ResultsDirectoryFor(project)})")
+                .Select(project => (
+                    Project: project,
+                    Missing: ReporterBackedReports
+                        .Where(kind => !ResultsDirectoryFor(project).GlobFiles(kind).Any())
+                        .ToList()))
+                .Where(entry => entry.Missing.Count > 0)
+                .Select(entry =>
+                    $"{entry.Project.Name} (no {string.Join(", ", entry.Missing)} in {ResultsDirectoryFor(entry.Project)})")
                 .ToList();
 
             // Both lists surfaced together, in one throw — the same "one red run naming both" rule
@@ -318,10 +357,24 @@ class Build : NukeBuild
 
             if (missingReports.Count > 0)
             {
+                // The reporter options are described rather than spelled out. Ci/TestReportingTests
+                // asserts they are ENABLED by matching their names against this file's text, and
+                // WorkflowSource strips comments but not string literals — so naming
+                // --report-xunit-trx here would let that assertion be satisfied by this error
+                // message alone, long after the flag itself was removed from the invocation.
+                // Framed per KIND, not as total failure. Since #276 this fires when *any* promised
+                // kind is absent, so the old "the reporters are wired but emitted nothing" wording
+                // would misdiagnose one dead reporter — a runner that still writes the trx and has
+                // stopped writing the html — as the whole reporting path being dead, and send the
+                // reader off to audit --results-directory and the MTP wiring for something that is
+                // working. That is the same "accurate entry, inaccurate framing" mistake the #256
+                // and #259 notes above exist to prevent: the entry says which kinds are missing, so
+                // the summary must not claim more than the entry does.
                 problems.Add(
-                    $"produced no *.trx: {string.Join(", ", missingReports)} — the reporters are "
-                    + "wired but emitted nothing, so check whether the runner still honours "
-                    + "--results-directory / --report-xunit-trx (see #231)");
+                    $"are missing a promised report: {string.Join(", ", missingReports)} — each "
+                    + "entry names the kinds that did not appear, so check the reporter for THOSE "
+                    + "kinds first; only if a project is missing every kind is the results "
+                    + "directory itself the likely cause (see #231, #276)");
             }
 
             if (failed.Count > 0)
