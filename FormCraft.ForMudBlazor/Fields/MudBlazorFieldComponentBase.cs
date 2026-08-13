@@ -393,10 +393,18 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// </remarks>
     private void RefreshFieldConfigurationIfChanged()
     {
-        if (_fieldTracker.HasChanged(Context?.Field))
+        if (!_fieldTracker.HasChanged(Context?.Field))
         {
-            OnFieldConfigurationChanged();
+            return;
         }
+
+        // The base's own latch, reset on the same terms the hook's docs ask derived components to
+        // reset theirs. A ShrinkLabel conflict is a fact about a FIELD, so an instance that reported
+        // one for its first field must still be able to report one for the next — otherwise a reused
+        // component goes permanently silent about every field after the first (#298).
+        _shrinkLabelDiagnosticEmitted = false;
+
+        OnFieldConfigurationChanged();
     }
 
     /// <summary>

@@ -190,7 +190,7 @@ public class FieldConfigurationRefreshTests : MudBlazorTestBase
     /// shift never hands a component a different field.
     /// <para>
     /// What positional matching does break is component <b>identity</b> — see
-    /// <see cref="Removing_A_Collection_Row_Should_Move_The_Surviving_Components_Not_Repoint_Them"/>.
+    /// <see cref="Rows_Whose_Items_Compare_Equal_Should_Render_Without_A_Duplicate_Key_Error"/>.
     /// </para>
     /// </remarks>
     [Fact]
@@ -226,58 +226,62 @@ public class FieldConfigurationRefreshTests : MudBlazorTestBase
     }
 
     /// <summary>
-    /// A surviving row keeps its own component instance rather than inheriting a neighbour's (#298).
+    /// Rows whose items compare equal render without throwing — the collection loop stays unkeyed.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This is what <c>@key</c> is for, and what the value-reload above cannot cover. In a keyless
-    /// loop Blazor matches children by position, so removing row 0 does not remove row 0's component
-    /// — it removes the <i>last</i> one and re-points every survivor at its neighbour's data. The
-    /// values then correct themselves on reload, which is why the previous test passes, but every
-    /// piece of state a component holds that is <b>not</b> derived from the value stays put and is
-    /// now attached to the wrong row: the password-visibility toggle, the per-instance diagnostic
-    /// latch (#283), and whatever MudBlazor's own input keeps.
+    /// The regression test for a fix that was tried and reverted. #298 briefly added
+    /// <c>@key="Items[index]"</c> to the item loop, to stop positional matching from re-pointing a
+    /// surviving component at its neighbour's data. But Blazor matches keys by <c>Equals</c>, not by
+    /// reference, and the item type is constrained only to <c>new()</c> — so for a <c>record</c>, a
+    /// <c>struct</c>, or any class overriding <c>Equals</c>, two rows holding equal content are a
+    /// <i>duplicate key</i> and <c>RenderTreeDiffBuilder</c> throws.
     /// </para>
     /// <para>
-    /// Asserted on instance identity because that is the mechanism itself, and it is the one thing a
-    /// value assertion structurally cannot see. Keying on the item makes Blazor <i>move</i> the
-    /// component that owns the data — so the instance showing "second" before the removal is the
-    /// same object showing "second" afterwards.
+    /// <c>AddItem()</c> adds <c>new TItem()</c>, so on a record-typed item form clicking "Add item"
+    /// twice was enough to crash the render before the user had typed anything — a hard failure
+    /// where there had been none, traded for a subtle state-preservation improvement. The key came
+    /// out; this is what stops it going back in unexamined.
+    /// </para>
+    /// <para>
+    /// The item type here is a <c>record</c> precisely because the shared fixture's models are all
+    /// plain classes with reference equality, which is why the original suite stayed green.
     /// </para>
     /// </remarks>
     [Fact]
-    public void Removing_A_Collection_Row_Should_Move_The_Surviving_Components_Not_Repoint_Them()
+    public void Rows_Whose_Items_Compare_Equal_Should_Render_Without_A_Duplicate_Key_Error()
     {
-        // Arrange
-        var model = new OrderModel
+        // Arrange - two rows equal by value, the shape a keyed loop rejects.
+        var model = new EqualityItemModel
         {
-            Items =
-            [
-                new OrderItem { ProductName = "first" },
-                new OrderItem { ProductName = "second" },
-                new OrderItem { ProductName = "third" },
-            ],
+            Items = [new EqualityItem(), new EqualityItem()],
         };
 
-        var component = this.RenderItemForm(model, CollectionItemFixture.TextItemForm());
+        var config = FormBuilder<EqualityItemModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field.WithLabel("Product"))))
+            .Build();
 
-        var before = component.FindComponents<MudBlazorTextFieldComponent<OrderItem>>()
-            .Select(c => c.Instance)
-            .ToList();
-        before.Count.ShouldBe(3);
+        // Act & Assert - rendering, and then growing the collection, must not throw.
+        var component = this.RenderItemForm(model, config);
+        component.FindAll("input").Count.ShouldBe(2);
 
-        var secondRowComponent = before[1];
+        model.Items.Add(new EqualityItem());
+        Should.NotThrow(() => component.Render());
+        component.FindAll("input").Count.ShouldBe(3);
+    }
 
-        // Act
-        model.Items.RemoveAt(0);
-        component.Render();
+    private sealed record EqualityItem
+    {
+        public string ProductName { get; set; } = string.Empty;
+    }
 
-        // Assert - "second" is still rendered by the very instance that was rendering it.
-        var after = component.FindComponents<MudBlazorTextFieldComponent<OrderItem>>()
-            .Select(c => c.Instance)
-            .ToList();
-        after.Count.ShouldBe(2);
-        ReferenceEquals(after[0], secondRowComponent).ShouldBeTrue();
+    private sealed class EqualityItemModel
+    {
+        public List<EqualityItem> Items { get; set; } = [];
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -356,6 +360,49 @@ public class FieldConfigurationRefreshTests : MudBlazorTestBase
             .ToList();
         options.ShouldBe(["z"]);
     }
+
+    /// <summary>
+    /// A revealed password does not stay revealed when a different field arrives (#298).
+    /// </summary>
+    /// <remarks>
+    /// The state leak with actual consequences, and the one a "reload the properties" fix misses.
+    /// <c>_passwordVisible</c> is not read from the field — the user sets it by clicking the eye — so
+    /// nothing in the attribute reload touches it, and <c>GetInputType()</c> keeps returning
+    /// <c>Text</c>. The new field's secret then renders in clear text, while the adornment rebuild
+    /// resets the icon to the "show" glyph, so the control simultaneously displays the value and
+    /// claims to be hiding it.
+    /// </remarks>
+    [Fact]
+    public void TextField_Should_Rehide_A_Revealed_Password_When_The_Configuration_Is_Swapped()
+    {
+        // Arrange
+        var model = new TestModel { Phone = "s3cret" };
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, PasswordConfiguration()));
+
+        component.Find("input").GetAttribute("type").ShouldBe("password");
+
+        // Reveal it, the way a user does.
+        component.Find("button").Click();
+        component.Find("input").GetAttribute("type").ShouldBe("text");
+
+        // Act - a different configuration object declaring the same password field.
+        component.Render(parameters => parameters.Add(p => p.Configuration, PasswordConfiguration()));
+
+        // Assert - the new field's value is hidden again, matching the icon that was just reset.
+        component.Find("input").GetAttribute("type").ShouldBe("password");
+    }
+
+    private static IFormConfiguration<TestModel> PasswordConfiguration() =>
+        FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Secret")
+                .AsPassword()
+                .WithAttribute("EnablePasswordToggle", true))
+            .Build();
 
     private static IFormConfiguration<NumericModel> NumericConfiguration(string format) =>
         FormBuilder<NumericModel>

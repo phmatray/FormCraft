@@ -107,6 +107,13 @@ public partial class MudBlazorTextFieldComponent<TModel>
         // per-instance, and this instance is now showing something else.
         _maskedValueReportingSettled = false;
 
+        // ⛔ Load-bearing, not tidiness. The toggle reveals a password by flipping this flag, and
+        // GetInputType() reads it — so an instance that was revealed and is then handed a DIFFERENT
+        // field would render the new field's secret as type="text". Worse, the adornment rebuild
+        // below resets the icon to the "show" glyph, so the control would claim to be hiding a value
+        // it is displaying. Reset with the rest of the configuration.
+        _passwordVisible = false;
+
         // Load configuration - prioritize field.InputType over AdditionalAttributes
         ConfiguredLines = GetAttribute("Lines", 1);
         MaxLength = GetAttribute<int?>("MaxLength");

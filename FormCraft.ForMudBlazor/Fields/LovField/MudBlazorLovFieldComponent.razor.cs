@@ -79,6 +79,15 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     {
         base.OnFieldConfigurationChanged();
 
+        // Cleared before anything is rebuilt. These are DERIVED from the configuration — items drawn
+        // from its data source, display text produced by its DisplaySelector — so carrying them into
+        // a new field means showing a selection that belongs to a field no longer on screen, and
+        // handing the same stale list to the picker dialog as its pre-selection. The reload-not-patch
+        // rule applies to state derived from the configuration, not only to the properties (#298).
+        _selectedItems.Clear();
+        _displayText = null;
+        _isLoading = false;
+
         _lovConfig = GetAttribute<ILovConfiguration<TItem, TValue>>("LovConfiguration");
 
         if (_lovConfig == null)
