@@ -52,7 +52,6 @@ class Build : NukeBuild
     AbsolutePath SourceDirectory => RootDirectory / "FormCraft";
     AbsolutePath MudBlazorDirectory => RootDirectory / "FormCraft.ForMudBlazor";
     AbsolutePath FluentUIDirectory => RootDirectory / "FormCraft.ForFluentUI";
-    AbsolutePath TestsDirectory => RootDirectory / "FormCraft.UnitTests";
     AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
     AbsolutePath TestResultsDirectory => RootDirectory / "test-results";
 
@@ -64,8 +63,21 @@ class Build : NukeBuild
                 .SetProject(Solution)
                 .SetConfiguration(Configuration));
 
-            SourceDirectory.GlobDirectories("**/bin", "**/obj").ForEach(x => x.DeleteDirectory());
-            TestsDirectory.GlobDirectories("**/bin", "**/obj").ForEach(x => x.DeleteDirectory());
+            // Enumerated from the solution rather than hand-listed (#275). The list this replaced
+            // named two of the solution's eight projects, so FormCraft.ForMudBlazor.UnitTests,
+            // FormCraft.DemoBlazorApp and build/ kept their build output through every Clean — and
+            // FormCraft.ForFluentUI, added later (#261), was never swept at all. Driving the sweep
+            // from the solution is what gets a project cleaned on the day it lands rather than on
+            // the day someone notices it never was.
+            //
+            // Deliberately NOT RootDirectory.GlobDirectories: that is shorter and would also delete
+            // build output under .claude/worktrees/, where this repo keeps other agents' full
+            // checkouts. Staying inside solution projects is what bounds the blast radius.
+            Solution.AllProjects
+                .Select(project => project.Directory)
+                .SelectMany(directory => directory.GlobDirectories("**/bin", "**/obj"))
+                .ForEach(directory => directory.DeleteDirectory());
+
             ArtifactsDirectory.CreateOrCleanDirectory();
             TestResultsDirectory.CreateOrCleanDirectory();
         });
