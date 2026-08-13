@@ -27,10 +27,13 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// local helper, which is how the two suites' copies drifted in the first place.
 /// </para>
 /// <para>
-/// The reorder test at the bottom keeps its own <c>MixedModel</c> and its <c>MudPopoverProvider</c>
-/// wrapper. It needs two rows of *differing* field types in one item form, which is the opposite of
-/// what the fixture provides, and bending the fixture to absorb it would make it worse for the nine
-/// tests above.
+/// The reorder test at the bottom keeps its own <c>MudPopoverProvider</c> wrapper, but its model now
+/// comes from the fixture too (#282). It needs rows of <i>differing</i> field types in one item form
+/// — which the one-field-per-path builders cannot express — so the fixture grew
+/// <see cref="CollectionItemFixture.MultiFieldItemForm"/> for it and for
+/// <c>CollectionRenderCharacterisationTests</c>, the two suites that were each carrying a private
+/// <c>MixedRow</c>. The two copies had already drifted apart, which is what made the shared row worth
+/// adding rather than a speculative generalisation.
 /// </para>
 /// </summary>
 public class CollectionAdornmentTests : MudBlazorTestBase
@@ -203,34 +206,24 @@ public class CollectionAdornmentTests : MudBlazorTestBase
         // sequence numbers were computed rather than source-position constants, Blazor would pair
         // frames positionally across a reorder and a value could stay on the row it was on.
         //
-        // Deliberately NOT on the shared fixture (#205): this needs one item form holding two fields
-        // of different types, which is exactly what the fixture's one-field-per-path models are not.
-        var model = new MixedModel
-        {
-            Rows =
-            {
-                new MixedRow { Name = "first", When = new DateTime(2020, 1, 1) },
-                new MixedRow { Name = "second", When = new DateTime(2030, 12, 31) },
-            },
-        };
+        // This needs one item form holding fields of DIFFERENT types, which the fixture's
+        // one-field-per-path builders cannot express — so it goes through MultiFieldItemForm, the
+        // shared four-field row added for exactly this (#282). Only the text and collection
+        // callbacks are used here: the numeric and boolean fields render at their defaults, which
+        // keeps the rows' frame counts uneven, which is the property under test.
+        var model = NewMixedItems(
+            new MixedItem { Name = "first", When = new DateTime(2020, 1, 1) },
+            new MixedItem { Name = "second", When = new DateTime(2030, 12, 31) });
 
-        var config = FormBuilder<MixedModel>
-            .Create()
-            .AddCollectionField(x => x.Rows, collection => collection
-                .WithLabel("Rows")
-                .AllowReorder()
-                .WithItemForm(item => item
-                    .AddField(x => x.Name, field => field
-                        .WithLabel("Name")
-                        .WithAdornment(Icons.Material.Filled.Search, Adornment.Start))
-                    .AddField(x => x.When, field => field.WithLabel("When"))))
-            .Build();
+        var config = MultiFieldItemForm(
+            configureText: field => field.WithAdornment(Icons.Material.Filled.Search, Adornment.Start),
+            configureCollection: collection => collection.AllowReorder());
 
         var component = Render(builder =>
         {
             builder.OpenComponent<MudPopoverProvider>(0);
             builder.CloseComponent();
-            builder.OpenComponent<FormCraftComponent<MixedModel>>(1);
+            builder.OpenComponent<FormCraftComponent<MixedItemModel>>(1);
             builder.AddComponentParameter(2, "Model", model);
             builder.AddComponentParameter(3, "Configuration", config);
             builder.CloseComponent();
@@ -256,15 +249,4 @@ public class CollectionAdornmentTests : MudBlazorTestBase
             .ShouldBe(new DateTime?[] { new DateTime(2030, 12, 31), new DateTime(2020, 1, 1) });
     }
 
-    private class MixedModel
-    {
-        public List<MixedRow> Rows { get; set; } = new();
-    }
-
-    private class MixedRow
-    {
-        public string Name { get; set; } = string.Empty;
-
-        public DateTime When { get; set; }
-    }
 }
