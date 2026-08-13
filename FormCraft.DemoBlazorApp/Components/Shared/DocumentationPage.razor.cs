@@ -60,7 +60,15 @@ public partial class DocumentationPage
         finally
         {
             _isLoading = false;
-            StateHasChanged();
+
+            // Surfaced by #315's audit rather than by its Task.Delay sweep: the await above is a real
+            // document load, not a simulated delay, but the shape is the one SecurityDemo has — a
+            // render inside a `finally`, which runs even when the try returned early. Loading a large
+            // markdown page is exactly when a visitor clicks away.
+            if (!IsDisposed)
+            {
+                StateHasChanged();
+            }
         }
     }
 

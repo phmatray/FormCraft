@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace FormCraft;
 
@@ -168,38 +167,10 @@ public class FieldRendererService : IFieldRendererService
 
     private static object GetCurrentValue<TModel>(TModel model, IFieldConfiguration<TModel, object> field)
     {
-        var getter = ValueGetterCache<TModel>.GetOrCompile(field);
+        // Shared with the validators since #312 — see FieldValueGetterCache for why the cache lives
+        // there rather than on the configuration. A field that is both rendered and validated
+        // therefore compiles its getter once in total, not once per path.
+        var getter = FieldValueGetterCache<TModel>.GetOrCompile(field);
         return getter(model);
-    }
-
-    /// <summary>
-    /// Caches the compiled value getter of each field configuration, so rendering a field emits IL
-    /// for its expression at most once rather than once per render (#269).
-    /// </summary>
-    private static class ValueGetterCache<TModel>
-    {
-        /// <summary>
-        /// Keyed by configuration <b>instance</b>, which buys two properties: two configurations over
-        /// the same property never share an entry, and an entry lives no longer than the configuration
-        /// it describes, so nothing is held alive artificially.
-        /// </summary>
-        /// <remarks>
-        /// What is cached is the <b>getter</b>, never the value it returns. The delegate takes the
-        /// model as its parameter, so every render still reads the model afresh — caching a value here
-        /// would freeze each field at its first-rendered content.
-        /// <para>
-        /// The entry is never invalidated, so this assumes a configuration's <c>ValueExpression</c>
-        /// keeps reading the same member for that configuration's lifetime. That is the fluent
-        /// builder's immutable-after-<c>Build()</c> contract, and <see cref="FieldConfiguration{TModel, TValue}" />
-        /// enforces it by assigning the expression in its constructor. A caller that hands
-        /// <see cref="IFieldRendererService.RenderField" /> a configuration which re-targets its
-        /// expression after first render would keep seeing the original member; use a separate
-        /// configuration instance per binding instead.
-        /// </para>
-        /// </remarks>
-        private static readonly ConditionalWeakTable<IFieldConfiguration<TModel, object>, Func<TModel, object>> Cache = new();
-
-        internal static Func<TModel, object> GetOrCompile(IFieldConfiguration<TModel, object> field)
-            => Cache.GetValue(field, static configuration => configuration.ValueExpression.Compile());
     }
 }

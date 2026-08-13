@@ -192,7 +192,14 @@ public partial class PasswordFieldDemo
     private async Task HandleLoginSubmit()
     {
         _loginSubmitting = true;
-        await Task.Delay(1500); // Simulate API call
+
+        // No explicit StateHasChanged here — Blazor re-renders when the handler's task completes —
+        // but the guard is the same: if the page has gone, don't touch its state.
+        if (!await DelayAsync(1500)) // Simulate API call
+        {
+            return;
+        }
+
         _loginSubmitted = true;
         _loginSubmitting = false;
     }
@@ -217,7 +224,12 @@ public partial class PasswordFieldDemo
     private async Task HandleRegisterSubmit()
     {
         _registerSubmitting = true;
-        await Task.Delay(2000); // Simulate API call
+
+        if (!await DelayAsync(2000)) // Simulate API call
+        {
+            return;
+        }
+
         _registerSubmitted = true;
         _registerSubmitting = false;
     }
@@ -245,7 +257,12 @@ public partial class PasswordFieldDemo
     private async Task HandleSecuritySubmit()
     {
         _securitySubmitting = true;
-        await Task.Delay(1500); // Simulate API call
+
+        if (!await DelayAsync(1500)) // Simulate API call
+        {
+            return;
+        }
+
         _securitySubmitted = true;
         _securitySubmitting = false;
     }
