@@ -420,4 +420,100 @@ public class CollectionItemFixtureTests : MudBlazorTestBase
         blank.Slots[0].When.ShouldBe(default);
         seeded.Slots[0].When.ShouldBe(new DateTime(2030, 12, 31));
     }
+
+    [Fact]
+    public void TextItemForm_Should_Apply_The_Callers_Collection_Configuration()
+    {
+        // Arrange & Act - AllowReorder is a property of the COLLECTION, not of a field, so no field
+        // callback can reach it. Without this parameter a suite needing a collection-level setting
+        // has to hand-roll the whole configuration, and keeps its own model copy with it — the
+        // duplication this fixture exists to remove.
+        var reorderable = this.RenderItemForm(
+            CollectionItemFixture.NewOrder(),
+            CollectionItemFixture.TextItemForm(
+                configureCollection: collection => collection.AllowReorder()));
+
+        // ...and the same form WITHOUT the callback, which is the half that makes this a test of the
+        // callback rather than of MudBlazor. Asserting only that the buttons appear would stay green
+        // if reordering ever became the default, or if a regression rendered the controls
+        // unconditionally — proving nothing about the parameter the test is named for.
+        var plain = this.RenderItemForm(
+            CollectionItemFixture.NewOrder(),
+            CollectionItemFixture.TextItemForm());
+
+        // Assert - reorder controls only render when the collection allows reordering
+        reorderable.FindAll("button[aria-label='Move up']").ShouldNotBeEmpty();
+        plain.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void NumericItemForm_Should_Apply_The_Callers_Collection_Configuration()
+    {
+        // Arrange & Act - NumericItemForm and BooleanItemForm configure the SAME collection
+        // (BasketModel.Lines) on the same root model, so a passing test for one says nothing about
+        // the other: each builder wires its own callback and each needs its own proof.
+        var reorderable = this.RenderItemForm(
+            CollectionItemFixture.NewBasket(),
+            CollectionItemFixture.NumericItemForm(
+                configureCollection: collection => collection.AllowReorder()));
+        var plain = this.RenderItemForm(
+            CollectionItemFixture.NewBasket(),
+            CollectionItemFixture.NumericItemForm());
+
+        // Assert - reorder controls only render when the collection allows reordering
+        reorderable.FindAll("button[aria-label='Move up']").ShouldNotBeEmpty();
+        plain.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void DateItemForm_Should_Apply_The_Callers_Collection_Configuration()
+    {
+        // Arrange & Act
+        var reorderable = this.RenderItemForm(
+            CollectionItemFixture.NewAppointment(),
+            CollectionItemFixture.DateItemForm(
+                configureCollection: collection => collection.AllowReorder()));
+        var plain = this.RenderItemForm(
+            CollectionItemFixture.NewAppointment(),
+            CollectionItemFixture.DateItemForm());
+
+        // Assert - reorder controls only render when the collection allows reordering
+        reorderable.FindAll("button[aria-label='Move up']").ShouldNotBeEmpty();
+        plain.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void BooleanItemForm_Should_Apply_The_Callers_Collection_Configuration()
+    {
+        // Arrange & Act - the other half of the BasketModel.Lines pair; see NumericItemForm's
+        // self-test for why sharing a collection property does not let one stand in for the other.
+        var reorderable = this.RenderItemForm(
+            CollectionItemFixture.NewBasket(),
+            CollectionItemFixture.BooleanItemForm(
+                configureCollection: collection => collection.AllowReorder()));
+        var plain = this.RenderItemForm(
+            CollectionItemFixture.NewBasket(),
+            CollectionItemFixture.BooleanItemForm());
+
+        // Assert - reorder controls only render when the collection allows reordering
+        reorderable.FindAll("button[aria-label='Move up']").ShouldNotBeEmpty();
+        plain.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void DecimalItemForm_Should_Apply_The_Callers_Collection_Configuration()
+    {
+        // Arrange & Act
+        var reorderable = this.RenderItemForm(
+            CollectionItemFixture.NewPricedBasket(),
+            CollectionItemFixture.DecimalItemForm(
+                configureCollection: collection => collection.AllowReorder()));
+        var plain = this.RenderItemForm(
+            CollectionItemFixture.NewPricedBasket(),
+            CollectionItemFixture.DecimalItemForm());
+
+        // Assert - reorder controls only render when the collection allows reordering
+        reorderable.FindAll("button[aria-label='Move up']").ShouldNotBeEmpty();
+        plain.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
+    }
 }

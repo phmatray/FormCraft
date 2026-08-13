@@ -118,51 +118,66 @@ internal static class CollectionItemFixture
     /// A collection whose item form holds one <c>string</c> field labelled "Product" — the text path.
     /// </summary>
     internal static IFormConfiguration<OrderModel> TextItemForm(
-        Action<FieldBuilder<OrderItem, string>>? configure = null) =>
+        Action<FieldBuilder<OrderItem, string>>? configure = null,
+        Action<CollectionFieldBuilder<OrderModel, OrderItem>>? configureCollection = null) =>
         FormBuilder<OrderModel>
             .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Items")
-                .WithItemForm(item => item
-                    .AddField(x => x.ProductName, field =>
-                    {
-                        field.WithLabel("Product");
-                        configure?.Invoke(field);
-                    })))
+            .AddCollectionField(x => x.Items, collection =>
+            {
+                collection
+                    .WithLabel("Items")
+                    .WithItemForm(item => item
+                        .AddField(x => x.ProductName, field =>
+                        {
+                            field.WithLabel("Product");
+                            configure?.Invoke(field);
+                        }));
+                configureCollection?.Invoke(collection);
+            })
             .Build();
 
     /// <summary>
     /// A collection whose item form holds one <c>int</c> field labelled "Quantity" — the numeric path.
     /// </summary>
     internal static IFormConfiguration<BasketModel> NumericItemForm(
-        Action<FieldBuilder<BasketLine, int>>? configure = null) =>
+        Action<FieldBuilder<BasketLine, int>>? configure = null,
+        Action<CollectionFieldBuilder<BasketModel, BasketLine>>? configureCollection = null) =>
         FormBuilder<BasketModel>
             .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.Quantity, field =>
-                    {
-                        field.WithLabel("Quantity");
-                        configure?.Invoke(field);
-                    })))
+            .AddCollectionField(x => x.Lines, collection =>
+            {
+                collection
+                    .WithLabel("Lines")
+                    .WithItemForm(item => item
+                        .AddField(x => x.Quantity, field =>
+                        {
+                            field.WithLabel("Quantity");
+                            configure?.Invoke(field);
+                        }));
+                configureCollection?.Invoke(collection);
+            })
             .Build();
 
     /// <summary>
     /// A collection whose item form holds one <c>DateTime</c> field labelled "When" — the date path.
     /// </summary>
     internal static IFormConfiguration<AppointmentModel> DateItemForm(
-        Action<FieldBuilder<AppointmentSlot, DateTime>>? configure = null) =>
+        Action<FieldBuilder<AppointmentSlot, DateTime>>? configure = null,
+        Action<CollectionFieldBuilder<AppointmentModel, AppointmentSlot>>? configureCollection = null) =>
         FormBuilder<AppointmentModel>
             .Create()
-            .AddCollectionField(x => x.Slots, collection => collection
-                .WithLabel("Slots")
-                .WithItemForm(item => item
-                    .AddField(x => x.When, field =>
-                    {
-                        field.WithLabel("When");
-                        configure?.Invoke(field);
-                    })))
+            .AddCollectionField(x => x.Slots, collection =>
+            {
+                collection
+                    .WithLabel("Slots")
+                    .WithItemForm(item => item
+                        .AddField(x => x.When, field =>
+                        {
+                            field.WithLabel("When");
+                            configure?.Invoke(field);
+                        }));
+                configureCollection?.Invoke(collection);
+            })
             .Build();
 
     /// <summary>
@@ -170,17 +185,22 @@ internal static class CollectionItemFixture
     /// one component that binds neither adornments nor <c>Required</c>.
     /// </summary>
     internal static IFormConfiguration<BasketModel> BooleanItemForm(
-        Action<FieldBuilder<BasketLine, bool>>? configure = null) =>
+        Action<FieldBuilder<BasketLine, bool>>? configure = null,
+        Action<CollectionFieldBuilder<BasketModel, BasketLine>>? configureCollection = null) =>
         FormBuilder<BasketModel>
             .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.IsGift, field =>
-                    {
-                        field.WithLabel("Gift");
-                        configure?.Invoke(field);
-                    })))
+            .AddCollectionField(x => x.Lines, collection =>
+            {
+                collection
+                    .WithLabel("Lines")
+                    .WithItemForm(item => item
+                        .AddField(x => x.IsGift, field =>
+                        {
+                            field.WithLabel("Gift");
+                            configure?.Invoke(field);
+                        }));
+                configureCollection?.Invoke(collection);
+            })
             .Build();
 
     /// <summary>
@@ -190,17 +210,22 @@ internal static class CollectionItemFixture
     /// other; culture-sensitive parsing in particular only shows up on the decimal one.
     /// </summary>
     internal static IFormConfiguration<PricedBasketModel> DecimalItemForm(
-        Action<FieldBuilder<PricedLine, decimal>>? configure = null) =>
+        Action<FieldBuilder<PricedLine, decimal>>? configure = null,
+        Action<CollectionFieldBuilder<PricedBasketModel, PricedLine>>? configureCollection = null) =>
         FormBuilder<PricedBasketModel>
             .Create()
-            .AddCollectionField(x => x.Lines, collection => collection
-                .WithLabel("Lines")
-                .WithItemForm(item => item
-                    .AddField(x => x.Price, field =>
-                    {
-                        field.WithLabel("Price");
-                        configure?.Invoke(field);
-                    })))
+            .AddCollectionField(x => x.Lines, collection =>
+            {
+                collection
+                    .WithLabel("Lines")
+                    .WithItemForm(item => item
+                        .AddField(x => x.Price, field =>
+                        {
+                            field.WithLabel("Price");
+                            configure?.Invoke(field);
+                        }));
+                configureCollection?.Invoke(collection);
+            })
             .Build();
 
     /// <summary>
