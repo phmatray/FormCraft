@@ -70,7 +70,10 @@
 </MudFileUpload>
 
 <MudToolBar Gutters="@false" Class="relative d-flex justify-end gap-4 mt-2">
-    <MudButton Color="Color.Primary"
+    @* @ref so ClearAsync can return focus here — the Clear All button unmounts itself, so without
+       this focus falls to <body> (#281). *@
+    <MudButton @ref="@BrowseButton"
+               Color="Color.Primary"
                OnClick="@OpenFilePickerAsync"
                Variant="@ButtonVariant"
                StartIcon="@Icons.Material.Filled.FolderOpen"
