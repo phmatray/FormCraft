@@ -12,6 +12,12 @@ namespace FormCraft.ForMudBlazor.UnitTests.Diagnostics;
 /// </summary>
 public class MaskedValueDiagnosticTests
 {
+    /// <summary>
+    /// The literal characters of <c>(000) 000-0000</c>, the pattern every case here is written
+    /// against — i.e. what <see cref="MaskedValueDiagnostic.LiteralsOf"/> returns for it.
+    /// </summary>
+    private const string PhoneLiterals = "() -";
+
     [Fact]
     public void Applies_Should_Be_True_When_A_NonBlank_Value_Masks_To_Blank()
     {
@@ -19,7 +25,7 @@ public class MaskedValueDiagnosticTests
         // model, the field renders empty, and nothing says so.
 
         // Act
-        var applies = MaskedValueDiagnostic.Applies("N/A", string.Empty);
+        var applies = MaskedValueDiagnostic.Applies("N/A", string.Empty, PhoneLiterals);
 
         // Assert
         applies.ShouldBeTrue();
@@ -32,7 +38,7 @@ public class MaskedValueDiagnosticTests
         // nothing to report; warning here would make the diagnostic useless noise.
 
         // Act
-        var applies = MaskedValueDiagnostic.Applies("5551234567", "(555) 123-4567");
+        var applies = MaskedValueDiagnostic.Applies("5551234567", "(555) 123-4567", PhoneLiterals);
 
         // Assert
         applies.ShouldBeFalse();
@@ -45,7 +51,7 @@ public class MaskedValueDiagnosticTests
         // overwhelmingly common case of a blank optional field and must stay silent.
 
         // Act
-        var applies = MaskedValueDiagnostic.Applies(string.Empty, string.Empty);
+        var applies = MaskedValueDiagnostic.Applies(string.Empty, string.Empty, PhoneLiterals);
 
         // Assert
         applies.ShouldBeFalse();
@@ -57,7 +63,7 @@ public class MaskedValueDiagnosticTests
         // Arrange - the unset-model case, reached before a user has typed anything.
 
         // Act
-        var applies = MaskedValueDiagnostic.Applies(null, null);
+        var applies = MaskedValueDiagnostic.Applies(null, null, PhoneLiterals);
 
         // Assert
         applies.ShouldBeFalse();
@@ -72,10 +78,146 @@ public class MaskedValueDiagnosticTests
         // TextMaskMap.Resolve reads a whitespace-only PATTERN as "no mask configured".
 
         // Act
-        var applies = MaskedValueDiagnostic.Applies("   ", string.Empty);
+        var applies = MaskedValueDiagnostic.Applies("   ", string.Empty, PhoneLiterals);
 
         // Assert
         applies.ShouldBeFalse();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // #283(b) — the widened rule. A mask that discards PART of a value is reported too, because the
+    // model then diverges from the display just as surely as when it blanks. It is arguably the worse
+    // of the two: a blank field is visibly wrong, whereas "(155) 512-3456" is a plausible phone
+    // number that simply is not the one on record.
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// The full behaviour table: a discard is reported, a reformat is not.
+    /// </summary>
+    /// <remarks>
+    /// The rule is "strip the mask's own literals from both sides and compare". A reformat only ever
+    /// moves literals around, so the two sides reduce to the same characters; a discard loses
+    /// characters that no amount of reformatting can restore.
+    /// <para>
+    /// Rows 5 and 6 are the ones that keep it honest, and neither is hypothetical. Stored data
+    /// routinely carries its OWN separators — <c>555 123 4567</c>, <c>555-123-4567</c> — and a rule
+    /// comparing raw strings, or testing whether the stored value survives as a subsequence of the
+    /// rendered one, reports both as discards. They are pure reformats: the same ten digits go in and
+    /// come out.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData("N/A", "", true)]                             // total collapse — #266, unchanged
+    [InlineData("+1 555 123 4567", "(155) 512-3456", true)]   // #283(b): shifted, a DIFFERENT number
+    [InlineData("N/A5551234567", "(555) 123-4567", true)]     // #283(b): the letters were dropped
+    [InlineData("5551234567", "(555) 123-4567", false)]       // reformat
+    [InlineData("555 123 4567", "(555) 123-4567", false)]     // reformat, value had its own spaces
+    [InlineData("(555) 123-4567", "(555) 123-4567", false)]   // already formatted — nothing happened
+    public void Applies_Should_Report_A_Discard_But_Never_A_Reformat(
+        string stored,
+        string rendered,
+        bool expected)
+    {
+        // Act
+        var applies = MaskedValueDiagnostic.Applies(stored, rendered, PhoneLiterals);
+
+        // Assert
+        applies.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void Applies_Should_Ignore_CleanDelimiters()
+    {
+        // Arrange - the #265 edge case the spec flagged: a mask that strips its own literals must not
+        // read as having discarded them. It cannot, because the rule removes those same literals from
+        // BOTH sides before comparing -- so the verdict is the same whichever way CleanDelimiters is
+        // set, even though the two produce different clean text. This is the property that made
+        // LiteralsOf the right input and GetCleanText the wrong one.
+
+        // Act - what the field renders is identical either way; only the model write-back differs.
+        var reformat = MaskedValueDiagnostic.Applies("5551234567", "(555) 123-4567", PhoneLiterals);
+        var discard = MaskedValueDiagnostic.Applies("N/A5551234567", "(555) 123-4567", PhoneLiterals);
+
+        // Assert
+        reformat.ShouldBeFalse();
+        discard.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("N/A", "", true)]
+    [InlineData("+1 555 123 4567", "(155) 512-3456", false)]
+    public void Applies_Should_Fall_Back_To_Total_Collapse_When_The_Literals_Are_Unknown(
+        string stored,
+        string rendered,
+        bool expected)
+    {
+        // Arrange - a null literal set means "no opinion", which LiteralsOf returns for a mask whose
+        // decoration cannot be read off a pattern (a RegexMask from the #265 factory) or whose
+        // Transformation rewrites characters as it consumes them. Guessing there would report every
+        // value of a correctly configured field. Falling back to #266's rule keeps the blank case
+        // covered and reports nothing it cannot justify.
+
+        // Act
+        var applies = MaskedValueDiagnostic.Applies(stored, rendered, maskLiterals: null);
+
+        // Assert
+        applies.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void Applies_Should_Report_A_Value_Made_Only_Of_Literals()
+    {
+        // Arrange - the regression this rule could plausibly have introduced, which is why the blank
+        // case stays an explicit disjunct rather than being folded into the comparison. "()-" is
+        // non-blank but contains nothing the mask keeps, so it renders empty AND both sides reduce to
+        // "" -- meaning a pure strip-and-compare rule would call it a reformat and go silent, losing
+        // a case #266 reported.
+
+        // Act
+        var applies = MaskedValueDiagnostic.Applies("()-", string.Empty, PhoneLiterals);
+
+        // Assert
+        applies.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void LiteralsOf_Should_Return_The_Patterns_NonPlaceholder_Characters()
+    {
+        // Act
+        var literals = MaskedValueDiagnostic.LiteralsOf(new PatternMask("(000) 000-0000"));
+
+        // Assert - distinct, in first-appearance order; the digits' placeholder '0' is not decoration.
+        literals.ShouldBe(PhoneLiterals);
+    }
+
+    [Fact]
+    public void LiteralsOf_Should_Be_Null_For_A_Mask_It_Cannot_Read()
+    {
+        // Arrange - a RegexMask reaches the diagnostic through the #265 factory. Its Mask is a
+        // regular expression, so its non-placeholder characters are metacharacters rather than
+        // decoration, and stripping them would be nonsense dressed up as a rule.
+
+        // Act
+        var literals = MaskedValueDiagnostic.LiteralsOf(new RegexMask(@"^\d{0,10}$"));
+
+        // Assert
+        literals.ShouldBeNull();
+    }
+
+    [Fact]
+    public void LiteralsOf_Should_Be_Null_For_A_Transforming_Mask()
+    {
+        // Arrange - a Transformation rewrites characters as the mask consumes them, so the rendered
+        // text legitimately differs from the stored value character for character and EVERY value
+        // would read as a discard. Firing on every value of a correctly configured field is the
+        // happy-path false positive the whole diagnostic is shaped to avoid.
+        var mask = new PatternMask("aaa") { Transformation = char.ToUpperInvariant };
+
+        // Act
+        var literals = MaskedValueDiagnostic.LiteralsOf(mask);
+
+        // Assert
+        literals.ShouldBeNull();
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -142,14 +284,19 @@ public class MaskedValueDiagnosticTests
     }
 
     /// <summary>
-    /// <c>GetCleanText()</c> reports the significant characters regardless of <c>CleanDelimiters</c>.
+    /// <c>GetCleanText()</c> tracks <c>CleanDelimiters</c> — it is not a stable "what survived".
     /// </summary>
     /// <remarks>
-    /// The edge case the spec flagged (#265): a mask that strips its own literals must not read as
-    /// having discarded them. This records that <c>CleanDelimiters</c> changes only what the mask
-    /// reports to the MODEL, not what <c>GetCleanText()</c> returns — so a rule written on
-    /// <c>GetCleanText()</c> is unaffected by the setting, and the same stored value yields the same
-    /// verdict either way. Without this, Task 3's rule would need a special case it does not need.
+    /// The measurement that ruled out the issue's proposed implementation. With the default
+    /// <c>CleanDelimiters = false</c> — what FormCraft configures unless <c>.WithMask(…, true)</c>
+    /// says otherwise (#265) — <c>GetCleanText()</c> hands back the formatted <c>Text</c>, literals
+    /// and all. Only with the flag set does it strip them.
+    /// <para>
+    /// So the same stored value would yield opposite verdicts under a <c>GetCleanText()</c>-based
+    /// rule depending on a setting that has nothing to do with whether data was lost. The rule uses
+    /// the mask's literal set instead, which is invariant across the flag — pinned from the rule's
+    /// side by <c>Applies_Should_Ignore_CleanDelimiters</c>.
+    /// </para>
     /// </remarks>
     [Theory]
     [InlineData(false, "(555) 123-4567")]

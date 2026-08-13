@@ -207,6 +207,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
 
         string? maskedResult;
         string? pattern;
+        string? literals;
         try
         {
             var mask = GetMask();
@@ -218,6 +219,11 @@ public partial class MudBlazorTextFieldComponent<TModel>
             // Read off the resolved mask, not from the Mask property: a factory-supplied mask has
             // its own pattern and no configured string to quote back.
             pattern = mask.Mask;
+
+            // Read BEFORE SetText, so the rule is judged on the mask's configuration rather than on
+            // whatever state feeding it a value leaves behind (#283).
+            literals = MaskedValueDiagnostic.LiteralsOf(mask);
+
             mask.SetText(CurrentValue);
             maskedResult = mask.Text;
         }
@@ -232,7 +238,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
             return;
         }
 
-        if (!MaskedValueDiagnostic.Applies(CurrentValue, maskedResult))
+        if (!MaskedValueDiagnostic.Applies(CurrentValue, maskedResult, literals))
         {
             return;
         }
@@ -271,7 +277,8 @@ public partial class MudBlazorTextFieldComponent<TModel>
             DiagnosticServiceProvider,
             DiagnosticFieldKey,
             QualifiedLabel,
-            pattern);
+            pattern,
+            maskedResult);
     }
 
     /// <summary>
