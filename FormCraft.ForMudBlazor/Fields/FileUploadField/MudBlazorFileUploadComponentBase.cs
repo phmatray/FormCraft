@@ -118,7 +118,7 @@ public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldCo
     /// </para>
     /// <para>
     /// <b>Failures are swallowed, and the null case is ordinary</b> — both handled by
-    /// <see cref="FocusRestore.FocusSafelyAsync"/>, which is shared with every other control that
+    /// <see cref="FocusRestore.FocusSafelyAsync(MudBaseButton?)"/>, which is shared with every other control that
     /// unmounts or disables itself (#318). The reasoning for the wide catch list, and the standing
     /// ⛔ against narrowing it, live there rather than being restated per caller. Note the null
     /// check does <b>not</b> stand in for the prerender guard: component reference captures are

@@ -1,4 +1,4 @@
-using Microsoft.JSInterop;
+using FormCraft.ForMudBlazor.UnitTests.TestSupport;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
@@ -47,14 +47,8 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// <see cref="LearnElementIdAsync"/> gets the same answer from supported API.
 /// </para>
 /// </remarks>
-public class FileUploadClearFocusTests : MudBlazorTestBase
+public class FileUploadClearFocusTests : FocusAssertingTestBase
 {
-    /// <summary>
-    /// The interop identifier <see cref="ElementReference.FocusAsync()"/> resolves to. Pinned as a
-    /// constant because every assertion below keys off it.
-    /// </summary>
-    private const string FocusIdentifier = "Blazor._internal.domWrapper.focus";
-
     [Fact]
     public async Task Focusing_A_MudButton_Should_Record_The_Interop_Call_These_Tests_Assert_On()
     {
@@ -251,25 +245,6 @@ public class FileUploadClearFocusTests : MudBlazorTestBase
             }));
     }
 
-    /// <summary>
-    /// Makes the focus interop throw the way a real browser does when the target has left the DOM.
-    /// </summary>
-    /// <remarks>
-    /// These are the only tests here that exercise <c>FocusBrowseAsync</c>'s catch block, because
-    /// <c>MudBlazorTestBase</c> runs JSInterop in <c>Loose</c> mode where focus always succeeds —
-    /// so without them the "Without_Throwing" tests assert exactly what their siblings already do
-    /// and the catch list has no coverage at all. That gap is how a missing
-    /// <c>catch (JSException)</c> shipped once: the clear worked in every test and still tore down
-    /// the circuit in production. This wording is what Blazor's <c>domWrapper.focus</c> raises for
-    /// a stale element, and it is reachable — assigning <c>CurrentValue</c> raises
-    /// <c>OnValueChanged</c>, so a parent that hides the field or drops the collection row can
-    /// unmount Browse before the awaited interop call lands.
-    /// </remarks>
-    private void FailTheFocusInterop() =>
-        JSInterop
-            .SetupVoid(FocusIdentifier, _ => true)
-            .SetException(new JSException("Unable to focus an invalid element."));
-
     private static async Task ClearShouldSucceedDespiteTheFailingFocusAsync<TComponent>(
         IRenderedComponent<TComponent> cut)
         where TComponent : IComponent
@@ -393,34 +368,6 @@ public class FileUploadClearFocusTests : MudBlazorTestBase
 
         return Render<MudBlazorMultipleFileUploadComponent<TestModel>>(parameters => parameters
             .Add(p => p.Context, context));
-    }
-
-    /// <summary>
-    /// How many focus requests have been recorded so far.
-    /// </summary>
-    private int FocusCount() => JSInterop.Invocations.Count(i => i.Identifier == FocusIdentifier);
-
-    /// <summary>
-    /// The <see cref="ElementReference.Id"/> of the most recent focus request.
-    /// </summary>
-    private string LastFocusedElementId() =>
-        ((ElementReference)JSInterop.Invocations
-            .Last(i => i.Identifier == FocusIdentifier)
-            .Arguments[0]!)
-        .Id;
-
-    /// <summary>
-    /// Learns a button's element id the only way the public API allows: focus it deliberately and
-    /// read the id back off the recorded invocation. See the class remarks for why reflection is
-    /// not used instead.
-    /// </summary>
-    private async Task<string> LearnElementIdAsync<TComponent>(
-        IRenderedComponent<TComponent> host,
-        MudButton button)
-        where TComponent : IComponent
-    {
-        await host.InvokeAsync(async () => await button.FocusAsync());
-        return LastFocusedElementId();
     }
 
     private sealed class TestModel

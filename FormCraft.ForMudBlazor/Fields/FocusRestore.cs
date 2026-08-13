@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
 
@@ -41,16 +42,26 @@ internal static class FocusRestore
     /// <see langword="null"/> is an ordinary case, not an error — a <c>@ref</c> is unassigned until a
     /// render completes, and a control behind an <c>@if</c> may never have rendered at all.
     /// </param>
-    internal static async Task FocusSafelyAsync(MudBaseButton? target)
-    {
-        if (target is null)
-        {
-            return;
-        }
+    internal static Task FocusSafelyAsync(MudBaseButton? target) =>
+        target is null ? Task.CompletedTask : FocusSafelyAsync(target.FocusAsync);
 
+    /// <summary>
+    /// Focuses a plain element, for the case where no button survives the action at all.
+    /// </summary>
+    /// <remarks>
+    /// The collection field needs this: removing a row down to <c>MinItems</c> in a field that also
+    /// forbids adding leaves the field with no focusable control, so the fallback target is the
+    /// collection's own header — which carries the collection's label, so a screen reader says where
+    /// the user has landed rather than going silent.
+    /// </remarks>
+    internal static Task FocusSafelyAsync(ElementReference target) =>
+        FocusSafelyAsync(() => target.FocusAsync());
+
+    private static async Task FocusSafelyAsync(Func<ValueTask> focus)
+    {
         try
         {
-            await target.FocusAsync();
+            await focus();
         }
         catch (JSException)
         {

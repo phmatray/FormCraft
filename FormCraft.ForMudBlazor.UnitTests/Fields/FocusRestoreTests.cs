@@ -1,4 +1,4 @@
-using Microsoft.JSInterop;
+using FormCraft.ForMudBlazor.UnitTests.TestSupport;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
@@ -21,10 +21,8 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// release.
 /// </para>
 /// </remarks>
-public class FocusRestoreTests : MudBlazorTestBase
+public class FocusRestoreTests : FocusAssertingTestBase
 {
-    private const string FocusIdentifier = "Blazor._internal.domWrapper.focus";
-
     [Fact]
     public async Task FocusSafelyAsync_Should_Focus_The_Target()
     {
@@ -57,9 +55,7 @@ public class FocusRestoreTests : MudBlazorTestBase
         // Arrange - JSException with this wording is what Blazor's domWrapper.focus raises for an
         // element that has left the DOM. Letting it escape tears down a Blazor Server circuit,
         // which is strictly worse than the focus bug this helper exists to fix.
-        JSInterop
-            .SetupVoid(FocusIdentifier, _ => true)
-            .SetException(new JSException("Unable to focus an invalid element."));
+        FailTheFocusInterop();
 
         var button = Render<MudButton>(parameters => parameters.AddChildContent("Browse"));
 
@@ -83,6 +79,4 @@ public class FocusRestoreTests : MudBlazorTestBase
         // Assert
         FocusCount().ShouldBe(1);
     }
-
-    private int FocusCount() => JSInterop.Invocations.Count(i => i.Identifier == FocusIdentifier);
 }
