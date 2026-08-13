@@ -227,15 +227,66 @@ internal static class WorkflowSource
     /// name — so an assertion about what a step is gated on cannot be satisfied by another step's
     /// <c>if:</c>.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Matched as an exact <c>id:</c> key rather than as a substring (#267). A <c>Contains</c> search
+    /// for <c>login</c> also hits <c>id: login-legacy</c>, <c>id: login2</c>, and any <c>with:</c>
+    /// value or comment carrying the text — and taking the <em>first</em> hit means an unrelated
+    /// earlier line silently redefines the whole slice, so every claim about the intended step is
+    /// then answered by the wrong one. That is precisely the failure this primitive exists to
+    /// prevent, and it landed on the primitive #226 depends on, where a wrong answer is a green run
+    /// on a version that never reached nuget.org.
+    /// </para>
+    /// <para>
+    /// Two steps claiming one id fails loudly instead of resolving to the first. That is invalid in
+    /// GitHub Actions, so it should never happen — but anchoring the match buys nothing if an
+    /// ambiguous one still quietly picks a winner, which is the same silent wrong answer wearing a
+    /// different hat.
+    /// </para>
+    /// </remarks>
     internal static string StepWithId(string scope, string stepId, string? scopeDescription = null)
     {
         var lines = scope.Split('\n');
-        var start = Array.FindIndex(lines, l => l.Contains($"id: {stepId}", StringComparison.Ordinal));
-        start.ShouldBeGreaterThanOrEqualTo(
-            0,
+        var matches = LinesDeclaring(lines, stepId);
+
+        matches.Count.ShouldBeLessThan(
+            2,
+            $"{scopeDescription ?? "the searched text"} has {matches.Count} steps claiming `id: {stepId}` — an ambiguous id cannot be resolved to one step");
+        matches.ShouldNotBeEmpty(
             $"{scopeDescription ?? "the searched text"} no longer has a step with `id: {stepId}`");
 
-        return StepFrom(lines, start);
+        return StepFrom(lines, matches[0]);
+    }
+
+    /// <summary>
+    /// The indexes of every line in <paramref name="lines" /> whose trimmed text is exactly the key
+    /// <c>id: &lt;stepId&gt;</c>.
+    /// </summary>
+    /// <remarks>
+    /// Every index, not the first: the count is what tells <see cref="StepWithId" /> apart absent,
+    /// found, and ambiguous — and only the last of those can pass itself off as the middle one.
+    /// Trailing whitespace and a trailing <c># comment</c> are tolerated because
+    /// <see cref="WithoutComments" /> drops only whole-line comments (so a URL's <c>//</c> survives),
+    /// and callers may hand over unstripped text anyway — <c>TrustedPublishingWorkflowTests</c> does.
+    /// </remarks>
+    private static List<int> LinesDeclaring(string[] lines, string stepId)
+    {
+        // Built per call rather than compiled once, unlike JobsKey/JobHeader: the pattern depends on
+        // the id being looked for, and RegexOptions.Compiled pays its cost up front — strictly a loss
+        // for the handful of scans a run performs. The shape mirrors JobsKey's, trailing-comment
+        // tolerance included.
+        var key = new Regex($@"^id:\s*{Regex.Escape(stepId)}\s*(#.*)?$");
+
+        var matches = new List<int>();
+        for (var index = 0; index < lines.Length; index++)
+        {
+            if (key.IsMatch(lines[index].Trim()))
+            {
+                matches.Add(index);
+            }
+        }
+
+        return matches;
     }
 
     /// <summary>

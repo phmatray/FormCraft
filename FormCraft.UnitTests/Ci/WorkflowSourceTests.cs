@@ -115,6 +115,78 @@ public class WorkflowSourceTests
     }
 
     [Fact]
+    public void StepWithId_Should_Not_Bind_To_A_Step_Whose_Id_Merely_Starts_With_The_One_Asked_For()
+    {
+        // The defect #267 exists to remove: the scan matched `id: <stepId>` as an unanchored
+        // substring, so a search for `login` also matched `id: login-legacy` — and it takes the
+        // *first* hit, so an unrelated earlier step silently redefined the whole slice and every
+        // claim about the login step's `if:` and `uses:` was answered by the wrong step. That is the
+        // exact failure StepWithId exists to prevent, reintroduced one level down, on the one
+        // primitive #226 depends on — where a wrong answer is a green run on a version that never
+        // reached nuget.org.
+        const string Steps = """
+                             steps:
+                               - name: legacy login
+                                 id: login-legacy
+                                 uses: NuGet/login-legacy@v0
+                               - name: current login
+                                 id: login
+                                 uses: NuGet/login@v1
+                             """;
+
+        var step = WorkflowSource.StepWithId(Steps, "login");
+
+        step.ShouldContain("uses: NuGet/login@v1");
+        step.ShouldNotContain("login-legacy");
+    }
+
+    [Fact]
+    public void StepWithId_Should_Fail_Loudly_When_Two_Steps_Claim_One_Id()
+    {
+        // Two steps sharing an id is invalid in GitHub Actions, so the only open question is what the
+        // scan does when a workflow gets there anyway. Resolving to the first is how the old scan
+        // returned the wrong step without saying so, and anchoring the match buys nothing if an
+        // ambiguous one still quietly picks a winner: the caller would be told about *a* step, with
+        // no way to know it was not the one it asked about.
+        const string Steps = """
+                             steps:
+                               - name: first login
+                                 id: login
+                                 uses: NuGet/login@v1
+                               - name: second login
+                                 id: login
+                                 uses: NuGet/login@v2
+                             """;
+
+        var error = Should.Throw<ShouldAssertException>(
+            () => WorkflowSource.StepWithId(Steps, "login", "the fixture"));
+
+        error.Message.ShouldContain("ambiguous");
+
+        // The scan cannot infer what it was handed, so the scope description is the only thing that
+        // tells a reader *which* file or job to go and look at.
+        error.Message.ShouldContain("the fixture");
+    }
+
+    [Fact]
+    public void StepWithId_Should_Match_An_Id_Carrying_Trailing_Space_Or_A_Comment()
+    {
+        // The tolerance an exact key match has to keep, and the reason it is spelled as a regex
+        // rather than as string equality. `WithoutComments` only drops *whole-line* comments (so a
+        // URL's "//" survives), which means a trailing `# …` reaches this scan intact — and callers
+        // may hand over unstripped text anyway, as TrustedPublishingWorkflowTests does. An anchored
+        // match that forgot either case would report a step that is plainly there as absent.
+        const string Steps = """
+                             steps:
+                               - name: current login
+                                 id: login   # minted per run
+                                 uses: NuGet/login@v1
+                             """;
+
+        WorkflowSource.StepWithId(Steps, "login").ShouldContain("uses: NuGet/login@v1");
+    }
+
+    [Fact]
     public void Matching_Should_Find_The_Workflows_That_Invoke_The_Build()
     {
         // The discovery primitive the whole TestReportingTests family rests on: it decides which
