@@ -97,7 +97,7 @@ public partial class BindingHero
         return index < 0 ? 0 : index + 1;
     }
 
-    private async Task Toggle(string key)
+    private void Toggle(string key)
     {
         if (!_enabled.Remove(key))
         {
@@ -113,15 +113,13 @@ public partial class BindingHero
         _submitted = false;
         Rebuild();
 
-        if (_justAdded is null)
-        {
-            return;
-        }
-
-        // Let the new pair flash together, then settle.
-        await Task.Delay(900);
-        _justAdded = null;
-        StateHasChanged();
+        // No timer clears _justAdded any more, and none is needed: fcBindFlash runs for 0.9s and both
+        // ends of it are `background-color: transparent` with the default fill-mode, so a line that
+        // keeps the class is pixel-identical to one that never had it. The delay this replaces existed
+        // only to strip that inert class, and awaiting it meant StateHasChanged() could resume on a
+        // component the renderer had already disposed if the visitor navigated inside the window.
+        // The flash still replays on a re-add because the code lines are @key'd by field: toggling a
+        // field off destroys its element, so toggling it back on creates a fresh one.
     }
 
     private void Rebuild()

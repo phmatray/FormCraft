@@ -21,7 +21,11 @@
 
             @foreach (var field in EnabledFields())
             {
-                <div class="fc-code-line fc-code-line--field @(_active == field.Key ? "is-bound" : "") @(_justAdded == field.Key ? "is-new" : "")"
+                @* Keyed by field so a toggled-off line is destroyed rather than reused by the next
+                   field to take its index — which is what lets the is-new flash replay on a re-add
+                   now that nothing clears the class on a timer. *@
+                <div @key="field.Key"
+                     class="fc-code-line fc-code-line--field @(_active == field.Key ? "is-bound" : "") @(_justAdded == field.Key ? "is-new" : "")"
                      data-key="@field.Key"
                      @onmouseenter="@(() => _active = field.Key)">
                     <span class="fc-code-indent">    </span>
