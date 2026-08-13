@@ -4,16 +4,18 @@ using Microsoft.Extensions.Logging;
 namespace FormCraft.ForMudBlazor.UnitTests.Diagnostics;
 
 /// <summary>
-/// Pins the polarity of the once-per-field diagnostic latch: a field with no
-/// <c>CollectionItemFieldScope</c> always reports (#284).
+/// Pins the two ends of <c>MudBlazorFieldComponentBase.ShouldReport</c>: a field with no scope at all
+/// always reports (#284), and a field inside a form reports once however often it is re-mounted
+/// (#304).
 /// </summary>
 /// <remarks>
 /// <para>
-/// The latch reads <c>ItemFieldScope?.ShouldWarnOnce(category, DiagnosticFieldKey) ?? true</c>, and
-/// the <c>?? true</c> is the whole of this suite. A collection renders one component instance per
+/// <c>ShouldReport</c> tries three things in order — the <c>CollectionItemFieldScope</c>, then the
+/// <c>FormDiagnosticScope</c>, then <c>true</c>. This suite covers the <b>first</b> and <b>last</b> of
+/// those, which are the two that go wrong silently. A collection renders one component instance per
 /// row, so the latch exists to stop a 50-item collection emitting 50 identical warnings about one
-/// field's configuration. Outside a collection there is no scope, nothing to de-duplicate, and the
-/// field must report — which is the overwhelmingly common case.
+/// field's configuration. With neither scope there is nothing to de-duplicate against, and the field
+/// must report — which is the overwhelmingly common case.
 /// </para>
 /// <para>
 /// ⛔ <b>Invert that default and the failure is silent and inverted-looking.</b> The diagnostics go
@@ -33,12 +35,23 @@ namespace FormCraft.ForMudBlazor.UnitTests.Diagnostics;
 /// part: <b>outside a collection is the case under test</b>.
 /// </para>
 /// <para>
-/// <b>Rendered as bare components, not through <see cref="FormCraftComponent{TModel}"/>.</b> That is
-/// required rather than incidental for the ShrinkLabel diagnostic: inside a form there is a
-/// <c>ShrinkLabelDiagnosticCollector</c>, and the component reports to it and returns <i>before</i>
-/// reaching the latch at all. Its latch branch is only observable with no collector and no scope,
-/// which is exactly what rendering the component directly gives. The other three take the same route
-/// for consistency, and because it is the smaller surface.
+/// <b>The polarity tests render bare components, not through
+/// <see cref="FormCraftComponent{TModel}"/>.</b> That is required rather than incidental for the
+/// ShrinkLabel diagnostic: inside a form there is a <c>ShrinkLabelDiagnosticCollector</c>, and the
+/// component reports to it and returns <i>before</i> reaching the latch at all. Its latch branch is
+/// only observable with no collector and no scope, which is exactly what rendering the component
+/// directly gives. The other three take the same route for consistency, and because it is the
+/// smaller surface. <b>A bare component also has no form</b>, so those four tests exercise the
+/// <c>true</c> arm specifically — which is what makes them the guard against inverting it.
+/// </para>
+/// <para>
+/// <b>The re-mount tests are the opposite, and must render through
+/// <see cref="FormCraftComponent{TModel}"/> (#304).</b> The scope they are about is cascaded by the
+/// form, so a bare component would not have one and the test would pass for the wrong reason. They
+/// gate a field with <c>.VisibleWhen(...)</c> and toggle it: that destroys and re-creates the
+/// component, which is precisely what a per-instance flag cannot survive. Both placements belong in
+/// this file because they are the same question — <i>where does the latch live?</i> — asked at its two
+/// boundaries.
 /// </para>
 /// </remarks>
 public class DiagnosticLatchTests : MudBlazorTestBase
@@ -152,11 +165,14 @@ public class DiagnosticLatchTests : MudBlazorTestBase
         // OnInitialized again and re-reports a configuration fact that has not changed.
         //
         // Inside a form there is somewhere for a durable latch to live, and this asserts it is used.
+        // The label is deliberately NOT "Password": MaskedLinesDiagnostic's own message ends with
+        // "drop .AsPassword() if the value is not a secret", so asserting on "Password" would match
+        // the template rather than the field name and could never fail.
         var model = new TestModel { Secret = string.Empty, ShowSecret = true };
         var config = FormBuilder<TestModel>
             .Create()
             .AddField(x => x.Secret, f => f
-                .WithLabel("Password")
+                .WithLabel("Recovery phrase")
                 .AsPassword()
                 .AsTextArea(lines: 4)
                 .VisibleWhen(m => m.ShowSecret))
@@ -175,8 +191,11 @@ public class DiagnosticLatchTests : MudBlazorTestBase
             component.Render();
         }
 
-        // Assert - the configuration was reported once and has not changed since.
-        _logs.Warnings.Count.ShouldBe(1);
+        // Assert - the configuration was reported once and has not changed since, and the one
+        // surviving warning is the one about this field rather than an unrelated survivor.
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("Recovery phrase");
     }
 
     [Fact]
@@ -186,11 +205,14 @@ public class DiagnosticLatchTests : MudBlazorTestBase
         // category, anything that forgets the FIELD) would silence the second field entirely, which
         // is a worse failure than the duplication being fixed: it loses a real diagnostic rather
         // than repeating one.
+        // Neither label appears in MaskedLinesDiagnostic's message template, so each assertion below
+        // can only be satisfied by the field name it names. "Password" would not qualify — the
+        // template itself says "drop .AsPassword()".
         var model = new TestModel();
         var config = FormBuilder<TestModel>
             .Create()
             .AddField(x => x.Secret, f => f
-                .WithLabel("Password")
+                .WithLabel("Primary code")
                 .AsPassword()
                 .AsTextArea(lines: 4))
             .AddField(x => x.Backup, f => f
@@ -207,7 +229,7 @@ public class DiagnosticLatchTests : MudBlazorTestBase
         // Assert - one per field, each naming its own.
         var warnings = _logs.Warnings;
         warnings.Count.ShouldBe(2);
-        warnings.ShouldContain(w => w.Contains("Password"));
+        warnings.ShouldContain(w => w.Contains("Primary code"));
         warnings.ShouldContain(w => w.Contains("Backup code"));
     }
 

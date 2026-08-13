@@ -83,9 +83,17 @@ internal sealed class DiagnosticOnceLatch
 /// <para>
 /// <b>Why a component-level flag cannot do this job.</b> Every other latch in the package lives on the
 /// component instance — <c>_shrinkLabelDiagnosticEmitted</c>, <c>_maskedValueReportingSettled</c> — and
-/// a re-mount is by definition a new instance with fresh fields. <c>.VisibleWhen(...)</c> gating a
-/// field, or a wizard step revisited, therefore re-reported a configuration fact that had not changed,
-/// once per toggle. This outlives the component because the <i>form</i> owns it.
+/// a re-mount is by definition a new instance with fresh fields. A field gated by
+/// <c>.VisibleWhen(...)</c> therefore re-reported a configuration fact that had not changed, once per
+/// toggle. This outlives the field's component because the <i>form</i> owns it.
+/// </para>
+/// <para>
+/// ⚠️ <b>It does not outlive the form.</b> The latch is a field on <see cref="FormCraftComponent{TModel}"/>,
+/// so anything that destroys the form component takes it along — including a wizard that puts a
+/// separate form in each step (which is what <c>StepperForm.razor</c> in the demo app does) if the
+/// step host unmounts inactive content. What is fixed here is re-mounting a <i>field</i> within one
+/// form; a re-mounted <i>form</i> starts over, by construction. Covered by
+/// <c>DiagnosticLatchTests.A_Field_Re_Mounted_Inside_A_Form_Should_Report_Once</c>.
 /// </para>
 /// <para>
 /// <b>How it differs from <see cref="CollectionItemFieldScope"/>.</b> That one is owned by a
@@ -415,8 +423,9 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// field's configuration in a fifty-item collection — <see cref="ItemFieldScope"/> answers that.
     /// Failing that, <see cref="FormDiagnosticScope"/> answers the same question for the form (#304),
     /// which is what makes the guarantee survive a <b>re-mount</b>: <c>.VisibleWhen(...)</c> toggled
-    /// or a wizard step revisited destroys the component and builds a new one, and no per-instance
-    /// flag can outlive that.
+    /// destroys the field's component and builds a new one, and no per-instance flag can outlive
+    /// that. It holds for as long as the <i>form</i> lives — see <see cref="FormDiagnosticScope"/>
+    /// for what that does and does not cover.
     /// </para>
     /// <para>
     /// <b>Neither scope means report.</b> A field rendered standalone through
@@ -452,8 +461,8 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
         }
 
         // Otherwise the form, when there is one: "has this field reported at all?" (#304). This is
-        // the arm that survives a re-mount — `.VisibleWhen(...)` toggled, a wizard step revisited —
-        // which no per-instance flag can, since a re-mount is by definition a new instance.
+        // the arm that survives a field re-mount — `.VisibleWhen(...)` toggled — which no
+        // per-instance flag can, since a re-mount is by definition a new instance.
         if (FormDiagnosticScope is not null)
         {
             return FormDiagnosticScope.ShouldWarnOnce(category, DiagnosticFieldKey);
