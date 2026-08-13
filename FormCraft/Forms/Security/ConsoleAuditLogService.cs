@@ -61,12 +61,16 @@ public class ConsoleAuditLogService : IAuditLogService
     {
         var excludedFields = _configuration?.ExcludedFields;
         if (excludedFields == null || excludedFields.Count == 0)
+        {
             return entry;
+        }
 
         var isFieldExcluded = entry.FieldName != null && excludedFields.Contains(entry.FieldName);
         var hasExcludedAdditionalData = entry.AdditionalData.Keys.Any(excludedFields.Contains);
         if (!isFieldExcluded && !hasExcludedAdditionalData)
+        {
             return entry;
+        }
 
         // Never mutate the caller's entry — log a redacted copy instead.
         return new AuditLogEntry

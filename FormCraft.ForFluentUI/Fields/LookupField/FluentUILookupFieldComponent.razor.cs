@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Components.Web;
 using System.Collections;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace FormCraft.ForFluentUI;
 
@@ -34,10 +34,9 @@ public partial class FluentUILookupFieldComponent<TModel, TValue>
     private bool _isOpen;
     private bool _isLoading;
     private string _searchText = string.Empty;
-    private string _displayText = string.Empty;
 
     /// <summary>The text shown in the read-only display.</summary>
-    private string DisplayText => _displayText;
+    private string DisplayText { get; set; } = string.Empty;
 
     /// <summary>
     /// The grid's columns. Falls back to a single display-text column when the field configured
@@ -59,12 +58,12 @@ public partial class FluentUILookupFieldComponent<TModel, TValue>
         // this instance — a different field gets its own.
         _columns = BuildColumns();
 
-        // ⛔ Re-derived, not merely cleared. Nothing else in this component repopulates _displayText
+        // ⛔ Re-derived, not merely cleared. Nothing else in this component repopulates the display
         // from the model: unlike the MudBlazor lookup, which calls UpdateDisplayText() from
         // OnParametersSet on every render and would repair a blank on the same pass, here the only
         // other writer is a row selection. Clearing alone therefore left a field with a perfectly
         // good stored value rendering empty for ever — a worse bug than the staleness it replaced.
-        _displayText = CurrentValue?.ToString() ?? string.Empty;
+        DisplayText = CurrentValue?.ToString() ?? string.Empty;
 
         // The picker belongs to the field that opened it. Its rows came from the PREVIOUS field's
         // LookupDataProvider, and _rows is a List<object> so nothing type-guards it: clicking one
@@ -159,9 +158,7 @@ public partial class FluentUILookupFieldComponent<TModel, TValue>
 
     private async Task SelectRowAsync(object row)
     {
-        var valueSelector = GetAttribute<object>("LookupValueSelector") as Delegate;
-        var displaySelector = GetAttribute<object>("LookupDisplaySelector") as Delegate;
-        if (valueSelector is null || displaySelector is null)
+        if (GetAttribute<object>("LookupValueSelector") is not Delegate valueSelector || GetAttribute<object>("LookupDisplaySelector") is not Delegate displaySelector)
         {
             return;
         }
@@ -171,7 +168,7 @@ public partial class FluentUILookupFieldComponent<TModel, TValue>
             return;
         }
 
-        _displayText = displaySelector.DynamicInvoke(row)?.ToString() ?? string.Empty;
+        DisplayText = displaySelector.DynamicInvoke(row)?.ToString() ?? string.Empty;
         _isOpen = false;
 
         // The multi-field mapping hook runs before the value change is announced, so a handler

@@ -135,6 +135,28 @@ class Build : NukeBuild
                 .EnableNoRestore());
         });
 
+    // Verifies the tree matches .editorconfig. Fails on any diff; changes nothing (#301).
+    //
+    // ⚠️ Deliberately NOT a DependsOn of Test or Pack, and deliberately not EnforceCodeStyleInBuild.
+    // Those IDE* analyzers are opt-in at build time, and switching them on next to this repo's
+    // TreatWarningsAsErrors=true would make one missing brace break `dotnet build` mid-edit and add
+    // an analyzer pass to every incremental build. The rules are enforced where regression actually
+    // has to be caught — CI — and `./build.sh Test` stays a correctness-only, fast path.
+    //
+    // Before #301 nothing read .editorconfig at all: its severities say `warning`, the build turns
+    // warnings into errors, and the two never met because EnforceCodeStyleInBuild was unset and no
+    // workflow ran `dotnet format`. 574 violations across 201 files had accumulated behind that gap.
+    //
+    // Raw DotNet(...) rather than a typed task: Nuke exposes no DotNetFormat wrapper covering
+    // --verify-no-changes, and the raw call is exactly the command a developer runs to fix a
+    // failure here (drop --verify-no-changes to apply).
+    Target Format => _ => _
+        .DependsOn(Restore)
+        .Executes(() =>
+        {
+            DotNet($"format {Solution.Path} --verify-no-changes --no-restore");
+        });
+
     Target Test => _ => _
         .DependsOn(Compile)
         // Derived from the same list the post-run guard reads, so the promise and the check cannot
@@ -472,10 +494,10 @@ class Build : NukeBuild
             Serilog.Log.Information("  - Current version: {Version}", CurrentVersion);
         })
         .DependsOn(Publish);
-        // Note: the GitHub Release is created exclusively by release-please, in
-        // .github/workflows/release-please.yml, which then runs this publish in the same job.
-        // Do NOT add a release-creating target back into this chain — two producers would race
-        // to create a release for the same tag (already_exists errors).
+    // Note: the GitHub Release is created exclusively by release-please, in
+    // .github/workflows/release-please.yml, which then runs this publish in the same job.
+    // Do NOT add a release-creating target back into this chain — two producers would race
+    // to create a release for the same tag (already_exists errors).
 
     Target Release => _ => _
         .Description("Creates a new release (NuGet + GitHub)")

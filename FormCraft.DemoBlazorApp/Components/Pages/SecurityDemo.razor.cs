@@ -238,7 +238,10 @@ public partial class SecurityDemo
 
     private List<FormSuccessDisplay.DataDisplayItem> GetDataDisplayItems()
     {
-        if (_lastSubmission == null) return new();
+        if (_lastSubmission == null)
+        {
+            return new();
+        }
 
         return new List<FormSuccessDisplay.DataDisplayItem>
         {

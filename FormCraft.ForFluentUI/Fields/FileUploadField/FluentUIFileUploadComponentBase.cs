@@ -23,16 +23,6 @@ namespace FormCraft.ForFluentUI;
 /// </remarks>
 public abstract class FluentUIFileUploadComponentBase<TModel, TValue> : FluentUIFieldComponentBase<TModel, TValue>
 {
-    /// <summary>
-    /// Per-render-instance discriminator for <see cref="RequiredDescriptionId"/>.
-    /// </summary>
-    /// <remarks>
-    /// The field name alone is not unique in a document: item fields render through these very
-    /// components, so a collection emits one hint per row; two forms over one model on a page
-    /// collide the same way; and two nested fields can share a member name. Duplicate ids are
-    /// invalid HTML and, worse, point every later button at the first one's description.
-    /// </remarks>
-    private readonly string _instanceDiscriminator = Guid.NewGuid().ToString("N")[..8];
 
     /// <summary>
     /// Whether this field is marked required, by the same rule as every other field type: an
@@ -51,8 +41,11 @@ public abstract class FluentUIFileUploadComponentBase<TModel, TValue> : FluentUI
     protected string FileInputAccessibleName => HasLabel ? Label! : "File upload";
 
     /// <summary>The id of the requirement hint, unique per rendered field instance.</summary>
-    protected string RequiredDescriptionId =>
-        $"formcraft-{Context.Field.FieldName}-required-{_instanceDiscriminator}";
+    protected string RequiredDescriptionId
+    {
+        get =>
+        $"formcraft-{Context.Field.FieldName}-required-{field}";
+    } = Guid.NewGuid().ToString("N")[..8];
 
     /// <summary>
     /// The value for the browse control's <c>aria-describedby</c>: the hint's id when the field is

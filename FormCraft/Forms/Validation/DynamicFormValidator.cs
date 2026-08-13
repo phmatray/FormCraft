@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 
@@ -122,8 +124,12 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         {
             foreach (var collectionField in collectionConfig.CollectionFields)
             {
-                var errors = await ValidateCollectionFieldAsync(model, collectionField);
-                foreach (var error in errors)
+                // ONE traversal produces both message shapes. Asking for them separately meant
+                // running every item field's validator twice per pass, because the flat-message call
+                // already performs the per-item walk internally (#329).
+                var result = await ValidateCollectionAsync(model, collectionField);
+
+                foreach (var error in result.Messages)
                 {
                     _messageStore.Add(_editContext.Field(collectionField.FieldName), error);
                 }
@@ -131,8 +137,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                 // Additionally attach per-item errors to nested field identifiers
                 // (e.g. Items[0].ProductName) so ValidationMessage/ValidationSummary
                 // and FieldValidationMessage can display them natively.
-                var itemErrors = await ValidateCollectionItemsAsync(model, collectionField);
-                foreach (var itemError in itemErrors)
+                foreach (var itemError in result.ItemErrors)
                 {
                     _messageStore.Add(
                         CreateCollectionItemFieldIdentifier(collectionField.FieldName, itemError.ItemIndex, itemError.FieldName),
@@ -155,30 +160,90 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         return field.IsVisible;
     }
 
-    private async Task<List<string>> ValidateCollectionFieldAsync(TModel model, ICollectionFieldConfigurationBase collectionField)
+    /// <summary>
+    /// Runs one validation pass over a collection field and returns both message shapes.
+    /// </summary>
+    /// <remarks>
+    /// Replaces the pair of calls this method used to make. <c>ValidateAllAsync</c> is non-generic in
+    /// its return type precisely so it can be invoked reflectively here without knowing the item type.
+    /// </remarks>
+    private Task<CollectionValidationResult> ValidateCollectionAsync(TModel model, ICollectionFieldConfigurationBase collectionField)
+        => GetInvoker(collectionField).ValidateAllAsync(model!, ServiceProvider);
+
+    /// <summary>
+    /// Validates one item field of one row — the cell a field-change notification named.
+    /// </summary>
+    private Task<List<CollectionItemError>> ValidateCollectionCellAsync(
+        TModel model,
+        ICollectionFieldConfigurationBase collectionField,
+        int itemIndex,
+        string itemFieldName)
+        => GetInvoker(collectionField).ValidateItemFieldAsync(model!, itemIndex, itemFieldName, ServiceProvider);
+
+    /// <summary>
+    /// The reflective plumbing for one collection field's typed validator, resolved once.
+    /// </summary>
+    /// <remarks>
+    /// Keyed by the <b>configuration instance</b>, not by item type. The generic type and its methods
+    /// depend only on the item type, but the validator instance is constructed <i>from the
+    /// configuration</i> — so two collections of the same item type with different configurations
+    /// (different item forms, different min/max) must not share one. A
+    /// <see cref="ConditionalWeakTable{TKey, TValue}" /> also means an entry lives no longer than the
+    /// configuration it describes.
+    /// </remarks>
+    private static readonly ConditionalWeakTable<ICollectionFieldConfigurationBase, CollectionValidatorInvoker> ValidatorCache = new();
+
+    private static CollectionValidatorInvoker GetInvoker(ICollectionFieldConfigurationBase collectionField)
+        => ValidatorCache.GetValue(collectionField, static field => new CollectionValidatorInvoker(field));
+
+    /// <summary>
+    /// Holds one collection field's typed validator and the two methods this component invokes on it,
+    /// so <c>MakeGenericType</c> / <c>Activator.CreateInstance</c> / <c>GetMethod</c> run once per
+    /// configuration rather than on every validation pass and every keystroke (#329).
+    /// </summary>
+    private sealed class CollectionValidatorInvoker
     {
-        // Use reflection to create the typed validator and invoke it
-        var validatorType = typeof(CollectionFieldValidator<,>).MakeGenericType(typeof(TModel), collectionField.ItemType);
-        var validator = Activator.CreateInstance(validatorType, collectionField);
+        private readonly object _validator;
+        private readonly MethodInfo _validateAll;
+        private readonly MethodInfo _validateCell;
 
-        var validateMethod = validatorType.GetMethod("ValidateAsync");
-        if (validateMethod == null) return new List<string>();
+        /// <remarks>
+        /// Resolution failures throw here rather than degrading to a no-op. The names come from
+        /// <c>nameof</c> and <see cref="Activator.CreateInstance(Type, object[])" /> throws rather
+        /// than returning null for a class, so none of this is reachable today — but throwing keeps
+        /// it that way. A silent fallback would be <i>cached</i>, so one unresolvable lookup would
+        /// make that collection report zero errors for the lifetime of its configuration instead of
+        /// failing once, loudly.
+        /// </remarks>
+        internal CollectionValidatorInvoker(ICollectionFieldConfigurationBase collectionField)
+        {
+            var validatorType = typeof(CollectionFieldValidator<,>)
+                .MakeGenericType(typeof(TModel), collectionField.ItemType);
 
-        var task = (Task<List<string>>)validateMethod.Invoke(validator, new object[] { model!, ServiceProvider })!;
-        return await task;
-    }
+            _validator = Activator.CreateInstance(validatorType, collectionField)
+                ?? throw new InvalidOperationException(
+                    $"Could not construct a collection validator for item type '{collectionField.ItemType}'.");
 
-    private async Task<List<CollectionItemError>> ValidateCollectionItemsAsync(TModel model, ICollectionFieldConfigurationBase collectionField)
-    {
-        // Use reflection to create the typed validator and invoke it
-        var validatorType = typeof(CollectionFieldValidator<,>).MakeGenericType(typeof(TModel), collectionField.ItemType);
-        var validator = Activator.CreateInstance(validatorType, collectionField);
+            _validateAll = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.ValidateAllAsync))
+                ?? throw new InvalidOperationException(
+                    $"'{validatorType}' does not declare {nameof(CollectionFieldValidator<TModel, object>.ValidateAllAsync)}.");
 
-        var validateMethod = validatorType.GetMethod("ValidateItemsAsync");
-        if (validateMethod == null) return new List<CollectionItemError>();
+            _validateCell = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.ValidateItemFieldAsync))
+                ?? throw new InvalidOperationException(
+                    $"'{validatorType}' does not declare {nameof(CollectionFieldValidator<TModel, object>.ValidateItemFieldAsync)}.");
+        }
 
-        var task = (Task<List<CollectionItemError>>)validateMethod.Invoke(validator, new object[] { model!, ServiceProvider })!;
-        return await task;
+        internal Task<CollectionValidationResult> ValidateAllAsync(object model, IServiceProvider services)
+            => (Task<CollectionValidationResult>)_validateAll.Invoke(_validator, [model, services])!;
+
+        internal Task<List<CollectionItemError>> ValidateItemFieldAsync(
+            object model,
+            int itemIndex,
+            string fieldName,
+            IServiceProvider services)
+            => (Task<List<CollectionItemError>>)_validateCell.Invoke(
+                _validator,
+                [model, itemIndex, fieldName, services])!;
     }
 
     private FieldIdentifier CreateCollectionItemFieldIdentifier(string collectionFieldName, int itemIndex, string itemFieldName)
@@ -204,7 +269,10 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
             // Find the field configuration for the changed field
             var fieldConfig = Configuration.Fields.FirstOrDefault(f => f.FieldName == e.FieldIdentifier.FieldName);
-            if (fieldConfig == null) return;
+            if (fieldConfig == null)
+            {
+                return;
+            }
 
             var model = (TModel)_editContext!.Model;
             var getter = FieldValueGetterCache<TModel>.GetOrCompile(fieldConfig);
@@ -233,15 +301,27 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
     private async Task ValidateCollectionItemFieldAsync(FieldIdentifier fieldIdentifier, System.Text.RegularExpressions.Match nestedMatch)
     {
-        if (Configuration is not ICollectionFormConfiguration<TModel> collectionConfig) return;
+        if (Configuration is not ICollectionFormConfiguration<TModel> collectionConfig)
+        {
+            return;
+        }
 
         var collectionFieldName = nestedMatch.Groups["collection"].Value;
-        var itemIndex = int.Parse(nestedMatch.Groups["index"].Value);
+        // TryParse, not Parse: the regex guarantees digits but not that they fit in an int, and an
+        // OverflowException here would be swallowed by HandleFieldChanged's catch — after the message
+        // store was cleared and before NotifyValidationStateChanged ran, leaving a stale UI.
+        if (!int.TryParse(nestedMatch.Groups["index"].Value, out var itemIndex))
+        {
+            return;
+        }
         var itemFieldName = nestedMatch.Groups["field"].Value;
 
         var collectionField = collectionConfig.CollectionFields
             .FirstOrDefault(f => f.FieldName == collectionFieldName);
-        if (collectionField == null) return;
+        if (collectionField == null)
+        {
+            return;
+        }
 
         var model = (TModel)_editContext!.Model;
 
@@ -249,13 +329,12 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         // so stale errors disappear as soon as the user corrects the value.
         _messageStore!.Clear(fieldIdentifier);
 
-        var itemErrors = await ValidateCollectionItemsAsync(model, collectionField);
+        // Validate just this cell. This used to validate the whole collection and filter the result
+        // down to the matching item/field, which runs items × fields validators per keystroke (#329).
+        var itemErrors = await ValidateCollectionCellAsync(model, collectionField, itemIndex, itemFieldName);
         foreach (var itemError in itemErrors)
         {
-            if (itemError.ItemIndex == itemIndex && itemError.FieldName == itemFieldName)
-            {
-                _messageStore.Add(fieldIdentifier, itemError.Message);
-            }
+            _messageStore.Add(fieldIdentifier, itemError.Message);
         }
 
         _editContext.NotifyValidationStateChanged();

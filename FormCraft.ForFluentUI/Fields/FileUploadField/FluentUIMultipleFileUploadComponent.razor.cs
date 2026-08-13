@@ -14,13 +14,10 @@ namespace FormCraft.ForFluentUI;
 /// </remarks>
 public partial class FluentUIMultipleFileUploadComponent<TModel>
 {
-    private readonly string _browseButtonId = $"formcraft-upload-{Guid.NewGuid():N}";
-    private string? _tooManyFilesError;
-
     /// <summary>
     /// The id the hidden file input anchors to, so clicking the visible button opens the picker.
     /// </summary>
-    private string BrowseButtonId => _browseButtonId;
+    private string BrowseButtonId { get; } = $"formcraft-upload-{Guid.NewGuid():N}";
 
     /// <summary>The chosen files, shown back to the user.</summary>
     private IReadOnlyList<IBrowserFile> SelectedFiles => CurrentValue ?? [];
@@ -28,7 +25,7 @@ public partial class FluentUIMultipleFileUploadComponent<TModel>
     /// <summary>
     /// The message shown when the user picked more files than the field allows, or <c>null</c>.
     /// </summary>
-    private string? TooManyFilesError => _tooManyFilesError;
+    private string? TooManyFilesError { get; set; }
 
     private async Task HandleFilesChangedAsync(InputFileChangeEventArgs args)
     {
@@ -38,11 +35,11 @@ public partial class FluentUIMultipleFileUploadComponent<TModel>
         // Checked up front so the limit reports as a message instead.
         if (args.FileCount > MaximumFileCount)
         {
-            _tooManyFilesError = $"Select at most {MaximumFileCount} file{(MaximumFileCount == 1 ? "" : "s")}.";
+            TooManyFilesError = $"Select at most {MaximumFileCount} file{(MaximumFileCount == 1 ? "" : "s")}.";
             return;
         }
 
-        _tooManyFilesError = null;
+        TooManyFilesError = null;
         IReadOnlyList<IBrowserFile> files = args.GetMultipleFiles(MaximumFileCount);
 
         SetValueWithoutNotification(files);

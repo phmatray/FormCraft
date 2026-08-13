@@ -274,12 +274,26 @@ public class FieldConfigurationRefreshTests : MudBlazorTestBase
         component.FindAll("input").Count.ShouldBe(3);
     }
 
-    private sealed record EqualityItem
+    /// <summary>
+    /// A value-equality row. <b>The <c>record</c> is the point</b> — see
+    /// <see cref="Rows_Whose_Items_Compare_Equal_Should_Render_Without_A_Duplicate_Key_Error"/>.
+    /// </summary>
+    /// <remarks>
+    /// ⛔ Do not "share this with the fixture". Every <c>CollectionItemFixture</c> model is a plain
+    /// class with reference equality, so swapping one in makes that test vacuous — it would stop
+    /// reproducing the duplicate-key error entirely. <c>internal</c> rather than <c>private</c> only
+    /// so <c>CollectionItemShapeGuardTests</c> can name it in its deliberate-copies allowlist (#297).
+    /// </remarks>
+    internal sealed record EqualityItem
     {
         public string ProductName { get; set; } = string.Empty;
     }
 
-    private sealed class EqualityItemModel
+    /// <summary>
+    /// The collection root for <see cref="EqualityItem"/>. Allowlisted in
+    /// <c>CollectionItemShapeGuardTests</c> — see the reason recorded there.
+    /// </summary>
+    internal sealed class EqualityItemModel
     {
         public List<EqualityItem> Items { get; set; } = [];
     }

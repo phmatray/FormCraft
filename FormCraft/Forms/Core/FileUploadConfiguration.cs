@@ -55,7 +55,9 @@ public class FileUploadConfiguration
     public ValidationResult ValidateFile(IBrowserFile? file)
     {
         if (file == null)
+        {
             return ValidationResult.Success();
+        }
 
         // Check file size
         if (MaxFileSize.HasValue && file.Size > MaxFileSize.Value)
@@ -87,7 +89,9 @@ public class FileUploadConfiguration
         var parts = new List<string>();
 
         if (AcceptedFileTypes?.Length > 0)
+        {
             parts.Add($"Accepted formats: {string.Join(", ", AcceptedFileTypes)}");
+        }
 
         if (MaxFileSize.HasValue)
         {
@@ -96,7 +100,9 @@ public class FileUploadConfiguration
         }
 
         if (MaxFiles > 1)
+        {
             parts.Add($"Max files: {MaxFiles}");
+        }
 
         return parts.Count > 0 ? string.Join(" • ", parts) : string.Empty;
     }

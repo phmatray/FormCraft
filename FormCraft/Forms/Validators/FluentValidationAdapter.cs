@@ -1,6 +1,6 @@
+using System.Linq.Expressions;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
-using System.Linq.Expressions;
 
 namespace FormCraft;
 

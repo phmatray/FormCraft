@@ -251,7 +251,9 @@ public class FormBuilderTests
                 .DependsOn(x => x.Country, (m, country) =>
                 {
                     if (string.IsNullOrEmpty(country))
+                    {
                         m.City = string.Empty;
+                    }
                 })
                 .WithOrder(5))
             .Build();

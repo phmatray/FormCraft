@@ -12,7 +12,7 @@ public partial class AutoFormDemo
     private bool _isPlainSubmitting;
     private IFormConfiguration<AccountSignupModel> _plainConfiguration = null!;
 
-    private SpeakerProfileModel _annotatedModel = new();
+    private readonly SpeakerProfileModel _annotatedModel = new();
     private bool _isAnnotatedSubmitted;
     private IFormConfiguration<SpeakerProfileModel> _annotatedConfiguration = null!;
 

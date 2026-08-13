@@ -14,7 +14,9 @@ public static class EncryptedFieldHelper
         where TModel : new()
     {
         if (model == null || security?.EncryptedFields == null || !security.EncryptedFields.Any())
+        {
             return;
+        }
 
         foreach (var fieldName in security.EncryptedFields)
         {
@@ -38,7 +40,9 @@ public static class EncryptedFieldHelper
         where TModel : new()
     {
         if (model == null || security?.EncryptedFields == null || !security.EncryptedFields.Any())
+        {
             return;
+        }
 
         foreach (var fieldName in security.EncryptedFields)
         {
@@ -62,7 +66,9 @@ public static class EncryptedFieldHelper
         where TModel : new()
     {
         if (model == null)
+        {
             return new TModel();
+        }
 
         // Create a shallow copy
         var copy = (TModel)Activator.CreateInstance(typeof(TModel))!;
