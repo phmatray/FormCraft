@@ -378,49 +378,22 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // is wrong and never which collection to audit -- which is the ambiguity
         // CollectionItemFieldScope.DiagnosticKey exists to remove, and it has to reach the MESSAGE
         // and not just the latch key to be worth anything.
-        var model = new TwoCollectionModel();
-        model.Contacts.Add(new OrderItem { ProductName = "N/A" });
-        model.Suppliers.Add(new OrderItem { ProductName = "N/A" });
-
-        var config = FormBuilder<TwoCollectionModel>
-            .Create()
-            .AddCollectionField(x => x.Contacts, collection => collection
-                .WithLabel("Contacts")
-                .WithItemForm(item => item
-                    .AddField(x => x.ProductName, field => field
-                        .WithLabel("Secret")
-                        .WithAttribute("Mask", "(000) 000-0000"))))
-            .AddCollectionField(x => x.Suppliers, collection => collection
-                .WithLabel("Suppliers")
-                .WithItemForm(item => item
-                    .AddField(x => x.ProductName, field => field
-                        .WithLabel("Secret")
-                        .WithAttribute("Mask", "(000) 000-0000"))))
-            .Build();
+        var config = TwoCollectionItemForm(
+            contact => contact
+                .WithLabel("Secret")
+                .WithAttribute("Mask", "(000) 000-0000"),
+            supplier => supplier
+                .WithLabel("Secret")
+                .WithAttribute("Mask", "(000) 000-0000"));
 
         // Act
-        Render<FormCraftComponent<TwoCollectionModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
+        this.RenderItemForm(NewTwoCollections("N/A", "N/A"), config);
 
         // Assert
         var warnings = _logs.Warnings;
         warnings.Count.ShouldBe(2);
         warnings.ShouldContain(w => w.Contains("Contacts[].Secret"));
         warnings.ShouldContain(w => w.Contains("Suppliers[].Secret"));
-    }
-
-    /// <summary>
-    /// Two collections of the same item type in one form — the shape the fixture deliberately does
-    /// not provide, because it exists for this suite's own question (which collection does a
-    /// diagnostic name?) rather than for a field type. Its <i>item</i> type still comes from the
-    /// fixture; only the two-collection root is local.
-    /// </summary>
-    private class TwoCollectionModel
-    {
-        public List<OrderItem> Contacts { get; set; } = new();
-
-        public List<OrderItem> Suppliers { get; set; } = new();
     }
 
     private IRenderedComponent<FormCraftComponent<OrderModel>> RenderRows(

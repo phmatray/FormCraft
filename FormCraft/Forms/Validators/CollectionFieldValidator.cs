@@ -27,7 +27,106 @@ public class CollectionFieldValidator<TModel, TItem>
     /// <param name="model">The parent model instance.</param>
     /// <param name="services">The service provider for dependency injection.</param>
     /// <returns>A list of validation error messages. Empty if validation passed.</returns>
+    /// <remarks>
+    /// Superseded in-tree by <see cref="ValidateAllAsync" />, which returns this method's messages
+    /// <i>and</i> the structured per-item errors from the same traversal. This wrapper stays for
+    /// external callers; asking for both shapes through this method and
+    /// <see cref="ValidateItemsAsync" /> in turn is what ran every item validator twice (#329).
+    /// </remarks>
     public async Task<List<string>> ValidateAsync(TModel model, IServiceProvider services)
+        => [.. (await ValidateAllAsync(model, services)).Messages];
+
+    /// <summary>
+    /// Validates the collection <b>once</b> and returns both shapes its callers need: the flat,
+    /// human-formatted messages for the collection's own field identifier, and the structured
+    /// per-item errors for the nested <c>Items[i].Field</c> identifiers (#91).
+    /// </summary>
+    /// <remarks>
+    /// Callers needing both used to obtain them by awaiting <see cref="ValidateAsync" /> and then
+    /// <see cref="ValidateItemsAsync" /> — and because the former already awaits the latter, that ran
+    /// every item field's validators twice per pass. Harmless-looking (each message still lands once,
+    /// on its own identifier) and not harmless at all for a validator that calls an API or has any
+    /// other side effect (#329). One traversal now feeds both, with the flat messages derived from
+    /// the structured errors.
+    /// </remarks>
+    /// <param name="model">The parent model instance.</param>
+    /// <param name="services">The service provider for dependency injection.</param>
+    /// <returns>The flat messages and the structured per-item errors from a single traversal.</returns>
+    public async Task<CollectionValidationResult> ValidateAllAsync(TModel model, IServiceProvider services)
+    {
+        var itemErrors = await ValidateItemsAsync(model, services);
+        return new CollectionValidationResult(BuildMessages(model, itemErrors), itemErrors);
+    }
+
+    /// <summary>
+    /// Validates a <b>single</b> item field — the one cell a field-change notification names — rather
+    /// than the whole collection.
+    /// </summary>
+    /// <remarks>
+    /// The field-changed path used to call <see cref="ValidateItemsAsync" /> and discard every result
+    /// but the matching cell. Since #203 a keystroke in any row raises that notification, so a
+    /// 50-row × 5-field form ran 250 validator invocations per character and used one of them; with
+    /// an async validator, that is 250 awaited calls (#329).
+    /// </remarks>
+    /// <param name="model">The parent model instance.</param>
+    /// <param name="itemIndex">Index of the item whose field changed.</param>
+    /// <param name="fieldName">Name of the item field that changed.</param>
+    /// <param name="services">The service provider for dependency injection.</param>
+    /// <returns>The errors for that one cell. Empty if it is valid, or if the cell does not exist.</returns>
+    public async Task<List<CollectionItemError>> ValidateItemFieldAsync(
+        TModel model,
+        int itemIndex,
+        string fieldName,
+        IServiceProvider services)
+    {
+        var errors = new List<CollectionItemError>();
+        var items = _configuration.CollectionAccessor(model);
+
+        if (items == null || _configuration.ItemFormConfiguration == null)
+        {
+            return errors;
+        }
+
+        // The index can be stale: a row removed between the notification and this call would
+        // previously just fail to match during the filter, so an out-of-range index stays a no-op.
+        if (itemIndex < 0 || itemIndex >= items.Count)
+        {
+            return errors;
+        }
+
+        var item = items[itemIndex];
+
+        // EVERY field configuration carrying this name, not just the first. An item form can declare
+        // more than one configuration for the same property, and the full pass validates them all —
+        // so matching only the first would make a keystroke silently erase the others' messages
+        // until the next submit put them back.
+        foreach (var field in _configuration.ItemFormConfiguration.Fields)
+        {
+            if (field.FieldName != fieldName)
+            {
+                continue;
+            }
+
+            var value = FieldValueGetterCache<TItem>.GetOrCompile(field)(item);
+
+            foreach (var validator in field.Validators)
+            {
+                var result = await validator.ValidateAsync(item, value, services);
+                if (!result.IsValid)
+                {
+                    errors.Add(new CollectionItemError(itemIndex, field.FieldName, result.ErrorMessage!));
+                }
+            }
+        }
+
+        return errors;
+    }
+
+    /// <summary>
+    /// Projects one traversal's structured errors into the flat, collection-level messages: the
+    /// item-count rules first, then one line per item error in the order the traversal produced them.
+    /// </summary>
+    private List<string> BuildMessages(TModel model, List<CollectionItemError> itemErrors)
     {
         var errors = new List<string>();
         var items = _configuration.CollectionAccessor(model);
@@ -45,8 +144,6 @@ public class CollectionFieldValidator<TModel, TItem>
             errors.Add($"{_configuration.Label ?? _configuration.FieldName} allows at most {_configuration.MaxItems} item(s).");
         }
 
-        // Validate individual items using the item form configuration
-        var itemErrors = await ValidateItemsAsync(model, services);
         foreach (var itemError in itemErrors)
         {
             var field = _configuration.ItemFormConfiguration?.Fields
