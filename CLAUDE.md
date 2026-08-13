@@ -22,26 +22,53 @@ dotnet build /p:TreatWarningsAsErrors=true
 ```
 
 ### Running Tests
+
+The test projects are **Microsoft.Testing.Platform** hosts, not VSTest. That changes how you filter —
+see the warning below the commands, which is the part that costs time if you skip it.
+
 ```bash
-# Run all tests (600+ unit tests across 2 test projects)
+# Run everything — 1340 tests across the three test projects (808 + 464 + 68)
 dotnet test
 
-# Run specific test project
+# Run one test project
 dotnet test FormCraft.UnitTests/FormCraft.UnitTests.csproj
 dotnet test FormCraft.ForMudBlazor.UnitTests/FormCraft.ForMudBlazor.UnitTests.csproj
+dotnet test FormCraft.ForFluentUI.UnitTests/FormCraft.ForFluentUI.UnitTests.csproj
 
-# Run tests with coverage
-dotnet test --collect:"XPlat Code Coverage"
+# Run one class — everything after `--` is forwarded to the test host.
+# Always name the .csproj: run solution-wide, the filter is applied to all three
+# assemblies and the two that match nothing report Failed!, exiting 1.
+dotnet test FormCraft.UnitTests/FormCraft.UnitTests.csproj -c Release \
+  -- --filter-class FormCraft.UnitTests.Ci.GitignoreTests
 
-# Run specific test class or method
-dotnet test --filter "FullyQualifiedName~FormBuilderTests"
-dotnet test --filter "DisplayName~Should_Build_Valid_Configuration"
-
-# Run tests by category
-dotnet test --filter "Category=Builder"
-dotnet test --filter "Category=Renderer"
-dotnet test --filter "Category=Security"
+# Same filter without the build step (~200ms). Run `dotnet build -c Release` first,
+# or you are testing a stale binary.
+FormCraft.UnitTests/bin/Release/net10.0/FormCraft.UnitTests \
+  --filter-class FormCraft.UnitTests.Ci.GitignoreTests
 ```
+
+Filters: `--filter-class`, `--filter-method`, `--filter-namespace`, their `--filter-not-*`
+counterparts, and `--filter-uid`. `*` wildcards work at either end. `--filter-method` wants the
+**fully-qualified** name (`<namespace>.<class>.<method>`) — a bare method name matches nothing.
+
+⛔ **The VSTest spellings are silently ignored here.** Passing `--filter` to `dotnet test` (rather
+than after `--`) forwards it as an MSBuild property that Microsoft.Testing.Platform discards with a
+lone `MTP0001` warning — **the whole suite runs** while the command looks filtered, and exits `0`.
+The same applies to `--collect:"XPlat Code Coverage"`, which additionally writes no coverage file at
+all; coverage is not currently wired up for these projects (no MTP coverage extension is referenced),
+so there is no working substitute to reach for. Filtering by `Category=…` never worked either: no
+test in this repo carries a `[Trait]`. `FormCraft.UnitTests/Ci/ClaudeMdTestCommandsTests` fails the
+build if these spellings return to this file.
+
+⚠️ **Check the summary line, not the exit code.** A mistyped flag prints `--help`, runs nothing, and
+emits no summary at all — so `grep 'Failed!'` finds nothing and reads as green — while a pipe
+(`| tail`, `| grep`) replaces `$?` with the pipe's `0`. A filter matching nothing reports
+`Zero tests ran` from the host, or `Failed! … Total: 0` via `dotnet test`. Require a real
+`Passed!`/`Failed!` line **and** a plausible count.
+
+Full trap list and the measurements behind all of this:
+[`.claude/skills/repo-profile.md`](.claude/skills/repo-profile.md) → *Build & test* → *Single-suite
+filter*. Kept there rather than duplicated here so the two cannot drift apart.
 
 ### Running the Demo Application
 ```bash
