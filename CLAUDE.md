@@ -276,6 +276,24 @@ public interface IUIFrameworkAdapter
   components since #203 (one hint per row), two forms over one model collide the same way, and two
   nested fields can share a member name. A test using two *different* fields cannot catch this —
   different names never collide; the real case is the same field rendered twice
+- **A control whose `@if` depends on the value its own handler clears must move focus deliberately**
+  — otherwise activating it unmounts the element the keyboard user is standing on and focus falls to
+  `<body>`, restarting the next <kbd>Tab</kbd> from the top of the document (WCAG 2.1 **2.4.3 Focus
+  Order**, Level A). Both upload components' **Clear** buttons are exactly this shape, so
+  `ClearAsync` ends by awaiting `FocusBrowseAsync()` — shared on
+  `MudBlazorFileUploadComponentBase`, per-instance via `@ref`, so focus lands on the *cleared*
+  field's Browse button rather than the first upload on the page (#281). **Browse** is the target
+  because it carries #262's `aria-describedby`, so the requirement is announced at the moment
+  clearing makes the field unsatisfied. ⛔ Don't let the focus call throw: the clear has already
+  succeeded, so a dead reference/disposed component/dropped circuit is swallowed, not raised
+- **Asserting focus in bUnit: assert the interop call, not DOM state.** bUnit models no real focus.
+  `MudButton.FocusAsync()` records `Blazor._internal.domWrapper.focus` with the target
+  `ElementReference` as `Arguments[0]` (measured on bUnit 2.9.0 / MudBlazor 9.8.0). MudButton exposes
+  **no public** `ElementReference` — it lives in a private `MudBaseButton._elementReference` — and
+  bUnit renders `blazor:elementReference` **empty**, so to say *which* button was focused, learn its
+  id through the public API: call `FocusAsync()` on the candidate and read the id back off the
+  recording (the id survives the clear re-render). ⛔ Don't reflect into MudBlazor's private field;
+  it breaks on any patch release. See `FileUploadClearFocusTests`
 
 #### Testing Patterns
 ```csharp
