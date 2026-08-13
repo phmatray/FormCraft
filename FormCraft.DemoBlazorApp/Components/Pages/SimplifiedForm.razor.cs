@@ -102,8 +102,12 @@ public partial class SimplifiedForm
         _isSubmitting = true;
         StateHasChanged();
 
-        // Simulate API call
-        await Task.Delay(2000);
+        // Simulate API call. DelayAsync reports false if the visitor navigated away while we waited —
+        // there is then no component left to re-render.
+        if (!await DelayAsync(2000))
+        {
+            return;
+        }
 
         _isSubmitted = true;
         _isSubmitting = false;

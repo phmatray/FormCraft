@@ -59,9 +59,10 @@
       `Zero tests ran` (exit `8`), which is easy to skim past as success. A wildcard
       (`--filter-method '*Clearing_A_Standalone*'`) is the ergonomic escape.
     - ⚠️ **`--filter-trait` is dead weight here:** no test in this repo carries a `[Trait]`, so
-      `--filter-trait 'Category=Builder'` returns `Zero tests ran`. Note `CLAUDE.md` still
-      advertises `dotnet test --filter "Category=Builder"`, which is wrong twice over — the option
-      is inert *and* the trait does not exist. Filter by class or namespace instead.
+      `--filter-trait 'Category=Builder'` returns `Zero tests ran`. Filter by class or namespace
+      instead. (`CLAUDE.md` used to advertise `dotnet test --filter "Category=Builder"`, wrong twice
+      over — inert option, non-existent trait. Corrected in #299, which also added
+      `FormCraft.UnitTests/Ci/ClaudeMdTestCommandsTests` to stop it coming back.)
   - ⛔ **`dotnet test --filter …` really is inert** — the true half of the advice this bullet
     replaced. It is a VSTest option forwarded as an MSBuild property that MTP ignores, warning
     `MTP0001: VSTest-specific properties are set but will be ignored … VSTestTestCaseFilter` while
@@ -90,11 +91,13 @@
     and reports green on a command that failed — this single form defeats the rule directly above,
     which is why the example names its project.
   - **Scope:** this is *within-task* iteration only. It does **not** replace the *CI gates* below —
-    `./build.cmd Test` stays the pre-merge gate and still runs everything: 808 + 464 + 68 = 1340
-    tests, ~30s including `Compile`. Bare `dotnet test -c Release` runs the same three suites in
-    ~11s warm. ⚠️ **Neither prints a `1340` aggregate** — you get one `Passed!` line *per assembly*,
-    in nondeterministic order, so a check that reads the first one accepts `Total: 68` as the whole
-    suite. Confirm all three assemblies reported, or trust the process exit code for the full run
+    `./build.cmd Test` stays the pre-merge gate and still runs everything: **~1,550 tests** across
+    the three projects, ~30s including `Compile`. Bare `dotnet test -c Release` runs the same three
+    suites in ~11s warm. (Approximate on purpose — the precise `808 + 464 + 68 = 1340` recorded here
+    by #290 was stale within a day, which is the whole failure mode this section is about.)
+    ⚠️ **Neither prints an aggregate** — you get one `Passed!` line *per assembly*,
+    in nondeterministic order, so a check that reads the first one accepts one project's total as the
+    whole suite. Confirm all three assemblies reported, or trust the process exit code for the full run
     (unpiped). Filter to iterate; run one of these before you claim done.
 - **Format/lint apply:** `dotnet format FormCraft.sln`
 - **Format/lint verify (the gate):** *CI runs no `dotnet format` check.* The enforcing gate is the

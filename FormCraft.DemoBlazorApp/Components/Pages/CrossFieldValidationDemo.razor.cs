@@ -7,7 +7,8 @@ using MudBlazor;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
 
-public partial class CrossFieldValidationDemo : ComponentBase
+// Base supplied by @inherits DemoComponentBase in the .razor (see AsyncValueProviderDemo).
+public partial class CrossFieldValidationDemo
 {
     private BookingModel _model = new();
     private IFormConfiguration<BookingModel>? _formConfig;
@@ -131,7 +132,10 @@ public partial class CrossFieldValidationDemo : ComponentBase
         _validationErrors.Clear();
         StateHasChanged();
 
-        await Task.Delay(1500);
+        if (!await DelayAsync(1500))
+        {
+            return;
+        }
 
         _submitted = true;
         _isSubmitting = false;
