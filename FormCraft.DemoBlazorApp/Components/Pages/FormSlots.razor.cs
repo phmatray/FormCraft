@@ -150,7 +150,13 @@ public partial class FormSlots
             _countdownTimer?.Stop();
         }
 
-        InvokeAsync(StateHasChanged);
+        // Stopping the timer in Dispose does not unqueue a tick that has already fired, so this
+        // callback can arrive after teardown and render a disposed component — the same defect as the
+        // delayed re-renders, reached through a timer instead of an await.
+        if (!IsDisposed)
+        {
+            InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task HandleValidSubmit()
