@@ -209,8 +209,8 @@ public class CollectionAdornmentTests : MudBlazorTestBase
         // This needs one item form holding fields of DIFFERENT types, which the fixture's
         // one-field-per-path builders cannot express — so it goes through MultiFieldItemForm, the
         // shared four-field row added for exactly this (#282). Only the text and collection
-        // callbacks are used here: the numeric and boolean fields render at their defaults, which
-        // keeps the rows' frame counts uneven, which is the property under test.
+        // callbacks are used here; the numeric and boolean fields render at their defaults and are
+        // incidental to this test, which asserts on the adorned text fields and the date pickers.
         var model = NewMixedItems(
             new MixedItem { Name = "first", When = new DateTime(2020, 1, 1) },
             new MixedItem { Name = "second", When = new DateTime(2030, 12, 31) });

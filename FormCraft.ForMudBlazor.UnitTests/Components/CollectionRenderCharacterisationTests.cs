@@ -302,9 +302,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
         var config = MultiFieldItemForm(
             configureBoolean: field => field.WithAttribute("DisplayStyle", BooleanDisplayStyle.Switch));
 
-        var component = Render<FormCraftComponent<MixedItemModel>>(parameters => parameters
-            .Add(p => p.Model, NewMixedItems(new MixedItem()))
-            .Add(p => p.Configuration, config));
+        var component = this.RenderItemForm(NewMixedItems(new MixedItem()), config);
 
         component.FindComponents<MudSwitch<bool>>().Count.ShouldBe(1);
         component.FindComponents<MudCheckBox<bool>>().ShouldBeEmpty();
@@ -332,9 +330,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
                 .WithAttribute("MinDate", new DateTime(2020, 1, 1))
                 .WithAttribute("MaxDate", new DateTime(2030, 12, 31)));
 
-        var picker = Render<FormCraftComponent<MixedItemModel>>(parameters => parameters
-                .Add(p => p.Model, NewMixedItems(new MixedItem()))
-                .Add(p => p.Configuration, config))
+        var picker = this.RenderItemForm(NewMixedItems(new MixedItem()), config)
             .FindComponent<MudDatePicker>().Instance;
 
         picker.MinDate.ShouldBe(new DateTime(2020, 1, 1));
@@ -352,9 +348,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
                 .WithAttribute("Min", 5)
                 .WithAttribute("Max", 50));
 
-        var numeric = Render<FormCraftComponent<MixedItemModel>>(parameters => parameters
-                .Add(p => p.Model, NewMixedItems(new MixedItem()))
-                .Add(p => p.Configuration, config))
+        var numeric = this.RenderItemForm(NewMixedItems(new MixedItem()), config)
             .FindComponent<MudNumericField<int>>().Instance;
 
         numeric.Min.ShouldBe(5);
@@ -408,10 +402,15 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     }
 
     /// <summary>
-    /// Renders a four-kind item form (text / numeric / bool / date) next to a
-    /// <see cref="MudPopoverProvider"/> so the date picker works, and hands back the form's
-    /// <see cref="EditContext"/>.
+    /// Renders the fixture's four-kind item form (text / numeric / bool / date) next to a
+    /// <see cref="MudPopoverProvider"/>, and hands back the form's <see cref="EditContext"/>.
     /// </summary>
+    /// <remarks>
+    /// The provider hosts the date picker's <i>overlay</i>; it is not needed merely to render a
+    /// <c>MudDatePicker</c>. Sibling tests here — and the fixture's own self-tests — render this
+    /// same form through <c>RenderItemForm</c> with no provider and pass, so read this as "a picker
+    /// that could be opened", not as a precondition for the picker existing.
+    /// </remarks>
     private (IRenderedComponent<FormCraftComponent<MixedItemModel>> Component, EditContext? EditContext)
         RenderMixedForm(MixedItemModel model)
     {

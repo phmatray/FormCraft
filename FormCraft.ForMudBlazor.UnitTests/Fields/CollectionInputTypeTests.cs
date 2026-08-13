@@ -77,7 +77,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
     {
         // Arrange & Act - unchanged from before #189; guards the forward against regressing the
         // ordinary case into some other input type.
-        var component = RenderOrderForm(TextItemForm(_ => { }));
+        var component = RenderOrderForm(TextItemForm());
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.InputType
@@ -146,7 +146,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
     {
         // Arrange & Act - measured, not assumed: MudTextField's own default is 1, and the component
         // path's fallback is also 1, so the two agree and forwarding changes nothing when unset.
-        var component = RenderOrderForm(TextItemForm(_ => { }));
+        var component = RenderOrderForm(TextItemForm());
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(1);
@@ -171,7 +171,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // renders int.MaxValue when nothing is configured. Parity is with the component path, so
         // that is the value to match — copying MudBlazor's bare default here would make the two
         // paths disagree by exactly the amount this issue exists to remove.
-        var component = RenderOrderForm(TextItemForm(_ => { }));
+        var component = RenderOrderForm(TextItemForm());
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.MaxLength.ShouldBe(int.MaxValue);
@@ -239,7 +239,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // an empty pattern rather than PatternMask(""). MudTextField swaps its input implementation
         // for a MudMask as soon as Mask is non-null, so a non-null empty mask would reroute every
         // unmasked item field through a different component and quietly drop MaxLines with it.
-        var component = RenderOrderForm(TextItemForm(field => field.WithLabel("Product")));
+        var component = RenderOrderForm(TextItemForm());
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
@@ -428,10 +428,9 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         int rows,
         string value = "N/A")
     {
-        var productNames = new string[rows];
-        Array.Fill(productNames, value);
-
-        return this.RenderItemForm(NewOrderWithItems(productNames), config);
+        return this.RenderItemForm(
+            NewOrderWithItems(Enumerable.Repeat(value, rows).ToArray()),
+            config);
     }
 
     private IRenderedComponent<FormCraftComponent<OrderModel>> RenderOrderForm(

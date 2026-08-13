@@ -212,6 +212,15 @@ internal static class CollectionItemFixture
     /// four parallel arrays would be worse at the call site than the object initialiser it replaced.
     /// Pass <c>new MixedItem()</c> for a blank row — the seeds stay the caller's choice here as
     /// everywhere else in this fixture.
+    /// <para>
+    /// ⚠️ <b>Give each row its own <see cref="MixedItem"/>.</b> This is the one factory here that
+    /// stores instances the caller supplied rather than constructing them itself, so
+    /// <c>NewMixedItems(row, row)</c> — or a seed hoisted out of a loop — puts the <i>same object</i>
+    /// in both rows. A reorder test then compares two aliases that cannot disagree, and a
+    /// per-row-binding test asserting row 1's edit left row 0 alone passes without proving anything.
+    /// The sibling factories cannot be misused this way because they build their items internally;
+    /// this one trades that safety for the ability to seed four members at once.
+    /// </para>
     /// </remarks>
     internal static MixedItemModel NewMixedItems(params MixedItem[] rows)
     {
