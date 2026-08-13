@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <!--
+    A SECOND demo application, deliberately separate from FormCraft.DemoBlazorApp (#278).
+
+    The two adapters are mutually exclusive in one DI container - AddFormCraftFluentUI() throws when
+    the MudBlazor adapter is already registered, because renderer selection is first-match-wins and a
+    mixed container renders a half-Material form with no error. Blazor has no per-subtree service
+    provider either, so a Fluent showcase page cannot live inside the MudBlazor demo whatever it
+    injects. Splitting is the only option that leaves both demos honest.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <!-- A showcase, not a library: no XML docs are published from here. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FormCraft\FormCraft.csproj" />
+    <ProjectReference Include="..\FormCraft.ForFluentUI\FormCraft.ForFluentUI.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,16 @@
+@namespace FormCraft.ForFluentUI
+
+@* The visible required marker for a file-upload field's own label (#262, #278).
+
+   Lives here rather than inline in each upload component so the single- and multiple-file
+   components cannot drift — markup divergence between two copies of the same thing is the failure
+   class this library keeps re-filing (#146, #177, #184, #189).
+
+   aria-hidden: the requirement is conveyed programmatically by the browse control's
+   aria-describedby, so announcing "star" here would only duplicate it.
+
+   `formcraft-required-marker` is FormCraft's own hook and the class to select or restyle. The
+   asterisk is a real text node, not CSS `content` — nothing in Fluent's stylesheet draws a required
+   marker for this markup, so there is no framework rule to override. *@
+
+<span class="formcraft-required-marker" aria-hidden="true" data-testid="formcraft-upload-required-marker">&nbsp;*</span>
