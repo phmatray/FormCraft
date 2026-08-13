@@ -8,7 +8,6 @@ namespace FormCraft;
 /// <typeparam name="TValue">The actual type of the field value being validated.</typeparam>
 public class ValidatorWrapper<TModel, TValue> : IFieldValidator<TModel, object>
 {
-    private readonly IFieldValidator<TModel, TValue> _inner;
 
     /// <summary>
     /// Initializes a new instance of the ValidatorWrapper class.
@@ -16,19 +15,19 @@ public class ValidatorWrapper<TModel, TValue> : IFieldValidator<TModel, object>
     /// <param name="inner">The strongly-typed validator to wrap.</param>
     public ValidatorWrapper(IFieldValidator<TModel, TValue> inner)
     {
-        _inner = inner;
+        Inner = inner;
     }
 
     /// <summary>
     /// Gets the strongly-typed validator wrapped by this instance.
     /// </summary>
-    internal IFieldValidator<TModel, TValue> Inner => _inner;
+    internal IFieldValidator<TModel, TValue> Inner { get; }
 
     /// <inheritdoc />
     public string? ErrorMessage
     {
-        get => _inner.ErrorMessage;
-        set => _inner.ErrorMessage = value;
+        get => Inner.ErrorMessage;
+        set => Inner.ErrorMessage = value;
     }
 
     /// <inheritdoc />
@@ -45,6 +44,6 @@ public class ValidatorWrapper<TModel, TValue> : IFieldValidator<TModel, object>
             typedValue = default!;
         }
 
-        return await _inner.ValidateAsync(model, typedValue, services);
+        return await Inner.ValidateAsync(model, typedValue, services);
     }
 }

@@ -534,7 +534,9 @@ public static class MudBlazorFieldBuilderExtensions
         }
 
         if (onItemSelected != null)
+        {
             builder.WithAttribute("LookupOnItemSelected", onItemSelected);
+        }
 
         return builder;
     }

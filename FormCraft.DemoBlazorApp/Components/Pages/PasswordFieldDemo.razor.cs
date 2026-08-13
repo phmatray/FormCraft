@@ -285,8 +285,16 @@ public partial class PasswordFieldDemo
 
     private static string MaskCredential(string value)
     {
-        if (string.IsNullOrEmpty(value)) return "";
-        if (value.Length <= 8) return new string('•', value.Length);
+        if (string.IsNullOrEmpty(value))
+        {
+            return "";
+        }
+
+        if (value.Length <= 8)
+        {
+            return new string('•', value.Length);
+        }
+
         return $"{value[..4]}...{value[^4..]}";
     }
 
@@ -300,12 +308,35 @@ public partial class PasswordFieldDemo
         }
 
         int score = 0;
-        if (password.Length >= 8) score += 20;
-        if (password.Length >= 12) score += 10;
-        if (password.Any(char.IsUpper)) score += 20;
-        if (password.Any(char.IsLower)) score += 20;
-        if (password.Any(char.IsDigit)) score += 20;
-        if (password.Any(c => !char.IsLetterOrDigit(c))) score += 10;
+        if (password.Length >= 8)
+        {
+            score += 20;
+        }
+
+        if (password.Length >= 12)
+        {
+            score += 10;
+        }
+
+        if (password.Any(char.IsUpper))
+        {
+            score += 20;
+        }
+
+        if (password.Any(char.IsLower))
+        {
+            score += 20;
+        }
+
+        if (password.Any(char.IsDigit))
+        {
+            score += 20;
+        }
+
+        if (password.Any(c => !char.IsLetterOrDigit(c)))
+        {
+            score += 10;
+        }
 
         _passwordStrengthScore = Math.Min(score, 100);
     }

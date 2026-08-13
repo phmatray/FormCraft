@@ -93,7 +93,9 @@ public partial class MudBlazorFileUploadFieldComponent<TModel>
         foreach (string order in orders)
         {
             if (bytes > max)
+            {
                 return $"{decimal.Divide(bytes, max):##.##} {order}";
+            }
 
             max /= scale;
         }

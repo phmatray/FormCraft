@@ -28,14 +28,13 @@ namespace FormCraft.DemoBlazorApp.Components.Shared;
 public abstract class DemoComponentBase : ComponentBase, IDisposable
 {
     private readonly CancellationTokenSource _lifetimeCts = new();
-    private bool _disposed;
 
     /// <summary>
     /// Whether the component has been torn down. Check this before calling
     /// <see cref="ComponentBase.StateHasChanged"/> from anything that can outlive the component — a
     /// continuation after <em>any</em> await, or a timer callback.
     /// </summary>
-    protected bool IsDisposed => _disposed;
+    protected bool IsDisposed { get; private set; }
 
     /// <summary>
     /// Waits <paramref name="milliseconds"/> and reports whether the component is still around.
@@ -47,7 +46,7 @@ public abstract class DemoComponentBase : ComponentBase, IDisposable
     /// <remarks>
     /// <para>
     /// Two hazards, both live findings on #285: the token covers the wait itself, and the
-    /// <see cref="_disposed"/> re-check afterwards covers the gap where the timer has already fired and
+    /// <see cref="IsDisposed"/> re-check afterwards covers the gap where the timer has already fired and
     /// the continuation is queued on the dispatcher — cancellation cannot help once that has happened.
     /// </para>
     /// <para>
@@ -64,7 +63,7 @@ public abstract class DemoComponentBase : ComponentBase, IDisposable
     /// </remarks>
     protected async Task<bool> DelayAsync(int milliseconds)
     {
-        if (_disposed)
+        if (IsDisposed)
         {
             return false;
         }
@@ -78,7 +77,7 @@ public abstract class DemoComponentBase : ComponentBase, IDisposable
             return false;
         }
 
-        return !_disposed;
+        return !IsDisposed;
     }
 
     /// <summary>
@@ -90,12 +89,12 @@ public abstract class DemoComponentBase : ComponentBase, IDisposable
     /// </remarks>
     public virtual void Dispose()
     {
-        if (_disposed)
+        if (IsDisposed)
         {
             return;
         }
 
-        _disposed = true;
+        IsDisposed = true;
         _lifetimeCts.Cancel();
         _lifetimeCts.Dispose();
         GC.SuppressFinalize(this);

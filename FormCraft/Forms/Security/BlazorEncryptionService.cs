@@ -55,7 +55,9 @@ public class BlazorEncryptionService : IEncryptionService
     public string? Encrypt(string? value)
     {
         if (string.IsNullOrEmpty(value))
+        {
             return value;
+        }
 
         var data = Encoding.UTF8.GetBytes(value);
         var encrypted = new byte[data.Length];
@@ -76,7 +78,9 @@ public class BlazorEncryptionService : IEncryptionService
     public string? Decrypt(string? encryptedValue)
     {
         if (string.IsNullOrEmpty(encryptedValue))
+        {
             return encryptedValue;
+        }
 
         byte[] encrypted;
         try
@@ -107,12 +111,16 @@ public class BlazorEncryptionService : IEncryptionService
         // Prefer a Base64-encoded 32-byte key.
         var base64Buffer = new byte[keyString.Length];
         if (Convert.TryFromBase64String(keyString, base64Buffer, out var bytesWritten) && bytesWritten == KeySizeInBytes)
+        {
             return base64Buffer[..bytesWritten];
+        }
 
         // Fall back to a raw string whose UTF-8 representation is exactly 32 bytes.
         var utf8Key = Encoding.UTF8.GetBytes(keyString);
         if (utf8Key.Length == KeySizeInBytes)
+        {
             return utf8Key;
+        }
 
         throw new InvalidOperationException(
             $"The configured '{KeyConfigurationPath}' is invalid. Provide a Base64-encoded {KeySizeInBytes}-byte key " +

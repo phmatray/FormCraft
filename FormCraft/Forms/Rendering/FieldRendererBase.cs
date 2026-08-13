@@ -1,6 +1,6 @@
+using System.Reflection;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
-using System.Reflection;
 
 namespace FormCraft;
 
@@ -92,7 +92,9 @@ public abstract class FieldRendererBase : IFieldRenderer
     {
         var genericArgs = genericType.GetGenericArguments();
         if (parameterIndex >= genericArgs.Length)
+        {
             return false;
+        }
 
         var attributes = genericArgs[parameterIndex].GenericParameterAttributes;
 

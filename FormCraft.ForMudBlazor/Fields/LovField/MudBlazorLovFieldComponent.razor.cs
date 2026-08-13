@@ -11,16 +11,14 @@ namespace FormCraft.ForMudBlazor;
 /// <typeparam name="TItem">The type of items in the LOV.</typeparam>
 public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
 {
-    private ILovConfiguration<TItem, TValue>? _lovConfig;
     private ILovDataProvider<TItem>? _dataProvider;
     private readonly List<TItem> _selectedItems = [];
-    private string? _displayText;
     private bool _isLoading;
 
     /// <summary>
     /// Gets the LOV configuration.
     /// </summary>
-    protected ILovConfiguration<TItem, TValue>? LovConfig => _lovConfig;
+    protected ILovConfiguration<TItem, TValue>? LovConfig { get; private set; }
 
     /// <summary>
     /// Suppresses the ShrinkLabel diagnostic (#181) for LOV fields.
@@ -37,7 +35,7 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     /// <summary>
     /// Gets whether multiple selection is enabled.
     /// </summary>
-    protected bool IsMultiSelect => _lovConfig?.SelectionMode == LovSelectionMode.Multiple;
+    protected bool IsMultiSelect => LovConfig?.SelectionMode == LovSelectionMode.Multiple;
 
     /// <summary>
     /// Gets the list of selected items.
@@ -47,7 +45,7 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     /// <summary>
     /// Gets the display text for the field.
     /// </summary>
-    protected string? DisplayText => _displayText;
+    protected string? DisplayText { get; private set; }
 
     /// <summary>
     /// Gets the CSS class for the field.
@@ -61,8 +59,16 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     {
         get
         {
-            if (_isLoading) return Icons.Material.Filled.HourglassEmpty;
-            if (CurrentValue != null && !IsMultiSelect) return Icons.Material.Filled.Clear;
+            if (_isLoading)
+            {
+                return Icons.Material.Filled.HourglassEmpty;
+            }
+
+            if (CurrentValue != null && !IsMultiSelect)
+            {
+                return Icons.Material.Filled.Clear;
+            }
+
             return Icons.Material.Filled.Search;
         }
     }
@@ -85,12 +91,12 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
         // handing the same stale list to the picker dialog as its pre-selection. The reload-not-patch
         // rule applies to state derived from the configuration, not only to the properties (#298).
         _selectedItems.Clear();
-        _displayText = null;
+        DisplayText = null;
         _isLoading = false;
 
-        _lovConfig = GetAttribute<ILovConfiguration<TItem, TValue>>("LovConfiguration");
+        LovConfig = GetAttribute<ILovConfiguration<TItem, TValue>>("LovConfiguration");
 
-        if (_lovConfig == null)
+        if (LovConfig == null)
         {
             throw new InvalidOperationException(
                 "LovConfiguration is required. Use .AsLov() extension method to configure the field.");
@@ -105,16 +111,18 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
 
     private void InitializeDataProvider()
     {
-        if (_lovConfig == null) return;
-
-        var factory = ServiceProvider.GetService(typeof(ILovDataProviderFactory)) as ILovDataProviderFactory;
-        if (factory != null)
+        if (LovConfig == null)
         {
-            _dataProvider = factory.Create<TItem, TValue>(_lovConfig);
+            return;
         }
-        else if (_lovConfig.DataProvider != null)
+
+        if (ServiceProvider.GetService(typeof(ILovDataProviderFactory)) is ILovDataProviderFactory factory)
         {
-            _dataProvider = new LambdaLovDataProvider<TItem>(_lovConfig.DataProvider, null);
+            _dataProvider = factory.Create<TItem, TValue>(LovConfig);
+        }
+        else if (LovConfig.DataProvider != null)
+        {
+            _dataProvider = new LambdaLovDataProvider<TItem>(LovConfig.DataProvider, null);
         }
     }
 
@@ -122,24 +130,24 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     {
         if (CurrentValue == null || EqualityComparer<TValue>.Default.Equals(CurrentValue, default))
         {
-            _displayText = null;
+            DisplayText = null;
             return;
         }
 
         if (IsMultiSelect)
         {
-            _displayText = _selectedItems.Count > 0
+            DisplayText = _selectedItems.Count > 0
                 ? $"{_selectedItems.Count} item(s) selected"
                 : null;
         }
         else if (_selectedItems.Count > 0)
         {
-            _displayText = GetItemDisplayText(_selectedItems[0]);
+            DisplayText = GetItemDisplayText(_selectedItems[0]);
         }
         else
         {
             // Try to get display text from cached value or show the value itself
-            _displayText = CurrentValue?.ToString();
+            DisplayText = CurrentValue?.ToString();
         }
     }
 
@@ -148,7 +156,7 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     /// </summary>
     protected string GetItemDisplayText(TItem item)
     {
-        return _lovConfig?.DisplaySelector(item) ?? item?.ToString() ?? string.Empty;
+        return LovConfig?.DisplaySelector(item) ?? item?.ToString() ?? string.Empty;
     }
 
     /// <summary>
@@ -156,7 +164,10 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     /// </summary>
     private async Task HandleAdornmentClick()
     {
-        if (IsDisabled || IsReadOnly) return;
+        if (IsDisabled || IsReadOnly)
+        {
+            return;
+        }
 
         // If there's a value and it's single select, clear it
         if (CurrentValue != null && !IsMultiSelect)
@@ -173,7 +184,10 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     /// </summary>
     private async Task OpenLovDialog()
     {
-        if (_lovConfig == null || _dataProvider == null) return;
+        if (LovConfig == null || _dataProvider == null)
+        {
+            return;
+        }
 
         _isLoading = true;
         StateHasChanged();
@@ -182,7 +196,7 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
         {
             var parameters = new DialogParameters<LovSelectionDialog<TItem, TValue>>
             {
-                { x => x.LovConfig, _lovConfig },
+                { x => x.LovConfig, LovConfig },
                 { x => x.DataProvider, _dataProvider },
                 { x => x.SelectedItems, _selectedItems.ToList() },
                 { x => x.ServiceProvider, ServiceProvider }
@@ -190,15 +204,15 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
 
             var options = new DialogOptions
             {
-                MaxWidth = ConvertModalSize(_lovConfig.ModalOptions.Size),
+                MaxWidth = ConvertModalSize(LovConfig.ModalOptions.Size),
                 FullWidth = true,
                 CloseButton = true,
-                CloseOnEscapeKey = _lovConfig.ModalOptions.CloseOnEscapeKey,
-                BackdropClick = _lovConfig.ModalOptions.CloseOnBackdropClick
+                CloseOnEscapeKey = LovConfig.ModalOptions.CloseOnEscapeKey,
+                BackdropClick = LovConfig.ModalOptions.CloseOnBackdropClick
             };
 
             var dialog = await DialogService.ShowAsync<LovSelectionDialog<TItem, TValue>>(
-                _lovConfig.ModalOptions.Title,
+                LovConfig.ModalOptions.Title,
                 parameters,
                 options);
 
@@ -224,13 +238,16 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
         _selectedItems.Clear();
         _selectedItems.AddRange(items);
 
-        if (_lovConfig == null) return;
+        if (LovConfig == null)
+        {
+            return;
+        }
 
         if (IsMultiSelect)
         {
             // For multi-select, we'd need to handle IEnumerable<TValue>
             // This is a simplified implementation
-            var values = items.Select(_lovConfig.ValueSelector).ToList();
+            var values = items.Select(LovConfig.ValueSelector).ToList();
             // Note: This cast may need adjustment based on actual TValue type
             var typedValues = (TValue)(object)values;
             SetValueWithoutNotification(typedValues);
@@ -241,7 +258,7 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
             var item = items.FirstOrDefault();
             if (item != null)
             {
-                var value = _lovConfig.ValueSelector(item);
+                var value = LovConfig.ValueSelector(item);
                 // Update our own state first so the display text and the
                 // adornment reflect the selection immediately
                 SetValueWithoutNotification(value);
@@ -265,10 +282,13 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     /// </summary>
     private async Task ApplyFieldMappings(TItem item)
     {
-        if (_lovConfig == null || Context.Model == null) return;
+        if (LovConfig == null || Context.Model == null)
+        {
+            return;
+        }
 
         // Apply each mapping directly
-        foreach (var mapping in _lovConfig.FieldMappings)
+        foreach (var mapping in LovConfig.FieldMappings)
         {
             if (mapping is IAsyncLovFieldMapping asyncMapping)
             {
@@ -290,15 +310,15 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     private async Task ClearSelection()
     {
         _selectedItems.Clear();
-        _displayText = null;
+        DisplayText = null;
         SetValueWithoutNotification(default);
         await NotifyValueChangedAsync(default);
 
         // Clear mapped fields by setting them to default values
-        if (_lovConfig != null && Context.Model != null)
+        if (LovConfig != null && Context.Model != null)
         {
             var modelType = Context.Model.GetType();
-            foreach (var mapping in _lovConfig.FieldMappings)
+            foreach (var mapping in LovConfig.FieldMappings)
             {
                 var property = modelType.GetProperty(mapping.TargetProperty);
                 if (property?.CanWrite == true)
