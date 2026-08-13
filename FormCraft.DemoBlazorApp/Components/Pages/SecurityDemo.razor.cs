@@ -176,13 +176,21 @@ public partial class SecurityDemo
             // Reset form
             _model = new SecureUserModel();
 
-            // Simulate processing delay
-            await Task.Delay(1000);
+            // Simulate processing delay. The return value is deliberately ignored here: the finally
+            // below runs either way, so the disposal check has to live there rather than in an early
+            // return, which would skip nothing.
+            await DelayAsync(1000);
         }
         finally
         {
             _isSubmitting = false;
-            StateHasChanged();
+
+            // Guarded here, not above: a `finally` runs even when the try returns early, so this is
+            // the only place that actually protects the render.
+            if (!IsDisposed)
+            {
+                StateHasChanged();
+            }
         }
     }
 
