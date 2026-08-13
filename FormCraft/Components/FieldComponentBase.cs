@@ -58,12 +58,21 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
         StateHasChanged(); // Force re-render after value change
     }
 
+    /// <summary>
+    /// Tracks which field this instance's cached configuration was loaded from (#298, #335).
+    /// </summary>
+    private readonly FieldConfigurationTracker _fieldTracker = new();
+
     /// <inheritdoc />
     protected override void OnInitialized()
     {
         base.OnInitialized();
         LoadValueFromModel();
         _isInitialized = true;
+
+        // Before the derived component's own OnInitialized body runs — it calls base.OnInitialized()
+        // first, so its configuration is loaded by the time the rest of that body looks at it.
+        RefreshFieldConfigurationIfChanged();
     }
 
     /// <inheritdoc />
@@ -76,6 +85,55 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
         {
             LoadValueFromModel();
         }
+
+        // Blazor reuses a component instance whenever the render-tree shape matches, so this is the
+        // only place a component learns it has been handed a different field. Without it the instance
+        // renders the previous field's settings indefinitely — silently, with plausible-looking
+        // output (#298 for MudBlazor, #335 for Fluent UI).
+        RefreshFieldConfigurationIfChanged();
+    }
+
+    /// <summary>
+    /// Calls <see cref="OnFieldConfigurationChanged"/> when, and only when, the field changed.
+    /// </summary>
+    /// <remarks>
+    /// The guard — see <see cref="FieldConfigurationTracker"/> — is what makes this affordable:
+    /// <see cref="OnParametersSet"/> runs on every keystroke for an immediately-bound input, so the
+    /// alternative is re-reading every attribute per character typed.
+    /// </remarks>
+    private void RefreshFieldConfigurationIfChanged()
+    {
+        if (_fieldTracker.HasChanged(Context?.Field))
+        {
+            OnFieldConfigurationChanged();
+        }
+    }
+
+    /// <summary>
+    /// Reads everything this component caches from <c>Context.Field</c>. Called once per field.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Override this instead of loading configuration in <c>OnInitialized</c>. It runs on first render
+    /// and again whenever a different field arrives, so a component that puts all of its
+    /// <c>GetAttribute</c> calls here can never render a stale setting.
+    /// </para>
+    /// <para>
+    /// ⛔ <b>Assign every cached property on every call, including back to its default.</b> The
+    /// override is a reload, not a patch: a property left untouched because the new field does not
+    /// declare that attribute keeps the <i>previous</i> field's value, which is the same bug in a
+    /// smaller box. Watch for two shapes in particular, both of which shipped and had to be fixed —
+    /// <c>X = GetAttribute(…) ?? X</c>, which reads as "keep the default" and means "keep the previous
+    /// field's value" on a reload; and an assignment guarded by <c>if (value != null)</c>.
+    /// </para>
+    /// <para>
+    /// State <i>derived</i> from the configuration counts too — display text, a selected-items list, a
+    /// revealed-password flag — along with any per-instance diagnostic latch, since a new field
+    /// deserves its own verdict.
+    /// </para>
+    /// </remarks>
+    protected virtual void OnFieldConfigurationChanged()
+    {
     }
 
     /// <summary>

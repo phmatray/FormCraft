@@ -482,82 +482,25 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// </summary>
     protected virtual bool SuppressShrinkLabelDiagnostic => false;
 
-    /// <summary>
-    /// Tracks which field this instance's cached properties were loaded from (#298).
-    /// </summary>
-    private readonly FieldConfigurationTracker _fieldTracker = new();
-
-    /// <inheritdoc />
-    protected override void OnInitialized()
-    {
-        base.OnInitialized();
-
-        // Before the derived component's own OnInitialized body runs — it calls base.OnInitialized()
-        // first, so its configuration is loaded by the time its diagnostics look at it.
-        RefreshFieldConfigurationIfChanged();
-    }
-
     /// <inheritdoc />
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
-
-        // #298. Blazor reuses a component instance whenever the render-tree shape matches, so this is
-        // the only place a component learns it has been handed a different field. Without it the
-        // instance renders the previous field's mask, adornment and input type indefinitely — silently,
-        // and with output that looks entirely plausible.
-        RefreshFieldConfigurationIfChanged();
-
         EmitShrinkLabelDiagnosticIfNeeded();
     }
 
-    /// <summary>
-    /// Calls <see cref="OnFieldConfigurationChanged"/> when, and only when, the field changed.
-    /// </summary>
+    /// <inheritdoc />
     /// <remarks>
-    /// The guard — see <see cref="FieldConfigurationTracker"/> — is what makes this affordable:
-    /// <see cref="OnParametersSet"/> runs on every keystroke, so the alternative is re-reading every
-    /// attribute per character typed.
+    /// Resets this base's own latch on the same terms the hook's docs ask derived components to reset
+    /// theirs. A ShrinkLabel conflict is a fact about a FIELD, so an instance that reported one for
+    /// its first field must still be able to report one for the next — otherwise a reused component
+    /// goes permanently silent about every field after the first (#298).
     /// </remarks>
-    private void RefreshFieldConfigurationIfChanged()
+    protected override void OnFieldConfigurationChanged()
     {
-        if (!_fieldTracker.HasChanged(Context?.Field))
-        {
-            return;
-        }
+        base.OnFieldConfigurationChanged();
 
-        // The base's own latch, reset on the same terms the hook's docs ask derived components to
-        // reset theirs. A ShrinkLabel conflict is a fact about a FIELD, so an instance that reported
-        // one for its first field must still be able to report one for the next — otherwise a reused
-        // component goes permanently silent about every field after the first (#298).
         _shrinkLabelDiagnosticEmitted = false;
-
-        OnFieldConfigurationChanged();
-    }
-
-    /// <summary>
-    /// Reads everything this component caches from <c>Context.Field</c>. Called once per field (#298).
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Override this instead of loading configuration in <c>OnInitialized</c>. It runs on first render
-    /// and again whenever a different field arrives, so a component that puts all of its
-    /// <c>GetAttribute</c> calls here can never render a stale setting.
-    /// </para>
-    /// <para>
-    /// ⛔ <b>Assign every cached property on every call, including back to its default.</b> The override
-    /// is a reload, not a patch: a property left untouched because the new field does not declare that
-    /// attribute keeps the <i>previous</i> field's value, which is the same bug in a smaller box. A
-    /// field that dropped its mask would go on masking.
-    /// </para>
-    /// <para>
-    /// Configuration-shaped diagnostics belong here too — they describe the field, so a new field
-    /// deserves its own verdict, and any per-instance latch they use should be reset alongside the
-    /// properties it guards.
-    /// </para>
-    /// </remarks>
-    protected virtual void OnFieldConfigurationChanged()
-    {
     }
 
     /// <summary>
