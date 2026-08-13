@@ -11,7 +11,6 @@ namespace FormCraft;
 /// <typeparam name="TValue">The actual type of the field value.</typeparam>
 public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TModel, object>
 {
-    private readonly IFieldConfiguration<TModel, TValue> _inner;
 
     /// <summary>
     /// Initializes a new instance of the FieldConfigurationWrapper class.
@@ -19,13 +18,11 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
     /// <param name="inner">The strongly-typed field configuration to wrap.</param>
     public FieldConfigurationWrapper(IFieldConfiguration<TModel, TValue> inner)
     {
-        _inner = inner;
+        TypedConfiguration = inner;
     }
 
     /// <inheritdoc />
-    public string FieldName => _inner.FieldName;
-
-    private Expression<Func<TModel, object>>? _valueExpression;
+    public string FieldName => TypedConfiguration.FieldName;
 
     /// <inheritdoc />
     /// <remarks>
@@ -48,42 +45,42 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
     /// </para>
     /// </remarks>
     public Expression<Func<TModel, object>> ValueExpression =>
-        _valueExpression ??= Expression.Lambda<Func<TModel, object>>(
-            Expression.Convert(_inner.ValueExpression.Body, typeof(object)),
-            _inner.ValueExpression.Parameters);
+        field ??= Expression.Lambda<Func<TModel, object>>(
+            Expression.Convert(TypedConfiguration.ValueExpression.Body, typeof(object)),
+            TypedConfiguration.ValueExpression.Parameters);
 
     /// <inheritdoc />
-    public string? Label { get => _inner.Label; set => _inner.Label = value; }
+    public string? Label { get => TypedConfiguration.Label; set => TypedConfiguration.Label = value; }
 
     /// <inheritdoc />
-    public string? Placeholder { get => _inner.Placeholder; set => _inner.Placeholder = value; }
+    public string? Placeholder { get => TypedConfiguration.Placeholder; set => TypedConfiguration.Placeholder = value; }
 
     /// <inheritdoc />
-    public string? HelpText { get => _inner.HelpText; set => _inner.HelpText = value; }
+    public string? HelpText { get => TypedConfiguration.HelpText; set => TypedConfiguration.HelpText = value; }
 
     /// <inheritdoc />
-    public string? CssClass { get => _inner.CssClass; set => _inner.CssClass = value; }
+    public string? CssClass { get => TypedConfiguration.CssClass; set => TypedConfiguration.CssClass = value; }
 
     /// <inheritdoc />
-    public bool IsRequired { get => _inner.IsRequired; set => _inner.IsRequired = value; }
+    public bool IsRequired { get => TypedConfiguration.IsRequired; set => TypedConfiguration.IsRequired = value; }
 
     /// <inheritdoc />
-    public bool IsVisible { get => _inner.IsVisible; set => _inner.IsVisible = value; }
+    public bool IsVisible { get => TypedConfiguration.IsVisible; set => TypedConfiguration.IsVisible = value; }
 
     /// <inheritdoc />
-    public bool IsDisabled { get => _inner.IsDisabled; set => _inner.IsDisabled = value; }
+    public bool IsDisabled { get => TypedConfiguration.IsDisabled; set => TypedConfiguration.IsDisabled = value; }
 
     /// <inheritdoc />
-    public bool IsReadOnly { get => _inner.IsReadOnly; set => _inner.IsReadOnly = value; }
+    public bool IsReadOnly { get => TypedConfiguration.IsReadOnly; set => TypedConfiguration.IsReadOnly = value; }
 
     /// <inheritdoc />
-    public int Order { get => _inner.Order; set => _inner.Order = value; }
+    public int Order { get => TypedConfiguration.Order; set => TypedConfiguration.Order = value; }
 
     /// <inheritdoc />
-    public Dictionary<string, object> AdditionalAttributes => _inner.AdditionalAttributes;
+    public Dictionary<string, object> AdditionalAttributes => TypedConfiguration.AdditionalAttributes;
 
     /// <inheritdoc />
-    public string? InputType { get => _inner.InputType; set => _inner.InputType = value; }
+    public string? InputType { get => TypedConfiguration.InputType; set => TypedConfiguration.InputType = value; }
 
     private List<IFieldValidator<TModel, object>>? _validators;
     private int _wrappedInnerValidatorCount;
@@ -102,10 +99,10 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
         {
             if (_validators == null)
             {
-                _validators = _inner.Validators
+                _validators = TypedConfiguration.Validators
                     .Select<IFieldValidator<TModel, TValue>, IFieldValidator<TModel, object>>(v => new ValidatorWrapper<TModel, TValue>(v))
                     .ToList();
-                _wrappedInnerValidatorCount = _inner.Validators.Count;
+                _wrappedInnerValidatorCount = TypedConfiguration.Validators.Count;
             }
             else
             {
@@ -133,24 +130,24 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
         var typedValidator = validator is ValidatorWrapper<TModel, TValue> wrapper
             ? wrapper.Inner
             : new ObjectValidatorAdapter(validator);
-        _inner.AddValidator(typedValidator);
+        TypedConfiguration.AddValidator(typedValidator);
 
         // Appended to the backing list directly: the public view is IReadOnlyList since #155, and
         // the whole point of that change is that callers cannot do this. Adding the caller's own
         // instance (rather than re-wrapping the one just handed to _inner) keeps reference identity
         // through the object-typed view.
         _validators!.Add(validator);
-        _wrappedInnerValidatorCount = _inner.Validators.Count;
+        _wrappedInnerValidatorCount = TypedConfiguration.Validators.Count;
     }
 
     private void SyncNewInnerValidators()
     {
-        for (var i = _wrappedInnerValidatorCount; i < _inner.Validators.Count; i++)
+        for (var i = _wrappedInnerValidatorCount; i < TypedConfiguration.Validators.Count; i++)
         {
-            _validators!.Add(new ValidatorWrapper<TModel, TValue>(_inner.Validators[i]));
+            _validators!.Add(new ValidatorWrapper<TModel, TValue>(TypedConfiguration.Validators[i]));
         }
 
-        _wrappedInnerValidatorCount = _inner.Validators.Count;
+        _wrappedInnerValidatorCount = TypedConfiguration.Validators.Count;
     }
 
     private sealed class ObjectValidatorAdapter : IFieldValidator<TModel, TValue>
@@ -173,45 +170,43 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
     }
 
     /// <inheritdoc />
-    public List<IFieldDependency<TModel>> Dependencies => _inner.Dependencies;
+    public List<IFieldDependency<TModel>> Dependencies => TypedConfiguration.Dependencies;
 
     /// <inheritdoc />
     public Func<TModel, bool>? VisibilityCondition
     {
-        get => _inner.VisibilityCondition;
-        set => _inner.VisibilityCondition = value;
+        get => TypedConfiguration.VisibilityCondition;
+        set => TypedConfiguration.VisibilityCondition = value;
     }
 
     /// <inheritdoc />
     public Func<TModel, bool>? DisabledCondition
     {
-        get => _inner.DisabledCondition;
-        set => _inner.DisabledCondition = value;
+        get => TypedConfiguration.DisabledCondition;
+        set => TypedConfiguration.DisabledCondition = value;
     }
-
-    private RenderFragment<IFieldContext<TModel, object>>? _customTemplate;
 
     /// <inheritdoc />
     public RenderFragment<IFieldContext<TModel, object>>? CustomTemplate
     {
         get
         {
-            if (_customTemplate != null)
+            if (field != null)
             {
-                return _customTemplate;
+                return field;
             }
 
             // Surface templates configured through the typed builder API by adapting
             // the object-typed render context to the typed one the template expects.
-            var typedTemplate = _inner.CustomTemplate;
+            var typedTemplate = TypedConfiguration.CustomTemplate;
             if (typedTemplate == null)
             {
                 return null;
             }
 
-            return objectContext => typedTemplate(new TypedFieldContextAdapter(objectContext, _inner));
+            return objectContext => typedTemplate(new TypedFieldContextAdapter(objectContext, TypedConfiguration));
         }
-        set => _customTemplate = value;
+        set;
     }
 
     private sealed class TypedFieldContextAdapter : IFieldContext<TModel, TValue>
@@ -246,14 +241,14 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
     /// <inheritdoc />
     public Type? CustomRendererType
     {
-        get => _inner.CustomRendererType;
-        set => _inner.CustomRendererType = value;
+        get => TypedConfiguration.CustomRendererType;
+        set => TypedConfiguration.CustomRendererType = value;
     }
 
     /// <summary>
     /// Gets access to the original typed configuration.
     /// </summary>
-    public IFieldConfiguration<TModel, TValue> TypedConfiguration => _inner;
+    public IFieldConfiguration<TModel, TValue> TypedConfiguration { get; }
 
     /// <summary>
     /// Gets the actual runtime type of the field value.

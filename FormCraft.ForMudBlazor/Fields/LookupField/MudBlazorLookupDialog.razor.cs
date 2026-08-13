@@ -45,7 +45,7 @@ public partial class MudBlazorLookupDialog : ComponentBase
     private string _searchText = string.Empty;
     private object? _selectedItem;
     private bool _loading;
-    private List<ColumnDef> _columnDefinitions = new();
+    private readonly List<ColumnDef> _columnDefinitions = new();
 
     protected override void OnInitialized()
     {
@@ -56,18 +56,24 @@ public partial class MudBlazorLookupDialog : ComponentBase
     private void ExtractColumnDefinitions()
     {
         if (Columns == null)
+        {
             return;
+        }
 
         // The columns parameter is a List<LookupColumn<TItem>> stored as object.
         // We use reflection to extract column info.
         var columnsType = Columns.GetType();
         if (!columnsType.IsGenericType)
+        {
             return;
+        }
 
         var enumerableInterface = columnsType.GetInterfaces()
             .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
         if (enumerableInterface == null)
+        {
             return;
+        }
 
         foreach (var col in (System.Collections.IEnumerable)Columns)
         {
@@ -105,9 +111,10 @@ public partial class MudBlazorLookupDialog : ComponentBase
             };
 
             // Invoke the data provider delegate
-            var task = ((Delegate)DataProvider).DynamicInvoke(query) as Task;
-            if (task == null)
+            if (((Delegate)DataProvider).DynamicInvoke(query) is not Task task)
+            {
                 return new TableData<object> { Items = Array.Empty<object>(), TotalItems = 0 };
+            }
 
             await task;
 
@@ -115,7 +122,9 @@ public partial class MudBlazorLookupDialog : ComponentBase
             var resultProp = task.GetType().GetProperty("Result");
             var result = resultProp?.GetValue(task);
             if (result == null)
+            {
                 return new TableData<object> { Items = Array.Empty<object>(), TotalItems = 0 };
+            }
 
             // Extract Items and TotalCount from LookupResult<TItem>
             var itemsProp = result.GetType().GetProperty("Items");

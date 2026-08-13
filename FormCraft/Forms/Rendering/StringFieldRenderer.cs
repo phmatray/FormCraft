@@ -27,7 +27,9 @@ public class StringFieldRenderer : FieldRendererBase<string>
         protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder)
         {
             if (Context == null)
+            {
                 return;
+            }
 
             var sequence = 0;
             builder.OpenElement(sequence++, "div");

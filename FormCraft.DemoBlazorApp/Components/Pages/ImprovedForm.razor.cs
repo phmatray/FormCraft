@@ -152,7 +152,9 @@ public partial class ImprovedForm
         };
 
         if (!string.IsNullOrEmpty(_model.City))
+        {
             items.Add(new() { Label = "City", Value = _model.City });
+        }
 
         items.Add(new() { Label = "Newsletter", Value = _model.SubscribeToNewsletter ? "Yes" : "No" });
 

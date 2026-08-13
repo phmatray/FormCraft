@@ -80,7 +80,9 @@ public partial class CodeExample
     private string GetLineNumbersHtml()
     {
         if (string.IsNullOrEmpty(Code))
+        {
             return "";
+        }
 
         var lineCount = Code.Split('\n').Length;
         return string.Concat(Enumerable.Repeat("<span></span>", lineCount));

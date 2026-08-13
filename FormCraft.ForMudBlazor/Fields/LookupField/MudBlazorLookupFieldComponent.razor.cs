@@ -41,7 +41,9 @@ public partial class MudBlazorLookupFieldComponent<TModel, TValue>
     private async Task OpenLookupDialog()
     {
         if (IsReadOnly || IsDisabled)
+        {
             return;
+        }
 
         var dataProvider = GetAttribute<object>("LookupDataProvider");
         var valueSelector = GetAttribute<object>("LookupValueSelector");
@@ -50,7 +52,9 @@ public partial class MudBlazorLookupFieldComponent<TModel, TValue>
         var onItemSelected = GetAttribute<object>("LookupOnItemSelected");
 
         if (dataProvider == null || valueSelector == null || displaySelector == null)
+        {
             return;
+        }
 
         var parameters = new DialogParameters
         {

@@ -25,11 +25,15 @@ public partial class DemoPrevNextNavigation
         _nextLevelInfo = null;
 
         if (string.IsNullOrEmpty(DemoId))
+        {
             return;
+        }
 
         _current = DemoRegistry.GetDemo(DemoId);
         if (_current == null)
+        {
             return;
+        }
 
         // Use learning path navigation for form examples
         if (_current.Category == "form-examples")

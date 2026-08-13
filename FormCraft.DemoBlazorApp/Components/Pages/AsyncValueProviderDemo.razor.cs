@@ -220,7 +220,9 @@ public partial class AsyncValueProviderDemo : ComponentBase
         await Task.Delay(300);
 
         if (string.IsNullOrEmpty(postalCode))
+        {
             return true;
+        }
 
         // Simple validation based on country
         return _model.Country switch

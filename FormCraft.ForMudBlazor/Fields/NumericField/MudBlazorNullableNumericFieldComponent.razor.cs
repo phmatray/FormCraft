@@ -92,11 +92,20 @@ public partial class MudBlazorNullableNumericFieldComponent<TModel, TValue>
         // so each floating type needs its own literal (0.1 boxed as double cannot be
         // unboxed as float, and 1 boxed as int cannot be unboxed as long/short/byte).
         if (typeof(TValue) == typeof(decimal))
+        {
             return (TValue)(object)0.01m;
+        }
+
         if (typeof(TValue) == typeof(double))
+        {
             return (TValue)(object)0.1d;
+        }
+
         if (typeof(TValue) == typeof(float))
+        {
             return (TValue)(object)0.1f;
+        }
+
         return (TValue)Convert.ChangeType(1, typeof(TValue));
     }
 

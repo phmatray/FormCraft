@@ -82,7 +82,9 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private async Task AddItem()
     {
         if (HasReachedMax)
+        {
             return;
+        }
 
         Items.Add(new TItem());
         await NotifyCollectionChanged();
@@ -91,9 +93,14 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private async Task RemoveItem(int index)
     {
         if (HasReachedMin)
+        {
             return;
+        }
+
         if (index < 0 || index >= Items.Count)
+        {
             return;
+        }
 
         Items.RemoveAt(index);
         await NotifyCollectionChanged();
@@ -102,7 +109,9 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private async Task MoveItemUp(int index)
     {
         if (index <= 0 || index >= Items.Count)
+        {
             return;
+        }
 
         (Items[index], Items[index - 1]) = (Items[index - 1], Items[index]);
         await NotifyCollectionChanged();
@@ -111,7 +120,9 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private async Task MoveItemDown(int index)
     {
         if (index < 0 || index >= Items.Count - 1)
+        {
             return;
+        }
 
         (Items[index], Items[index + 1]) = (Items[index + 1], Items[index]);
         await NotifyCollectionChanged();
@@ -130,7 +141,9 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private async Task UpdateItemFieldValue(int itemIndex, string fieldName, object? value)
     {
         if (itemIndex < 0 || itemIndex >= Items.Count)
+        {
             return;
+        }
 
         var item = Items[itemIndex];
         var property = typeof(TItem).GetProperty(fieldName);
@@ -174,7 +187,9 @@ public partial class CollectionFieldComponent<TModel, TItem>
         return builder =>
         {
             if (Configuration.ItemFormConfiguration == null)
+            {
                 return;
+            }
 
             var item = Items[itemIndex];
 

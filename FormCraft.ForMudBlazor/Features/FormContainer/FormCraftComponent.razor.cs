@@ -321,7 +321,9 @@ public partial class FormCraftComponent<TModel>
             {
                 var property = typeof(TModel).GetProperty(field.FieldName);
                 if (property == null)
+                {
                     return;
+                }
 
                 var templateContext = new FieldContext<TModel, object>(
                     Model,

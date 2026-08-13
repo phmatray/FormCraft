@@ -10,7 +10,7 @@ public partial class DemoBreadcrumb
     [Parameter]
     public string? DemoId { get; set; }
 
-    private List<BreadcrumbItem> _items = new();
+    private readonly List<BreadcrumbItem> _items = new();
     private DemoMetadata? _currentDemo;
 
     protected override void OnParametersSet()
@@ -27,11 +27,15 @@ public partial class DemoBreadcrumb
         _items.Add(new BreadcrumbItem("Home", "home", icon: Icons.Material.Filled.Home));
 
         if (string.IsNullOrEmpty(DemoId))
+        {
             return;
+        }
 
         var demo = DemoRegistry.GetDemo(DemoId);
         if (demo == null)
+        {
             return;
+        }
 
         _currentDemo = demo;
 

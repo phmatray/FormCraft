@@ -1,12 +1,12 @@
+using FluentValidation;
+using FormCraft;
+using FormCraft.DemoBlazorApp.Components;
+using FormCraft.DemoBlazorApp.Components.Pages;
+using FormCraft.DemoBlazorApp.Services;
+using FormCraft.ForMudBlazor.Extensions;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using FormCraft.DemoBlazorApp.Components;
-using FormCraft.DemoBlazorApp.Services;
-using FormCraft;
-using FormCraft.ForMudBlazor.Extensions;
 using MudBlazor.Services;
-using FluentValidation;
-using FormCraft.DemoBlazorApp.Components.Pages;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");

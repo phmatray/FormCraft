@@ -13,7 +13,7 @@ public partial class CrossFieldValidationDemo : ComponentBase
     private IFormConfiguration<BookingModel>? _formConfig;
     private bool _submitted;
     private bool _isSubmitting;
-    private List<string> _validationErrors = [];
+    private readonly List<string> _validationErrors = [];
 
     /// <summary>
     /// Structured documentation for this demo page.

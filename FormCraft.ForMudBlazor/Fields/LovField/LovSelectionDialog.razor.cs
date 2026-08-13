@@ -193,9 +193,15 @@ public partial class LovSelectionDialog<TItem, TValue> : IDisposable
     private string GetConfirmButtonText()
     {
         if (!_selectedItemsSet.Any())
+        {
             return "Select";
+        }
+
         if (IsMultiSelect)
+        {
             return $"Select ({_selectedItemsSet.Count})";
+        }
+
         return "Select";
     }
 

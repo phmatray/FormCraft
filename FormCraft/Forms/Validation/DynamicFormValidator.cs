@@ -163,7 +163,9 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
         var validateMethod = validatorType.GetMethod("ValidateAsync");
         if (validateMethod == null)
+        {
             return new List<string>();
+        }
 
         var task = (Task<List<string>>)validateMethod.Invoke(validator, new object[] { model!, ServiceProvider })!;
         return await task;
@@ -177,7 +179,9 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
         var validateMethod = validatorType.GetMethod("ValidateItemsAsync");
         if (validateMethod == null)
+        {
             return new List<CollectionItemError>();
+        }
 
         var task = (Task<List<CollectionItemError>>)validateMethod.Invoke(validator, new object[] { model!, ServiceProvider })!;
         return await task;
@@ -207,7 +211,9 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             // Find the field configuration for the changed field
             var fieldConfig = Configuration.Fields.FirstOrDefault(f => f.FieldName == e.FieldIdentifier.FieldName);
             if (fieldConfig == null)
+            {
                 return;
+            }
 
             var model = (TModel)_editContext!.Model;
             var getter = fieldConfig.ValueExpression.Compile();
@@ -237,7 +243,9 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
     private async Task ValidateCollectionItemFieldAsync(FieldIdentifier fieldIdentifier, System.Text.RegularExpressions.Match nestedMatch)
     {
         if (Configuration is not ICollectionFormConfiguration<TModel> collectionConfig)
+        {
             return;
+        }
 
         var collectionFieldName = nestedMatch.Groups["collection"].Value;
         var itemIndex = int.Parse(nestedMatch.Groups["index"].Value);
@@ -246,7 +254,9 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         var collectionField = collectionConfig.CollectionFields
             .FirstOrDefault(f => f.FieldName == collectionFieldName);
         if (collectionField == null)
+        {
             return;
+        }
 
         var model = (TModel)_editContext!.Model;
 
