@@ -283,6 +283,71 @@ public class FileUploadClearFocusTests : MudBlazorTestBase
         cut.FindAll(".mud-toolbar button").Count.ShouldBe(1);
     }
 
+    [Fact]
+    public async Task Removing_A_File_Chip_Should_Move_Focus_To_Browse()
+    {
+        // Arrange - the chip's close button is the same defect shape as Clear (#318): it is rendered
+        // inside `@if (CurrentValue?.Any() == true)` and its own handler rebuilds CurrentValue
+        // without that file, so the chip it sits in unmounts. #281 fixed ClearAsync and left this
+        // one, ten lines away in the same file.
+        var component = RenderStandaloneMultipleUpload(new TestModel
+        {
+            Uploads = new List<IBrowserFile> { new StubBrowserFile(), new StubBrowserFile() },
+        });
+
+        var browseId = await LearnElementIdAsync(component, component.FindComponents<MudButton>()[0].Instance);
+        var focusesBefore = FocusCount();
+
+        // Act - remove the first file
+        var chipCloseButtons = component.FindAll(FormCraftChipCloseSelector);
+        chipCloseButtons.Count.ShouldBe(2);
+        await component.InvokeAsync(() => chipCloseButtons[0].Click());
+
+        // Assert - one file left, and focus was moved rather than dropped
+        component.FindAll(FormCraftChipCloseSelector).Count.ShouldBe(1);
+        FocusCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementId().ShouldBe(browseId);
+    }
+
+    [Fact]
+    public async Task Removing_The_Last_File_Chip_Should_Still_Focus_Browse()
+    {
+        // Arrange - the worst case: removing the only file falsifies `CurrentValue?.Any() == true`,
+        // so the whole chip stack AND "Clear All" unmount together. Browse is the one control that
+        // survives, which is exactly why it is the target.
+        var component = RenderStandaloneMultipleUpload(new TestModel
+        {
+            Uploads = new List<IBrowserFile> { new StubBrowserFile() },
+        });
+
+        var browseId = await LearnElementIdAsync(component, component.FindComponents<MudButton>()[0].Instance);
+        var focusesBefore = FocusCount();
+
+        // Act
+        var chipCloseButtons = component.FindAll(FormCraftChipCloseSelector);
+        chipCloseButtons.Count.ShouldBe(1);
+        await component.InvokeAsync(() => chipCloseButtons[0].Click());
+
+        // Assert - the chip stack and Clear All are gone; only Browse remains in the toolbar
+        component.FindAll(FormCraftChipCloseSelector).ShouldBeEmpty();
+        component.FindAll(".mud-toolbar button").Count.ShouldBe(1);
+        FocusCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementId().ShouldBe(browseId);
+    }
+
+    /// <summary>
+    /// FormCraft's own file chips, scoped away from MudBlazor's.
+    /// </summary>
+    /// <remarks>
+    /// <c>MudFileUpload</c> renders its <b>own</b> file list (<c>.mud-file-upload-filelist</c>)
+    /// <i>in addition to</i> the <c>CustomContent</c> drop zone, so a bare
+    /// <c>.mud-chip-close-button</c> matches <b>twice</b> per file — measured, not assumed. Those
+    /// other chips are MudBlazor's and their close buttons run MudBlazor's own removal, not
+    /// <c>RemoveFile</c>, so a test that clicked one would assert nothing about this fix.
+    /// </remarks>
+    private const string FormCraftChipCloseSelector =
+        ".mud-file-upload-custom-content .mud-chip-close-button";
+
     /// <summary>
     /// Renders the single-file upload standalone — no cascaded <c>EditContext</c>, the render path
     /// a bare <c>IFieldRendererService.RenderField</c> produces and the one #262 found risky.

@@ -77,7 +77,7 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
         await FocusBrowseAsync();
     }
 
-    private void RemoveFile(IBrowserFile fileToRemove)
+    private async Task RemoveFile(IBrowserFile fileToRemove)
     {
         if (CurrentValue != null)
         {
@@ -85,6 +85,13 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
             fileList.Remove(fileToRemove);
             CurrentValue = fileList;
         }
+
+        // The chip this button sits in is gated on `CurrentValue?.Any() == true` and has just been
+        // rebuilt without its file, so the button the user activated has unmounted. Move focus
+        // deliberately or it falls to <body> (#318). Removing the *last* file unmounts the whole
+        // chip stack and "Clear All" too, which is why Browse — the one control that always
+        // survives — is the target.
+        await FocusBrowseAsync();
     }
 
     private string GetHeight()
