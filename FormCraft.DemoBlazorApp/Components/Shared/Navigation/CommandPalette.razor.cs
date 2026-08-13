@@ -184,4 +184,28 @@ public partial class CommandPalette
 
     private static string GroupLabel(string category) =>
         category == "documentation" ? "Documentation" : "Demos";
+
+    /// <summary>
+    /// A stable DOM id for a result row, keyed on the demo's route id rather than its position.
+    /// </summary>
+    /// <remarks>
+    /// The id has to follow the demo through a re-filter. An index-based id would be handed to a
+    /// different demo as soon as the query changed — and once the list shortens, would name a row that
+    /// no longer exists, leaving <c>aria-activedescendant</c> pointing at nothing.
+    /// </remarks>
+    private static string OptionId(DemoMetadata demo) => $"fc-palette-option-{demo.Id}";
+
+    /// <summary>
+    /// The id of the highlighted row, or <c>null</c> when there is no row to point at.
+    /// </summary>
+    /// <remarks>
+    /// Bound to the search input's <c>aria-activedescendant</c>, which is what makes arrowing through
+    /// results announce anything: the <c>is-selected</c> class is a purely visual cue. Returning
+    /// <c>null</c> rather than <c>""</c> matters — Blazor omits a null attribute, whereas an empty one
+    /// would claim an active descendant with an unresolvable id while the palette shows no results.
+    /// </remarks>
+    private string? ActiveOptionId =>
+        _selectedIndex >= 0 && _selectedIndex < _results.Count
+            ? OptionId(_results[_selectedIndex])
+            : null;
 }
