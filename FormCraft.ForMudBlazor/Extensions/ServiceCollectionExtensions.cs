@@ -57,9 +57,6 @@ public static class ServiceCollectionExtensions
                 services.Remove(descriptor);
             }
 
-            // Register MudBlazor UI framework adapter
-            services.AddSingleton<IUIFrameworkAdapter, MudBlazorUIFrameworkAdapter>();
-
             // Register MudBlazor-specific renderers. Renderer selection picks the FIRST
             // renderer whose CanRender matches, so configuration-driven renderers (LOV,
             // lookup, autocomplete, select, file upload) must be registered before the
