@@ -1,3 +1,6 @@
+using Microsoft.JSInterop;
+using MudBlazor;
+
 namespace FormCraft.ForMudBlazor;
 
 /// <summary>
@@ -85,4 +88,67 @@ public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldCo
     /// </summary>
     protected string RequiredDescription =>
         HasLabel ? $"{Label} is required." : "This file upload is required.";
+
+    /// <summary>
+    /// The field's <b>Browse</b> button, captured by <c>@ref</c> in both upload components.
+    /// </summary>
+    /// <remarks>
+    /// Shared here rather than declared twice for the reason the rest of this class exists: the
+    /// single- and multiple-file components drifting apart is the failure class this library keeps
+    /// re-filing (#146, #177, #184, #189).
+    /// </remarks>
+    protected MudButton? BrowseButton { get; set; }
+
+    /// <summary>
+    /// Moves keyboard focus to this field's <b>Browse</b> button (#281).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Why this is needed at all.</b> Both components gate their <b>Clear</b> button on an
+    /// <c>@if</c> over the very value the button's own handler removes, so activating Clear unmounts
+    /// the element the keyboard user is standing on and focus falls to <c>&lt;body&gt;</c> — the
+    /// next <kbd>Tab</kbd> restarts from the top of the document. WCAG 2.1 <b>2.4.3 Focus Order</b>
+    /// (Level A) expects focus to move in an order that preserves meaning and operability.
+    /// </para>
+    /// <para>
+    /// <b>Why Browse specifically.</b> It is the affordance that resolves the state the user has
+    /// just created, it sits where Clear used to be in the tab order, and it carries the
+    /// <c>aria-describedby</c> requirement description from #262 — so focusing it announces the
+    /// requirement at the exact moment clearing makes the field unsatisfied.
+    /// </para>
+    /// <para>
+    /// <b>Failures are swallowed on purpose.</b> The clear itself has already succeeded by the time
+    /// this runs; moving focus is the courtesy on top, and it must never turn a working clear into a
+    /// thrown exception. The caught cases are all "there is no live element to focus": the circuit
+    /// is gone, the component was disposed mid-clear (a collection-item row removed while clearing,
+    /// which #203's shared render path makes reachable), or the reference was never attached to a
+    /// live element. Note the null check covers the prerender/SSR pass on its own — <c>@ref</c> is
+    /// assigned after a render completes, and no render has completed on the server pass.
+    /// </para>
+    /// </remarks>
+    protected async Task FocusBrowseAsync()
+    {
+        if (BrowseButton is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await BrowseButton.FocusAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone; there is nothing left to focus.
+        }
+        catch (ObjectDisposedException)
+        {
+            // The component was torn down mid-clear.
+        }
+        catch (InvalidOperationException)
+        {
+            // "ElementReference has not been configured correctly" — captured, but with no live
+            // element behind it.
+        }
+    }
 }

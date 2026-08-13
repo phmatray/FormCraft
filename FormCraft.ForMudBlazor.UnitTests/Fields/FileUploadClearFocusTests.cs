@@ -71,6 +71,72 @@ public class FileUploadClearFocusTests : MudBlazorTestBase
         invocation.Arguments[0].ShouldBeOfType<ElementReference>();
     }
 
+    [Fact]
+    public async Task Clearing_A_File_Upload_Should_Move_Focus_To_That_Fields_Browse_Button()
+    {
+        // Arrange - rendered through FormCraftComponent, the path a real application uses
+        var model = new TestModel { Upload = new StubBrowserFile() };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan").Required("A scan is required"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        var browseId = await LearnElementIdAsync(component, component.FindComponents<MudButton>()[0].Instance);
+        var focusesBeforeClear = FocusCount();
+
+        // Act - a file is present, so the toolbar carries Browse then Clear
+        var buttons = component.FindAll(".mud-toolbar button");
+        buttons.Count.ShouldBe(2);
+        await component.InvokeAsync(() => buttons[1].Click());
+
+        // Assert - the Clear button really did unmount itself, which is what loses focus...
+        component.FindAll(".mud-toolbar button").Count.ShouldBe(1);
+
+        // ...so exactly one focus request must have been issued, and to THIS field's Browse button
+        FocusCount().ShouldBe(focusesBeforeClear + 1);
+        LastFocusedElementId().ShouldBe(browseId);
+    }
+
+    [Fact]
+    public async Task Clearing_A_Standalone_Upload_Should_Focus_Browse_Without_Throwing()
+    {
+        // Arrange - standalone, with no cascaded EditContext. #262 found this to be the risky render
+        // path (it is where MudBlazor's own RequiredError surfaced), and it is the one a bare
+        // IFieldRendererService.RenderField produces, so the focus move has to hold here too.
+        var model = new TestModel { Upload = new StubBrowserFile() };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan").Required("A scan is required"))
+            .Build();
+
+        var context = new FieldRenderContext<TestModel>
+        {
+            Model = model,
+            Field = config.Fields.First(),
+            ActualFieldType = typeof(IBrowserFile),
+            CurrentValue = model.Upload,
+        };
+
+        var component = Render<MudBlazorFileUploadFieldComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Context, context));
+
+        var browseId = await LearnElementIdAsync(component, component.FindComponents<MudButton>()[0].Instance);
+        var focusesBeforeClear = FocusCount();
+
+        // Act
+        var buttons = component.FindAll(".mud-toolbar button");
+        buttons.Count.ShouldBe(2);
+        await component.InvokeAsync(() => buttons[1].Click());
+
+        // Assert - no throw, and focus still lands on Browse
+        FocusCount().ShouldBe(focusesBeforeClear + 1);
+        LastFocusedElementId().ShouldBe(browseId);
+    }
+
     /// <summary>
     /// How many focus requests have been recorded so far.
     /// </summary>
@@ -97,5 +163,34 @@ public class FileUploadClearFocusTests : MudBlazorTestBase
     {
         await host.InvokeAsync(async () => await button.FocusAsync());
         return LastFocusedElementId();
+    }
+
+    private sealed class TestModel
+    {
+        public IBrowserFile? Upload { get; set; }
+
+        /// <summary>
+        /// Exactly <c>IReadOnlyList&lt;IBrowserFile&gt;</c> — that is what
+        /// <c>MudBlazorMultipleFileUploadRenderer</c> matches on, so a different list type would
+        /// silently render the single-file component instead.
+        /// </summary>
+        public IReadOnlyList<IBrowserFile>? Uploads { get; set; }
+
+        public IBrowserFile? SecondUpload { get; set; }
+    }
+
+    private sealed class StubBrowserFile : IBrowserFile
+    {
+        public string Name => "passport.png";
+
+        public DateTimeOffset LastModified => DateTimeOffset.UnixEpoch;
+
+        public long Size => 1024;
+
+        public string ContentType => "image/png";
+
+        public Stream OpenReadStream(
+            long maxAllowedSize = 512000,
+            CancellationToken cancellationToken = default) => new MemoryStream();
     }
 }
