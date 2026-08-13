@@ -102,7 +102,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                 continue;
             }
 
-            var getter = field.ValueExpression.Compile();
+            var getter = FieldValueGetterCache<TModel>.GetOrCompile(field);
             var value = getter(model);
 
             foreach (var validator in field.Validators)
@@ -216,7 +216,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             }
 
             var model = (TModel)_editContext!.Model;
-            var getter = fieldConfig.ValueExpression.Compile();
+            var getter = FieldValueGetterCache<TModel>.GetOrCompile(fieldConfig);
             var value = getter(model);
 
             // Clear existing messages for this field only

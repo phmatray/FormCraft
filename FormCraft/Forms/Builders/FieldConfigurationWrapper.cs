@@ -33,10 +33,11 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
     /// contract extends to anything built through it. An implementation that re-targeted its
     /// expression after construction would keep seeing this first projection.
     /// <para>
-    /// The callers this actually saves are the ones that read it per <i>validation</i>:
-    /// <c>CollectionFieldValidator</c> and <c>DynamicFormValidator</c> read it once per item per
-    /// field. The renderer service reads it at most once per configuration, because it caches the
-    /// compiled getter itself.
+    /// Since #312 every caller reads this at most once per configuration: the renderer service and
+    /// both validators all go through <see cref="FieldValueGetterCache{TModel}" />, which compiles
+    /// the getter on first use and reuses it. The memo therefore guards the remaining direct readers
+    /// — anything that wants the expression itself rather than a compiled getter — and keeps that
+    /// read allocation-free.
     /// </para>
     /// <para>
     /// The memo is deliberately not synchronized. Blazor renders on a single sync context, and two

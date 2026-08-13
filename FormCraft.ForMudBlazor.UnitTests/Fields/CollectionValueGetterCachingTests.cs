@@ -3,7 +3,7 @@ using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
-/// Guards the collection case of the value-getter cache (#269).
+/// Guards the collection case of the value-getter cache, on both paths that use it (#269, #312).
 /// <para>
 /// Since #203 every row of an item form renders through <c>IFieldRendererService</c>, and every row
 /// of one collection shares a single field configuration instance — the cache is keyed by that
@@ -18,8 +18,10 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// collection — rows × fields compiles per character on the render path before this change.
 /// </para>
 /// <para>
-/// Of the two tests below, the DOM one is the cache guard; the model one covers the #203 write path,
-/// which does not go through the cached getter at all.
+/// The three tests below cover different things on purpose: the DOM one guards the cache on the
+/// <b>render</b> path, the validation one guards it on the <b>validation</b> path (both share one
+/// cache since #312), and the model one covers the #203 write path, which does not go through the
+/// cached getter at all.
 /// </para>
 /// </summary>
 public class CollectionValueGetterCachingTests : MudBlazorTestBase
@@ -66,5 +68,37 @@ public class CollectionValueGetterCachingTests : MudBlazorTestBase
             inputs[1].GetAttribute("value").ShouldBe("edited");
             inputs[2].GetAttribute("value").ShouldBe("third");
         });
+    }
+
+    [Fact]
+    public async Task Validating_A_Multi_Row_Item_Form_Should_Attribute_Each_Message_To_Its_Own_Row()
+    {
+        // Arrange - rows 0 and 2 are empty (invalid), row 1 is filled (valid). Since #312 the
+        // validators read every row's value through one cached getter shared by the whole
+        // collection, so this is where a getter that had been cached per *value* rather than per
+        // *field* would show: every row would be judged against row 0's content, marking the filled
+        // row invalid (or the empty rows valid).
+        var model = NewOrderWithItems("", "Widget", "");
+        EditContext? editContext = null;
+
+        var component = this.RenderItemForm(
+            model,
+            TextItemForm(field => field.Required("Product name is required")),
+            parameters => parameters.Add(p => p.OnEditContextCreated, ctx => editContext = ctx));
+
+        // Act
+        var isValid = true;
+        await component.InvokeAsync(async () => isValid = await component.Instance.ValidateAsync());
+
+        // Assert - the messages land on the rows that are actually empty, and only those (#91).
+        isValid.ShouldBeFalse();
+        editContext.ShouldNotBeNull();
+
+        editContext!.GetValidationMessages(new FieldIdentifier(model, "Items[0].ProductName"))
+            .ShouldContain("Product name is required");
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Items[1].ProductName"))
+            .ShouldBeEmpty();
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Items[2].ProductName"))
+            .ShouldContain("Product name is required");
     }
 }
