@@ -1,4 +1,4 @@
-using Microsoft.JSInterop;
+using FormCraft.ForMudBlazor.UnitTests.TestSupport;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
@@ -47,14 +47,8 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// <see cref="LearnElementIdAsync"/> gets the same answer from supported API.
 /// </para>
 /// </remarks>
-public class FileUploadClearFocusTests : MudBlazorTestBase
+public class FileUploadClearFocusTests : FocusAssertingTestBase
 {
-    /// <summary>
-    /// The interop identifier <see cref="ElementReference.FocusAsync()"/> resolves to. Pinned as a
-    /// constant because every assertion below keys off it.
-    /// </summary>
-    private const string FocusIdentifier = "Blazor._internal.domWrapper.focus";
-
     [Fact]
     public async Task Focusing_A_MudButton_Should_Record_The_Interop_Call_These_Tests_Assert_On()
     {
@@ -251,25 +245,6 @@ public class FileUploadClearFocusTests : MudBlazorTestBase
             }));
     }
 
-    /// <summary>
-    /// Makes the focus interop throw the way a real browser does when the target has left the DOM.
-    /// </summary>
-    /// <remarks>
-    /// These are the only tests here that exercise <c>FocusBrowseAsync</c>'s catch block, because
-    /// <c>MudBlazorTestBase</c> runs JSInterop in <c>Loose</c> mode where focus always succeeds —
-    /// so without them the "Without_Throwing" tests assert exactly what their siblings already do
-    /// and the catch list has no coverage at all. That gap is how a missing
-    /// <c>catch (JSException)</c> shipped once: the clear worked in every test and still tore down
-    /// the circuit in production. This wording is what Blazor's <c>domWrapper.focus</c> raises for
-    /// a stale element, and it is reachable — assigning <c>CurrentValue</c> raises
-    /// <c>OnValueChanged</c>, so a parent that hides the field or drops the collection row can
-    /// unmount Browse before the awaited interop call lands.
-    /// </remarks>
-    private void FailTheFocusInterop() =>
-        JSInterop
-            .SetupVoid(FocusIdentifier, _ => true)
-            .SetException(new JSException("Unable to focus an invalid element."));
-
     private static async Task ClearShouldSucceedDespiteTheFailingFocusAsync<TComponent>(
         IRenderedComponent<TComponent> cut)
         where TComponent : IComponent
@@ -282,6 +257,69 @@ public class FileUploadClearFocusTests : MudBlazorTestBase
         // Assert - the clear still completed: Clear unmounted, so the value really did go
         cut.FindAll(".mud-toolbar button").Count.ShouldBe(1);
     }
+
+    [Fact]
+    public async Task Removing_A_File_Chip_With_Others_Left_Should_Leave_Focus_Alone()
+    {
+        // Arrange - the chip loop is keyless, so with files still left the diff RETAINS the close
+        // button that was activated (it becomes the next file's) and focus was never lost. Moving it
+        // to Browse here would be a regression, not a fix: clearing a three-file field one chip at a
+        // time would bounce the user out to Browse after every removal.
+        var component = RenderStandaloneMultipleUpload(new TestModel
+        {
+            Uploads = new List<IBrowserFile> { new StubBrowserFile(), new StubBrowserFile() },
+        });
+
+        var focusesBefore = FocusCount();
+
+        // Act - remove the first of two files
+        var chipCloseButtons = component.FindAll(FormCraftChipCloseSelector);
+        chipCloseButtons.Count.ShouldBe(2);
+        await component.InvokeAsync(() => chipCloseButtons[0].Click());
+
+        // Assert - one file left, and no focus request was issued at all
+        component.FindAll(FormCraftChipCloseSelector).Count.ShouldBe(1);
+        FocusCount().ShouldBe(focusesBefore);
+    }
+
+    [Fact]
+    public async Task Removing_The_Last_File_Chip_Should_Still_Focus_Browse()
+    {
+        // Arrange - the worst case: removing the only file falsifies `CurrentValue?.Any() == true`,
+        // so the whole chip stack AND "Clear All" unmount together. Browse is the one control that
+        // survives, which is exactly why it is the target.
+        var component = RenderStandaloneMultipleUpload(new TestModel
+        {
+            Uploads = new List<IBrowserFile> { new StubBrowserFile() },
+        });
+
+        var browseId = await LearnElementIdAsync(component, component.FindComponents<MudButton>()[0].Instance);
+        var focusesBefore = FocusCount();
+
+        // Act
+        var chipCloseButtons = component.FindAll(FormCraftChipCloseSelector);
+        chipCloseButtons.Count.ShouldBe(1);
+        await component.InvokeAsync(() => chipCloseButtons[0].Click());
+
+        // Assert - the chip stack and Clear All are gone; only Browse remains in the toolbar
+        component.FindAll(FormCraftChipCloseSelector).ShouldBeEmpty();
+        component.FindAll(".mud-toolbar button").Count.ShouldBe(1);
+        FocusCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementId().ShouldBe(browseId);
+    }
+
+    /// <summary>
+    /// FormCraft's own file chips, scoped away from MudBlazor's.
+    /// </summary>
+    /// <remarks>
+    /// <c>MudFileUpload</c> renders its <b>own</b> file list (<c>.mud-file-upload-filelist</c>)
+    /// <i>in addition to</i> the <c>CustomContent</c> drop zone, so a bare
+    /// <c>.mud-chip-close-button</c> matches <b>twice</b> per file — measured, not assumed. Those
+    /// other chips are MudBlazor's and their close buttons run MudBlazor's own removal, not
+    /// <c>RemoveFile</c>, so a test that clicked one would assert nothing about this fix.
+    /// </remarks>
+    private const string FormCraftChipCloseSelector =
+        ".mud-file-upload-custom-content .mud-chip-close-button";
 
     /// <summary>
     /// Renders the single-file upload standalone — no cascaded <c>EditContext</c>, the render path
@@ -328,34 +366,6 @@ public class FileUploadClearFocusTests : MudBlazorTestBase
 
         return Render<MudBlazorMultipleFileUploadComponent<TestModel>>(parameters => parameters
             .Add(p => p.Context, context));
-    }
-
-    /// <summary>
-    /// How many focus requests have been recorded so far.
-    /// </summary>
-    private int FocusCount() => JSInterop.Invocations.Count(i => i.Identifier == FocusIdentifier);
-
-    /// <summary>
-    /// The <see cref="ElementReference.Id"/> of the most recent focus request.
-    /// </summary>
-    private string LastFocusedElementId() =>
-        ((ElementReference)JSInterop.Invocations
-            .Last(i => i.Identifier == FocusIdentifier)
-            .Arguments[0]!)
-        .Id;
-
-    /// <summary>
-    /// Learns a button's element id the only way the public API allows: focus it deliberately and
-    /// read the id back off the recorded invocation. See the class remarks for why reflection is
-    /// not used instead.
-    /// </summary>
-    private async Task<string> LearnElementIdAsync<TComponent>(
-        IRenderedComponent<TComponent> host,
-        MudButton button)
-        where TComponent : IComponent
-    {
-        await host.InvokeAsync(async () => await button.FocusAsync());
-        return LastFocusedElementId();
     }
 
     private sealed class TestModel

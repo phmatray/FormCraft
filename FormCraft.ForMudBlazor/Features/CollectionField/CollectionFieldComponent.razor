@@ -6,11 +6,15 @@
 @if (Configuration.IsVisible)
 {
     <MudPaper Class="pa-4 mb-4" Outlined="true">
-        <div class="d-flex justify-space-between align-center mb-3">
+        @* tabindex="-1" makes the header programmatically focusable without putting it in the tab
+           order: it is the last-resort focus target when an action leaves the field with no button
+           at all (#318). It carries the collection's label, so landing here is announced. *@
+        <div class="d-flex justify-space-between align-center mb-3" @ref="_header" tabindex="-1">
             <MudText Typo="Typo.h6">@(Configuration.Label ?? Configuration.FieldName)</MudText>
             @if (Configuration.CanAdd && !HasReachedMax)
             {
-                <MudButton Variant="Variant.Outlined"
+                <MudButton @ref="_addButton"
+                           Variant="Variant.Outlined"
                            Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Add"
                            Size="Size.Small"
@@ -49,19 +53,28 @@
                    already reload via FieldComponentBase.ShouldReloadValue(). *@
                 <MudCard Class="mb-3" Elevation="0" Outlined="true">
                     <MudCardContent>
-                        <div class="d-flex justify-space-between align-center mb-2">
+                        @* tabindex="-1" so a row can take focus without joining the tab order: it is
+                           where focus goes when the acting control leaves no usable target — after
+                           Add (the row's own fields render through IFieldRendererService and expose
+                           no reference to aim at, and landing on Delete would put Enter on "undo the
+                           add"), and as the reorder fallback (#318). *@
+                        <div class="d-flex justify-space-between align-center mb-2"
+                             @ref="_rowHeaders[index]"
+                             tabindex="-1">
                             <MudText Typo="Typo.subtitle2" Color="Color.Default">
                                 Item @(index + 1)
                             </MudText>
                             <div class="d-flex gap-1">
                                 @if (Configuration.CanReorder)
                                 {
-                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward"
+                                    <MudIconButton @ref="_moveUpButtons[index]"
+                                                   Icon="@Icons.Material.Filled.ArrowUpward"
                                                    Size="Size.Small"
                                                    Disabled="@(index == 0)"
                                                    OnClick="@(() => MoveItemUp(index))"
                                                    aria-label="Move up" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward"
+                                    <MudIconButton @ref="_moveDownButtons[index]"
+                                                   Icon="@Icons.Material.Filled.ArrowDownward"
                                                    Size="Size.Small"
                                                    Disabled="@(index == Items.Count - 1)"
                                                    OnClick="@(() => MoveItemDown(index))"
@@ -69,7 +82,11 @@
                                 }
                                 @if (Configuration.CanRemove && !HasReachedMin)
                                 {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                    @* Captured per index so a removal can focus the button that
+                                       takes the vacated slot — the row loop is keyless, so Blazor
+                                       reuses the element already at each position (#318). *@
+                                    <MudIconButton @ref="_deleteButtons[index]"
+                                                   Icon="@Icons.Material.Filled.Delete"
                                                    Size="Size.Small"
                                                    Color="Color.Error"
                                                    OnClick="@(() => RemoveItem(index))"
