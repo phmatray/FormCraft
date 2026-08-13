@@ -1,5 +1,6 @@
 using FormCraft.ForMudBlazor.UnitTests.TestSupport;
 using Microsoft.Extensions.Logging;
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
@@ -34,7 +35,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
     public void ItemField_With_AsPassword_Should_Render_A_Password_Input()
     {
         // Arrange & Act - the bug this issue was filed for: the characters were displayed.
-        var component = RenderOrderForm(BuildConfiguration(field => field.AsPassword()));
+        var component = RenderOrderForm(TextItemForm(field => field.AsPassword()));
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.InputType
@@ -47,7 +48,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // Arrange & Act - AsPassword() also writes EnablePasswordToggle, which the collection path
         // does not implement. Masking must not depend on that: the toggle is a convenience, the
         // masking is the security-relevant half.
-        var component = RenderOrderForm(BuildConfiguration(field =>
+        var component = RenderOrderForm(TextItemForm(field =>
             field.AsPassword(enableVisibilityToggle: false)));
 
         // Assert
@@ -61,7 +62,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // Arrange & Act - the parameter assertions above prove the value was forwarded; this proves
         // it reaches the DOM the user actually looks at. That is the whole claim of this issue, and
         // a component parameter that never made it onto the <input> would satisfy the others.
-        var component = RenderOrderForm(BuildConfiguration(field => field.AsPassword()));
+        var component = RenderOrderForm(TextItemForm(field => field.AsPassword()));
 
         // Assert - `type="password"` is the whole of the fix: it is what makes the browser mask the
         // characters. Deliberately NOT asserting the value is absent from the markup — a bound
@@ -76,7 +77,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
     {
         // Arrange & Act - unchanged from before #189; guards the forward against regressing the
         // ordinary case into some other input type.
-        var component = RenderOrderForm(BuildConfiguration(_ => { }));
+        var component = RenderOrderForm(TextItemForm(_ => { }));
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.InputType
@@ -95,7 +96,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
     {
         // Arrange & Act - MudBlazorTextFieldComponent.GetInputType() owns this mapping; the two
         // paths must agree on all of it, not just on "password".
-        var component = RenderOrderForm(BuildConfiguration(field => field.WithInputType(configured)));
+        var component = RenderOrderForm(TextItemForm(field => field.WithInputType(configured)));
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.InputType.ShouldBe(expected);
@@ -105,7 +106,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
     public void ItemField_Should_Map_An_Unrecognised_Input_Type_To_Text()
     {
         // Arrange & Act - the component path's fallback arm, mirrored.
-        var component = RenderOrderForm(BuildConfiguration(field =>
+        var component = RenderOrderForm(TextItemForm(field =>
             field.WithInputType("definitely-not-an-input-type")));
 
         // Assert
@@ -119,7 +120,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // Arrange & Act - WithInputType writes the first-class Field.InputType property, but the
         // component path also accepts a raw "InputType" attribute as a fallback. Resolve both, or
         // a field configured the second way keeps rendering in clear text.
-        var component = RenderOrderForm(BuildConfiguration(field =>
+        var component = RenderOrderForm(TextItemForm(field =>
             field.WithAttribute("InputType", "password")));
 
         // Assert
@@ -131,7 +132,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
     public void ItemField_Should_Render_Its_Configured_Lines()
     {
         // Arrange & Act
-        var component = RenderOrderForm(BuildConfiguration(field => field.AsTextArea(lines: 4)));
+        var component = RenderOrderForm(TextItemForm(field => field.AsTextArea(lines: 4)));
 
         // Assert - the parameter, and the consequence of it. MudTextField switches element on
         // Lines > 1, so this is the one forwarded attribute whose effect is visible in the markup
@@ -145,7 +146,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
     {
         // Arrange & Act - measured, not assumed: MudTextField's own default is 1, and the component
         // path's fallback is also 1, so the two agree and forwarding changes nothing when unset.
-        var component = RenderOrderForm(BuildConfiguration(_ => { }));
+        var component = RenderOrderForm(TextItemForm(_ => { }));
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.Lines.ShouldBe(1);
@@ -155,7 +156,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
     public void ItemField_Should_Render_Its_Configured_MaxLength()
     {
         // Arrange & Act
-        var component = RenderOrderForm(BuildConfiguration(field =>
+        var component = RenderOrderForm(TextItemForm(field =>
             field.AsTextArea(lines: 3, maxLength: 500)));
 
         // Assert
@@ -170,7 +171,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // renders int.MaxValue when nothing is configured. Parity is with the component path, so
         // that is the value to match — copying MudBlazor's bare default here would make the two
         // paths disagree by exactly the amount this issue exists to remove.
-        var component = RenderOrderForm(BuildConfiguration(_ => { }));
+        var component = RenderOrderForm(TextItemForm(_ => { }));
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.MaxLength.ShouldBe(int.MaxValue);
@@ -181,7 +182,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
     {
         // Arrange & Act - the component path treats a zero/negative MaxLength as "no limit"; the
         // item path must not turn it into a field that accepts nothing.
-        var component = RenderOrderForm(BuildConfiguration(field =>
+        var component = RenderOrderForm(TextItemForm(field =>
             field.WithAttribute("MaxLength", 0)));
 
         // Assert
@@ -194,7 +195,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // Arrange & Act - MudTextField has no Autocomplete parameter at all (verified by
         // reflection), so the component path emits a raw lowercase "autocomplete" HTML attribute
         // that lands in the unmatched-attribute bag. The item path has to do the same.
-        var component = RenderOrderForm(BuildConfiguration(field =>
+        var component = RenderOrderForm(TextItemForm(field =>
             field.WithAutocomplete("current-password")));
 
         // Assert
@@ -207,7 +208,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
     {
         // Arrange & Act - guard the guard: UserAttributes is only a staging dictionary. Assert the
         // attribute actually survives onto the <input>, which is what a password manager reads.
-        var component = RenderOrderForm(BuildConfiguration(field =>
+        var component = RenderOrderForm(TextItemForm(field =>
             field.WithAutocomplete("current-password")));
 
         // Assert
@@ -221,7 +222,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // path, so it asserted null and said "pinned so that whoever implements masks does it on both
         // paths at once". That is now done — FormCraft's mask string is resolved to a MudBlazor IMask
         // through the shared TextMaskMap, so the item path and the standalone path agree.
-        var component = RenderOrderForm(BuildConfiguration(field =>
+        var component = RenderOrderForm(TextItemForm(field =>
             field.WithAttribute("Mask", "0000-0000")));
 
         // Assert - the pattern rather than the instance: each path builds its own IMask, so the
@@ -238,7 +239,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // an empty pattern rather than PatternMask(""). MudTextField swaps its input implementation
         // for a MudMask as soon as Mask is non-null, so a non-null empty mask would reroute every
         // unmasked item field through a different component and quietly drop MaxLines with it.
-        var component = RenderOrderForm(BuildConfiguration(field => field.WithLabel("Product")));
+        var component = RenderOrderForm(TextItemForm(field => field.WithLabel("Product")));
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.Mask.ShouldBeNull();
@@ -256,7 +257,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // mobile keypad and the native picker. #189 carried the recognised set over unchanged on
         // purpose, so widening it is a behaviour change rather than a parity fix — but because both
         // paths resolve through TextInputTypeMap, it lands on both at once.
-        var component = RenderOrderForm(BuildConfiguration(field => field.WithInputType(configured)));
+        var component = RenderOrderForm(TextItemForm(field => field.WithInputType(configured)));
 
         // Assert
         component.FindComponent<MudTextField<string>>().Instance.InputType.ShouldBe(expected);
@@ -272,7 +273,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // it reaches the element the browser reads, which is what actually selects the keypad or the
         // picker. A forwarded parameter that never lands on the <input> is the failure mode both
         // #189 and #207 hit.
-        var component = RenderOrderForm(BuildConfiguration(field => field.WithInputType(configured)));
+        var component = RenderOrderForm(TextItemForm(field => field.WithInputType(configured)));
 
         // Assert
         component.Find("input").GetAttribute("type").ShouldBe(configured);
@@ -285,7 +286,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // `type` attribute at all, so the masking was silently dropped and the credential was
         // displayed. There is no such thing as a masked textarea, so the security-relevant half of
         // the configuration wins and the field renders as a single-line password input.
-        var component = RenderOrderForm(BuildConfiguration(field =>
+        var component = RenderOrderForm(TextItemForm(field =>
             field.AsPassword().AsTextArea(lines: 4)));
 
         // Assert - the markup, not just the parameter: asserting only MudTextField.InputType would
@@ -301,7 +302,7 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // Arrange & Act - order-independence is not a nicety here: AsTextArea lives in the core
         // FormCraft project and AsPassword in FormCraft.ForMudBlazor, so neither builder method
         // ever sees the other's setting. Only the render path can reconcile them.
-        var component = RenderOrderForm(BuildConfiguration(field =>
+        var component = RenderOrderForm(TextItemForm(field =>
             field.AsTextArea(lines: 4).AsPassword()));
 
         // Assert
@@ -317,10 +318,12 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // from OnInitialized, so an unlatched warning reports a single field's CONFIGURATION once
         // per row: fifty rows, fifty identical lines, and the signal is buried in its own noise.
         // The latch is what makes this a report about a field rather than about a list.
-        var config = BuildConfiguration(field => field.WithAttribute("Mask", "(000) 000-0000"));
+        var config = TextItemForm(field => field
+            .WithLabel("Secret")
+            .WithAttribute("Mask", "(000) 000-0000"));
 
         // Act
-        RenderCredentials(config, rows: 5);
+        RenderRows(config, rows: 5);
 
         // Assert
         var warnings = _logs.Warnings;
@@ -337,13 +340,13 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // shared between them would report whichever fired first and hide the rest for good. The
         // code this replaced kept two separate HashSets for exactly this; the category-qualified key
         // is how that survives now that the latch is shared infrastructure.
-        var config = BuildConfiguration(field => field
+        var config = TextItemForm(field => field
             .WithAttribute("Mask", "(000) 000-0000")
             .AsPassword()
             .AsTextArea(lines: 4));
 
         // Act
-        RenderCredentials(config, rows: 5);
+        RenderRows(config, rows: 5);
 
         // Assert - one masked-lines warning and one masked-value warning, each still latched to one
         // per field rather than one per row.
@@ -358,10 +361,10 @@ public class CollectionInputTypeTests : MudBlazorTestBase
     {
         // Arrange - the negative that keeps the latch honest. Nothing is rejected here, so the
         // absence of a warning must come from the rule, not from a latch that swallowed it.
-        var config = BuildConfiguration(field => field.WithAttribute("Mask", "(000) 000-0000"));
+        var config = TextItemForm(field => field.WithAttribute("Mask", "(000) 000-0000"));
 
         // Act
-        RenderCredentials(config, rows: 5, value: "5551234567");
+        RenderRows(config, rows: 5, value: "5551234567");
 
         // Assert
         _logs.Warnings.ShouldBeEmpty();
@@ -376,21 +379,21 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         // CollectionItemFieldScope.DiagnosticKey exists to remove, and it has to reach the MESSAGE
         // and not just the latch key to be worth anything.
         var model = new TwoCollectionModel();
-        model.Contacts.Add(new Credential { Secret = "N/A" });
-        model.Suppliers.Add(new Credential { Secret = "N/A" });
+        model.Contacts.Add(new OrderItem { ProductName = "N/A" });
+        model.Suppliers.Add(new OrderItem { ProductName = "N/A" });
 
         var config = FormBuilder<TwoCollectionModel>
             .Create()
             .AddCollectionField(x => x.Contacts, collection => collection
                 .WithLabel("Contacts")
                 .WithItemForm(item => item
-                    .AddField(x => x.Secret, field => field
+                    .AddField(x => x.ProductName, field => field
                         .WithLabel("Secret")
                         .WithAttribute("Mask", "(000) 000-0000"))))
             .AddCollectionField(x => x.Suppliers, collection => collection
                 .WithLabel("Suppliers")
                 .WithItemForm(item => item
-                    .AddField(x => x.Secret, field => field
+                    .AddField(x => x.ProductName, field => field
                         .WithLabel("Secret")
                         .WithAttribute("Mask", "(000) 000-0000"))))
             .Build();
@@ -407,56 +410,31 @@ public class CollectionInputTypeTests : MudBlazorTestBase
         warnings.ShouldContain(w => w.Contains("Suppliers[].Secret"));
     }
 
+    /// <summary>
+    /// Two collections of the same item type in one form — the shape the fixture deliberately does
+    /// not provide, because it exists for this suite's own question (which collection does a
+    /// diagnostic name?) rather than for a field type. Its <i>item</i> type still comes from the
+    /// fixture; only the two-collection root is local.
+    /// </summary>
     private class TwoCollectionModel
     {
-        public List<Credential> Contacts { get; set; } = new();
+        public List<OrderItem> Contacts { get; set; } = new();
 
-        public List<Credential> Suppliers { get; set; } = new();
+        public List<OrderItem> Suppliers { get; set; } = new();
     }
 
-    private IRenderedComponent<FormCraftComponent<CredentialsModel>> RenderCredentials(
-        IFormConfiguration<CredentialsModel> config,
+    private IRenderedComponent<FormCraftComponent<OrderModel>> RenderRows(
+        IFormConfiguration<OrderModel> config,
         int rows,
         string value = "N/A")
     {
-        var model = new CredentialsModel();
-        for (var i = 0; i < rows; i++)
-        {
-            model.Items.Add(new Credential { Secret = value });
-        }
+        var productNames = new string[rows];
+        Array.Fill(productNames, value);
 
-        return Render<FormCraftComponent<CredentialsModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
+        return this.RenderItemForm(NewOrderWithItems(productNames), config);
     }
 
-    private IRenderedComponent<FormCraftComponent<CredentialsModel>> RenderOrderForm(
-        IFormConfiguration<CredentialsModel> config)
-        => RenderCredentials(config, rows: 1, value: "hunter2");
-
-    private static IFormConfiguration<CredentialsModel> BuildConfiguration(
-        Action<FieldBuilder<Credential, string>> configureItemField)
-    {
-        return FormBuilder<CredentialsModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Credentials")
-                .WithItemForm(item => item
-                    .AddField(x => x.Secret, field =>
-                    {
-                        field.WithLabel("Secret");
-                        configureItemField(field);
-                    })))
-            .Build();
-    }
-
-    private class CredentialsModel
-    {
-        public List<Credential> Items { get; set; } = new();
-    }
-
-    private class Credential
-    {
-        public string Secret { get; set; } = string.Empty;
-    }
+    private IRenderedComponent<FormCraftComponent<OrderModel>> RenderOrderForm(
+        IFormConfiguration<OrderModel> config)
+        => RenderRows(config, rows: 1, value: "hunter2");
 }

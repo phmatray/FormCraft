@@ -1,5 +1,7 @@
+using FormCraft.ForMudBlazor.UnitTests.Fields;
 using FormCraft.ForMudBlazor.UnitTests.TestSupport;
 using Microsoft.Extensions.Logging;
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Diagnostics;
 
@@ -47,13 +49,16 @@ public class MaskedLinesDiagnosticTests : MudBlazorTestBase
     [Fact]
     public void Should_Warn_For_An_Item_Field_Too()
     {
-        // Arrange - the collection path builds its tree with RenderTreeBuilder rather than through
-        // MudBlazorFieldComponentBase, so it needs its own wiring and its own coverage. The clear
-        // text bug was identical on both paths; the diagnostic must be too.
-        var config = BuildItemFormConfiguration(f => f.AsPassword().AsTextArea(lines: 4));
+        // Arrange - the item placement was a render path of its own when this was written, so it
+        // needed its own wiring and its own coverage. The clear text bug was identical on both
+        // paths; the diagnostic must be too.
+        var config = TextItemForm(f => f
+            .WithLabel("Secret")
+            .AsPassword()
+            .AsTextArea(lines: 4));
 
         // Act
-        RenderItemForm(config);
+        this.RenderItemForm(NewOrder("hunter2"), config);
 
         // Assert
         var warnings = _logs.Warnings;
@@ -128,43 +133,7 @@ public class MaskedLinesDiagnosticTests : MudBlazorTestBase
             .Add(p => p.Configuration, config));
     }
 
-    private IRenderedComponent<FormCraftComponent<CredentialsModel>> RenderItemForm(
-        IFormConfiguration<CredentialsModel> config)
-    {
-        var model = new CredentialsModel { Items = { new Credential { Secret = "hunter2" } } };
-
-        return Render<FormCraftComponent<CredentialsModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
-    }
-
-    private static IFormConfiguration<CredentialsModel> BuildItemFormConfiguration(
-        Action<FieldBuilder<Credential, string>> configureItemField)
-    {
-        return FormBuilder<CredentialsModel>
-            .Create()
-            .AddCollectionField(x => x.Items, collection => collection
-                .WithLabel("Credentials")
-                .WithItemForm(item => item
-                    .AddField(x => x.Secret, field =>
-                    {
-                        field.WithLabel("Secret");
-                        configureItemField(field);
-                    })))
-            .Build();
-    }
-
     private class TestModel
-    {
-        public string Secret { get; set; } = string.Empty;
-    }
-
-    private class CredentialsModel
-    {
-        public List<Credential> Items { get; set; } = new();
-    }
-
-    private class Credential
     {
         public string Secret { get; set; } = string.Empty;
     }
