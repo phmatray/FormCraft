@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace FormCraft.ForMudBlazor;
@@ -19,7 +18,10 @@ namespace FormCraft.ForMudBlazor;
 /// <para>
 /// Third diagnostic in the same shape (<c>ShrinkLabelDiagnostic</c>, <c>MaskedLinesDiagnostic</c>,
 /// this): resolve an optional <see cref="ILoggerFactory"/> inside a guard that swallows, and emit at
-/// most once per component instance. If a fourth appears, the shape is worth extracting.
+/// most once per component instance. A fourth appeared (<see cref="MaskedValueDiagnostic"/>, #266),
+/// so the shape was extracted as promised — emission now goes through <see cref="DiagnosticLog"/>
+/// and the latch through <c>MudBlazorFieldComponentBase.ShouldReport</c> (#284). What is left here
+/// is this diagnostic's own category and message.
 /// </para>
 /// </remarks>
 internal static class PasswordAdornmentDiagnostic
@@ -33,26 +35,13 @@ internal static class PasswordAdornmentDiagnostic
     /// <param name="services">Provider used to resolve an optional <see cref="ILoggerFactory"/>.</param>
     /// <param name="fieldName">The field's name, used when it has no label.</param>
     /// <param name="label">Display name for the message.</param>
-    internal static void Warn(IServiceProvider? services, string fieldName, string? label)
-    {
-        // A diagnostic must never break a render, so the service resolution — the one call that can
-        // realistically fail on a torn-down circuit — is inside the guard too.
-        try
-        {
-            var logger = services?
-                .GetService<ILoggerFactory>()?
-                .CreateLogger(Category);
-
-            logger?.LogWarning(
-                "Field '{Field}' configures an adornment, but .AsPassword() installs a visibility " +
-                "toggle in the same slot and a field has only one. The configured adornment — and " +
-                "its click handler, if any — is not rendered. Remove the adornment, or pass " +
-                "enableVisibilityToggle: false to keep it and drop the toggle.",
-                string.IsNullOrWhiteSpace(label) ? fieldName : label);
-        }
-        catch
-        {
-            // Ignored: a failing diagnostic must not take the form down with it.
-        }
-    }
+    internal static void Warn(IServiceProvider? services, string fieldName, string? label) =>
+        DiagnosticLog.Warn(
+            services,
+            Category,
+            "Field '{Field}' configures an adornment, but .AsPassword() installs a visibility " +
+            "toggle in the same slot and a field has only one. The configured adornment — and " +
+            "its click handler, if any — is not rendered. Remove the adornment, or pass " +
+            "enableVisibilityToggle: false to keep it and drop the toggle.",
+            string.IsNullOrWhiteSpace(label) ? fieldName : label);
 }

@@ -184,10 +184,39 @@ public class TestReportingTests
 
     /// <summary>
     /// The upload step as it appears <em>within that job</em> — so an assertion about it cannot be
-    /// answered by an identically-named step sitting in a sibling job.
+    /// answered by an identically-named step sitting in a sibling job — or <c>null</c> when that job
+    /// has no such step.
     /// </summary>
-    private static string UploadStep(TestRunningJob job) =>
-        WorkflowSource.StepNamed(job.Text, UploadStepName, job.ToString());
+    /// <remarks>
+    /// Non-asserting since #267. The asserting form threw from in here, so deleting one upload step
+    /// reddened five tests: the one whose actual subject is "every such job uploads" named the
+    /// offending job cleanly, and the other four died inside this helper, presented as a fault in the
+    /// shared reader rather than in the workflow.
+    /// <para>
+    /// What changed is the <em>message</em>, not the count. Measured on <c>ci.yml</c>: five tests were
+    /// red before and five are red after — but where four used to read
+    /// <c>Array.FindIndex(…) should be greater than or equal to 0 but was -1</c>, all five now name
+    /// <c>ci.yml / build-and-test</c> as an offender. The count cannot fall; every one of these claims
+    /// is genuinely unsatisfied by a job with no upload step.
+    /// </para>
+    /// </remarks>
+    private static string? UploadStep(TestRunningJob job) =>
+        WorkflowSource.TryStepNamed(job.Text, UploadStepName);
+
+    /// <summary>
+    /// Whether <paramref name="job" />'s upload step fails <paramref name="claim" /> — including by
+    /// not existing at all.
+    /// </summary>
+    /// <remarks>
+    /// The absence rule lives here, once, rather than inline at each assertion below. Restating
+    /// <c>is not { } step ||</c> per call site puts a vacuity hole one forgotten clause away: written
+    /// as <c>is { } step &amp;&amp;</c>, a missing step reads as *satisfying* the claim, which is the
+    /// silence this file guards against everywhere else (see <see cref="JobsThatRunTests" />). Absence
+    /// offends every claim here — a step that is not there has no <c>if: always()</c>, and equally
+    /// does not "avoid the stale glob" in any sense worth being green about.
+    /// </remarks>
+    private static bool UploadStepFails(TestRunningJob job, Func<string, bool> claim) =>
+        UploadStep(job) is not { } step || !claim(step);
 
     [Fact]
     public void BuildScript_Should_Not_Set_The_VSTest_Properties_That_Mtp_Ignores()
@@ -320,8 +349,12 @@ public class TestReportingTests
     {
         // In that same job, not merely somewhere in the file: the artifact is uploaded from the
         // workspace the build filled, and a sibling job's workspace is a different one.
+        //
+        // Asked through the same primitive as the four tests below rather than by a raw substring
+        // search, so "present" means the one thing here and there — a step the scan can actually
+        // isolate, not merely the text of a `- name:` line appearing somewhere in the job.
         var missing = JobsThatRunTests()
-            .Where(j => !j.Text.Contains($"- name: '{UploadStepName}'", StringComparison.Ordinal))
+            .Where(j => UploadStep(j) is null)
             .ToList();
 
         missing.ShouldBeEmpty();
@@ -335,7 +368,7 @@ public class TestReportingTests
         // Platform prints only a summary line to stdout, so without this a red CI run leaves no
         // record of *which* assertion failed — a cost that was paid for real during #200.
         var offenders = JobsThatRunTests()
-            .Where(j => !UploadStep(j).Contains("if: always()", StringComparison.Ordinal))
+            .Where(j => UploadStepFails(j, s => s.Contains("if: always()", StringComparison.Ordinal)))
             .ToList();
 
         offenders.ShouldBeEmpty();
@@ -350,9 +383,7 @@ public class TestReportingTests
         // re-introducing the very globs the next test rejects. All three steps upload exactly one
         // directory, so that is what is pinned.
         var offenders = JobsThatRunTests()
-            .Where(j => !UploadStep(j)
-                .Split('\n')
-                .Any(line => line.Trim() == "path: test-results"))
+            .Where(j => UploadStepFails(j, s => s.Split('\n').Any(line => line.Trim() == "path: test-results")))
             .ToList();
 
         offenders.ShouldBeEmpty();
@@ -366,8 +397,12 @@ public class TestReportingTests
         // created. --results-directory moved them, so that glob now matches nothing on every run —
         // the same declared-and-inert shape this issue exists to remove, just one file over. Every
         // target that tests routes through Test, so there is no run in which it could match again.
+        // The claim is inverted, so it reads "the step exists AND avoids the stale glob". Absence
+        // offends it, even though a step that is not there points at nothing: a missing step makes
+        // this test red today by throwing, so letting it read as vacuously satisfied would trade a
+        // loud failure for a quieter suite — the opposite of the point.
         var offenders = JobsThatRunTests()
-            .Where(j => UploadStep(j).Contains("**/TestResults/", StringComparison.Ordinal))
+            .Where(j => UploadStepFails(j, s => !s.Contains("**/TestResults/", StringComparison.Ordinal)))
             .ToList();
 
         offenders.ShouldBeEmpty();
@@ -382,8 +417,7 @@ public class TestReportingTests
         // real one gets missed. The opposite risk — an *empty* directory passing unremarked — is
         // covered in the build rather than here, by the Assert.NotEmpty on the trx.
         var offenders = JobsThatRunTests()
-            .Where(j => !UploadStep(j)
-                .Contains("if-no-files-found: ignore", StringComparison.Ordinal))
+            .Where(j => UploadStepFails(j, s => s.Contains("if-no-files-found: ignore", StringComparison.Ordinal)))
             .ToList();
 
         offenders.ShouldBeEmpty();

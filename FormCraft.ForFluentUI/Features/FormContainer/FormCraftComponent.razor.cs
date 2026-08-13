@@ -64,7 +64,7 @@ public partial class FormCraftComponent<TModel> where TModel : new()
     public EventCallback<EditContext> OnEditContextCreated { get; set; }
 
     private EditContext? _editContext;
-    private FluentUIDynamicFormValidator<TModel>? _validator;
+    private DynamicFormValidator<TModel>? _validator;
 
     /// <inheritdoc />
     /// <exception cref="NotSupportedException">

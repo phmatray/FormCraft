@@ -17,7 +17,20 @@
    FormCraft validates server-side and documents that the browser produces no native validation
    bubbles. That guarantee is only as good as this attribute. *@
 <EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit" novalidate="novalidate">
-    <FluentUIDynamicFormValidator TModel="TModel" Configuration="@Configuration" @ref="_validator" />
+@*  ValidateCollections="false" is load-bearing, not a tuning knob (#279).
+
+    This adapter renders no collection/item-form UI yet (blocked on #203) - the loop below walks
+    Configuration.Fields only. A collection error attaches to the collection's own field identifier,
+    so nothing on this form would display it, and HandleSubmit gates OnValidSubmit on the result:
+    the submit button would silently stop working, with no message on screen and no input the user
+    could correct. FluentUIDynamicFormValidator omitted the collection half for this reason; the
+    flag is how that survives sharing one implementation with the MudBlazor adapter.
+
+    Turn it on when this container actually renders collection fields - not before. *@
+    <DynamicFormValidator TModel="TModel"
+                          Configuration="@Configuration"
+                          ValidateCollections="false"
+                          @ref="_validator" />
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
         @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
