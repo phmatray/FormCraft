@@ -65,7 +65,7 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
         // moving the hook into core is meant to stop.
         _selectedItems.Clear();
         _rows.Clear();
-        _displayText = string.Empty;
+        DisplayText = string.Empty;
         _searchText = string.Empty;
         _isOpen = false;
         _isLoading = false;
