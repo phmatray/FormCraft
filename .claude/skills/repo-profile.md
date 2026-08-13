@@ -15,9 +15,52 @@
 ## Build & test
 - **Build:** `dotnet build -c Release`
 - **Full test:** `dotnet test -c Release`
-- **Single-suite filter (per-task, fast):** *not available* — this repo's test projects run on
-  **Microsoft.Testing.Platform**, which prints `MTP0001` and **silently ignores `--filter`**, running
-  the whole suite anyway. Use the full run; it completes in seconds. Never report a filtered result.
+- **Single-suite filter (per-task, fast):** **available — but never via `dotnet test --filter`.**
+  The test projects are Microsoft.Testing.Platform hosts (`OutputType=Exe` +
+  `UseMicrosoftTestingPlatformRunner=true`), so xunit.v3's runner exposes real filter options on
+  them. Both forms below run a strict subset and print a genuine summary line. Measured on SDK
+  `10.0.302` / xunit.v3 runner `3.2.2` (#277) — re-measure if either moves.
+  - **Preferred** (builds first; the SDK forwards everything after `--` to the host):
+    ```bash
+    dotnet test FormCraft.UnitTests/FormCraft.UnitTests.csproj -c Release \
+      -- --filter-class FormCraft.UnitTests.Ci.GitignoreTests
+    # Passed! - Failed: 0, Passed: 6, Skipped: 0, Total: 6 — ~10s including the build
+    ```
+  - **Fastest** (runs the built host directly — **it does not build**, so `dotnet build -c Release`
+    must precede it or you are silently testing stale code):
+    ```bash
+    FormCraft.UnitTests/bin/Release/net10.0/FormCraft.UnitTests \
+      --filter-class FormCraft.UnitTests.Ci.GitignoreTests
+    # total: 6 (of 808), 191ms
+    ```
+    Not project-specific — every test project has its own host:
+    ```bash
+    FormCraft.ForMudBlazor.UnitTests/bin/Release/net10.0/FormCraft.ForMudBlazor.UnitTests \
+      --filter-class FormCraft.ForMudBlazor.UnitTests.Fields.AriaRequiredTests
+    # total: 34 (of 464)
+    ```
+  - **Flags:** `--filter-class`, `--filter-method`, `--filter-namespace`, their `--filter-not-*`
+    counterparts, and `--filter-uid`. `*` wildcards work at either end
+    (`--filter-class '*GitignoreTests'` → 6). ⚠️ **`--filter-method` wants the fully-qualified
+    name** (`<namespace>.<class>.<method>`) — a bare method name matches **nothing** and does not
+    say so; a wildcard (`--filter-method '*Clearing_A_Standalone*'`) is the ergonomic escape.
+  - ⛔ **`dotnet test --filter …` really is inert** — the true half of the advice this bullet
+    replaced. It is a VSTest option forwarded as an MSBuild property that MTP ignores, warning
+    `MTP0001: VSTest-specific properties are set but will be ignored … VSTestTestCaseFilter` while
+    **the whole suite runs anyway** (`Total: 808`). Never report such a run as filtered.
+  - ⚠️ **Assert on the summary line — never on the exit code, never on the absence of `Failed!`.**
+    A wrong flag is not a failure you will notice: `<binary> --filter "*Gitignore*"` prints
+    `Unknown option '--filter'` followed by the full `--help` text, runs nothing, and emits **no
+    summary line at all**, so `grep 'Failed!'` matches nothing and reads as green. Its *direct*
+    exit is `5`, but the usual `| tail`/`| grep` replaces `$?` with the pipe's `0` — the pipe, not
+    the binary, is what manufactures the false pass. A filter that matches nothing prints
+    `Zero tests ran` and exits `8`. Require a real `Passed!`/`Failed!` line **and** a plausible
+    test count.
+  - **Scope:** this is *within-task* iteration only. It does **not** replace the *CI gates* below —
+    `./build.cmd Test` stays the pre-merge gate and still runs everything: 1340 tests across the
+    three test projects (808 + 464 + 68), ~30s including `Compile`. Bare `dotnet test -c Release`
+    runs the same 1340 in ~11s on a warm build. Filter to iterate; run one of these before you
+    claim done.
 - **Format/lint apply:** `dotnet format FormCraft.sln`
 - **Format/lint verify (the gate):** *CI runs no `dotnet format` check.* The enforcing gate is the
   **build itself**: `Directory.Build.props` sets `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`
@@ -26,6 +69,8 @@
 - **Prerequisites / caveats:**
   - `global.json` pins SDK `10.0.302` with `rollForward: latestFeature`.
   - Multi-target `net8.0;net10.0` — a build error can be TFM-specific; read which TFM the error names.
+    The **test** projects are single-target `net10.0`, so each has exactly one host binary under
+    `bin/<cfg>/net10.0/` — no per-TFM ambiguity when picking the path above.
   - Nuke wrapper: `./build.sh` / `./build.cmd <Target>` (`Clean`, `Restore`, `Compile`, `Test`, `Pack`,
     `Continuous`). `Test` is `DependsOn(Compile)` with `--no-build --no-restore`.
 
@@ -138,6 +183,11 @@
 ## Environment gotchas
 - **Default branch is `dev`.** The lifecycle skills' examples say `main`; substitute `dev` everywhere
   (`--base dev`, `git merge origin/dev`).
-- `dotnet test --filter` is inert (MTP0001) — see *Build & test*.
+- **`dotnet test --filter` is inert here (`MTP0001`) — but per-suite filtering is not.** Reach for
+  `dotnet test <csproj> -c Release -- --filter-class <FQN>`, or run the built MTP host directly; see
+  *Build & test* for the flag list and, more importantly, for the two ways a filtered run lies about
+  itself — a **wrong flag** prints `--help`, runs nothing and emits no summary line (`grep 'Failed!'`
+  reads that as green), and a filter matching **nothing** reports `Zero tests ran`. Verify a real
+  `Passed!`/`Failed!` line and a plausible count; do not trust `$?` through a pipe.
 - Use `git -C <path>` rather than `cd <path> && …` — a `cd` in a compound command gets reset between
   tool calls.
