@@ -17,7 +17,25 @@
    FormCraft validates server-side and documents that the browser produces no native validation
    bubbles. That guarantee is only as good as this attribute. *@
 <EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit" novalidate="novalidate">
-    <FluentUIDynamicFormValidator TModel="TModel" Configuration="@Configuration" @ref="_validator" />
+@*  ValidateCollections is ON as of #278 — and flipping it is the point, not an oversight.
+
+    #279 introduced this flag set to `false` with the instruction "turn it on when this container
+    actually renders collection fields - not before". That condition is now met: the container
+    renders collection fields below, through the same IFieldRendererService registry as every other
+    field (#203).
+
+    The flag existed because a collection error attaches to the collection's own field identifier,
+    and HandleSubmit gates OnValidSubmit on the validation result — so with no collection UI on
+    screen, validating collections would have stopped the submit button working with no message the
+    user could act on. Now that the rows are rendered, that error has somewhere to appear and a
+    field the user can correct, which is exactly the state the flag was waiting for.
+
+    ⛔ Do not set this back to `false` while collection fields render: it would accept submissions
+    that violate collection validators, silently. *@
+    <DynamicFormValidator TModel="TModel"
+                          Configuration="@Configuration"
+                          ValidateCollections="true"
+                          @ref="_validator" />
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
         @if (HasFieldGroups)

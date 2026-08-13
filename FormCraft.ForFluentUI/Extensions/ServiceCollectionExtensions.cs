@@ -8,10 +8,11 @@ namespace FormCraft.ForFluentUI.Extensions;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// The assembly name of the MudBlazor adapter, used to detect a conflicting registration
-    /// without taking a reference on that package.
+    /// This adapter's own assembly name, handed to
+    /// <see cref="AdapterRegistration.EnsureSingleAdapter"/> so the scan excludes it and a repeated
+    /// <c>AddFormCraftFluentUI()</c> is not read as a conflict with itself.
     /// </summary>
-    private const string MudBlazorAdapterAssembly = "FormCraft.ForMudBlazor";
+    private const string ThisAdapterAssembly = "FormCraft.ForFluentUI";
 
     /// <param name="services">The IServiceCollection to add the services to.</param>
     extension(IServiceCollection services)
@@ -21,13 +22,14 @@ public static class ServiceCollectionExtensions
         /// </summary>
         /// <returns>The IServiceCollection for method chaining.</returns>
         /// <exception cref="InvalidOperationException">
-        /// Thrown when the MudBlazor adapter is <b>already</b> registered.
+        /// Thrown when another FormCraft UI adapter is already registered.
         /// </exception>
         /// <remarks>
-        /// ⚠️ The guard is one-directional: it inspects the container at the moment it runs, so
-        /// calling <c>AddFormCraftFluentUI()</c> and <b>then</b> <c>AddFormCraftMudBlazor()</c>
-        /// throws nothing and produces exactly the mixed container it exists to prevent. Closing
-        /// that needs a matching check in the MudBlazor package.
+        /// The guard is symmetric since #279: both adapters call the same
+        /// <see cref="AdapterRegistration.EnsureSingleAdapter"/> in core, so either registration
+        /// order fails identically. It used to live only here, which meant
+        /// <c>AddFormCraftFluentUI()</c> followed by <c>AddFormCraftMudBlazor()</c> threw nothing
+        /// and produced exactly the mixed container it exists to prevent.
         /// </remarks>
         /// <example>
         /// <code>
@@ -41,14 +43,9 @@ public static class ServiceCollectionExtensions
             // Renderer selection picks the FIRST IFieldRenderer whose CanRender matches, so a
             // container holding two adapters silently renders a form that is partly Material and
             // partly Fluent - no exception, just wrong output. Fail at registration instead.
-            // Detected by assembly NAME so this package takes no reference on the MudBlazor one.
-            if (services.Any(s => s.ServiceType == typeof(IFieldRenderer) &&
-                                  s.ImplementationType?.Assembly.GetName().Name == MudBlazorAdapterAssembly))
-            {
-                throw new InvalidOperationException(
-                    "FormCraft.ForMudBlazor is already registered. AddFormCraftMudBlazor() and " +
-                    "AddFormCraftFluentUI() are mutually exclusive - register exactly one of them.");
-            }
+            // The rule lives in core (#279) and is called from both adapters, so it fires in either
+            // registration order; a copy here caught only Mud-then-Fluent.
+            AdapterRegistration.EnsureSingleAdapter(services, ThisAdapterAssembly);
 
             // Remove only the core library's default renderers; renderers registered by the
             // application (custom IFieldRenderer implementations) must survive and keep precedence

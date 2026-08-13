@@ -224,11 +224,18 @@ Use FluentValidation for complex business rules and FormCraft's built-in validat
 Remember that validation state is managed by Blazor's `EditContext`:
 
 ```razor
+@using FormCraft
+
 <EditForm Model="@model">
     <DynamicFormValidator TModel="Customer" Configuration="@formConfig" />
     <FormCraftComponent TModel="Customer" Model="@model" Configuration="@formConfig" />
 </EditForm>
 ```
+
+> `DynamicFormValidator<TModel>` lives in the **`FormCraft`** namespace (it moved there from
+> `FormCraft.ForMudBlazor` in #279, so both UI adapters share one implementation). The `@using
+> FormCraft` above is what makes the tag resolve; the adapter's own `@using` is not enough.
+> `FormCraftComponent` renders it for you, so most forms never name it directly.
 
 ## Troubleshooting
 

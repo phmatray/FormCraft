@@ -79,7 +79,8 @@ public partial class FormCraftComponent<TModel> where TModel : new()
     private IServiceProvider ServiceProvider { get; set; } = null!;
 
     private EditContext? _editContext;
-    private FluentUIDynamicFormValidator<TModel>? _validator;
+    // The shared validator from core since #279, not this adapter's own copy.
+    private DynamicFormValidator<TModel>? _validator;
     private string? _csrfToken;
     private string? _securityError;
 

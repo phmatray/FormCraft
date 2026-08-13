@@ -131,25 +131,24 @@ See the follow-ups on [#260](https://github.com/phmatray/FormCraft/issues/260).
 is first-match-wins, so a container holding both renders a form that is partly Material and partly
 Fluent, with no error to point at.
 
-`AddFormCraftFluentUI()` throws when the MudBlazor adapter is **already** registered:
+Whichever registration runs second throws, so **both orders fail identically**:
 
 ```csharp
 builder.Services.AddFormCraft();
 builder.Services.AddFormCraftMudBlazor();
 builder.Services.AddFormCraftFluentUI();   // throws InvalidOperationException
-```
 
-⚠️ **The guard is one-directional.** It inspects the container at the moment it runs, so the reverse
-order slips through and produces exactly the mixed container it exists to prevent:
-
-```csharp
 builder.Services.AddFormCraft();
 builder.Services.AddFormCraftFluentUI();
-builder.Services.AddFormCraftMudBlazor();  // does NOT throw — mixed renderers
+builder.Services.AddFormCraftMudBlazor();  // throws too, since #279
 ```
 
-Closing that needs a matching check on the MudBlazor side, which belongs to that package. Until then,
-register exactly one adapter and prefer putting `AddFormCraftFluentUI()` last if you are unsure.
+The guard used to live in this package alone, which meant it only caught the first order — the
+second slipped through and produced exactly the mixed container it exists to prevent. The rule now
+lives in `FormCraft` core (`AdapterRegistration.EnsureSingleAdapter`) and both adapters call it, so
+it is symmetric by construction rather than by two packages remembering to agree.
+
+Registering the *same* adapter twice is not a conflict and stays legal.
 
 ## Accessibility
 

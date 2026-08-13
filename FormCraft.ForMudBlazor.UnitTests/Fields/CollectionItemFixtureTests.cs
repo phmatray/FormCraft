@@ -22,8 +22,9 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// </para>
 /// </para>
 /// <para>
-/// <b>Beyond the field types</b>, the fixture also carries one shape — a root-level field beside the
-/// collection (<c>RootFieldAndItemForm</c>) — which is guarded here too.
+/// <b>Beyond the field types</b>, the fixture carries two shapes — a root-level field beside the
+/// collection (<c>RootFieldAndItemForm</c>), and one item form holding four fields at once
+/// (<c>MultiFieldItemForm</c>, #282) — both guarded here too.
 /// </para>
 /// <para>
 /// <b>The seed is the caller's choice.</b> <c>CollectionRequiredTests</c> needs a blank
@@ -141,6 +142,136 @@ public class CollectionItemFixtureTests : MudBlazorTestBase
         date.FindComponent<MudDatePicker>().Instance.Label.ShouldBe("Renamed");
         boolean.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Renamed");
         dec.FindComponent<MudNumericField<decimal>>().Instance.Label.ShouldBe("Renamed");
+    }
+
+    [Fact]
+    public void MultiFieldItemForm_Should_Render_All_Four_Fields_In_One_Row()
+    {
+        // Arrange & Act - the shape every other builder here is not: ONE item form holding four
+        // fields at once, rather than one field per model pair. CollectionAdornmentTests and
+        // CollectionRenderCharacterisationTests are the named consumers (#282) — both were carrying
+        // their own MixedRow, and the two copies had already drifted apart.
+        var component = this.RenderItemForm(
+            CollectionItemFixture.NewMixedItems(new MixedItem()),
+            CollectionItemFixture.MultiFieldItemForm());
+
+        // Assert - one of each component type. MudDatePicker embeds a MudTextField<string> of its
+        // own, so the text field is selected by label rather than by FindComponent, which would
+        // return whichever came first in the tree.
+        component.FindComponents<MudTextField<string>>()
+            .Select(f => f.Instance.Label)
+            .ShouldContain("Name");
+        component.FindComponent<MudNumericField<int>>().Instance.Label.ShouldBe("Quantity");
+        component.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Gift");
+        component.FindComponent<MudDatePicker>().Instance.Label.ShouldBe("When");
+    }
+
+    [Fact]
+    public void MultiFieldItemForm_Should_Declare_Its_Four_Fields_In_A_Stable_Order()
+    {
+        // Arrange & Act - the order is not cosmetic: CollectionRenderCharacterisationTests'
+        // Every_Item_Field_Kind_Should_Render_Its_Own_Nested_Validation_Slot asserts the exact
+        // sequence Rows[0].Name, Rows[0].Quantity, Rows[0].IsGift, Rows[0].When. Swapping two
+        // AddField calls in the builder would turn that consumer red while every assertion in this
+        // file — the one that exists to pin what the suites rely on and cannot check themselves —
+        // stayed green, sending the next maintainer to debug the wrong file.
+        var component = this.RenderItemForm(
+            CollectionItemFixture.NewMixedItems(new MixedItem()),
+            CollectionItemFixture.MultiFieldItemForm());
+
+        // Assert - the validation slots carry the item field names in declaration order
+        component.FindComponents<FieldValidationMessage>()
+            .Select(m => m.Instance.FieldName)
+            .ShouldBe(new[] { "Rows[0].Name", "Rows[0].Quantity", "Rows[0].IsGift", "Rows[0].When" });
+    }
+
+    [Fact]
+    public void MultiFieldItemForm_Should_Route_Each_Callback_To_Its_Own_Field()
+    {
+        // Arrange & Act - four callbacks, four destinations. A builder that wired two of them to the
+        // same field, or dropped one, would leave a suite configuring nothing while still looking
+        // configured at the call site. Renamed apart so the assertions can tell them apart: with a
+        // shared label this test would pass on a builder that applied one callback four times.
+        var component = this.RenderItemForm(
+            CollectionItemFixture.NewMixedItems(new MixedItem()),
+            CollectionItemFixture.MultiFieldItemForm(
+                configureText: field => field.WithLabel("Renamed text"),
+                configureNumeric: field => field.WithLabel("Renamed numeric"),
+                configureBoolean: field => field.WithLabel("Renamed boolean"),
+                configureDate: field => field.WithLabel("Renamed date")));
+
+        // Assert
+        component.FindComponents<MudTextField<string>>()
+            .Select(f => f.Instance.Label)
+            .ShouldContain("Renamed text");
+        component.FindComponent<MudNumericField<int>>().Instance.Label.ShouldBe("Renamed numeric");
+        component.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Renamed boolean");
+        component.FindComponent<MudDatePicker>().Instance.Label.ShouldBe("Renamed date");
+    }
+
+    [Fact]
+    public void MultiFieldItemForm_Should_Apply_The_Callers_Collection_Configuration()
+    {
+        // Arrange & Act - the collection itself, not just its fields. CollectionAdornmentTests'
+        // reorder test needs .AllowReorder(), which is a property of the COLLECTION; without this
+        // callback that suite would have to hand-roll the whole configuration and would keep its own
+        // model copy with it, which is the duplication this fixture exists to remove.
+        var reorderable = this.RenderItemForm(
+            CollectionItemFixture.NewMixedItems(new MixedItem(), new MixedItem()),
+            CollectionItemFixture.MultiFieldItemForm(
+                configureCollection: collection => collection.AllowReorder()));
+
+        // ...and the same form WITHOUT the callback, which is the half that makes this a test of the
+        // callback rather than of MudBlazor. Asserting only that the buttons appear would stay green
+        // if reordering ever became the default, or if a regression rendered the controls
+        // unconditionally — proving nothing about the parameter the test is named for.
+        var plain = this.RenderItemForm(
+            CollectionItemFixture.NewMixedItems(new MixedItem(), new MixedItem()),
+            CollectionItemFixture.MultiFieldItemForm());
+
+        // Assert - reorder controls only render when the collection allows reordering
+        reorderable.FindAll("button[aria-label='Move up']").ShouldNotBeEmpty();
+        plain.FindAll("button[aria-label='Move up']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void NewMixedItems_Should_Seed_Each_Row_And_Preserve_Order()
+    {
+        // Arrange & Act - the multi-row factory for the four-member row. It takes whole rows rather
+        // than a params list of scalars because four members cannot be seeded from one value each
+        // the way NewOrderWithItems' product names can.
+        var model = CollectionItemFixture.NewMixedItems(
+            new MixedItem { Name = "first", Quantity = 1, IsGift = true, When = new DateTime(2020, 1, 1) },
+            new MixedItem { Name = "second", Quantity = 2, IsGift = false, When = new DateTime(2030, 12, 31) });
+
+        // Assert - every member survived, and the rows kept their order
+        model.Rows.Count.ShouldBe(2);
+        model.Rows.Select(r => r.Name).ShouldBe(new[] { "first", "second" });
+        model.Rows.Select(r => r.Quantity).ShouldBe(new[] { 1, 2 });
+        model.Rows.Select(r => r.IsGift).ShouldBe(new[] { true, false });
+        model.Rows.Select(r => r.When)
+            .ShouldBe(new[] { new DateTime(2020, 1, 1), new DateTime(2030, 12, 31) });
+
+        // ...and in what renders, as the other seed tests do. Asserting the POCO alone would stay
+        // green if the builder bound a field to the wrong property.
+        var component = this.RenderItemForm(model, CollectionItemFixture.MultiFieldItemForm());
+        component.FindComponents<MudTextField<string>>()
+            .Where(f => f.Instance.Label == "Name")
+            .Select(f => f.Instance.Value)
+            .ShouldBe(new[] { "first", "second" });
+        component.FindComponents<MudNumericField<int>>()
+            .Select(f => f.Instance.Value)
+            .ShouldBe(new[] { 1, 2 });
+
+        // All four, not just the two easy ones: this is the only test seeding every member with
+        // per-row distinguishable values, so if it checks half of them it is the reason a
+        // mis-bound bool or DateTime would reach a consumer suite unnoticed.
+        component.FindComponents<MudCheckBox<bool>>()
+            .Select(f => f.Instance.Value)
+            .ShouldBe(new[] { true, false });
+        component.FindComponents<MudDatePicker>()
+            .Select(f => f.Instance.Date)
+            .ShouldBe(new DateTime?[] { new DateTime(2020, 1, 1), new DateTime(2030, 12, 31) });
     }
 
     [Fact]

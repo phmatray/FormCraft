@@ -1038,6 +1038,332 @@ public class MudBlazorTextFieldComponentTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void TextField_With_A_Mask_Should_Warn_When_A_Rejected_Value_Arrives_After_First_Render()
+    {
+        // Arrange - #283(a). The canonical legacy-data case, and the one #266 could not see: the
+        // field renders before the fetch resolves, so CurrentValue is empty at OnInitialized and the
+        // diagnostic returns early. The value then lands, the field renders blank, the model keeps
+        // "N/A" -- the exact divergence #266 exists to report, unreported.
+        //
+        //     protected override async Task OnInitializedAsync()
+        //         => _model.Phone = await _api.GetPhoneAsync();   // "N/A"
+        //
+        // The spec's stated reason for the initial-value framing -- "a field the user legitimately
+        // cleared must not warn on a later render" -- is already covered independently, because the
+        // rule requires a NON-BLANK stored value. Clearing a field can never satisfy it, so emitting
+        // later costs nothing.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Nothing was stored at first render, so there was nothing to report yet. Asserted rather
+        // than assumed: a warning here would make the post-arrival count below meaningless.
+        _logs.Warnings.ShouldBeEmpty();
+
+        // Act - the fetch resolves and the model is populated from outside the component.
+        model.Phone = "N/A";
+        component.Render();
+
+        // Assert - reported once, naming the field and the pattern like the OnInitialized path does.
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("Phone");
+        warnings[0].ShouldContain("(000) 000-0000");
+    }
+
+    [Fact]
+    public void TextField_With_A_Mask_Should_Warn_Only_Once_Across_Later_Renders()
+    {
+        // Arrange - #283(a). Moving the emit off OnInitialized removes the thing that used to make
+        // "once per component lifetime" true for free. A plain field has no CollectionItemFieldScope
+        // and therefore no latch, so without a component-level one the warning would re-fire on every
+        // external model change -- flooding the console of the developer it is meant to help, which
+        // is how a useful diagnostic gets muted.
+        var model = new TestModel { Phone = "N/A" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Act - a second non-conforming value arrives, then a plain re-render.
+        model.Phone = "unknown";
+        component.Render();
+        component.Render();
+
+        // Assert
+        _logs.Warnings.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void TextField_With_A_Mask_Should_Not_Warn_When_The_User_Types_Into_It()
+    {
+        // Arrange - #283(a). The load-bearing negative for the widened emit point: this reports
+        // STORED data, never live editing. A user part-way through typing holds a value the mask has
+        // not finished formatting, and re-checking on every keystroke would report the field being
+        // filled in correctly. ShouldReloadValue() is what tells an external model change apart from
+        // an in-flight edit, and this pins that the emit sits downstream of it.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Act - a partial entry, then a completed one.
+        component.Find("input").Input("555");
+        component.Find("input").Input("5551234567");
+
+        // Assert
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void TextField_With_A_Mask_Should_Not_Warn_When_The_User_Clears_It()
+    {
+        // Arrange - #283(a). The case the "initial value" framing was chosen to protect, kept
+        // honest now that the framing is gone: a field the user emptied on purpose must stay silent.
+        // It does so through the rule rather than the emit point -- Applies requires a non-blank
+        // stored value, and a cleared field has none.
+        var model = new TestModel { Phone = "5551234567" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Act - cleared from outside the component, the harsher of the two ways to reach a blank
+        // value: it goes through the external-change path the new emit point sits on.
+        model.Phone = string.Empty;
+        component.Render();
+
+        // Assert
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void TextField_With_A_Mask_Should_Warn_When_It_Discards_Part_Of_A_Stored_Value()
+    {
+        // Arrange - #283(b), end-to-end against the real MudBlazor mask rather than the rule alone.
+        // "+1 555 123 4567" does not blank: it renders "(155) 512-3456", a perfectly plausible phone
+        // number that is NOT the one stored. The mask consumed the country code as the area code and
+        // dropped the final digit off the end. Nothing on screen looks wrong, which is exactly why
+        // this needs reporting more than the blank case does.
+        var model = new TestModel { Phone = "+1 555 123 4567" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert - the divergence is real: the input shows one number, the model keeps another.
+        component.Find("input").GetAttribute("value").ShouldBe("(155) 512-3456");
+        model.Phone.ShouldBe("+1 555 123 4567");
+
+        // And the message names what is DISPLAYED, not "renders empty" -- the developer has to be
+        // able to recognise the field, and this one looks entirely healthy.
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("Phone");
+        warnings[0].ShouldContain("(000) 000-0000");
+        warnings[0].ShouldContain("(155) 512-3456");
+        warnings[0].ShouldNotContain("renders empty");
+    }
+
+    [Fact]
+    public void TextField_With_A_Mask_Should_Warn_When_It_Discards_Leading_Junk()
+    {
+        // Arrange - #283(b), the second row of the issue's table. Here the SURVIVING digits are the
+        // right ones, so the rendered number is correct; what was silently dropped is the "N/A"
+        // marker that told a reader the record had no usable phone number.
+        var model = new TestModel { Phone = "N/A5551234567" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.Find("input").GetAttribute("value").ShouldBe("(555) 123-4567");
+        _logs.Warnings.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void TextField_With_A_Mask_Should_Not_Warn_When_The_Stored_Value_Has_Its_Own_Separators()
+    {
+        // Arrange - #283(b)'s load-bearing negative, and the shape of real legacy data. The stored
+        // value is already punctuated, just differently from the mask. Every significant character
+        // survives, so this is a reformat and must stay silent -- a rule comparing raw strings, or
+        // asking whether the stored value survives as a subsequence of the rendered one, reports it
+        // as a discard and fires on data that is perfectly fine.
+        var model = new TestModel { Phone = "555 123 4567" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", "(000) 000-0000"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.Find("input").GetAttribute("value").ShouldBe("(555) 123-4567");
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("000-00-0000", "123 45 6789", "123-45-6789")]
+    [InlineData("000.000.0000", "555-123-4567", "555.123.4567")]
+    [InlineData("0000 0000 0000 0000", "4111-1111-1111-1111", "4111 1111 1111 1111")]
+    [InlineData("0000000000", "555-123-4567", "5551234567")]
+    public void TextField_With_A_Mask_Should_Not_Warn_When_The_Value_Is_Punctuated_Unlike_The_Mask(
+        string pattern,
+        string stored,
+        string expectedDisplay)
+    {
+        // Arrange - end-to-end regression for the false-positive class that an earlier #283 draft
+        // shipped past a green suite, because every mask test used "(000) 000-0000" -- whose own
+        // decoration happens to contain the space and hyphen the test values were punctuated with.
+        // Legacy data carries whatever separators it was stored with, and they are rarely the ones a
+        // newly-added mask spells. Every row here is intact data being reformatted, and every one of
+        // them warned under that draft.
+        var model = new TestModel { Phone = stored };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithAttribute("Mask", pattern))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert - nothing was lost, so nothing is reported.
+        component.Find("input").GetAttribute("value").ShouldBe(expectedDisplay);
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void TextField_With_A_Placeholder_Mask_Should_Not_Warn_On_A_Short_Value()
+    {
+        // Arrange - a PatternMask carrying a Placeholder pads the positions a short value does not
+        // reach, so the rendered text is LONGER than what was stored. Counting the padding as data
+        // reports a discard for characters the mask ADDED -- on every value shorter than the pattern,
+        // which for a variable-length field is essentially every value. Reachable only through the
+        // #265 factory overload, which is how this is configured here.
+        var model = new TestModel { Phone = "55512345" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask(() => new PatternMask("(000) 000-0000") { Placeholder = '_' }))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert - the padding is visible in the display, and is not mistaken for lost data.
+        component.Find("input").GetAttribute("value").ShouldBe("(555) 123-45__");
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TextField_With_A_CleanDelimiters_Mask_Should_Not_Warn_On_A_Reformat(bool cleanDelimiters)
+    {
+        // Arrange - the #265 edge case the spec called out: a mask that strips its own literals out
+        // of the value it reports must not read as having DISCARDED them. It cannot, because the rule
+        // removes the mask's literals from both sides before comparing -- so the verdict is identical
+        // whichever way the flag is set, even though the two write different things to the model.
+        // Asserted through the builder rather than on the rule alone, because CleanDelimiters is a
+        // setting a caller chooses and this is the path they take.
+        var model = new TestModel { Phone = "5551234567" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask("(000) 000-0000", cleanDelimiters: cleanDelimiters))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.Find("input").GetAttribute("value").ShouldBe("(555) 123-4567");
+        _logs.Warnings.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TextField_With_A_CleanDelimiters_Mask_Should_Still_Warn_On_A_Discard(bool cleanDelimiters)
+    {
+        // Arrange - the other half: CleanDelimiters must not SUPPRESS a real discard either. Same
+        // stored value as the discard test above, run through the typed builder with the flag both
+        // ways.
+        var model = new TestModel { Phone = "N/A5551234567" };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Phone, field => field
+                .WithLabel("Phone")
+                .WithMask("(000) 000-0000", cleanDelimiters: cleanDelimiters))
+            .Build();
+
+        // Act
+        Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        _logs.Warnings.Count.ShouldBe(1);
+    }
+
+    [Fact]
     public void TextField_With_A_Blank_Mask_Should_Bind_No_Mask()
     {
         // Arrange - a whitespace-only pattern is not "a mask of one space", it is a
