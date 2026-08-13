@@ -35,7 +35,15 @@ public partial class Home : IDisposable
         {
             _copiedInstall = await JS.InvokeAsync<bool>("formcraftCopy", InstallCommand);
         }
-        catch (JSException)
+        // "Fallback if the clipboard API is not available" is wider than JSException on its own: none
+        // of the three below derive from it, so narrowing to JSException let them escape as unhandled
+        // component exceptions. Copying a command to the clipboard is a convenience — no failure of it
+        // is worth surfacing an error to the visitor, who can still select the text.
+        catch (Exception ex) when (ex
+            is JSException                  // the clipboard API is missing, or the call itself threw
+            or JSDisconnectedException      // the circuit is gone; does not derive from JSException
+            or InvalidOperationException    // "JavaScript interop calls cannot be issued at this time"
+            or TaskCanceledException)       // the interop call hit its timeout
         {
             _copiedInstall = false;
         }
