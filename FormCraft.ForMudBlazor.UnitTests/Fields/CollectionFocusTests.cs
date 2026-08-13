@@ -219,6 +219,81 @@ public class CollectionFocusTests : FocusAssertingTestBase
         focusedId.ShouldNotBeOneOf([.. buttonIdsBefore.Concat(buttonIdsAfter)]);
     }
 
+    [Fact]
+    public async Task Removing_A_Row_In_The_Second_Collection_Should_Not_Move_Focus_Into_The_First()
+    {
+        // Arrange - two collection fields on one form. Every reference here is per-component and
+        // per-index; a static or form-level one would pass every other test in this file and land
+        // focus in the wrong field here.
+        var model = new TwoCollectionModel();
+        for (var i = 0; i < 3; i++)
+        {
+            model.First.Add(new MixedItem());
+            model.Second.Add(new MixedItem());
+        }
+
+        var component = Render<FormCraftComponent<TwoCollectionModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, TwoCollectionForm()));
+
+        var fields = component.FindComponents<CollectionFieldComponent<TwoCollectionModel, MixedItem>>();
+        fields.Count.ShouldBe(2);
+
+        var firstFieldIds = new List<string>();
+        foreach (var button in DeleteButtonsIn(fields[0]))
+        {
+            firstFieldIds.Add(await LearnElementIdAsync(component, button));
+        }
+
+        var focusesBefore = FocusCount();
+
+        // Act - remove the middle row of the SECOND collection
+        await component.InvokeAsync(() => fields[1].FindAll(DeleteSelector)[1].Click());
+
+        // Assert - one focus request, and it landed in the second field, not the first
+        FocusCount().ShouldBe(focusesBefore + 1);
+        var focusedId = LastFocusedElementId();
+        focusedId.ShouldNotBeOneOf([.. firstFieldIds]);
+
+        var expectedId = await LearnElementIdAsync(component, DeleteButtonsIn(fields[1])[1]);
+        focusedId.ShouldBe(expectedId);
+
+        // ...and the first collection was left entirely alone
+        fields[0].FindAll(DeleteSelector).Count.ShouldBe(3);
+    }
+
+    private static List<MudIconButton> DeleteButtonsIn(
+        IRenderedComponent<CollectionFieldComponent<TwoCollectionModel, MixedItem>> field) =>
+        field.FindComponents<MudIconButton>()
+            .Where(b => b.Instance.UserAttributes.TryGetValue("aria-label", out var label)
+                        && (label as string) == "Remove item")
+            .Select(b => b.Instance)
+            .ToList();
+
+    /// <summary>
+    /// Two collections over one model. Not in <c>CollectionItemFixture</c> because no other suite
+    /// needs a second collection — the fixture's models each hold exactly one.
+    /// </summary>
+    private static IFormConfiguration<TwoCollectionModel> TwoCollectionForm() =>
+        FormBuilder<TwoCollectionModel>
+            .Create()
+            .AddCollectionField(x => x.First, collection => collection
+                .WithLabel("First")
+                .AllowRemove()
+                .WithItemForm(item => item.AddField(x => x.Name, field => field.WithLabel("Name"))))
+            .AddCollectionField(x => x.Second, collection => collection
+                .WithLabel("Second")
+                .AllowRemove()
+                .WithItemForm(item => item.AddField(x => x.Name, field => field.WithLabel("Name"))))
+            .Build();
+
+    private sealed class TwoCollectionModel
+    {
+        public List<MixedItem> First { get; set; } = new();
+
+        public List<MixedItem> Second { get; set; } = new();
+    }
+
     private async Task<List<string>> LearnEveryButtonIdAsync(
         IRenderedComponent<FormCraftComponent<MixedItemModel>> component)
     {
