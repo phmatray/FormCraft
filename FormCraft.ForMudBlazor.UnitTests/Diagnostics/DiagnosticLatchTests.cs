@@ -142,6 +142,75 @@ public class DiagnosticLatchTests : MudBlazorTestBase
         warnings[0].ShouldContain("Placeholder");
     }
 
+    [Fact]
+    public void A_Field_Re_Mounted_Inside_A_Form_Should_Report_Once()
+    {
+        // Arrange - the #304 case. `.VisibleWhen(...)` gates the field's whole markup, so toggling
+        // the condition destroys the component and toggling back builds a NEW one. Every latch the
+        // package has is either per-instance (gone with the instance) or hangs off a
+        // CollectionItemFieldScope, which an ordinary field does not have — so each re-mount runs
+        // OnInitialized again and re-reports a configuration fact that has not changed.
+        //
+        // Inside a form there is somewhere for a durable latch to live, and this asserts it is used.
+        var model = new TestModel { Secret = string.Empty, ShowSecret = true };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Secret, f => f
+                .WithLabel("Password")
+                .AsPassword()
+                .AsTextArea(lines: 4)
+                .VisibleWhen(m => m.ShowSecret))
+            .Build();
+
+        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Act - three full hide/show cycles. Today each one emits another copy.
+        for (var i = 0; i < 3; i++)
+        {
+            model.ShowSecret = false;
+            component.Render();
+            model.ShowSecret = true;
+            component.Render();
+        }
+
+        // Assert - the configuration was reported once and has not changed since.
+        _logs.Warnings.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Two_Different_Fields_In_One_Form_Should_Each_Still_Report()
+    {
+        // Arrange - the guard against over-latching. A latch keyed too coarsely (per form, per
+        // category, anything that forgets the FIELD) would silence the second field entirely, which
+        // is a worse failure than the duplication being fixed: it loses a real diagnostic rather
+        // than repeating one.
+        var model = new TestModel();
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Secret, f => f
+                .WithLabel("Password")
+                .AsPassword()
+                .AsTextArea(lines: 4))
+            .AddField(x => x.Backup, f => f
+                .WithLabel("Backup code")
+                .AsPassword()
+                .AsTextArea(lines: 3))
+            .Build();
+
+        // Act
+        Render<FormCraftComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert - one per field, each naming its own.
+        var warnings = _logs.Warnings;
+        warnings.Count.ShouldBe(2);
+        warnings.ShouldContain(w => w.Contains("Password"));
+        warnings.ShouldContain(w => w.Contains("Backup code"));
+    }
+
     /// <summary>
     /// Renders the field as a bare component: no <see cref="FormCraftComponent{TModel}"/>, so no
     /// diagnostic collector cascades in, and no collection, so no
@@ -164,5 +233,9 @@ public class DiagnosticLatchTests : MudBlazorTestBase
     private class TestModel
     {
         public string Secret { get; set; } = string.Empty;
+
+        public string Backup { get; set; } = string.Empty;
+
+        public bool ShowSecret { get; set; }
     }
 }
