@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace FormCraft;
 
@@ -167,7 +168,29 @@ public class FieldRendererService : IFieldRendererService
 
     private static object GetCurrentValue<TModel>(TModel model, IFieldConfiguration<TModel, object> field)
     {
-        var getter = field.ValueExpression.Compile();
+        var getter = ValueGetterCache<TModel>.GetOrCompile(field);
         return getter(model);
+    }
+
+    /// <summary>
+    /// Caches the compiled value getter of each field configuration, so rendering a field emits IL
+    /// for its expression at most once rather than once per render (#269).
+    /// </summary>
+    private static class ValueGetterCache<TModel>
+    {
+        /// <summary>
+        /// Keyed by configuration <b>instance</b>, which buys two properties: two configurations over
+        /// the same property never share an entry, and an entry lives no longer than the configuration
+        /// it describes, so nothing is held alive artificially.
+        /// </summary>
+        /// <remarks>
+        /// What is cached is the <b>getter</b>, never the value it returns. The delegate takes the
+        /// model as its parameter, so every render still reads the model afresh — caching a value here
+        /// would freeze each field at its first-rendered content.
+        /// </remarks>
+        private static readonly ConditionalWeakTable<IFieldConfiguration<TModel, object>, Func<TModel, object>> Cache = new();
+
+        internal static Func<TModel, object> GetOrCompile(IFieldConfiguration<TModel, object> field)
+            => Cache.GetValue(field, static configuration => configuration.ValueExpression.Compile());
     }
 }

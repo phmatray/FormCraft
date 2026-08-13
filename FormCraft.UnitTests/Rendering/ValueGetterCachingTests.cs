@@ -88,6 +88,34 @@ public class ValueGetterCachingTests
     }
 
     [Fact]
+    public void RenderField_Should_Not_Share_A_Cached_Getter_Between_Two_Configurations_Of_The_Same_Property()
+    {
+        // Arrange - two separate configurations reporting the same field name, reading different
+        // properties. A cache keyed by property name (or by model type) would serve the second
+        // configuration the first one's getter.
+        var model = new TestModel { Name = "from Name", Other = "from Other" };
+        var (service, contexts) = CreateService();
+
+        var first = A.Fake<IFieldConfiguration<TestModel, object>>();
+        A.CallTo(() => first.FieldName).Returns(nameof(TestModel.Name));
+        A.CallTo(() => first.AdditionalAttributes).Returns(new Dictionary<string, object>());
+        A.CallTo(() => first.ValueExpression).Returns(m => (object)m.Name!);
+
+        var second = A.Fake<IFieldConfiguration<TestModel, object>>();
+        A.CallTo(() => second.FieldName).Returns(nameof(TestModel.Name));
+        A.CallTo(() => second.AdditionalAttributes).Returns(new Dictionary<string, object>());
+        A.CallTo(() => second.ValueExpression).Returns(m => (object)m.Other!);
+
+        // Act
+        Render(service, model, first);
+        Render(service, model, second);
+
+        // Assert
+        contexts[0].CurrentValue.ShouldBe("from Name");
+        contexts[1].CurrentValue.ShouldBe("from Other");
+    }
+
+    [Fact]
     public void ValueExpression_Should_Return_The_Same_Instance_On_Repeated_Access()
     {
         // Arrange
@@ -136,6 +164,7 @@ public class ValueGetterCachingTests
     public class TestModel
     {
         public string? Name { get; set; }
+        public string? Other { get; set; }
         public int? NullableValue { get; set; }
     }
 }
