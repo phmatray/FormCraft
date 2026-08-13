@@ -181,67 +181,19 @@ public static class MudBlazorFieldBuilderExtensions
         return builder.WithAttribute("ShrinkLabel", shrinkLabel);
     }
 
-    /// <summary>
-    /// Overrides whether this field renders MudBlazor's native required decoration — the HTML5
-    /// <c>required</c> attribute, <c>aria-required</c>, and MudBlazor's required styling (the
-    /// asterisk) on the rendered input. Pass <c>false</c> to suppress a decoration that
-    /// <c>.Required(...)</c> would otherwise produce.
-    /// </summary>
-    /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
-    /// <typeparam name="TValue">The type of the field value.</typeparam>
-    /// <param name="builder">The FieldBuilder instance.</param>
-    /// <param name="enabled">
-    /// <c>true</c> (default) to force the decoration on a field that never called
-    /// <c>.Required(...)</c>; <c>false</c> to suppress it on one that did. Either way the explicit
-    /// value wins over the inference — this method is an override, not merely an opt-in.
-    /// </param>
-    /// <returns>The FieldBuilder instance for method chaining.</returns>
-    /// <remarks>
-    /// <para>
-    /// ⚠️ **This changes no validation.** It is presentation only. <c>.Required("…")</c> is what makes
-    /// a field actually required — it registers a validator, and FormCraft's validation is
-    /// server-side with messages from the validator you configured. Passing <c>false</c> here
-    /// suppresses the decoration and leaves that validation entirely intact.
-    /// </para>
-    /// <para>
-    /// ⛔ **Think twice before passing <c>false</c> on a <c>.Required(...)</c> field.** Since #199 a
-    /// required field renders <c>aria-required="true"</c> so assistive technology announces it;
-    /// suppressing that puts <c>aria-required="false"</c> back on a genuinely required input, which
-    /// states the opposite of the truth to a screen reader and is a WCAG 2.1 3.3.2 (Level A)
-    /// failure. If the visible asterisk is what you want gone, restyle the
-    /// <c>mud-input-required</c> class instead. Legitimate uses of <c>false</c> are fields whose
-    /// requirement is conditional or communicated elsewhere.
-    /// </para>
-    /// <para>
-    /// History: #190 removed the native attribute from <c>.Required(...)</c> because the same call
-    /// emitted it inside <c>.WithItemForm(...)</c> and not outside. That divergence is fixed, but
-    /// #199 restored the forward on both paths — levelling the two down to silence had left every
-    /// required field unannounced. This method is now the per-field override in both directions.
-    /// </para>
-    /// <para>
-    /// Replaces the documented magic string <c>.WithAttribute("Required", true)</c> from #193, which
-    /// is undiscoverable and one typo away from silently doing nothing (#204). The raw form still
-    /// works and writes the same attribute — this is additive.
-    /// </para>
-    /// <para>
-    /// Forms render <c>novalidate</c> (#206), so the browser does not enforce the attribute on a
-    /// FormCraft form; what it buys is the semantics and the styling, not native validation bubbles.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// .AddField(x => x.Email, field => field
-    ///     .Required("Email is required")   // the validation
-    ///     .WithNativeRequired())           // the decoration
-    /// </code>
-    /// </example>
-    public static FieldBuilder<TModel, TValue> WithNativeRequired<TModel, TValue>(
-        this FieldBuilder<TModel, TValue> builder,
-        bool enabled = true)
-        where TModel : new()
-    {
-        return builder.WithAttribute("Required", enabled);
-    }
+    // `.WithNativeRequired(...)` used to live here (#204). #279 moved it to core's
+    // `FieldBuilderExtensions`, because the attribute it writes is read by every adapter through
+    // `NativeRequired.Resolve` — leaving the typed builder in this package meant Fluent UI users
+    // were told to type the raw `.WithAttribute("Required", …)` string it exists to replace.
+    //
+    // No `[Obsolete]` forwarder is left behind, deliberately. Both classes declare extension
+    // methods on `FieldBuilder<,>` in namespace `FormCraft`, so a forwarder visible to the same
+    // `using FormCraft;` that reaches the core member would make every existing call site
+    // CS0121-ambiguous — breaking the callers the shim exists to protect. Hiding it in a namespace
+    // nobody imports would make it unreachable instead, which protects nobody either. Since the
+    // namespace is unchanged, source compatibility already holds without a shim: the same
+    // `using FormCraft;` now binds to the core member. Only pre-compiled assemblies that bound to
+    // this assembly's method need a rebuild.
 
     /// <summary>
     /// Configures an input mask on a text field, so the user types into a fixed pattern.
@@ -262,9 +214,9 @@ public static class MudBlazorFieldBuilderExtensions
     /// <para>
     /// Replaces the magic string <c>.WithAttribute("Mask", "…")</c> that #211 made functional, for
     /// the reason #204 replaced <c>.WithAttribute("Required", true)</c> with
-    /// <see cref="WithNativeRequired{TModel,TValue}"/>: a key the caller spells is undiscoverable and
-    /// one typo away from silently doing nothing. The raw form still works and writes the same
-    /// attribute — this is additive, not a migration.
+    /// <c>.WithNativeRequired(...)</c> (moved to core in #279): a key the caller spells is
+    /// undiscoverable and one typo away from silently doing nothing. The raw form still works and
+    /// writes the same attribute — this is additive, not a migration.
     /// </para>
     /// <para>
     /// <b><paramref name="cleanDelimiters"/> changes what the model stores</b>, which is why it is

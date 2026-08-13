@@ -29,16 +29,13 @@ public abstract class FluentUIFieldComponentBase<TModel, TValue> : FieldComponen
     /// ARIA one is inert here: FormCraft forms render <c>novalidate</c> (#206).
     /// </para>
     /// <para>
-    /// ⚠️ The typed <c>.WithNativeRequired(...)</c> builder method lives in the MudBlazor package, so
-    /// Fluent consumers use the raw <c>.WithAttribute("Required", ...)</c> form that method writes.
-    /// Both resolve through this property identically.
+    /// The rule itself is <see cref="NativeRequired.Resolve"/> in core. It was hand-copied here
+    /// while it was <c>internal</c> to the MudBlazor package; #279 moved it to core so both
+    /// adapters read one implementation, which is what the rule's own doc comment always claimed.
     /// </para>
     /// </remarks>
     protected bool EffectiveNativeRequired =>
-        Context.Field.AdditionalAttributes.TryGetValue("Required", out var configured)
-        && configured is bool optIn
-            ? optIn
-            : IsRequired;
+        NativeRequired.Resolve(Context.Field.AdditionalAttributes, IsRequired);
 
     /// <summary>
     /// The value of <c>aria-required</c> to splat onto the rendered input, or <c>null</c> when the
