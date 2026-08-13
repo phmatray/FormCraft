@@ -76,13 +76,24 @@ public class CollectionFieldValidator<TModel, TItem>
             return errors;
         }
 
+        // Resolve each field's getter once for the whole collection. The loop below is items × fields
+        // and, since #203, runs on every keystroke in a row — so compiling here was the dominant cost
+        // (#312), and even the cache lookup is worth hoisting: a 50-row × 5-field form probes 5 times
+        // instead of 250. The getters take the item as their parameter, so one getter serves every row.
+        var fields = _configuration.ItemFormConfiguration.Fields;
+        var getters = new Func<TItem, object>[fields.Count];
+        for (var f = 0; f < fields.Count; f++)
+        {
+            getters[f] = FieldValueGetterCache<TItem>.GetOrCompile(fields[f]);
+        }
+
         for (var i = 0; i < items.Count; i++)
         {
             var item = items[i];
-            foreach (var field in _configuration.ItemFormConfiguration.Fields)
+            for (var f = 0; f < fields.Count; f++)
             {
-                var getter = field.ValueExpression.Compile();
-                var value = getter(item);
+                var field = fields[f];
+                var value = getters[f](item);
 
                 foreach (var validator in field.Validators)
                 {
