@@ -64,7 +64,19 @@ public partial class MainLayout : IAsyncDisposable
             _selfRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("formcraftShortcuts.register", _selfRef);
 
-            _isApple = await JS.InvokeAsync<bool>("formcraftShortcuts.isApple");
+            // Deliberately its own try, not the enclosing one. This probe is cosmetic — it picks a
+            // label — whereas the theme work above has already put fc-dark on <body>. Sharing a catch
+            // would let a missing helper (a cached older app.js) skip the StateHasChanged() below,
+            // leaving MudThemeProvider light against a dark body: a half-themed page, which is worse
+            // than the documented "starts in light mode" fallback.
+            try
+            {
+                _isApple = await JS.InvokeAsync<bool>("formcraftShortcuts.isApple");
+            }
+            catch (JSException)
+            {
+                // Keep the Ctrl K default.
+            }
 
             StateHasChanged();
         }

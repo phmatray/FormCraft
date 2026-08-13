@@ -12,11 +12,11 @@ public partial class Home : IDisposable
     /// Cancels the pending "copied" reset when the page is torn down.
     /// </summary>
     /// <remarks>
-    /// Unlike the hero's flash this is real state rather than a one-shot animation — the button's label
-    /// stays "Copied" until it is cleared — so it needs a token rather than a CSS rule. Without one, a
-    /// visitor who navigates inside the two-second window resumes the continuation on a component the
-    /// renderer has already disposed, and <c>StateHasChanged</c> throws: a console error on WebAssembly,
-    /// the error UI on a circuit.
+    /// Unlike the hero's flash this is real state rather than a one-shot animation — the button shows a
+    /// check until it is cleared — so it needs a token rather than a CSS rule. Without one, a visitor
+    /// who navigates inside the two-second window resumes the continuation on a component the renderer
+    /// has already disposed, and <c>StateHasChanged</c> throws. This app is standalone WebAssembly, so
+    /// that surfaces as a console error rather than the error UI a Blazor Server circuit would show.
     /// </remarks>
     private CancellationTokenSource? _resetCts;
 
@@ -41,7 +41,7 @@ public partial class Home : IDisposable
         // is worth surfacing an error to the visitor, who can still select the text.
         catch (Exception ex) when (ex
             is JSException                  // the clipboard API is missing, or the call itself threw
-            or JSDisconnectedException      // the circuit is gone; does not derive from JSException
+            or JSDisconnectedException      // does NOT derive from JSException, which is the whole bug
             or InvalidOperationException    // "JavaScript interop calls cannot be issued at this time"
             or TaskCanceledException)       // the interop call hit its timeout
         {
@@ -69,6 +69,14 @@ public partial class Home : IDisposable
         {
             // Superseded by a later click, or the page went away. Either way there is nothing to
             // reset and nobody to re-render.
+            return;
+        }
+
+        // The token only covers the wait itself. Once the timer has fired, this continuation is
+        // already queued on the dispatcher, and a navigation processed ahead of it disposes the
+        // component without cancelling anything — so re-check before rendering.
+        if (_disposed)
+        {
             return;
         }
 
