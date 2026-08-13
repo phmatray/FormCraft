@@ -43,6 +43,16 @@ Then render a form exactly as you would with any other FormCraft adapter:
 | `DateTime`, `DateOnly` (and nullable forms) | `FluentDatePicker<T>` |
 | `TimeOnly`, `TimeOnly?` | `FluentTimePicker<T>` |
 
+## Field groups
+
+`.AddFieldGroup(...)` renders with its card and column layout (#278): `ShowInCard()` produces a
+`FluentCard`, `WithColumns(n)` lays the group's fields out across Fluent's 12-column grid, and any
+field left out of every group still renders after them.
+
+One deliberate difference from the MudBlazor adapter: `ShowInCard(elevation: n)` takes an integer on
+MudBlazor's scale, and Fluent has only five shadow buckets, so the elevation is mapped onto the
+nearest one rather than ignored. For an exact shadow, style the group's `WithCssClass(...)` instead.
+
 ## Security
 
 `.WithSecurity(...)` is **enforced** — rate limiting, CSRF protection, audit logging and field
@@ -65,8 +75,6 @@ shared across every user of the form (it defaults to the model type name).
 ## Not yet covered
 
 - Lookup and LOV dialogs, autocomplete, multi-select, file upload, and custom renderers.
-- **Field groups** — `.AddFieldGroup(...)` fields render, but ungrouped and without the card/column
-  layout the MudBlazor adapter gives them.
 
 See the follow-ups on [#260](https://github.com/phmatray/FormCraft/issues/260).
 

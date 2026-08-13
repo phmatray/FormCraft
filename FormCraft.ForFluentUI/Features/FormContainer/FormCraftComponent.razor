@@ -20,15 +20,43 @@
     <FluentUIDynamicFormValidator TModel="TModel" Configuration="@Configuration" @ref="_validator" />
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-        @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
+        @if (HasFieldGroups)
         {
-            if (ShouldShowField(field))
+            @foreach (var group in GroupedConfiguration!.FieldGroups.OrderBy(g => g.Order))
             {
-                <div>
-                    @RenderField(field)
-                    <FieldHelpText Text="@field.HelpText" Id="@FieldHelpText.IdFor(field.FieldName)" />
-                    <FieldValidationMessage FieldName="@field.FieldName" />
-                </div>
+                @if (group.ShowCard)
+                {
+                    <FluentCard Class="@group.CssClass"
+                                Shadow="@ShadowFor(group.CardElevation)"
+                                data-testid="formcraft-field-group-card">
+                        @RenderGroupHeader(group)
+                        @RenderFieldGroup(group)
+                    </FluentCard>
+                }
+                else
+                {
+                    <div class="@group.CssClass">
+                        @RenderGroupHeader(group)
+                        @RenderFieldGroup(group)
+                    </div>
+                }
+            }
+
+            @* Fields that belong to no group still render, after the groups. Dropping them is the
+               failure mode this arm exists to avoid: adding one group would silently hide every
+               field left out of it. *@
+            @RenderUngroupedFields()
+        }
+        else
+        {
+            @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
+            {
+                if (ShouldShowField(field))
+                {
+                    <div>
+                        @RenderFieldWithMessages(field)
+                    </div>
+                }
             }
         }
 
@@ -76,4 +104,131 @@
 @if (AfterForm != null)
 {
     @AfterForm
+}
+
+@code {
+    /// <summary>
+    /// One field plus the two things that must always travel with it - its help text and its
+    /// validation messages.
+    /// </summary>
+    /// <remarks>
+    /// Extracted because three call sites render a field (flat, inside a group's grid, and
+    /// ungrouped-alongside-groups) and the MudBlazor container's equivalent trio drifted: its
+    /// grouped and ungrouped arms render <c>FieldValidationMessage</c> and its grouped arm renders
+    /// no help text at all. One fragment means a field cannot present differently just because of
+    /// where the form put it.
+    /// </remarks>
+    private RenderFragment RenderFieldWithMessages(IFieldConfiguration<TModel, object> field)
+    {
+        return builder =>
+        {
+            builder.AddContent(0, RenderField(field));
+            builder.OpenComponent<FieldHelpText>(1);
+            builder.AddAttribute(2, "Text", field.HelpText);
+            builder.AddAttribute(3, "Id", FieldHelpText.IdFor(field.FieldName));
+            builder.CloseComponent();
+            builder.OpenComponent<FieldValidationMessage>(4);
+            builder.AddAttribute(5, "FieldName", field.FieldName);
+            builder.CloseComponent();
+        };
+    }
+
+    /// <summary>The group's name and optional right-hand content, when it has a name.</summary>
+    private RenderFragment RenderGroupHeader(FieldGroup<TModel> group)
+    {
+        return builder =>
+        {
+            if (string.IsNullOrEmpty(group.Name))
+            {
+                return;
+            }
+
+            builder.OpenComponent<FluentStack>(0);
+            builder.AddAttribute(1, "Orientation", Orientation.Horizontal);
+            builder.AddAttribute(2, "HorizontalAlignment", HorizontalAlignment.SpaceBetween);
+            builder.AddAttribute(3, "VerticalAlignment", VerticalAlignment.Center);
+            builder.AddAttribute(4, "ChildContent", (RenderFragment)(header =>
+            {
+                header.OpenComponent<FluentLabel>(0);
+                header.AddAttribute(1, "Weight", LabelWeight.Semibold);
+                header.AddAttribute(2, "data-testid", "formcraft-field-group-name");
+                header.AddAttribute(3, "ChildContent", (RenderFragment)(name => name.AddContent(0, group.Name)));
+                header.CloseComponent();
+
+                if (group.HeaderRightContent != null)
+                {
+                    header.AddContent(4, group.HeaderRightContent);
+                }
+            }));
+            builder.CloseComponent();
+        };
+    }
+
+    /// <summary>A group's own fields, laid out across its configured number of columns.</summary>
+    private RenderFragment RenderFieldGroup(FieldGroup<TModel> group)
+    {
+        return builder =>
+        {
+            builder.OpenComponent<FluentGrid>(0);
+            builder.AddAttribute(1, "ChildContent", (RenderFragment)(grid =>
+            {
+                var fieldsInGroup = Configuration.Fields
+                    .Where(f => group.FieldNames.Contains(f.FieldName))
+                    .OrderBy(f => f.Order);
+
+                // Fluent's grid is 12 columns wide, like MudBlazor's, so a group asking for N
+                // columns gives each field 12/N of the row. Clamped at 1: Columns is an int the
+                // caller sets, and 0 or a negative would divide by zero or emit a nonsense span.
+                var columnSize = 12 / Math.Max(1, group.Columns);
+
+                foreach (var field in fieldsInGroup)
+                {
+                    if (!ShouldShowField(field))
+                    {
+                        continue;
+                    }
+
+                    grid.OpenComponent<FluentGridItem>(0);
+                    grid.AddAttribute(1, "Xs", 12);
+                    grid.AddAttribute(2, "Md", columnSize);
+                    grid.AddAttribute(3, "ChildContent", RenderFieldWithMessages(field));
+                    grid.CloseComponent();
+                }
+            }));
+            builder.CloseComponent();
+        };
+    }
+
+    /// <summary>Every visible field that no group claimed.</summary>
+    private RenderFragment RenderUngroupedFields()
+    {
+        return builder =>
+        {
+            if (GroupedConfiguration == null)
+            {
+                return;
+            }
+
+            var groupedFieldNames = GroupedConfiguration.FieldGroups
+                .SelectMany(g => g.FieldNames)
+                .ToHashSet();
+
+            var ungrouped = Configuration.Fields
+                .Where(f => !groupedFieldNames.Contains(f.FieldName))
+                .OrderBy(f => f.Order);
+
+            var sequence = 0;
+            foreach (var field in ungrouped)
+            {
+                if (!ShouldShowField(field))
+                {
+                    continue;
+                }
+
+                builder.OpenElement(sequence++, "div");
+                builder.AddContent(sequence++, RenderFieldWithMessages(field));
+                builder.CloseElement();
+            }
+        };
+    }
 }

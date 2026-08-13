@@ -66,7 +66,9 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Collection fields render too**, with their item fields dispatched through the same `IFieldRendererService` registry as ordinary fields — so every field type the adapter supports works inside `.WithItemForm(...)` by construction, not by a second implementation that has to be taught each attribute separately (#203, #278). A Fluent `RenderPipelineParityTests` pins that: the same configuration must present identically in both placements, `aria-required` included.
 
-  **Not yet covered:** lookup and LOV dialogs, autocomplete, multi-select, file upload, custom renderers, and field-group layout.
+  **Field groups render with their layout** — `ShowInCard()` gives a `FluentCard`, `WithColumns(n)` spreads the group across Fluent's 12-column grid, and ungrouped fields still render after the groups (#278). `ShowInCard(elevation: n)` is mapped onto Fluent's five shadow buckets rather than ignored, since Fluent has no equivalent of MudBlazor's integer elevation scale.
+
+  **Not yet covered:** lookup and LOV dialogs, autocomplete, multi-select, file upload, and custom renderers.
 
   **One adapter per application:** `AddFormCraftFluentUI()` throws if the MudBlazor adapter is already registered, because renderer selection is first-match-wins and a mixed container would silently render a half-Material form. ⚠️ The guard is one-directional — registering MudBlazor *after* Fluent is not caught yet. Fluent UI Blazor v5 is still an RC, so this package depends on a prerelease.
 

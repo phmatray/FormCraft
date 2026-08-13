@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -88,6 +89,43 @@ public partial class FormCraftComponent<TModel> where TModel : new()
     /// </summary>
     private ICollectionFormConfiguration<TModel>? CollectionConfiguration =>
         Configuration as ICollectionFormConfiguration<TModel>;
+
+    /// <summary>
+    /// The configuration's field groups, when it carries any.
+    /// </summary>
+    private IGroupedFormConfiguration<TModel>? GroupedConfiguration =>
+        Configuration as IGroupedFormConfiguration<TModel>;
+
+    /// <summary>
+    /// Whether this form renders grouped. All three conditions matter: a configuration that never
+    /// called <c>.AddFieldGroup(...)</c> does not implement the interface, one that turned grouping
+    /// off must render flat, and an empty group list would otherwise produce a form with no fields
+    /// at all - every field would fall through to <c>RenderUngroupedFields</c>, which is correct,
+    /// but the grouped arm's chrome around nothing is not.
+    /// </summary>
+    private bool HasFieldGroups =>
+        GroupedConfiguration is { UseFieldGroups: true } grouped && grouped.FieldGroups.Count > 0;
+
+    /// <summary>
+    /// Maps FormCraft's integer <c>CardElevation</c> onto Fluent's five-bucket
+    /// <see cref="CardShadow"/>.
+    /// </summary>
+    /// <remarks>
+    /// The elevation number is MudBlazor's scale (0-25), which Fluent has no equivalent of, so this
+    /// is a deliberate lossy mapping rather than a passthrough - the alternative, ignoring the
+    /// setting, would make <c>.ShowInCard(elevation: 8)</c> silently identical to
+    /// <c>.ShowInCard()</c>. Callers who want an exact shadow should style the card's CSS class.
+    /// </remarks>
+    /// <param name="elevation">The configured elevation.</param>
+    /// <returns>The nearest Fluent shadow bucket.</returns>
+    private static CardShadow ShadowFor(int elevation) => elevation switch
+    {
+        <= 0 => CardShadow.None,
+        <= 2 => CardShadow.Small,
+        <= 6 => CardShadow.Default,
+        <= 12 => CardShadow.Medium,
+        _ => CardShadow.Large,
+    };
 
     /// <inheritdoc />
     protected override async Task OnInitializedAsync()
