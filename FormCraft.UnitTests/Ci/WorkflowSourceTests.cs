@@ -184,6 +184,12 @@ public class WorkflowSourceTests
                              """;
 
         WorkflowSource.StepWithId(Steps, "login").ShouldContain("uses: NuGet/login@v1");
+
+        // `-  id:` and `-<tab>id:` are the same YAML as `- id:`; requiring exactly one space reported
+        // a step that is plainly present as absent.
+        WorkflowSource.TryStepWithId("steps:\n  -  id: login\n     uses: NuGet/login@v1", "login")
+            .ShouldNotBeNull()
+            .ShouldContain("uses: NuGet/login@v1");
     }
 
     [Fact]
@@ -194,12 +200,74 @@ public class WorkflowSourceTests
         // name, and it silently differed in shape from what StepNamed returns for the very same step.
         // Two primitives on one reader answering the same question differently is how the looser of
         // them drifts unnoticed.
-        var step = WorkflowSource.StepWithId(WorkflowSource.Read("release-please.yml"), "login");
+        // Only the header claim lives here. The upper bound on the same step is already owned by
+        // StepWithId_Should_Return_Only_That_Steps_Own_Lines above; re-asserting it would leave two
+        // near-identical bodies to be kept in step when release-please.yml's login step moves.
+        WorkflowSource.StepWithId(WorkflowSource.Read("release-please.yml"), "login")
+            .ShouldContain("- name: NuGet login");
+    }
 
-        step.ShouldContain("- name: NuGet login");
+    [Fact]
+    public void StepWithId_Should_Not_Stop_The_Walk_Back_On_A_Nested_List_Item()
+    {
+        // "The nearest dash above" is not the rule — containment is. A sequence nested inside the
+        // step (here under `with:`, but a bullet in a `path: |` block behaves identically) sits
+        // between the `id:` and its real header, and stopping on it returns a fragment of the step as
+        // the step: every later claim about this step's `uses:` would then be answered by nothing.
+        const string Steps = """
+                             steps:
+                               - name: current login
+                                 with:
+                                   args:
+                                     - --verbose
+                                 id: login
+                                 uses: NuGet/login@v1
+                             """;
 
-        // Still bounded above by the next step, which is what the slice has always been for.
-        step.ShouldNotContain("- name: 'Run: Pack");
+        var step = WorkflowSource.StepWithId(Steps, "login");
+
+        step.ShouldContain("- name: current login");
+        step.ShouldContain("uses: NuGet/login@v1");
+    }
+
+    [Fact]
+    public void StepWithId_Should_Recognise_A_Bare_Dash_Step_Header()
+    {
+        // `-` alone, with the item's keys starting on the next line, is legal YAML and the failure it
+        // caused was the silent kind: `StartsWith("- ")` skipped this header and the walk-back carried
+        // on into the PREVIOUS step, so a claim about `login` was answered by the checkout step.
+        const string Steps = """
+                             steps:
+                               - name: previous step
+                                 uses: actions/checkout@v4
+                               -
+                                 name: current login
+                                 id: login
+                                 uses: NuGet/login@v1
+                             """;
+
+        var step = WorkflowSource.StepWithId(Steps, "login");
+
+        step.ShouldContain("name: current login");
+        step.ShouldNotContain("previous step");
+    }
+
+    [Fact]
+    public void StepWithId_Should_Not_Bind_To_An_Id_Whose_Hash_Is_Part_Of_The_Value()
+    {
+        // The trailing-comment tolerance has to require whitespace before the `#`. YAML only starts a
+        // comment after whitespace, so `login#1` is one scalar naming a different step — and a
+        // tolerance spelled `\s*#` swallowed the `#1`, letting a LONGER id back in through the very
+        // clause added to keep longer ids out.
+        const string Steps = """
+                             steps:
+                               - name: hash login
+                                 id: login#1
+                                 uses: NuGet/login@v1
+                             """;
+
+        WorkflowSource.TryStepWithId(Steps, "login").ShouldBeNull();
+        WorkflowSource.TryStepWithId(Steps, "login#1").ShouldNotBeNull();
     }
 
     [Fact]
@@ -209,8 +277,18 @@ public class WorkflowSourceTests
         // step, and slicing from line 0 would hand the caller the file's preamble dressed up as one —
         // a wrong answer of exactly the kind the anchored match was added to stop, arriving by the
         // other door.
+        //
+        // The fixture carries a real step in an EARLIER job on purpose. Without one it proves nothing:
+        // a scope containing no list item at all reaches the top of the file whatever the walk-back
+        // does, so the test passed while the loose "nearest dash above" version happily crossed the
+        // job boundary and returned `- name: real step` as the login step. What makes this absent is
+        // that `env:` is indented shallower than the id — a container, reached without a header.
         const string Malformed = """
                                  jobs:
+                                   build:
+                                     steps:
+                                       - name: real step
+                                         uses: actions/checkout@v4
                                    publish:
                                      env:
                                        id: login

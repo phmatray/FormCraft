@@ -212,9 +212,9 @@ internal static class WorkflowSource
     internal static string StepNamed(string scope, string stepName, string? scopeDescription = null)
     {
         var step = TryStepNamed(scope, stepName);
-        step.ShouldNotBeNull($"{scopeDescription ?? "the searched text"} no longer has a step named '{stepName}'");
 
-        return step!;
+        return step.ShouldNotBeNull(
+            $"{scopeDescription ?? "the searched text"} no longer has a step named '{stepName}'");
     }
 
     /// <summary>
@@ -254,10 +254,18 @@ internal static class WorkflowSource
     /// on a version that never reached nuget.org.
     /// </para>
     /// <para>
-    /// Two steps claiming one id fails loudly instead of resolving to the first. That is invalid in
-    /// GitHub Actions, so it should never happen — but anchoring the match buys nothing if an
-    /// ambiguous one still quietly picks a winner, which is the same silent wrong answer wearing a
-    /// different hat.
+    /// Two steps claiming one id fails loudly instead of resolving to the first: anchoring the match
+    /// buys nothing if an ambiguous one still quietly picks a winner, which is the same silent wrong
+    /// answer wearing a different hat.
+    /// </para>
+    /// <para>
+    /// ⚠️ Step ids are unique per <b>job</b>, not per workflow, so this is <em>not</em> a claim that
+    /// the workflow is invalid. A caller that passes a whole file as the scope — as
+    /// <c>TrustedPublishingWorkflowTests</c> does — can therefore see two legitimate matches from two
+    /// different jobs, and would fail here on a perfectly valid config. That caller wants
+    /// <see cref="JobsOf" /> scoping, which <c>TestReportingTests</c> has had since #255 and which is
+    /// tracked for this suite on #198; until then the failure is loud and explains itself, which is
+    /// the safer half of the trade for a guard on the release path.
     /// </para>
     /// <para>
     /// The slice starts at the step's own <c>- </c> list item rather than at the <c>id:</c> line, so
@@ -270,9 +278,9 @@ internal static class WorkflowSource
     internal static string StepWithId(string scope, string stepId, string? scopeDescription = null)
     {
         var step = StepWithIdOrNull(scope, stepId, scopeDescription);
-        step.ShouldNotBeNull($"{scopeDescription ?? "the searched text"} no longer has a step with `id: {stepId}`");
 
-        return step!;
+        return step.ShouldNotBeNull(
+            $"{scopeDescription ?? "the searched text"} no longer has a step with `id: {stepId}`");
     }
 
     /// <summary>
@@ -313,15 +321,16 @@ internal static class WorkflowSource
     }
 
     /// <summary>
-    /// The indexes of every line in <paramref name="lines" /> whose trimmed text is exactly the key
-    /// <c>id: &lt;stepId&gt;</c>.
+    /// The indexes of every line in <paramref name="lines" /> that declares the key
+    /// <c>id: &lt;stepId&gt;</c> and nothing else — optionally opening a list item, and optionally
+    /// followed by a whitespace-separated <c># comment</c>.
     /// </summary>
     /// <remarks>
     /// Every index, not the first: the count is what tells <see cref="StepWithId" /> apart absent,
     /// found, and ambiguous — and only the last of those can pass itself off as the middle one.
-    /// Trailing whitespace and a trailing <c># comment</c> are tolerated because
-    /// <see cref="WithoutComments" /> drops only whole-line comments (so a URL's <c>//</c> survives),
-    /// and callers may hand over unstripped text anyway — <c>TrustedPublishingWorkflowTests</c> does.
+    /// A trailing <c># comment</c> is tolerated because <see cref="WithoutComments" /> drops only
+    /// whole-line comments (so a URL's <c>//</c> survives), and callers may hand over unstripped text
+    /// anyway — <c>TrustedPublishingWorkflowTests</c> does.
     /// </remarks>
     private static List<int> LinesDeclaring(string[] lines, string stepId)
     {
@@ -330,11 +339,18 @@ internal static class WorkflowSource
         // for the handful of scans a run performs. The shape mirrors JobsKey's, trailing-comment
         // tolerance included.
         //
-        // The optional `- ` covers `- id: login`, where the id is the list item's first key. That is
+        // The optional dash covers `- id: login`, where the id is the list item's first key. That is
         // legal and common, no workflow here currently writes it, and an anchored `^id:` would lose
         // it — reporting a step that is plainly present as absent. Loud, unlike the bug this replaces,
         // but still a wrong answer, and the walk-back stops on that same line as the step's header.
-        var key = new Regex($@"^(- )?id:\s*{Regex.Escape(stepId)}\s*(#.*)?$");
+        // `-\s+` rather than `- ` because `-  id:` and `-<tab>id:` are the same YAML.
+        //
+        // ⚠️ The comment clause requires WHITESPACE before the `#`, and that is the whole point of
+        // spelling it `\s+#` rather than `\s*#`: YAML only starts a comment after whitespace, so
+        // `id: login#1` is a single scalar naming a *different* step. With `\s*` the `#.*` swallowed
+        // the `#1` and a search for `login` bound to it — a longer id re-entering through the very
+        // clause added to keep longer ids out.
+        var key = new Regex($@"^(?:-\s+)?id:\s*{Regex.Escape(stepId)}(?:\s+#.*)?\s*$");
 
         var matches = new List<int>();
         for (var index = 0; index < lines.Length; index++)
@@ -349,23 +365,66 @@ internal static class WorkflowSource
     }
 
     /// <summary>
-    /// The nearest line at or above <paramref name="from" /> that opens a list item, or <c>-1</c> when
-    /// there is none — the step's own <c>- </c> header.
+    /// The header of the list item that <em>contains</em> the key at <paramref name="from" />, or
+    /// <c>-1</c> when that key belongs to no list item.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Starts <em>at</em> <paramref name="from" /> rather than above it, so an id written on the list
     /// item itself (<c>- id: login</c>) finds that line instead of running past it into the previous
     /// step. Returning <c>-1</c> rather than falling back to 0 is what makes a malformed scope read as
     /// absent: an <c>id:</c> under some <c>env:</c> block belongs to no step, and a slice from the top
     /// of the file would answer a question the scope cannot answer.
+    /// </para>
+    /// <para>
+    /// ⚠️ Indentation is what makes this <em>containment</em> rather than "the nearest dash above",
+    /// and the difference is not academic — the loose version reintroduced the defect this whole
+    /// change removes, by the other door. A list item indented at or deeper than the key is nested
+    /// <em>inside</em> the step (a sequence under <c>with:</c>, a bullet in a block scalar), and
+    /// stopping on it returns a fragment of a step as the step. A plain key indented shallower is a
+    /// container the key sits under, and reaching one means no header intervened — so the search ends
+    /// there rather than crossing a job boundary to adopt the previous job's last step.
+    /// </para>
     /// </remarks>
     private static int HeaderAtOrAbove(string[] lines, int from)
     {
-        for (var index = from; index >= 0; index--)
+        // The matched line may itself be the header, in which case there is nothing to walk back to.
+        if (OpensListItem(lines[from]))
         {
-            if (lines[index].TrimStart().StartsWith("- ", StringComparison.Ordinal))
+            return from;
+        }
+
+        var depth = IndentOf(lines[from]);
+
+        for (var index = from - 1; index >= 0; index--)
+        {
+            var line = lines[index];
+            var trimmed = line.Trim();
+
+            // Blank lines and comments carry no structure and sit at whatever indentation a human
+            // felt like — release-please.yml's own step comments are indented to their step's dash.
+            if (trimmed.Length == 0 || trimmed.StartsWith('#'))
             {
-                return index;
+                continue;
+            }
+
+            var indent = IndentOf(line);
+
+            if (OpensListItem(line))
+            {
+                if (indent < depth)
+                {
+                    return index;
+                }
+
+                // Nested deeper than the key: part of this step's own value, not its header.
+                continue;
+            }
+
+            if (indent < depth)
+            {
+                // A containing key, reached without passing a header — the key is not in a list item.
+                return -1;
             }
         }
 
@@ -373,12 +432,46 @@ internal static class WorkflowSource
     }
 
     /// <summary>
-    /// From a step's header line to the start of the next list item, or to the end of
+    /// Whether a line opens a YAML list item: a <c>-</c> that is alone on the line or followed by
+    /// whitespace.
+    /// </summary>
+    /// <remarks>
+    /// Not <c>StartsWith("- ")</c>. `-` alone (the item's keys starting on the next line) and
+    /// <c>-&lt;tab&gt;</c> are the same YAML, and missing them made the walk-back skip a real header
+    /// and return the <em>previous</em> step — silently, on the primitive #226 depends on. Excludes
+    /// <c>---</c>, a document separator rather than an item.
+    /// </remarks>
+    private static bool OpensListItem(string line)
+    {
+        var trimmed = line.TrimStart();
+
+        return trimmed.StartsWith('-')
+            && (trimmed.Length == 1 || char.IsWhiteSpace(trimmed[1]));
+    }
+
+    /// <summary>The line's leading-whitespace width — its YAML nesting depth.</summary>
+    private static int IndentOf(string line) => line.Length - line.TrimStart().Length;
+
+    /// <summary>
+    /// From a step's header line to the start of the next <em>sibling</em> list item, or to the end of
     /// <paramref name="lines" /> when it is the last step.
     /// </summary>
+    /// <remarks>
+    /// Sibling, not merely "next list item": a sequence nested inside the step — <c>args:</c> entries,
+    /// a bullet in a <c>path: |</c> block — is part of the step's own value, and ending there returns a
+    /// truncated fragment as the whole step. That direction of error is the dangerous one for the
+    /// negative assertions this reader serves: a <c>ShouldNotContain</c> over a slice cut short passes
+    /// because the text it rejects fell outside the fragment, not because the step is clean. Depth is
+    /// the same rule <see cref="HeaderAtOrAbove" /> walks back by, applied forwards.
+    /// </remarks>
     private static string StepFrom(string[] lines, int start)
     {
-        var end = Array.FindIndex(lines, start + 1, l => l.TrimStart().StartsWith("- ", StringComparison.Ordinal));
+        var depth = IndentOf(lines[start]);
+        var end = Array.FindIndex(
+            lines,
+            start + 1,
+            l => OpensListItem(l) && IndentOf(l) <= depth);
+
         if (end < 0)
         {
             end = lines.Length;
