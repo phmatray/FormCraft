@@ -1,3 +1,6 @@
+using Microsoft.JSInterop;
+using MudBlazor;
+
 namespace FormCraft.ForMudBlazor;
 
 /// <summary>
@@ -85,4 +88,88 @@ public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldCo
     /// </summary>
     protected string RequiredDescription =>
         HasLabel ? $"{Label} is required." : "This file upload is required.";
+
+    /// <summary>
+    /// The field's <b>Browse</b> button, captured by <c>@ref</c> in both upload components.
+    /// </summary>
+    /// <remarks>
+    /// Shared here rather than declared twice for the reason the rest of this class exists: the
+    /// single- and multiple-file components drifting apart is the failure class this library keeps
+    /// re-filing (#146, #177, #184, #189).
+    /// </remarks>
+    protected MudButton? BrowseButton { get; set; }
+
+    /// <summary>
+    /// Moves keyboard focus to this field's <b>Browse</b> button (#281).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Why this is needed at all.</b> Both components gate their <b>Clear</b> button on an
+    /// <c>@if</c> over the very value the button's own handler removes, so activating Clear unmounts
+    /// the element the keyboard user is standing on and focus falls to <c>&lt;body&gt;</c> — the
+    /// next <kbd>Tab</kbd> restarts from the top of the document. WCAG 2.1 <b>2.4.3 Focus Order</b>
+    /// (Level A) expects focus to move in an order that preserves meaning and operability.
+    /// </para>
+    /// <para>
+    /// <b>Why Browse specifically.</b> It is the affordance that resolves the state the user has
+    /// just created, it sits where Clear used to be in the tab order, and it carries the
+    /// <c>aria-describedby</c> requirement description from #262 — so focusing it announces the
+    /// requirement at the exact moment clearing makes the field unsatisfied.
+    /// </para>
+    /// <para>
+    /// <b>Failures are swallowed on purpose, and the catch list is deliberately wide.</b> The clear
+    /// itself has already succeeded by the time this runs — the value is gone and the model is
+    /// notified — so moving focus is the courtesy on top. Letting it throw would turn a working
+    /// clear into an unhandled exception, which on Blazor Server tears down the circuit and takes
+    /// every other field's state with it: far worse than the focus bug being fixed.
+    /// </para>
+    /// <para>
+    /// ⛔ <b>Do not narrow this to the "obvious" cases.</b> The likely failure is
+    /// <see cref="JSException"/> — <c>domWrapper.focus</c> raises <i>"Unable to focus an invalid
+    /// element"</i> when the button has left the DOM, which is reachable here: assigning
+    /// <c>CurrentValue</c> raises <c>OnValueChanged</c>, and a parent that hides the field
+    /// (<c>WithVisibilityProvider</c>) or drops the collection row can unmount Browse before the
+    /// awaited interop call reaches the browser. The rest cover a dropped circuit
+    /// (<see cref="JSDisconnectedException"/>), the interop timeout
+    /// (<see cref="OperationCanceledException"/>), a component disposed mid-clear
+    /// (<see cref="ObjectDisposedException"/>), and interop issued before the client is connected —
+    /// prerender/SSR — where <c>RemoteJSRuntime</c> raises
+    /// <see cref="InvalidOperationException"/>. That last clause is broader than its one named
+    /// cause and knowingly so; the null check below does <b>not</b> cover prerender, because
+    /// component reference captures are assigned while the render batch is applied and so run on
+    /// the server pass too.
+    /// </para>
+    /// </remarks>
+    protected async Task FocusBrowseAsync()
+    {
+        if (BrowseButton is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await BrowseButton.FocusAsync();
+        }
+        catch (JSException)
+        {
+            // The element is no longer focusable — typically gone from the DOM.
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone; there is nothing left to focus.
+        }
+        catch (OperationCanceledException)
+        {
+            // The interop call timed out or was cancelled.
+        }
+        catch (ObjectDisposedException)
+        {
+            // The component was torn down mid-clear.
+        }
+        catch (InvalidOperationException)
+        {
+            // No usable JS runtime behind the reference yet — the prerender/SSR pass.
+        }
+    }
 }

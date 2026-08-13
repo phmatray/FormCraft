@@ -1,0 +1,26 @@
+@namespace FormCraft.ForFluentUI
+@typeparam TModel
+@inherits FieldComponentBase<TModel, string>
+
+@if (!string.IsNullOrEmpty(Label))
+{
+    <FluentLabel Weight="LabelWeight.Semibold">@Label</FluentLabel>
+}
+
+@* FluentColorPickerInput, not FluentColorPicker: FormCraft stores a colour as a hex string, and
+   this is the variant whose bound value is a string (its TryParseValueFromString is over string,
+   guarded by a hex regex). FluentColorPicker binds a colour object instead, which would need a
+   lossy conversion in both directions. *@
+<FluentColorPickerInput Value="@CurrentValue"
+                        ValueChanged="@HandleValueChangedAsync"
+                        Enabled="@(!IsDisabled)"
+                        Placeholder="@Placeholder"
+                        aria-label="@(Label ?? "Colour")" />
+
+@code {
+    private async Task HandleValueChangedAsync(string? value)
+    {
+        SetValueWithoutNotification(value);
+        await Context.OnValueChanged.InvokeAsync(value);
+    }
+}

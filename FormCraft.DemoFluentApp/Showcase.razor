@@ -1,0 +1,98 @@
+@page "/"
+
+<PageTitle>FormCraft — Fluent UI showcase</PageTitle>
+
+<h1>Fluent UI showcase</h1>
+
+<p>
+    Every capability the Fluent adapter covers, in one form: grouped layout, the type-based field
+    types, autocomplete, multi-select, file upload, a collection with an item form, the three custom
+    renderers, and <code>.WithSecurity(...)</code> enforcement on submit.
+</p>
+
+<FormCraftComponent TModel="ShowcaseModel"
+                    Model="@_model"
+                    Configuration="@_configuration"
+                    OnValidSubmit="@HandleValidSubmit" />
+
+@if (_submitted)
+{
+    <FluentMessageBar Intent="MessageBarIntent.Success" AllowDismiss="false">
+        Submitted. @_model.Name selected @_model.Categories.Count() categor@(_model.Categories.Count() == 1 ? "y" : "ies")
+        and @_model.Lines.Count line@(_model.Lines.Count == 1 ? "" : "s").
+    </FluentMessageBar>
+}
+
+@code {
+    private static readonly string[] Cities = ["Paris", "Porto", "Prague", "Berlin", "Bruges"];
+
+    private readonly ShowcaseModel _model = new();
+    private IFormConfiguration<ShowcaseModel> _configuration = null!;
+    private bool _submitted;
+
+    protected override void OnInitialized()
+    {
+        _configuration = FormBuilder<ShowcaseModel>.Create()
+            .AddFieldGroup(group => group
+                .WithGroupName("About you")
+                .WithColumns(2)
+                .ShowInCard()
+                .AddField(x => x.Name, f => f
+                    .WithLabel("Name")
+                    .WithPlaceholder("Ada Lovelace")
+                    .Required("Name is required"))
+                .AddField(x => x.Age, f => f
+                    .WithLabel("Age")
+                    .WithHelpText("Whole years."))
+                .AddField(x => x.City, f => f
+                    .WithLabel("City")
+                    .WithPlaceholder("Start typing...")
+                    .AsAutocomplete(SearchCitiesAsync, minCharacters: 1))
+                .AddField(x => x.StartsOn, f => f.WithLabel("Starts on")))
+            .AddFieldGroup(group => group
+                .WithGroupName("Preferences")
+                .WithColumns(2)
+                .ShowInCard()
+                .AddField(x => x.Categories, f => f
+                    .WithLabel("Categories")
+                    .AsMultiSelect(("tech", "Technology"), ("health", "Healthcare"), ("finance", "Finance")))
+                .AddField(x => x.Plan, f => f
+                    .WithLabel("Plan")
+                    .WithOptions(("free", "Free"), ("pro", "Pro")))
+                .AddField(x => x.Volume, f => f
+                    .WithLabel("Volume")
+                    .WithAttribute("Min", 0.0)
+                    .WithAttribute("Max", 11.0)
+                    .WithCustomRenderer(typeof(FluentUISliderRenderer)))
+                .AddField(x => x.Score, f => f
+                    .WithLabel("Satisfaction")
+                    .WithCustomRenderer(typeof(FluentUIRatingRenderer)))
+                .AddField(x => x.Colour, f => f
+                    .WithLabel("Accent colour")
+                    .WithCustomRenderer(typeof(FluentUIColorPickerRenderer)))
+                .AddField(x => x.Subscribed, f => f.WithLabel("Email me updates")))
+            .AddField(x => x.Resume, f => f
+                .WithLabel("Resume")
+                .Required("A resume is required"))
+            .AddCollectionField(x => x.Lines, collection => collection
+                .WithLabel("Order lines")
+                .AllowAdd("Add line")
+                .AllowRemove()
+                .AllowReorder()
+                .WithEmptyText("No lines yet.")
+                .WithItemForm(item => item
+                    .AddField(x => x.Product, f => f.WithLabel("Product").Required("Product is required"))
+                    .AddField(x => x.Quantity, f => f.WithLabel("Quantity"))))
+            .WithSecurity(security => security
+                .WithRateLimit(5, TimeSpan.FromMinutes(1))
+                .EnableAuditLogging())
+            .Build();
+    }
+
+    private static Task<IEnumerable<SelectOption<string>>> SearchCitiesAsync(string text, CancellationToken token)
+        => Task.FromResult(Cities
+            .Where(c => c.Contains(text, StringComparison.OrdinalIgnoreCase))
+            .Select(c => new SelectOption<string>(c, c)));
+
+    private void HandleValidSubmit(ShowcaseModel model) => _submitted = true;
+}
