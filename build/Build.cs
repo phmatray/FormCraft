@@ -64,18 +64,34 @@ class Build : NukeBuild
                 .SetConfiguration(Configuration));
 
             // Enumerated from the solution rather than hand-listed (#275). The list this replaced
-            // named two of the solution's eight projects, so FormCraft.ForMudBlazor.UnitTests,
-            // FormCraft.DemoBlazorApp and build/ kept their build output through every Clean — and
-            // FormCraft.ForFluentUI, added later (#261), was never swept at all. Driving the sweep
-            // from the solution is what gets a project cleaned on the day it lands rather than on
-            // the day someone notices it never was.
+            // named FormCraft and FormCraft.UnitTests — two of the solution's eight projects — so
+            // the other six kept their build output through every Clean: FormCraft.ForMudBlazor
+            // (a packaged, published library), FormCraft.ForMudBlazor.UnitTests,
+            // FormCraft.ForFluentUI and FormCraft.ForFluentUI.UnitTests (added later by #261, so
+            // never swept at all), FormCraft.DemoBlazorApp, and _build. Driving the sweep from the
+            // solution is what gets a project cleaned on the day it lands rather than on the day
+            // someone notices it never was.
             //
             // Deliberately NOT RootDirectory.GlobDirectories: that is shorter and would also delete
             // build output under .claude/worktrees/, where this repo keeps other agents' full
             // checkouts. Staying inside solution projects is what bounds the blast radius.
+            //
+            // ⚠️ _build is in FormCraft.sln, so this deletes build/bin and build/obj — the output
+            // the running Nuke process itself was launched from (build.sh/ps1 do
+            // `dotnet run --project build/_build.csproj --no-build`). On macOS/Linux the unlink
+            // succeeds and `Clean` exits 0 (measured). On Windows a loaded image is locked by the
+            // OS, so this may throw instead; CI is ubuntu-only and would not catch it. Sweeping
+            // every project is #275's explicit decision — its spec rules the _build sweep "correct
+            // and harmless" — so it is kept rather than quietly narrowed, and the Windows exposure
+            // is tracked as a follow-up on the PR instead.
+            //
+            // Materialised before deleting: SelectMany is lazy, so without ToList each project's
+            // glob would run after earlier projects had already been deleted. Harmless on today's
+            // flat layout, wrong the moment one project directory nests inside another.
             Solution.AllProjects
                 .Select(project => project.Directory)
                 .SelectMany(directory => directory.GlobDirectories("**/bin", "**/obj"))
+                .ToList()
                 .ForEach(directory => directory.DeleteDirectory());
 
             ArtifactsDirectory.CreateOrCleanDirectory();

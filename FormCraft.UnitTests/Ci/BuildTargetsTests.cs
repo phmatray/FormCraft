@@ -4,9 +4,11 @@ namespace FormCraft.UnitTests.Ci;
 
 /// <summary>
 /// Guards the <c>Clean</c> target's claim that it cleans the repository (#275). It hand-listed the
-/// directories it swept and reached two of the solution's eight projects, so the three most worth
-/// removing — <c>FormCraft.ForMudBlazor.UnitTests</c>, <c>FormCraft.DemoBlazorApp</c> and
-/// <c>build</c> — survived every <c>./build.sh Clean</c> untouched.
+/// directories it swept and reached two of the solution's eight projects — <c>FormCraft</c> and
+/// <c>FormCraft.UnitTests</c> — so the remaining six survived every <c>./build.sh Clean</c>
+/// untouched, among them the published <c>FormCraft.ForMudBlazor</c> and both FluentUI projects,
+/// which #261 added to the solution long after the list was written and which it therefore never
+/// named at all.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -47,6 +49,21 @@ public class BuildTargetsTests
     private static readonly Regex LiteralProjectSweep =
         new(@"\b[A-Z]\w*Directory\s*\.\s*GlobDirectories", RegexOptions.Compiled);
 
+    /// <summary>
+    /// Operators that silently shrink the project set to a fixed-size or positional subset. Each
+    /// leaves the word <c>AllProjects</c> in place, so the enumeration still <em>reads</em> correct
+    /// while cleaning some of the solution — the hand-list's defect wearing the fix's clothes.
+    /// </summary>
+    /// <remarks>
+    /// <c>.Where(</c> is deliberately absent. A predicate is how the target would skip a directory
+    /// it must not delete — the running build's own output, or a stale <c>.sln</c> entry whose
+    /// directory is gone — and banning it outright would mean the next person to need that has to
+    /// delete an assertion to fix the build. Narrowing by <em>position or count</em> has no such
+    /// legitimate use here, so that is what is rejected.
+    /// </remarks>
+    private static readonly string[] SetNarrowingOperators =
+        [".Take(", ".First(", ".FirstOrDefault(", ".Skip(", ".Single(", ".Last(", ".Except("];
+
     [Fact]
     public void Clean_Should_Sweep_Every_Project_In_The_Solution()
     {
@@ -56,9 +73,18 @@ public class BuildTargetsTests
         // written, and Clean has never once removed their build output.
         var clean = TargetBody("Clean");
 
+        // Qualified, not the bare word: "AllProjects" alone is satisfied by any identifier
+        // containing it, and what this target must read from is the solution.
         clean.ShouldContain(
-            "AllProjects",
+            "Solution.AllProjects",
             customMessage: "the Clean target does not enumerate the solution's projects");
+
+        // Shouldly prints the collection on failure, so this names the operator that narrowed it.
+        var narrowed = SetNarrowingOperators
+            .Where(op => clean.Contains(op, StringComparison.Ordinal))
+            .ToList();
+
+        narrowed.ShouldBeEmpty();
     }
 
     [Fact]
@@ -107,23 +133,38 @@ public class BuildTargetsTests
     }
 
     [Fact]
-    public void Clean_Should_Not_Filter_The_Projects_It_Sweeps()
+    public void Clean_Should_Not_Classify_Projects_With_MSBuild()
     {
-        // Enumerating the solution and then narrowing it is the hand-list rebuilt in a slower way:
-        // every assertion above survives a `.Where(...)`, because the target still reads
-        // "AllProjects", still globs bin/obj, and still names no directory literally. Every project
-        // in the solution has build output worth removing — including _build itself — so there is
-        // no predicate this target legitimately needs.
-        //
-        // It also blocks the specific predicate most likely to be reached for. #259 filtered
-        // projects with Project.GetProperty(...), which evaluates the csproj with MSBuild in-process:
-        // green locally, and InvalidProjectFileException ("could not load NuGet.Frameworks") on
-        // every ubuntu CI run. Clean has no filtering to do, so the cheapest way to keep that out is
-        // to admit no predicate at all.
+        // The one filtering mechanism that must stay out, whatever the predicate is for. #259
+        // classified projects with Project.GetProperty(...), which evaluates the csproj with MSBuild
+        // in-process: green locally, and InvalidProjectFileException ("could not load
+        // NuGet.Frameworks, Version=7.9.0.0") on every ubuntu CI run. It was replaced there with a
+        // text read of the csproj, and Clean — which needs no classification at all — should never
+        // acquire it in the first place.
         var clean = TargetBody("Clean");
 
-        clean.ShouldNotContain(".Where(", customMessage: "the Clean target narrows the solution's projects");
-        clean.ShouldNotContain("GetProperty", customMessage: "Clean evaluates csproj properties (see #259)");
+        clean.ShouldNotContain(
+            "GetProperty",
+            customMessage: "Clean evaluates csproj properties with MSBuild in-process (see #259)");
+    }
+
+    [Fact]
+    public void Clean_Should_Still_Do_The_Rest_Of_Its_Job()
+    {
+        // The sweep is the part #275 changed, so it is the part with guards; these three lines are
+        // the part a future edit could quietly drop while every sweep assertion stays green. That
+        // matters most for artifacts/: it holds the .nupkg files Pack writes, so a Clean that stops
+        // emptying it lets a package from a previous version survive into the next Pack — stale
+        // output surviving a run named Clean, which is #275's own defect one directory over.
+        var clean = TargetBody("Clean");
+
+        clean.ShouldContain("DotNetClean", customMessage: "Clean no longer runs dotnet clean");
+        clean.ShouldContain(
+            "ArtifactsDirectory.CreateOrCleanDirectory()",
+            customMessage: "Clean no longer empties artifacts/");
+        clean.ShouldContain(
+            "TestResultsDirectory.CreateOrCleanDirectory()",
+            customMessage: "Clean no longer empties test-results/");
     }
 
     /// <summary>
