@@ -66,6 +66,16 @@ public partial class MudBlazorNullableNumericFieldComponent<TModel, TValue>
         base.OnInitialized();
 
         _localValue = CurrentValue;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#298).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
 
         Min = GetAttribute<TValue?>("Min");
         Max = GetAttribute<TValue?>("Max");

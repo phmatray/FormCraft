@@ -20,7 +20,23 @@ public partial class MudBlazorMultiSelectFieldComponent<TModel, TItem>
         base.OnInitialized();
 
         _selectedValues = CurrentValue?.ToList() ?? [];
-        Options = GetAttribute<IEnumerable<SelectOption<TItem>>>("MultiSelectOptions") ?? Options;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#298).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
+
+        // Falls back to an empty list rather than to the CURRENT value of Options. `?? Options` reads
+        // as "keep the default" and is that on first load, but on a reload it means "keep the previous
+        // field's options" — the patch-not-reload trap (#298), and a nastier instance of it than most,
+        // because the user would be offered choices from a field that is no longer on screen.
+        Options = GetAttribute<IEnumerable<SelectOption<TItem>>>("MultiSelectOptions")
+                  ?? new List<SelectOption<TItem>>();
     }
 
     protected override void OnParametersSet()

@@ -103,8 +103,11 @@ public class WorkflowSourceTests
         // Same boundary, matched on `id:` instead of `- name:` — the variant #226 depends on, where
         // a claim about the login step's gating must not be answerable by a later step's text.
         //
-        // Read raw, not comment-stripped: the scope is the caller's to choose, and this path is
-        // deliberately given the unstripped file (as #226's assertions always have). So the slice
+        // Read raw, not comment-stripped: the scope is the caller's to choose, and this test exercises
+        // the raw case on purpose. (#226's assertions used to be the in-repo example of that; since #302
+        // TrustedPublishingWorkflowTests reads stripped text, precisely because a whole-slice
+        // ShouldContain could otherwise be satisfied by the prose — so this fixture is now the only
+        // exerciser of the raw path, which is reason to keep it rather than to drop it.) So the slice
         // does carry the explanatory block that follows the step — which is why the boundary is
         // asserted against the *next step's header*, the thing the scan actually has to exclude,
         // rather than against prose that legitimately sits inside the slice.
@@ -174,7 +177,8 @@ public class WorkflowSourceTests
         // The tolerance an exact key match has to keep, and the reason it is spelled as a regex
         // rather than as string equality. `WithoutComments` only drops *whole-line* comments (so a
         // URL's "//" survives), which means a trailing `# …` reaches this scan intact — and callers
-        // may hand over unstripped text anyway, as TrustedPublishingWorkflowTests does. An anchored
+        // may hand over unstripped text anyway — and even stripped text keeps its trailing comments,
+        // since WithoutComments drops only whole-line ones (`uses: …@sha # v1.2.0` survives). An anchored
         // match that forgot either case would report a step that is plainly there as absent.
         const string Steps = """
                              steps:
@@ -372,6 +376,89 @@ public class WorkflowSourceTests
 
         error.Message.ShouldContain("the fixture");
         error.Message.ShouldContain("no longer has a step with `id: nope`");
+    }
+
+    [Fact]
+    public void StepNamed_Should_Fail_Loudly_When_Two_Steps_Share_A_Name()
+    {
+        // #302(b). Step names need not be unique in GitHub Actions — unlike ids, which are unique per
+        // job — so this is the primitive with the WEAKER guarantee, and until now it was the one still
+        // resolving a duplicate to the first silently, while StepWithId gained a loud failure in #267.
+        //
+        // The realistic trigger is a job splitting its upload in two, which #256's per-project results
+        // directories make a natural next step. TestReportingTests' four content assertions would then
+        // read only the first, and the second could lack `if: always()` or point at the stale glob while
+        // the suite stayed green.
+        const string Steps = """
+                             steps:
+                               - name: 'Publish: test-results'
+                                 if: always()
+                                 uses: actions/upload-artifact@v4
+                               - name: 'Publish: test-results'
+                                 uses: actions/upload-artifact@v4
+                             """;
+
+        var error = Should.Throw<ShouldAssertException>(
+            () => WorkflowSource.StepNamed(Steps, "Publish: test-results", "the fixture"));
+
+        error.Message.ShouldContain("ambiguous");
+
+        // The scope description has to survive into the message, and nothing else asserts that it does:
+        // drop the parameter from the Try form it is threaded through and every other assertion here
+        // still passes, so this is what stops that plumbing being refactored away silently.
+        error.Message.ShouldContain("the fixture");
+
+        // The Try form must not soften it either — returning null for a duplicated step would report it
+        // as a *missing* one, which is the same silent wrong answer one call further out.
+        Should.Throw<ShouldAssertException>(
+                () => WorkflowSource.TryStepNamed(Steps, "Publish: test-results"))
+            .Message.ShouldContain("ambiguous");
+    }
+
+    [Theory]
+    [InlineData("- name: 'Publish: test-results'", "single-quoted")]
+    [InlineData("- name: \"Publish: test-results\"", "double-quoted")]
+    [InlineData("-  name: 'Publish: test-results'", "two spaces after the dash")]
+    public void StepNamed_Should_Recognise_Every_Legal_Spelling_Of_A_Step_Name(string header, string spelling)
+    {
+        // The ambiguity guard above is only as good as this match: a duplicate spelled a way the matcher
+        // misses resolves silently to the first, which is the very defect it was added to stop. So the
+        // spellings are pinned rather than assumed.
+        //
+        // Unquoted is covered separately below, because a name containing `:` cannot be written bare.
+        var steps = $"steps:\n  {header}\n    if: always()";
+
+        WorkflowSource.TryStepNamed(steps, "Publish: test-results")
+            .ShouldNotBeNull($"the {spelling} form was not recognised")
+            .ShouldContain("if: always()");
+    }
+
+    [Fact]
+    public void StepNamed_Should_Recognise_An_Unquoted_Step_Name()
+    {
+        // deploy-docs.yml is the measured case: all ten of its step names are unquoted, and the old
+        // `StartsWith("- name: '…'")` matcher could not find a single one of them — it would have
+        // reported every step in that file as absent.
+        var deployDocs = WorkflowSource.Stripped("deploy-docs.yml");
+
+        WorkflowSource.TryStepNamed(deployDocs, "Deploy to GitHub Pages").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void StepNamed_Should_Not_Match_A_Name_Key_That_Is_Not_A_Step_Header()
+    {
+        // The counterweight to that tolerance, and the reason the leading `-` stays required: every
+        // upload step in this repo carries `name:` inside its `with:` block as the *artifact* name, so a
+        // matcher that dropped the dash would let an artifact answer for a step.
+        const string Steps = """
+                             steps:
+                               - name: 'Publish: test-results'
+                                 uses: actions/upload-artifact@v4
+                                 with:
+                                   name: test-results
+                             """;
+
+        WorkflowSource.TryStepNamed(Steps, "test-results").ShouldBeNull();
     }
 
     [Fact]

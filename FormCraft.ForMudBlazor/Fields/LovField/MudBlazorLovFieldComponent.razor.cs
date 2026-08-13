@@ -68,9 +68,25 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     }
 
     /// <inheritdoc />
-    protected override void OnInitialized()
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#298). The data provider is rebuilt with
+    /// it: it is derived from the configuration, so keeping the old one would have the field querying
+    /// the previous field's source.
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
     {
-        base.OnInitialized();
+        base.OnFieldConfigurationChanged();
+
+        // Cleared before anything is rebuilt. These are DERIVED from the configuration — items drawn
+        // from its data source, display text produced by its DisplaySelector — so carrying them into
+        // a new field means showing a selection that belongs to a field no longer on screen, and
+        // handing the same stale list to the picker dialog as its pre-selection. The reload-not-patch
+        // rule applies to state derived from the configuration, not only to the properties (#298).
+        _selectedItems.Clear();
+        _displayText = null;
+        _isLoading = false;
 
         _lovConfig = GetAttribute<ILovConfiguration<TItem, TValue>>("LovConfiguration");
 

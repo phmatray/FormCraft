@@ -18,8 +18,25 @@ public partial class MudBlazorSelectFieldComponent<TModel, TValue>
 
         // Initialize local value
         _localValue = CurrentValue;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#298).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
 
         Placeholder = Context.Field.Placeholder;
+
+        // Cleared BEFORE resolving, because ResolveOptions returns the current Options for a field
+        // that configures none (and for one whose value is not enumerable). That reads as "keep the
+        // default" and is exactly that on first load — but on a reload it means "keep the previous
+        // field's options", which would offer the user choices from a field no longer on screen
+        // (#298). Clearing first makes both fallbacks yield the empty default they intend.
+        Options = new List<SelectOption<TValue>>();
         Options = ResolveOptions();
     }
 

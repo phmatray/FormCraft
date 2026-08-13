@@ -41,7 +41,29 @@ public partial class MudBlazorBooleanFieldComponent<TModel>
 
         // Initialize local value (CurrentValue is bool, not bool? due to TValue? behavior)
         _localValue = CurrentValue is bool val ? val : false;
+    }
 
+    /// <summary>
+    /// Tracks which field this instance's cached properties were loaded from (#298).
+    /// </summary>
+    /// <remarks>
+    /// Wired locally, for the same reason <c>NativeRequiredValue</c> above is: this component derives
+    /// from <c>FieldComponentBase</c> directly, so it inherits neither the hook on
+    /// <c>MudBlazorFieldComponentBase</c> nor the one on <c>MudBlazorFileUploadComponentBase</c>. Only
+    /// the wiring repeats — <see cref="FieldConfigurationTracker"/> holds the rule and its reasoning.
+    /// </remarks>
+    private readonly FieldConfigurationTracker _fieldTracker = new();
+
+    private void RefreshFieldConfigurationIfChanged()
+    {
+        if (!_fieldTracker.HasChanged(Context?.Field))
+        {
+            return;
+        }
+
+        // Moved off OnInitialized so an instance handed a different field re-reads it rather than
+        // rendering the previous field's settings (#298).
+        //
         // Checkbox is the default (parity with the legacy render path); a
         // switch can be requested explicitly via the DisplayStyle attribute.
         DisplayStyle = GetAttribute("DisplayStyle", BooleanDisplayStyle.Checkbox);
@@ -52,6 +74,8 @@ public partial class MudBlazorBooleanFieldComponent<TModel>
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
+
+        RefreshFieldConfigurationIfChanged();
 
         // Sync local value when model changes externally
         var currentVal = CurrentValue is bool val ? val : false;
