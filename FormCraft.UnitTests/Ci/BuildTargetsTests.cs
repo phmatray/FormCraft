@@ -106,6 +106,26 @@ public class BuildTargetsTests
         clean.ShouldNotMatch(@"\bRootDirectory\s*\.\s*GlobDirectories");
     }
 
+    [Fact]
+    public void Clean_Should_Not_Filter_The_Projects_It_Sweeps()
+    {
+        // Enumerating the solution and then narrowing it is the hand-list rebuilt in a slower way:
+        // every assertion above survives a `.Where(...)`, because the target still reads
+        // "AllProjects", still globs bin/obj, and still names no directory literally. Every project
+        // in the solution has build output worth removing — including _build itself — so there is
+        // no predicate this target legitimately needs.
+        //
+        // It also blocks the specific predicate most likely to be reached for. #259 filtered
+        // projects with Project.GetProperty(...), which evaluates the csproj with MSBuild in-process:
+        // green locally, and InvalidProjectFileException ("could not load NuGet.Frameworks") on
+        // every ubuntu CI run. Clean has no filtering to do, so the cheapest way to keep that out is
+        // to admit no predicate at all.
+        var clean = TargetBody("Clean");
+
+        clean.ShouldNotContain(".Where(", customMessage: "the Clean target narrows the solution's projects");
+        clean.ShouldNotContain("GetProperty", customMessage: "Clean evaluates csproj properties (see #259)");
+    }
+
     /// <summary>
     /// The text of one Nuke target — from its <c>Target Name =&gt;</c> declaration up to the next
     /// one — so an assertion about this target cannot be answered by a sibling.
