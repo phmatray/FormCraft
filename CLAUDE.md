@@ -29,12 +29,14 @@ see the warning below the commands, which is the part that costs time if you ski
 ```bash
 # Run everything — ~1,550 tests across the three test projects (approximate on purpose: the
 # exact figure drifts with every merge, and a stale precise number reads as authoritative)
-dotnet test
+dotnet test -c Release
 
-# Run one test project
-dotnet test FormCraft.UnitTests/FormCraft.UnitTests.csproj
-dotnet test FormCraft.ForMudBlazor.UnitTests/FormCraft.ForMudBlazor.UnitTests.csproj
-dotnet test FormCraft.ForFluentUI.UnitTests/FormCraft.ForFluentUI.UnitTests.csproj
+# Run one test project. `-c Release` throughout: CI runs Release, and the host path
+# below is a Release path — mixing configurations is how you end up running one build
+# and inspecting another.
+dotnet test FormCraft.UnitTests/FormCraft.UnitTests.csproj -c Release
+dotnet test FormCraft.ForMudBlazor.UnitTests/FormCraft.ForMudBlazor.UnitTests.csproj -c Release
+dotnet test FormCraft.ForFluentUI.UnitTests/FormCraft.ForFluentUI.UnitTests.csproj -c Release
 
 # Run one class — everything after `--` is forwarded to the test host.
 # Always name the .csproj: run solution-wide, the filter is applied to all three
@@ -43,14 +45,16 @@ dotnet test FormCraft.UnitTests/FormCraft.UnitTests.csproj -c Release \
   -- --filter-class FormCraft.UnitTests.Ci.GitignoreTests
 
 # Same filter without the build step (~200ms). Run `dotnet build -c Release` first,
-# or you are testing a stale binary.
+# or you are testing a stale binary. On Windows the host is `...\FormCraft.UnitTests.exe`.
 FormCraft.UnitTests/bin/Release/net10.0/FormCraft.UnitTests \
   --filter-class FormCraft.UnitTests.Ci.GitignoreTests
 ```
 
-Filters: `--filter-class`, `--filter-method`, `--filter-namespace`, their `--filter-not-*`
-counterparts, and `--filter-uid`. `*` wildcards work at either end. `--filter-method` wants the
-**fully-qualified** name (`<namespace>.<class>.<method>`) — a bare method name matches nothing.
+Filters: `--filter-class`, `--filter-method`, `--filter-namespace`, `--filter-trait`, `--filter-uid`,
+`--filter-query`, plus a `--filter-not-*` counterpart for class/method/namespace/trait. `*` wildcards
+work at either end, and the simple filters cannot be combined with `--filter-query`.
+`--filter-method` wants the **fully-qualified** name (`<namespace>.<class>.<method>`) — a bare method
+name matches nothing. `--filter-trait` is useless here: no test in this repo carries a `[Trait]`.
 
 ⛔ **The VSTest spellings are silently ignored here.** Passing `--filter` to `dotnet test` (rather
 than after `--`) forwards it as an MSBuild property that Microsoft.Testing.Platform discards with a
@@ -58,18 +62,31 @@ lone `MTP0001` warning — **the whole suite runs** while the command looks filt
 The same applies to `--collect:"XPlat Code Coverage"`, which additionally writes no coverage file at
 all; coverage is not currently wired up for these projects (no MTP coverage extension is referenced),
 so there is no working substitute to reach for. Filtering by `Category=…` never worked either: no
-test in this repo carries a `[Trait]`. `FormCraft.UnitTests/Ci/ClaudeMdTestCommandsTests` fails the
-build if these spellings return to this file.
+test in this repo carries a `[Trait]`. The MSBuild-property spellings (`-p:VSTestTestCaseFilter=…`,
+`-p:VSTestCollect=…`) are inert for the same reason. `FormCraft.UnitTests/Ci/ClaudeMdTestCommandsTests`
+fails — it is a unit test, so `dotnet test` catches this, **not** `dotnet build` — if any of these
+return to this file.
 
-⚠️ **Check the summary line, not the exit code.** A mistyped flag prints `--help`, runs nothing, and
-emits no summary at all — so `grep 'Failed!'` finds nothing and reads as green — while a pipe
-(`| tail`, `| grep`) replaces `$?` with the pipe's `0`. A filter matching nothing reports
-`Zero tests ran` from the host, or `Failed! … Total: 0` via `dotnet test`. Require a real
-`Passed!`/`Failed!` line **and** a plausible count.
+⚠️ **A green-looking run may have run nothing, and the two paths fail differently.**
 
-Full trap list and the measurements behind all of this:
-[`.claude/skills/repo-profile.md`](.claude/skills/repo-profile.md) → *Build & test* → *Single-suite
-filter*. Kept there rather than duplicated here so the two cannot drift apart.
+- **Summary lines are printed *per assembly*, with no aggregate.** A solution-wide filtered run
+  prints `Passed! … Total: 6` for the assembly that matched and `Failed! … Total: 0` for the two
+  that did not — exit `1`. "I saw a `Passed!` line" therefore proves nothing on its own: confirm
+  **every** assembly reported, or read the exit code of an **unpiped** run.
+- **`$?` is only meaningful unpiped.** `| tail` / `| grep` replaces it with the pipe's `0`.
+- **Mistyped flag, direct host** → `Unknown option '--…'` plus the full `--help`, nothing runs, and
+  **no summary line at all** (so `grep 'Failed!'` reads it as green); exit `5`.
+- **Mistyped flag, `dotnet test`** → the diagnostic never reaches stdout. You get only
+  `error run failed: Tests failed: '<path>/TestResults/<assembly>_net10.0_arm64.log'` and exit `1` —
+  wording that blames the tests for what is an argument error. **Read that log before debugging any
+  source.**
+- **Filter matching nothing** → `Zero tests ran` (direct host, exit `8`) or `Failed! … Total: 0`
+  (`dotnet test`, exit `1`). Check for `Total: 0` before hunting a phantom regression.
+
+**This block is a summary.** The authoritative version — the full flag list, both failure paths, and
+the measurements behind every claim — is [`.claude/skills/repo-profile.md`](.claude/skills/repo-profile.md)
+→ *Build & test* → *Single-suite filter*. Where the two disagree, **the profile wins and this block is
+the stale one**; keep corrections there and re-summarise here rather than growing a second copy.
 
 ### Running the Demo Application
 ```bash
