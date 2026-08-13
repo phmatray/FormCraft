@@ -28,9 +28,9 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// is the whole reason the boolean model lives here rather than being left to each suite.
 /// </para>
 /// <para>
-/// <b>Two shapes beyond the field types.</b> Every builder above produces a form containing nothing
-/// but a collection, whose item form holds exactly one field. Two members break each of those
-/// assumptions in turn:
+/// <b>Three shapes beyond the field types.</b> Every builder above produces a form containing nothing
+/// but a collection, whose item form holds exactly one field, and which is the form's only collection.
+/// Three members break one of those assumptions each:
 /// <list type="bullet">
 /// <item><description><see cref="NamedOrderModel"/> / <see cref="NamedOrderItem"/> and
 /// <see cref="RootFieldAndItemForm"/> — a root-level field <i>beside</i> the collection, with the
@@ -41,6 +41,10 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// original component types. The shape a suite needs when its subject is rows of differing
 /// render-tree frame counts in a keyless loop, which a single-field row cannot express
 /// (#282).</description></item>
+/// <item><description><see cref="TwoCollectionModel"/> and
+/// <see cref="TwoCollectionItemForm"/> — <i>two</i> collections in one form, whose item fields share
+/// a member name. The shape that catches a form-wide diagnostic keying by an under-qualified field
+/// identity, which a single-collection form cannot express (#213, #297).</description></item>
 /// </list>
 /// </para>
 /// <para>
@@ -301,6 +305,65 @@ internal static class CollectionItemFixture
             .Build();
 
     /// <summary>
+    /// Creates a model with one row in each of its two collections, both blank unless seeded.
+    /// </summary>
+    internal static TwoCollectionModel NewTwoCollections(string contact = "", string supplier = "") =>
+        new()
+        {
+            Contacts = { new OrderItem { ProductName = contact } },
+            Suppliers = { new OrderItem { ProductName = supplier } },
+        };
+
+    /// <summary>
+    /// <b>Two</b> collections of the same item type in one form, whose item fields share a member
+    /// name — the shape a form-wide diagnostic must tell apart (#213, #297).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every diagnostic that aggregates across a form keys by field identity, and a bare field name
+    /// is unique only <i>within one item form</i>. So two collections whose item fields share a name
+    /// are what an under-qualified key silently merges — the collector counts one field where there
+    /// are two, and a message names "Secret" without saying which collection to audit.
+    /// <c>CollectionItemFieldScope.DiagnosticKey</c> (<c>&lt;collection&gt;[].&lt;field&gt;</c>) is
+    /// the fix, and this shape is what proves it.
+    /// </para>
+    /// <para>
+    /// ⚠️ <b>The collection property names are load-bearing.</b> <c>DiagnosticKey</c> is built from
+    /// the collection's <i>property</i> name, so <c>CollectionInputTypeTests</c> asserts the literal
+    /// strings <c>Contacts[].Secret</c> and <c>Suppliers[].Secret</c>. Renaming <c>Contacts</c> or
+    /// <c>Suppliers</c> changes what that suite observes — this is not a free rename.
+    /// </para>
+    /// <para>
+    /// Shared rather than local because two suites had independently declared it under different
+    /// names (#297): <c>ShrinkLabelKeyCollisionTests</c> asked whether the collector <i>counts</i>
+    /// both, <c>CollectionInputTypeTests</c> whether the message <i>names</i> both. Same shape, same
+    /// mechanism, two questions.
+    /// </para>
+    /// </remarks>
+    internal static IFormConfiguration<TwoCollectionModel> TwoCollectionItemForm(
+        Action<FieldBuilder<OrderItem, string>>? configureContact = null,
+        Action<FieldBuilder<OrderItem, string>>? configureSupplier = null) =>
+        FormBuilder<TwoCollectionModel>
+            .Create()
+            .AddCollectionField(x => x.Contacts, collection => collection
+                .WithLabel("Contacts")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field =>
+                    {
+                        field.WithLabel("Contact name");
+                        configureContact?.Invoke(field);
+                    })))
+            .AddCollectionField(x => x.Suppliers, collection => collection
+                .WithLabel("Suppliers")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field =>
+                    {
+                        field.WithLabel("Supplier name");
+                        configureSupplier?.Invoke(field);
+                    })))
+            .Build();
+
+    /// <summary>
     /// A root-level <c>string</c> field <i>beside</i> a collection whose item form holds a
     /// <c>string</c> field of the same name — the only shape here that is not a form containing
     /// nothing but a collection.
@@ -415,6 +478,19 @@ internal sealed class NamedOrderModel
 internal sealed class NamedOrderItem
 {
     public string Name { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Root model for the two-collections shape. Both collections hold <see cref="OrderItem"/>, so their
+/// item fields share a member name by construction — see
+/// <see cref="CollectionItemFixture.TwoCollectionItemForm"/> for why that, and the property names
+/// <c>Contacts</c>/<c>Suppliers</c>, are load-bearing rather than incidental.
+/// </summary>
+internal sealed class TwoCollectionModel
+{
+    public List<OrderItem> Contacts { get; set; } = new();
+
+    public List<OrderItem> Suppliers { get; set; } = new();
 }
 
 /// <summary>Root model for the multi-field row shape.</summary>
