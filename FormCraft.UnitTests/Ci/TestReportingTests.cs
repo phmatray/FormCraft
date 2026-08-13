@@ -151,6 +151,43 @@ public class TestReportingTests
         Regex.IsMatch(build, Regex.Escape(option) + "(?![-A-Za-z])");
 
     /// <summary>
+    /// Whether <paramref name="extension" /> is written by one of xunit.v3's <c>--report-*</c>
+    /// reporters, as opposed to merely having some backing option.
+    /// </summary>
+    /// <remarks>
+    /// <c>log</c> is the whole point of the distinction: it is backed by <c>--results-directory</c>
+    /// but written by <c>dotnet test</c>'s MSBuild integration rather than by a reporter, so it fails
+    /// for entirely different reasons. #276 guards the reporter-backed kinds and deliberately leaves
+    /// it out — reading "backed by an option" as "backed by a reporter" would quietly drag it in.
+    /// </remarks>
+    private static bool IsReporterBacked(string extension) =>
+        ReporterForExtension.TryGetValue(extension, out var option)
+        && option.StartsWith("--report", StringComparison.Ordinal);
+
+    /// <summary>
+    /// The report kinds <c>build/Build.cs</c> holds in its one <c>ReporterBackedReports</c> list —
+    /// the single source both <c>.Produces(...)</c> and the post-run guard read since #276.
+    /// </summary>
+    /// <remarks>
+    /// Parsed out of the script rather than restated here, for the same reason the list exists at
+    /// all: a second hand-maintained copy of "which kinds matter" is the drift that left the html
+    /// promised but unguarded in the first place.
+    /// </remarks>
+    private static List<string> GuardedReportKinds(string build)
+    {
+        var list = Regex.Match(build, @"ReporterBackedReports\s*=\s*\[(?<kinds>[^\]]*)\]");
+
+        list.Success.ShouldBeTrue(
+            "build/Build.cs no longer holds its guarded report kinds in one ReporterBackedReports "
+            + "list, so the promise and the guard can drift apart again (#276)");
+
+        return Regex
+            .Matches(list.Groups["kinds"].Value, @"""(?<kind>[^""]+)""")
+            .Select(match => match.Groups["kind"].Value)
+            .ToList();
+    }
+
+    /// <summary>
     /// Every glob the <c>Test</c> target promises under <c>TestResultsDirectory</c>, as written —
     /// e.g. <c>**/*.trx</c>. Shared so the "is recursive" and "is backed by a reporter" assertions
     /// read one list: a glob only one of them could see would let the pair disagree about what the
@@ -162,6 +199,13 @@ public class TestReportingTests
     /// "no promised glob offends", which an empty list satisfies trivially. A reformatted
     /// <c>.Produces</c> line would empty it and turn both callers green while checking nothing, and
     /// a third caller added later would have to remember to repeat the check.
+    /// <para>
+    /// Since #276 the reporter-backed globs are no longer written out one per line: <c>.Produces</c>
+    /// reads the same <c>ReporterBackedReports</c> list the guard does, so the promise and the check
+    /// cannot drift. They are still promises, so they are still collected here — and the path prefix
+    /// is <em>captured</em> rather than assumed, which is what keeps "is it recursive?" a real
+    /// question for a derived glob instead of an answer this helper quietly supplies itself.
+    /// </para>
     /// </remarks>
     private static List<string> PromisedGlobs(string build)
     {
@@ -169,6 +213,22 @@ public class TestReportingTests
             .Matches(build, """\.Produces\(TestResultsDirectory\s*/\s*"(?<glob>[^"]+)"\)""")
             .Select(match => match.Groups["glob"].Value)
             .ToList();
+
+        if (Regex.IsMatch(build, @"\.Produces\(\s*ReporterBackedReports\b"))
+        {
+            var derived = Regex.Match(
+                build,
+                @"\.Produces\(\s*ReporterBackedReports[\s\S]{0,160}?TestResultsDirectory\s*/\s*""(?<prefix>[^""]+)""\s*/");
+
+            derived.Success.ShouldBeTrue(
+                "the Test target promises its reporter-backed artifacts from the shared list, but "
+                + "not under a TestResultsDirectory / \"<prefix>\" / <kind> path this file can read "
+                + "— so the recursion and reporter cross-checks would silently stop covering them");
+
+            var prefix = derived.Groups["prefix"].Value;
+
+            promised.AddRange(GuardedReportKinds(build).Select(kind => prefix + "/" + kind));
+        }
 
         promised.ShouldNotBeEmpty("the Test target promises no test-results artifact at all");
 
@@ -255,10 +315,16 @@ public class TestReportingTests
 
         build.ShouldContain("Assert.NotEmpty");
 
-        // `**/` optional: the reports moved into per-project subdirectories in #256, so the guard's
-        // own glob had to recurse to keep finding them. What is pinned is that the guard still
-        // counts *.trx files — not the depth it counts them at.
-        build.ShouldMatch(@"GlobFiles\(""(\*\*/)?\*\.trx""\)");
+        // The kind is no longer a literal in the guard: since #276 it comes from
+        // ReporterBackedReports, which is what lets one list cover every promised reporter. So
+        // "does the guard still count trx files?" became two questions — is trx in that list, and
+        // does the guard glob the list's entries — and both have to be asked, because either one
+        // alone is satisfiable while the trx goes unchecked.
+        GuardedReportKinds(build).ShouldContain("*.trx");
+
+        build.ShouldMatch(
+            @"ResultsDirectoryFor\(\w+\)\.GlobFiles\(\w+\)",
+            "the guard no longer globs the report kinds it was handed");
     }
 
     [Fact]
@@ -283,25 +349,27 @@ public class TestReportingTests
             @"""--results-directory"",\s*TestResultsDirectory\s*,",
             "the runner is handed the shared results directory rather than the project's own");
 
-        // Narrow on purpose. A future target may have perfectly good reason to glob the whole
-        // results directory; what must not come back is the *guard* doing so, since a single
-        // reporting suite is enough to satisfy it while the other emits nothing.
+        // No longer keyed to the trx literal: since #276 the guard globs a variable kind, so the
+        // old `GlobFiles("**/*.trx")` pattern would no longer recognise the regression it was
+        // written for. Any whole-directory glob is rejected instead — strictly stricter, and there
+        // is no legitimate use of one in this file.
         build.ShouldNotMatch(
-            @"TestResultsDirectory\.GlobFiles\(""\*\*/\*\.trx""\)",
+            @"TestResultsDirectory\.GlobFiles\(",
             "the report guard globs the whole results directory again, so one silent suite passes it");
 
-        // The trx is looked for in the project's own directory, not the shared one.
+        // The reports are looked for in the project's own directory, not the shared one.
         build.ShouldMatch(
-            @"ResultsDirectoryFor\(\w+\)\.GlobFiles\(""\*\.trx""\)",
-            "the report guard does not look for the trx in the project's own results directory");
+            @"ResultsDirectoryFor\(\w+\)\.GlobFiles\(",
+            "the report guard does not look for the reports in the project's own results directory");
 
         // Matched on the crafted message rather than on the loop variable's identifier: renaming
         // `project` or hoisting the string into a local is a refactor this test has no business
-        // reddening on. `\w+\.Name` still requires each entry to lead with the offending project,
-        // and the directory to follow it — the identity #256 exists to make recoverable.
+        // reddening on. What is required is that each entry leads with the offending project, and
+        // names both the kinds it is missing and the directory they are missing from — the identity
+        // #256 exists to make recoverable, plus the kind #276 added.
         build.ShouldMatch(
-            @"\{\w+\.Name\} \(nothing in \{ResultsDirectoryFor",
-            "the missing-report message does not name the project and directory that came up empty");
+            @"\{[\w.]*Name\} \(no \{[^}]+\} in \{ResultsDirectoryFor\(",
+            "the missing-report message does not name the project, the missing kinds and the directory");
     }
 
     [Fact]
@@ -321,6 +389,56 @@ public class TestReportingTests
             .ToList();
 
         unbacked.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void BuildScript_Should_Hold_Its_Guarded_Report_Kinds_In_One_Place()
+    {
+        // Approach B of #276. What is being designed out is not the missing html check but the
+        // *second hand-maintained list*: a literal { "*.trx", "*.html" } inside the guard closes
+        // today's gap and re-opens it the moment a fourth reporter joins .Produces — which is this
+        // issue in miniature. One list, read twice.
+        var build = WorkflowSource.BuildScript;
+
+        var guarded = GuardedReportKinds(build);
+
+        // Named individually rather than pinned as an exact set: adding a reporter is a legitimate
+        // change this must not redden, but dropping either of these two is the regression.
+        guarded.ShouldContain("*.trx");
+        guarded.ShouldContain("*.html", "the html half of the artifact is unguarded again (#276)");
+
+        // BuildScript is comment-stripped, so only real code can satisfy either of these.
+        build.ShouldMatch(
+            @"\.Produces\(\s*ReporterBackedReports\b",
+            "the Test target no longer promises its reporter-backed artifacts from the shared list");
+
+        build.ShouldMatch(
+            @"ReporterBackedReports\s*\.Where\(\s*(?<kind>\w+)\s*=>\s*!ResultsDirectoryFor\(\w+\)\.GlobFiles\(\k<kind>\)",
+            "the per-project guard does not glob each entry of ReporterBackedReports");
+    }
+
+    [Fact]
+    public void Test_Target_Should_Guard_Every_ReporterBacked_Artifact_It_Promises()
+    {
+        // The generalisation #276 asked for: not "the html is checked" but "whatever the target
+        // promises is checked". #256 made the guard per-project and left this axis open, so a
+        // runner that kept honouring --report-xunit-trx while dropping --report-xunit-html would
+        // have shipped half an artifact with every check still green. Promising a fourth reporter
+        // without guarding it now turns this red instead.
+        var build = WorkflowSource.BuildScript;
+
+        var guarded = GuardedReportKinds(build);
+
+        // Shouldly prints the collection on failure, so this names the offending kind.
+        var unguarded = PromisedGlobs(build)
+            .Select(ExtensionOf)
+            .Where(IsReporterBacked)
+            .Select(extension => "*." + extension)
+            .Distinct(StringComparer.Ordinal)
+            .Where(kind => !guarded.Contains(kind, StringComparer.Ordinal))
+            .ToList();
+
+        unguarded.ShouldBeEmpty();
     }
 
     [Fact]
