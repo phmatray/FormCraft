@@ -27,8 +27,14 @@ public class CollectionFieldValidator<TModel, TItem>
     /// <param name="model">The parent model instance.</param>
     /// <param name="services">The service provider for dependency injection.</param>
     /// <returns>A list of validation error messages. Empty if validation passed.</returns>
+    /// <remarks>
+    /// Superseded in-tree by <see cref="ValidateAllAsync" />, which returns this method's messages
+    /// <i>and</i> the structured per-item errors from the same traversal. This wrapper stays for
+    /// external callers; asking for both shapes through this method and
+    /// <see cref="ValidateItemsAsync" /> in turn is what ran every item validator twice (#329).
+    /// </remarks>
     public async Task<List<string>> ValidateAsync(TModel model, IServiceProvider services)
-        => (await ValidateAllAsync(model, services)).Messages;
+        => [.. (await ValidateAllAsync(model, services)).Messages];
 
     /// <summary>
     /// Validates the collection <b>once</b> and returns both shapes its callers need: the flat,
@@ -88,22 +94,28 @@ public class CollectionFieldValidator<TModel, TItem>
             return errors;
         }
 
-        var field = _configuration.ItemFormConfiguration.Fields
-            .FirstOrDefault(f => f.FieldName == fieldName);
-        if (field == null)
-        {
-            return errors;
-        }
-
         var item = items[itemIndex];
-        var value = FieldValueGetterCache<TItem>.GetOrCompile(field)(item);
 
-        foreach (var validator in field.Validators)
+        // EVERY field configuration carrying this name, not just the first. An item form can declare
+        // more than one configuration for the same property, and the full pass validates them all —
+        // so matching only the first would make a keystroke silently erase the others' messages
+        // until the next submit put them back.
+        foreach (var field in _configuration.ItemFormConfiguration.Fields)
         {
-            var result = await validator.ValidateAsync(item, value, services);
-            if (!result.IsValid)
+            if (field.FieldName != fieldName)
             {
-                errors.Add(new CollectionItemError(itemIndex, field.FieldName, result.ErrorMessage!));
+                continue;
+            }
+
+            var value = FieldValueGetterCache<TItem>.GetOrCompile(field)(item);
+
+            foreach (var validator in field.Validators)
+            {
+                var result = await validator.ValidateAsync(item, value, services);
+                if (!result.IsValid)
+                {
+                    errors.Add(new CollectionItemError(itemIndex, field.FieldName, result.ErrorMessage!));
+                }
             }
         }
 

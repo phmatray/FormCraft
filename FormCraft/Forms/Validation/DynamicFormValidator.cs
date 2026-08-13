@@ -203,35 +203,47 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
     /// </summary>
     private sealed class CollectionValidatorInvoker
     {
-        private readonly object? _validator;
-        private readonly MethodInfo? _validateAll;
-        private readonly MethodInfo? _validateCell;
+        private readonly object _validator;
+        private readonly MethodInfo _validateAll;
+        private readonly MethodInfo _validateCell;
 
+        /// <remarks>
+        /// Resolution failures throw here rather than degrading to a no-op. The names come from
+        /// <c>nameof</c> and <see cref="Activator.CreateInstance(Type, object[])" /> throws rather
+        /// than returning null for a class, so none of this is reachable today — but throwing keeps
+        /// it that way. A silent fallback would be <i>cached</i>, so one unresolvable lookup would
+        /// make that collection report zero errors for the lifetime of its configuration instead of
+        /// failing once, loudly.
+        /// </remarks>
         internal CollectionValidatorInvoker(ICollectionFieldConfigurationBase collectionField)
         {
             var validatorType = typeof(CollectionFieldValidator<,>)
                 .MakeGenericType(typeof(TModel), collectionField.ItemType);
 
-            _validator = Activator.CreateInstance(validatorType, collectionField);
-            _validateAll = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.ValidateAllAsync));
-            _validateCell = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.ValidateItemFieldAsync));
+            _validator = Activator.CreateInstance(validatorType, collectionField)
+                ?? throw new InvalidOperationException(
+                    $"Could not construct a collection validator for item type '{collectionField.ItemType}'.");
+
+            _validateAll = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.ValidateAllAsync))
+                ?? throw new InvalidOperationException(
+                    $"'{validatorType}' does not declare {nameof(CollectionFieldValidator<TModel, object>.ValidateAllAsync)}.");
+
+            _validateCell = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.ValidateItemFieldAsync))
+                ?? throw new InvalidOperationException(
+                    $"'{validatorType}' does not declare {nameof(CollectionFieldValidator<TModel, object>.ValidateItemFieldAsync)}.");
         }
 
         internal Task<CollectionValidationResult> ValidateAllAsync(object model, IServiceProvider services)
-            => _validator is null || _validateAll is null
-                ? Task.FromResult(new CollectionValidationResult([], []))
-                : (Task<CollectionValidationResult>)_validateAll.Invoke(_validator, [model, services])!;
+            => (Task<CollectionValidationResult>)_validateAll.Invoke(_validator, [model, services])!;
 
         internal Task<List<CollectionItemError>> ValidateItemFieldAsync(
             object model,
             int itemIndex,
             string fieldName,
             IServiceProvider services)
-            => _validator is null || _validateCell is null
-                ? Task.FromResult(new List<CollectionItemError>())
-                : (Task<List<CollectionItemError>>)_validateCell.Invoke(
-                    _validator,
-                    [model, itemIndex, fieldName, services])!;
+            => (Task<List<CollectionItemError>>)_validateCell.Invoke(
+                _validator,
+                [model, itemIndex, fieldName, services])!;
     }
 
     private FieldIdentifier CreateCollectionItemFieldIdentifier(string collectionFieldName, int itemIndex, string itemFieldName)
@@ -289,7 +301,13 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         if (Configuration is not ICollectionFormConfiguration<TModel> collectionConfig) return;
 
         var collectionFieldName = nestedMatch.Groups["collection"].Value;
-        var itemIndex = int.Parse(nestedMatch.Groups["index"].Value);
+        // TryParse, not Parse: the regex guarantees digits but not that they fit in an int, and an
+        // OverflowException here would be swallowed by HandleFieldChanged's catch — after the message
+        // store was cleared and before NotifyValidationStateChanged ran, leaving a stale UI.
+        if (!int.TryParse(nestedMatch.Groups["index"].Value, out var itemIndex))
+        {
+            return;
+        }
         var itemFieldName = nestedMatch.Groups["field"].Value;
 
         var collectionField = collectionConfig.CollectionFields

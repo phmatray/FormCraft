@@ -126,6 +126,61 @@ public class CollectionValidationPassTests : BunitContext
     }
 
     [Fact]
+    public void Editing_A_Row_Into_An_Invalid_Value_Should_Report_On_That_Cell()
+    {
+        // Arrange - the positive direction of the field-changed path. Its counterpart above asserts
+        // which validators did NOT run, which a no-op error-reporting branch would satisfy just as
+        // well; only this test fails if the new single-cell path stops producing messages.
+        var model = new OrderModel { Items = { new OrderItem { ProductName = "Widget" } } };
+        var editContext = new EditContext(model);
+        RenderValidator(editContext, BuildConfiguration(new CountingValidator()));
+
+        // Act - the user clears the cell, then the notification a keystroke raises.
+        model.Items[0].ProductName = "";
+        editContext.NotifyFieldChanged(new FieldIdentifier(model, "Items[0].ProductName"));
+
+        // Assert - the message appears on that cell's own identifier.
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Items[0].ProductName"))
+            .ShouldBe(["Product name is required"]);
+    }
+
+    [Fact]
+    public async Task Editing_A_Row_Should_Report_Every_Configuration_Declared_For_That_Field()
+    {
+        // Arrange - two configurations for the SAME property. A full pass runs both, so the
+        // field-changed path must too; resolving the changed cell to the first match only would drop
+        // the second message on the first keystroke and restore it on the next submit.
+        var model = new OrderModel { Items = { new OrderItem { ProductName = "" } } };
+        var editContext = new EditContext(model);
+        var configuration = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field.WithLabel("Product").Required("FIRST"))
+                    .AddField(x => x.ProductName, field => field.WithLabel("Product").Required("SECOND"))))
+            .Build();
+
+        var validator = Render<DynamicFormValidator<OrderModel>>(parameters => parameters
+            .AddCascadingValue(editContext)
+            .Add(p => p.Configuration, configuration));
+
+        // Act - a full pass first, then the single-cell path for the same cell.
+        await validator.Instance.ValidateModelAsync();
+        var afterFullPass = editContext
+            .GetValidationMessages(new FieldIdentifier(model, "Items[0].ProductName")).ToList();
+
+        editContext.NotifyFieldChanged(new FieldIdentifier(model, "Items[0].ProductName"));
+        var afterKeystroke = editContext
+            .GetValidationMessages(new FieldIdentifier(model, "Items[0].ProductName")).ToList();
+
+        // Assert - the two paths agree. That equality is the real contract: whichever messages a
+        // submit produces for a cell, editing that cell must produce the same ones.
+        afterFullPass.ShouldBe(["FIRST", "SECOND"]);
+        afterKeystroke.ShouldBe(afterFullPass);
+    }
+
+    [Fact]
     public async Task Two_Collections_Of_The_Same_Item_Type_Should_Not_Share_A_Validator()
     {
         // Arrange - two collections whose items are the same type but whose item forms differ. The

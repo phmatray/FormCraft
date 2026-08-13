@@ -24,5 +24,5 @@ namespace FormCraft;
 /// </para>
 /// </remarks>
 public sealed record CollectionValidationResult(
-    List<string> Messages,
-    List<CollectionItemError> ItemErrors);
+    IReadOnlyList<string> Messages,
+    IReadOnlyList<CollectionItemError> ItemErrors);
