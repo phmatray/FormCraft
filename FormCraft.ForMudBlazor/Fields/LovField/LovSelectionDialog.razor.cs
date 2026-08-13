@@ -60,7 +60,7 @@ public partial class LovSelectionDialog<TItem, TValue> : IDisposable
 
         if (SelectedItems.Count > 0)
         {
-            _selectedItemsSet = [..SelectedItems];
+            _selectedItemsSet = [.. SelectedItems];
         }
     }
 
@@ -192,8 +192,16 @@ public partial class LovSelectionDialog<TItem, TValue> : IDisposable
     /// </summary>
     private string GetConfirmButtonText()
     {
-        if (!_selectedItemsSet.Any()) return "Select";
-        if (IsMultiSelect) return $"Select ({_selectedItemsSet.Count})";
+        if (!_selectedItemsSet.Any())
+        {
+            return "Select";
+        }
+
+        if (IsMultiSelect)
+        {
+            return $"Select ({_selectedItemsSet.Count})";
+        }
+
         return "Select";
     }
 

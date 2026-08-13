@@ -8,13 +8,11 @@ namespace FormCraft.ForFluentUI;
 /// <typeparam name="TModel">The form's model type.</typeparam>
 public partial class FluentUIFileUploadFieldComponent<TModel>
 {
-    private readonly string _browseButtonId = $"formcraft-upload-{Guid.NewGuid():N}";
-
     /// <summary>
     /// The id the hidden file input anchors to, so clicking the visible button opens the picker.
     /// Unique per instance for the same reason the hint id is.
     /// </summary>
-    private string BrowseButtonId => _browseButtonId;
+    private string BrowseButtonId { get; } = $"formcraft-upload-{Guid.NewGuid():N}";
 
     /// <summary>The chosen file's name, shown back to the user once one is picked.</summary>
     private string? SelectedFileName => CurrentValue?.Name;

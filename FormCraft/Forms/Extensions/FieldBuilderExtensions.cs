@@ -143,7 +143,7 @@ public static class FieldBuilderExtensions
             return builder.WithAttribute("MultiSelectOptions", selectOptions);
         }
     }
-    
+
     /// <param name="builder">The FieldBuilder instance for a numeric field.</param>
     /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
     /// <typeparam name="TValue">The numeric type of the field value.</typeparam>
@@ -457,7 +457,10 @@ public static class FieldBuilderExtensions
         builder.WithAttribute("AutocompleteDebounceMs", debounceMs);
         builder.WithAttribute("AutocompleteMinCharacters", minCharacters);
         if (toStringFunc != null)
+        {
             builder.WithAttribute("AutocompleteToStringFunc", toStringFunc);
+        }
+
         return builder;
     }
 
@@ -493,14 +496,19 @@ public static class FieldBuilderExtensions
         builder.WithAttribute("AutocompleteDebounceMs", debounceMs);
         builder.WithAttribute("AutocompleteMinCharacters", minCharacters);
         if (toStringFunc != null)
+        {
             builder.WithAttribute("AutocompleteToStringFunc", toStringFunc);
+        }
+
         return builder;
     }
 
     private static bool IsValidEmail(string email)
     {
         if (string.IsNullOrWhiteSpace(email))
+        {
             return false;
+        }
 
         try
         {

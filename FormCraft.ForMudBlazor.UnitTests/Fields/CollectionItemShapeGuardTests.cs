@@ -23,12 +23,44 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// </remarks>
 public class CollectionItemShapeGuardTests
 {
+    /// <summary>
+    /// Collection roots that re-declare a fixture shape <b>deliberately</b>, each with the reason the
+    /// fixture cannot serve.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠️ <b>Every entry here is a hole in the guard</b>, so an entry has to say what the fixture
+    /// <i>cannot express</i> — not that a local copy was quicker. "Convenience" is the case the guard
+    /// exists to catch.
+    /// </para>
+    /// <para>
+    /// <see cref="Every_Allowlisted_Type_Should_Still_Be_An_Offender_Without_The_Allowlist"/> keeps
+    /// this list honest: an entry whose suite has since migrated to the fixture stops suppressing
+    /// anything, and a stale entry would silently absolve a <i>future</i> copy of that same type.
+    /// </para>
+    /// </remarks>
+    private static readonly IReadOnlySet<Type> DeliberateLocalCopies = new HashSet<Type>
+    {
+        // FieldConfigurationRefreshTests.EqualityItemModel (#298) — holds a `record` item, and the
+        // record IS the test: that suite reproduces the duplicate-key render error a keyed collection
+        // loop raises for two rows comparing EQUAL BY VALUE. Every CollectionItemFixture model is a
+        // plain class with reference equality, so adopting the fixture would make the test vacuous —
+        // it would stop reproducing the error at all.
+        //
+        // The guard compares member types, which here are identical ("String"). The salient
+        // difference is the type's equality semantics, which a shape signature deliberately does not
+        // encode — widening the signature to include it would make the guard miss the real copies it
+        // was built for (#258's CredentialsModel/VaultModel), so the escape hatch is the right tool.
+        typeof(FieldConfigurationRefreshTests.EqualityItemModel),
+    };
+
     [Fact]
     public void No_Suite_Should_Re_Declare_A_Collection_Item_Shape_The_Fixture_Provides()
     {
         // Arrange & Act - the guard as CI runs it, over the whole assembly.
         var offenders = CollectionItemShapeGuard.FindOffenders(
-            CollectionItemShapeGuard.TestAssemblyTypes().Where(t => t.DeclaringType != typeof(Offending)));
+            CollectionItemShapeGuard.TestAssemblyTypes().Where(t => t.DeclaringType != typeof(Offending)),
+            DeliberateLocalCopies);
 
         // Assert - the message has to name the offender AND say what to do, because the reader is a
         // contributor who has just watched a green build turn red on a file they did not touch.
@@ -37,6 +69,31 @@ public class CollectionItemShapeGuardTests
             + "model and item-form builder instead (#205, #258, #282). If a local copy is genuinely "
             + "warranted, pass it to FindOffenders' allowlist with the reason:\n  "
             + string.Join("\n  ", offenders.Select(o => o.Detail)));
+    }
+
+    [Fact]
+    public void Every_Allowlisted_Type_Should_Still_Be_An_Offender_Without_The_Allowlist()
+    {
+        // Arrange - the allowlist's own guard. An entry stops suppressing anything the day its suite
+        // adopts the fixture, and a stale entry is worse than none: it silently absolves a FUTURE
+        // re-declaration of that same type. This is the same failure the file's header describes for
+        // the detection path — a check that has quietly stopped checking still reports green.
+        var universe = CollectionItemShapeGuard.TestAssemblyTypes()
+            .Where(t => t.DeclaringType != typeof(Offending))
+            .ToList();
+
+        // Act - the identical run, minus the allowlist.
+        var withoutAllowlist = CollectionItemShapeGuard.FindOffenders(universe);
+
+        // Assert - each entry must be carrying its weight, and be named if it is not.
+        foreach (var allowed in DeliberateLocalCopies)
+        {
+            withoutAllowlist.ShouldContain(
+                o => o.Owner == allowed,
+                $"{allowed.Name} is on the deliberate-local-copies allowlist but is no longer an "
+                + "offender. Either its suite adopted CollectionItemFixture — in which case delete "
+                + "the entry — or the guard stopped detecting it, which is the more serious reading.");
+        }
     }
 
     [Fact]

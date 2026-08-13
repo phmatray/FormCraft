@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FormCraft.ForFluentUI;
@@ -21,46 +21,44 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
 {
     private readonly List<TItem> _rows = [];
     private readonly List<TItem> _selectedItems = [];
-    private ILovConfiguration<TItem, TValue>? _lovConfig;
     private int _loadTicket;
     private bool _isOpen;
     private bool _isLoading;
     private string _searchText = string.Empty;
-    private string _displayText = string.Empty;
 
     [Inject]
     private IServiceProvider ServiceProvider { get; set; } = null!;
 
     /// <summary>The resolved LOV configuration.</summary>
-    private ILovConfiguration<TItem, TValue>? LovConfig => _lovConfig;
+    private ILovConfiguration<TItem, TValue>? LovConfig { get; set; }
 
     /// <summary>The text shown in the read-only display.</summary>
-    private string DisplayText => _displayText;
+    private string DisplayText { get; set; } = string.Empty;
 
     /// <summary>Whether the configuration asked for multiple selection.</summary>
-    private bool IsMultiSelect => _lovConfig?.SelectionMode == LovSelectionMode.Multiple;
+    private bool IsMultiSelect => LovConfig?.SelectionMode == LovSelectionMode.Multiple;
 
     /// <summary>Whether the picker offers a search box.</summary>
-    private bool SearchEnabled => _lovConfig?.SearchOptions.Enabled ?? true;
+    private bool SearchEnabled => LovConfig?.SearchOptions.Enabled ?? true;
 
     /// <summary>The search box's placeholder.</summary>
-    private string SearchPlaceholder => _lovConfig?.SearchOptions.Placeholder ?? "Search...";
+    private string SearchPlaceholder => LovConfig?.SearchOptions.Placeholder ?? "Search...";
 
     /// <summary>The grid's columns.</summary>
-    private IReadOnlyList<LovColumnDefinition<TItem>> Columns => _lovConfig?.Columns ?? [];
+    private IReadOnlyList<LovColumnDefinition<TItem>> Columns => LovConfig?.Columns ?? [];
 
     /// <inheritdoc />
     protected override void OnInitialized()
     {
         base.OnInitialized();
 
-        _lovConfig = GetAttribute<ILovConfiguration<TItem, TValue>>("LovConfiguration")
+        LovConfig = GetAttribute<ILovConfiguration<TItem, TValue>>("LovConfiguration")
             ?? throw new InvalidOperationException(
                 "LovConfiguration is required. Use the .AsLov() extension method to configure the field.");
 
         if (CurrentValue is not null)
         {
-            _displayText = CurrentValue.ToString() ?? string.Empty;
+            DisplayText = CurrentValue.ToString() ?? string.Empty;
         }
     }
 
@@ -93,7 +91,7 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
 
     private async Task LoadRowsAsync()
     {
-        if (_lovConfig is null)
+        if (LovConfig is null)
         {
             return;
         }
@@ -131,12 +129,12 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
     /// </summary>
     private async Task<LovDataResult<TItem>> ResolveDataAsync(LovQuery query)
     {
-        if (_lovConfig!.DataProvider is { } provider)
+        if (LovConfig!.DataProvider is { } provider)
         {
             return await provider(query, CancellationToken.None);
         }
 
-        if (_lovConfig.DataProviderServiceType is { } serviceType &&
+        if (LovConfig.DataProviderServiceType is { } serviceType &&
             ServiceProvider.GetService(serviceType) is ILovDataProvider<TItem> service)
         {
             return await service.GetItemsAsync(query, CancellationToken.None);
@@ -147,7 +145,7 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
 
     private async Task SelectRowAsync(TItem row)
     {
-        if (_lovConfig is null)
+        if (LovConfig is null)
         {
             return;
         }
@@ -159,13 +157,13 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
                 _selectedItems.Add(row);
             }
 
-            _displayText = string.Join(", ", _selectedItems.Select(_lovConfig.DisplaySelector));
+            DisplayText = string.Join(", ", _selectedItems.Select(LovConfig.DisplaySelector));
         }
         else
         {
             _selectedItems.Clear();
             _selectedItems.Add(row);
-            _displayText = _lovConfig.DisplaySelector(row);
+            DisplayText = LovConfig.DisplaySelector(row);
             _isOpen = false;
         }
 
@@ -175,13 +173,13 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
 
     private async Task RemoveSelectedAsync(TItem row)
     {
-        if (_lovConfig is null)
+        if (LovConfig is null)
         {
             return;
         }
 
         _selectedItems.Remove(row);
-        _displayText = string.Join(", ", _selectedItems.Select(_lovConfig.DisplaySelector));
+        DisplayText = string.Join(", ", _selectedItems.Select(LovConfig.DisplaySelector));
 
         await PublishSelectionAsync();
     }
@@ -211,12 +209,12 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
 
     private TValue? ResolveSelectionValue()
     {
-        if (_lovConfig is null || _selectedItems.Count == 0)
+        if (LovConfig is null || _selectedItems.Count == 0)
         {
             return default;
         }
 
-        var values = _selectedItems.Select(_lovConfig.ValueSelector).ToList();
+        var values = _selectedItems.Select(LovConfig.ValueSelector).ToList();
 
         if (!IsMultiSelect)
         {
@@ -237,12 +235,12 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
     /// </remarks>
     private async Task ApplyFieldMappingsAsync(TItem row)
     {
-        if (_lovConfig is null || Context.Model is null)
+        if (LovConfig is null || Context.Model is null)
         {
             return;
         }
 
-        foreach (var mapping in _lovConfig.FieldMappings)
+        foreach (var mapping in LovConfig.FieldMappings)
         {
             if (mapping is IAsyncLovFieldMapping asyncMapping)
             {

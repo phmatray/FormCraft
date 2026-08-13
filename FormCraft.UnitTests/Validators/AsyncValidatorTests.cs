@@ -154,13 +154,19 @@ public class AsyncValidatorTests
             // Simulate multiple async operations
             await Task.Delay(25); // First service call
 
-            if (string.IsNullOrWhiteSpace(phoneNumber)) return false;
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+            {
+                return false;
+            }
 
             await Task.Delay(25); // Second service call
 
             // Check format
             var cleanNumber = phoneNumber.Replace("-", "").Replace(" ", "").Replace("(", "").Replace(")", "");
-            if (cleanNumber.Length != 10) return false;
+            if (cleanNumber.Length != 10)
+            {
+                return false;
+            }
 
             await Task.Delay(25); // Third service call
 

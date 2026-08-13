@@ -99,11 +99,22 @@
     in nondeterministic order, so a check that reads the first one accepts one project's total as the
     whole suite. Confirm all three assemblies reported, or trust the process exit code for the full run
     (unpiped). Filter to iterate; run one of these before you claim done.
-- **Format/lint apply:** `dotnet format FormCraft.sln`
-- **Format/lint verify (the gate):** *CI runs no `dotnet format` check.* The enforcing gate is the
-  **build itself**: `Directory.Build.props` sets `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`
-  (with `NoWarn=CS1591;CS8620`), so any analyzer/compiler warning fails `dotnet build -c Release`.
-  `.editorconfig` severities are capped at `warning` and are IDE/`dotnet format` guidance only.
+- **Format/lint apply:** `dotnet format FormCraft.sln` (or `whitespace` / `style` to scope it)
+- **Format/lint verify (the gate):** `./build.sh Format` — a Nuke target wrapping
+  `dotnet format FormCraft.sln --verify-no-changes`, run by `ci.yml` **before** `Test` (#301).
+  There are now **two** independent gates:
+  1. **The build** — `Directory.Build.props` sets `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`
+     (with `NoWarn=CS1591;CS8620`), so any compiler/package-analyzer warning fails
+     `dotnet build -c Release`. This does **not** cover `.editorconfig`.
+  2. **The `Format` target** — the only thing that reads `.editorconfig`. `EnforceCodeStyleInBuild`
+     is deliberately unset, so `IDE*` analyzers never run during a build; before #301 that meant
+     nothing anywhere read those severities and 574 violations had accumulated across 201 files.
+- ⚠️ **`dotnet format` corrupts multi-targeted files when *applying*.** `FormCraft` is
+  `net8.0;net10.0`, so a fix can be applied once per TFM and land as a literal
+  `<<<<<<< TODO: Unmerged change from project 'FormCraft(net10.0)'` conflict block **written into the
+  `.cs` file** (measured in #301 on `FieldRendererBase.cs`; the result does not compile). Verify mode
+  never writes, so CI is unaffected. After any *apply* run:
+  `grep -rl '<<<<<<< TODO' --include='*.cs' .` and hand-resolve before committing.
 - **Prerequisites / caveats:**
   - `global.json` pins SDK `10.0.302` with `rollForward: latestFeature`.
   - Multi-target `net8.0;net10.0` — a build error can be TFM-specific; read which TFM the error names.
@@ -113,6 +124,8 @@
     `Continuous`). `Test` is `DependsOn(Compile)` with `--no-build --no-restore`.
 
 ## CI gates (the exact commands CI fails on — satisfy these locally before ready/merge)
+- `./build.cmd Format` — `.github/workflows/ci.yml`, run **before** `Test` since #301. Verifies
+  `dotnet format --verify-no-changes` is clean; fails on any diff.
 - `./build.cmd Test` — `.github/workflows/ci.yml` (Compile then Test, Release config)
 - `./build.cmd Pack` — `.github/workflows/continuous.yml` (`Pack` is `DependsOn(Test)`). Since #197
   this workflow builds/tests/packs only: no `tags:` trigger, no key, and it invokes `Pack` rather
@@ -121,9 +134,9 @@
   *is* the `v3.1.0` commit) and would then hard-fail on `Publish`'s `Requires(NuGetApiKey)`.
 - **`pr-title-lint.yml`** — `amannn/action-semantic-pull-request` on `pull_request_target`. The PR
   title **must** be a Conventional Commit. Skipped on drafts, and re-evaluated on `ready_for_review`.
-- Locally equivalent: `dotnet build -c Release` && `dotnet test -c Release`.
-- No format/lint check, and **no branch protection** (`required_status_checks` is
-  `enforcement_level: off`) — CI is advisory at the API level, so read the run result yourself.
+- Locally equivalent: `./build.sh Format` && `dotnet build -c Release` && `dotnet test -c Release`.
+- **No branch protection** (`required_status_checks` is `enforcement_level: off`) — CI is advisory at
+  the API level, so read the run result yourself.
 - `release-please.yml` is not a PR gate: it runs on push to `dev` and on `workflow_dispatch`.
 
 ## Integration style

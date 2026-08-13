@@ -413,7 +413,9 @@ public class DemoRegistry : IDemoRegistry
     {
         var current = GetDemo(currentId);
         if (current == null)
+        {
             return (null, null);
+        }
 
         var categoryDemos = GetDemosByCategory(current.Category).ToList();
         var index = categoryDemos.FindIndex(d => d.Id.Equals(currentId, StringComparison.OrdinalIgnoreCase));
@@ -437,7 +439,9 @@ public class DemoRegistry : IDemoRegistry
     {
         var current = GetDemo(currentId);
         if (current == null || current.Category != "form-examples")
+        {
             return (null, null);
+        }
 
         // Get all form examples ordered by level then by level order
         var learningPath = AllDemos
@@ -448,7 +452,9 @@ public class DemoRegistry : IDemoRegistry
 
         var index = learningPath.FindIndex(d => d.Id.Equals(currentId, StringComparison.OrdinalIgnoreCase));
         if (index < 0)
+        {
             return (null, null);
+        }
 
         var previous = index > 0 ? learningPath[index - 1] : null;
         var next = index < learningPath.Count - 1 ? learningPath[index + 1] : null;

@@ -30,18 +30,6 @@ namespace FormCraft.ForMudBlazor;
 /// <typeparam name="TValue">The field's value type — one file, or a list of them.</typeparam>
 public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldComponentBase<TModel, TValue>
 {
-    /// <summary>
-    /// Per-render-instance discriminator for <see cref="RequiredDescriptionId"/>.
-    /// </summary>
-    /// <remarks>
-    /// The field name alone is NOT unique in a document. Item fields render through these very
-    /// components since #203, so a required upload inside <c>.WithItemForm(...)</c> emits one hint
-    /// per row; two forms over the same model on one page collide the same way; and two nested
-    /// fields can share a member name (<c>x =&gt; x.Passport.Scan</c> and <c>x =&gt; x.Visa.Scan</c>).
-    /// Duplicate ids are invalid HTML and, worse, point every later button at the first row's
-    /// description. MudBlazor solves this the same way, with a per-component identifier.
-    /// </remarks>
-    private readonly string _instanceDiscriminator = Guid.NewGuid().ToString("N")[..8];
 
     /// <summary>
     /// Whether this field is marked as required, resolved by the same rule as every other field
@@ -72,8 +60,31 @@ public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldCo
     /// <summary>
     /// The id of the requirement hint, unique per rendered field instance.
     /// </summary>
-    protected string RequiredDescriptionId =>
-        $"formcraft-{Context.Field.FieldName}-required-{_instanceDiscriminator}";
+    /// <remarks>
+    /// <para>
+    /// <c>field</c> is this property's own backing store (C# 14), initialised by the trailing
+    /// initializer to a short GUID <b>once per component instance</b> — that is the whole mechanism,
+    /// so do not "simplify" it to a constant or a shared static.
+    /// </para>
+    /// <para>
+    /// The field name alone is NOT unique in a document. Item fields render through these very
+    /// components since #203, so a required upload inside <c>.WithItemForm(...)</c> emits one hint
+    /// per row; two forms over the same model on one page collide the same way; and two nested
+    /// fields can share a member name (<c>x =&gt; x.Passport.Scan</c> and <c>x =&gt; x.Visa.Scan</c>).
+    /// Duplicate ids are invalid HTML and, worse, point every later button at the first row's
+    /// description. MudBlazor solves this the same way, with a per-component identifier.
+    /// </para>
+    /// <para>
+    /// This was an explicit <c>_instanceDiscriminator</c> field until #301, when <c>IDE0032</c> —
+    /// newly reachable now that the format gate is enforced — folded it into the property. The
+    /// rewrite is value-identical; it deleted this explanation, which is why the explanation is
+    /// back.
+    /// </para>
+    /// </remarks>
+    protected string RequiredDescriptionId
+    {
+        get => $"formcraft-{Context.Field.FieldName}-required-{field}";
+    } = Guid.NewGuid().ToString("N")[..8];
 
     /// <summary>
     /// The value for the focusable button's <c>aria-describedby</c>: the hint's id when the field is

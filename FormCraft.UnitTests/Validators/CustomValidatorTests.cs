@@ -63,7 +63,11 @@ public class CustomValidatorTests
         // Arrange
         Func<string, bool> validationFunction = value =>
         {
-            if (string.IsNullOrEmpty(value)) return false;
+            if (string.IsNullOrEmpty(value))
+            {
+                return false;
+            }
+
             return value.Length >= 3 && value.Length <= 20 && value.All(char.IsLetterOrDigit);
         };
 
@@ -174,7 +178,10 @@ public class CustomValidatorTests
         // Arrange
         Func<string, bool> emailValidation = value =>
         {
-            if (string.IsNullOrWhiteSpace(value)) return false;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
 
             try
             {
