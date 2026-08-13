@@ -35,6 +35,13 @@
   <ItemGroup>
     <ProjectReference Include="..\FormCraft\FormCraft.csproj" />
     <ProjectReference Include="..\FormCraft.ForMudBlazor\FormCraft.ForMudBlazor.csproj" />
+    <!--
+      Test-only reference, mirroring the one FormCraft.ForFluentUI.UnitTests takes on this package.
+      AddFormCraftMudBlazor() refuses to register alongside the Fluent adapter (#279), and proving
+      that refusal needs the real Fluent renderers in the container. The library itself takes no
+      reference on that package - the shared core guard detects the conflict by assembly name.
+    -->
+    <ProjectReference Include="..\FormCraft.ForFluentUI\FormCraft.ForFluentUI.csproj" />
   </ItemGroup>
 
 </Project>

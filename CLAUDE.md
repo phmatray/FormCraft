@@ -172,14 +172,44 @@ Reactive field updates based on dependencies:
 - Validation dependencies - Conditional validation rules
 
 #### 5. Adapter Pattern (UI Framework Integration)
-Framework-agnostic core with UI-specific adapters:
+Framework-agnostic core with UI-specific adapters. **The seam is `FieldRendererBase` plus
+precedence-ordered DI registration — there is no adapter *interface*.** An adapter is just an
+assembly that registers its own `IFieldRenderer`s; two of them ship (`FormCraft.ForMudBlazor`,
+`FormCraft.ForFluentUI`) and both were built on exactly this.
+
+⛔ There used to be an `IUIFrameworkAdapter` documented here with a `RenderField`/`RenderForm` shape.
+That interface had neither method and — across 8 reference sites — **not one consumer**; it was
+deleted in #279 along with `FrameworkAgnosticFieldRenderer` and `UIFrameworkConfiguration`. Do not
+reintroduce it: a contributor who builds against it is building against something nothing calls.
+
+A renderer names the component to render and says which fields it claims:
 ```csharp
-public interface IUIFrameworkAdapter
+public class MyTextFieldRenderer : FieldRendererBase
 {
-    RenderFragment RenderField<TModel>(IFieldRenderContext<TModel> context);
-    RenderFragment RenderForm<TModel>(IFormConfiguration<TModel> config);
+    protected override Type ComponentType => typeof(MyTextFieldComponent<,>);   // closed over TModel/TValue
+
+    public override bool CanRender(Type fieldType, IFieldConfiguration<object, object> field)
+        => fieldType == typeof(string);
 }
 ```
+
+**Registration order is the precedence rule**, because `IFieldRendererService` picks the *first*
+renderer whose `CanRender` matches. Configuration-driven renderers (select, LOV, lookup,
+autocomplete, file upload) must therefore be registered *before* the generic type-based ones, or a
+string field carrying options ends up in the plain text renderer. `AddFormCraft<Framework>()` also
+strips core's built-in renderers — only those from the core assembly, so an application's own custom
+renderers survive and keep precedence.
+
+Components derive from **`FieldComponentBase<TModel, TValue>`** (core), which supplies `Context`,
+`Value`/`ValueChanged`, `Label`, `IsRequired` and the rest; each adapter adds its own presentation
+layer on top (`MudBlazorFieldComponentBase`, `FluentUIFieldComponentBase`). Shared, UI-agnostic
+adapter machinery lives in core so both adapters read one implementation — `NativeRequired.Resolve`,
+`.WithNativeRequired(...)`, `DynamicFormValidator<TModel>` and
+`AdapterRegistration.EnsureSingleAdapter` (#279).
+
+**One adapter per container.** Both `AddFormCraftMudBlazor()` and `AddFormCraftFluentUI()` call
+`AdapterRegistration.EnsureSingleAdapter`, so whichever runs second throws — the rule is symmetric
+because it lives in core rather than in one of the two packages that need it.
 
 ### Key Abstractions and Extension Points
 

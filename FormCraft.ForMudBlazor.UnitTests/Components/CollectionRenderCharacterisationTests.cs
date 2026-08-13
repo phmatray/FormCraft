@@ -125,7 +125,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     public void Editing_A_Text_Item_Field_Should_Notify_The_Parent_EditContext()
     {
         // Arrange
-        var model = new MixedModel { Rows = { new MixedRow() } };
+        var model = NewMixedItems(new MixedItem());
         var (component, editContext) = RenderMixedForm(model);
 
         // Act
@@ -144,7 +144,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     public async Task Editing_A_Numeric_Item_Field_Should_Notify_The_Parent_EditContext()
     {
         // Arrange
-        var model = new MixedModel { Rows = { new MixedRow() } };
+        var model = NewMixedItems(new MixedItem());
         var (component, editContext) = RenderMixedForm(model);
         var numeric = component.FindComponent<MudNumericField<int>>();
 
@@ -161,7 +161,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     public async Task Editing_A_Boolean_Item_Field_Should_Notify_The_Parent_EditContext()
     {
         // Arrange
-        var model = new MixedModel { Rows = { new MixedRow() } };
+        var model = NewMixedItems(new MixedItem());
         var (component, editContext) = RenderMixedForm(model);
         var checkbox = component.FindComponent<MudCheckBox<bool>>();
 
@@ -178,7 +178,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     public async Task Editing_A_Date_Item_Field_Should_Notify_The_Parent_EditContext()
     {
         // Arrange
-        var model = new MixedModel { Rows = { new MixedRow() } };
+        var model = NewMixedItems(new MixedItem());
         var (component, editContext) = RenderMixedForm(model);
         var picker = component.FindComponent<MudDatePicker>();
 
@@ -196,7 +196,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     {
         // Arrange - the validation message component is emitted per item field by RenderItemFields,
         // keyed to the nested identifier. Converging the render path must not drop it for any kind.
-        var model = new MixedModel { Rows = { new MixedRow(), new MixedRow() } };
+        var model = NewMixedItems(new MixedItem(), new MixedItem());
         var (component, _) = RenderMixedForm(model);
 
         // Assert - one slot per field per row (4 fields x 2 rows)
@@ -218,7 +218,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     public void Text_Item_Field_Should_Render_Its_Attribute_Set()
     {
         // Arrange & Act
-        var field = RenderMixedForm(new MixedModel { Rows = { new MixedRow() } }).Component
+        var field = RenderMixedForm(NewMixedItems(new MixedItem())).Component
             .FindComponents<MudTextField<string>>()
             .First(t => t.Instance.Label == "Name")
             .Instance;
@@ -240,7 +240,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     public void Numeric_Item_Field_Should_Render_Its_Attribute_Set()
     {
         // Arrange & Act
-        var field = RenderMixedForm(new MixedModel { Rows = { new MixedRow() } }).Component
+        var field = RenderMixedForm(NewMixedItems(new MixedItem())).Component
             .FindComponent<MudNumericField<int>>().Instance;
 
         // Assert
@@ -259,7 +259,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     public void Date_Item_Field_Should_Render_Its_Attribute_Set()
     {
         // Arrange & Act
-        var field = RenderMixedForm(new MixedModel { Rows = { new MixedRow() } }).Component
+        var field = RenderMixedForm(NewMixedItems(new MixedItem())).Component
             .FindComponent<MudDatePicker>().Instance;
 
         // Assert - MudDatePicker's own End + calendar icon survives, per #217
@@ -276,7 +276,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     public void Boolean_Item_Field_Should_Render_Its_Attribute_Set()
     {
         // Arrange & Act
-        var field = RenderMixedForm(new MixedModel { Rows = { new MixedRow() } }).Component
+        var field = RenderMixedForm(NewMixedItems(new MixedItem())).Component
             .FindComponent<MudCheckBox<bool>>().Instance;
 
         // Assert - MudCheckBox has no Variant/Placeholder/HelperText concept, so the shared
@@ -299,19 +299,10 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
         // Was: Today_A_Boolean_Item_Field_Ignores_DisplayStyle. RenderBooleanField hard-coded
         // MudCheckBox and never read the attribute, so the same configuration rendered a checkbox
         // inside .WithItemForm(...) and a switch outside it.
-        var config = FormBuilder<MixedModel>
-            .Create()
-            .AddCollectionField(x => x.Rows, collection => collection
-                .WithLabel("Rows")
-                .WithItemForm(item => item
-                    .AddField(x => x.IsGift, field => field
-                        .WithLabel("Gift")
-                        .WithAttribute("DisplayStyle", BooleanDisplayStyle.Switch))))
-            .Build();
+        var config = MultiFieldItemForm(
+            configureBoolean: field => field.WithAttribute("DisplayStyle", BooleanDisplayStyle.Switch));
 
-        var component = Render<FormCraftComponent<MixedModel>>(parameters => parameters
-            .Add(p => p.Model, new MixedModel { Rows = { new MixedRow() } })
-            .Add(p => p.Configuration, config));
+        var component = this.RenderItemForm(NewMixedItems(new MixedItem()), config);
 
         component.FindComponents<MudSwitch<bool>>().Count.ShouldBe(1);
         component.FindComponents<MudCheckBox<bool>>().ShouldBeEmpty();
@@ -322,7 +313,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     {
         // Was: Today_A_Date_Item_Field_Is_Not_Editable. The component binds Editable="true"; the
         // hand-rolled path bound nothing, so an item field's date could be picked but never typed.
-        RenderMixedForm(new MixedModel { Rows = { new MixedRow() } }).Component
+        RenderMixedForm(NewMixedItems(new MixedItem())).Component
             .FindComponent<MudDatePicker>().Instance.Editable.ShouldBeTrue();
     }
 
@@ -334,20 +325,12 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
         // RenderPipelineParityTests.DateTimeField_Should_Pass_MinDate_And_MaxDate_To_DatePicker),
         // never forwarded by the collection path — so an item field silently accepted dates its
         // standalone twin refused.
-        var config = FormBuilder<MixedModel>
-            .Create()
-            .AddCollectionField(x => x.Rows, collection => collection
-                .WithLabel("Rows")
-                .WithItemForm(item => item
-                    .AddField(x => x.When, field => field
-                        .WithLabel("When")
-                        .WithAttribute("MinDate", new DateTime(2020, 1, 1))
-                        .WithAttribute("MaxDate", new DateTime(2030, 12, 31)))))
-            .Build();
+        var config = MultiFieldItemForm(
+            configureDate: field => field
+                .WithAttribute("MinDate", new DateTime(2020, 1, 1))
+                .WithAttribute("MaxDate", new DateTime(2030, 12, 31)));
 
-        var picker = Render<FormCraftComponent<MixedModel>>(parameters => parameters
-                .Add(p => p.Model, new MixedModel { Rows = { new MixedRow() } })
-                .Add(p => p.Configuration, config))
+        var picker = this.RenderItemForm(NewMixedItems(new MixedItem()), config)
             .FindComponent<MudDatePicker>().Instance;
 
         picker.MinDate.ShouldBe(new DateTime(2020, 1, 1));
@@ -360,20 +343,12 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
         // Was: Today_A_Numeric_Item_Field_Ignores_Min_Max_And_Step. The bound range is what stops
         // the spinner and the browser going out of range, so dropping it made an item field accept
         // values its standalone twin rejected.
-        var config = FormBuilder<MixedModel>
-            .Create()
-            .AddCollectionField(x => x.Rows, collection => collection
-                .WithLabel("Rows")
-                .WithItemForm(item => item
-                    .AddField(x => x.Quantity, field => field
-                        .WithLabel("Quantity")
-                        .WithAttribute("Min", 5)
-                        .WithAttribute("Max", 50))))
-            .Build();
+        var config = MultiFieldItemForm(
+            configureNumeric: field => field
+                .WithAttribute("Min", 5)
+                .WithAttribute("Max", 50));
 
-        var numeric = Render<FormCraftComponent<MixedModel>>(parameters => parameters
-                .Add(p => p.Model, new MixedModel { Rows = { new MixedRow() } })
-                .Add(p => p.Configuration, config))
+        var numeric = this.RenderItemForm(NewMixedItems(new MixedItem()), config)
             .FindComponent<MudNumericField<int>>().Instance;
 
         numeric.Min.ShouldBe(5);
@@ -427,23 +402,19 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
     }
 
     /// <summary>
-    /// Renders a four-kind item form (text / numeric / bool / date) next to a
-    /// <see cref="MudPopoverProvider"/> so the date picker works, and hands back the form's
-    /// <see cref="EditContext"/>.
+    /// Renders the fixture's four-kind item form (text / numeric / bool / date) next to a
+    /// <see cref="MudPopoverProvider"/>, and hands back the form's <see cref="EditContext"/>.
     /// </summary>
-    private (IRenderedComponent<FormCraftComponent<MixedModel>> Component, EditContext? EditContext)
-        RenderMixedForm(MixedModel model)
+    /// <remarks>
+    /// The provider hosts the date picker's <i>overlay</i>; it is not needed merely to render a
+    /// <c>MudDatePicker</c>. Sibling tests here — and the fixture's own self-tests — render this
+    /// same form through <c>RenderItemForm</c> with no provider and pass, so read this as "a picker
+    /// that could be opened", not as a precondition for the picker existing.
+    /// </remarks>
+    private (IRenderedComponent<FormCraftComponent<MixedItemModel>> Component, EditContext? EditContext)
+        RenderMixedForm(MixedItemModel model)
     {
-        var config = FormBuilder<MixedModel>
-            .Create()
-            .AddCollectionField(x => x.Rows, collection => collection
-                .WithLabel("Rows")
-                .WithItemForm(item => item
-                    .AddField(x => x.Name, field => field.WithLabel("Name"))
-                    .AddField(x => x.Quantity, field => field.WithLabel("Quantity"))
-                    .AddField(x => x.IsGift, field => field.WithLabel("Gift"))
-                    .AddField(x => x.When, field => field.WithLabel("When"))))
-            .Build();
+        var config = MultiFieldItemForm();
 
         EditContext? editContext = null;
 
@@ -451,7 +422,7 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
         {
             builder.OpenComponent<MudPopoverProvider>(0);
             builder.CloseComponent();
-            builder.OpenComponent<FormCraftComponent<MixedModel>>(1);
+            builder.OpenComponent<FormCraftComponent<MixedItemModel>>(1);
             builder.AddComponentParameter(2, "Model", model);
             builder.AddComponentParameter(3, "Configuration", config);
             builder.AddComponentParameter(4, "OnEditContextCreated",
@@ -459,22 +430,6 @@ public class CollectionRenderCharacterisationTests : MudBlazorTestBase
             builder.CloseComponent();
         });
 
-        return (host.FindComponent<FormCraftComponent<MixedModel>>(), editContext);
-    }
-
-    private class MixedModel
-    {
-        public List<MixedRow> Rows { get; set; } = new();
-    }
-
-    private class MixedRow
-    {
-        public string Name { get; set; } = string.Empty;
-
-        public int Quantity { get; set; }
-
-        public bool IsGift { get; set; }
-
-        public DateTime When { get; set; }
+        return (host.FindComponent<FormCraftComponent<MixedItemModel>>(), editContext);
     }
 }
