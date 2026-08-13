@@ -211,7 +211,7 @@ internal static class WorkflowSource
     /// </param>
     internal static string StepNamed(string scope, string stepName, string? scopeDescription = null)
     {
-        var step = TryStepNamed(scope, stepName);
+        var step = StepNamedOrNull(scope, stepName, scopeDescription);
 
         return step.ShouldNotBeNull(
             $"{scopeDescription ?? "the searched text"} no longer has a step named '{stepName}'");
@@ -227,15 +227,59 @@ internal static class WorkflowSource
     /// reporting the same single root cause as an apparent *helper* failure — so the one test whose
     /// actual subject is "the step is present" is drowned out by four whose subject is what the step
     /// contains. A caller collecting offenders can name the job instead, once, per test that cares.
+    /// <para>
+    /// An <em>ambiguous</em> name still fails loudly here rather than reading as absent (#302) — the
+    /// same line the id path draws. Absence and ambiguity are different answers with different
+    /// remedies, and reporting a duplicated step as a missing one would undo the tightening one call
+    /// further out, which is exactly the silent wrong answer this whole family exists to prevent.
+    /// </para>
     /// </remarks>
-    internal static string? TryStepNamed(string scope, string stepName)
+    internal static string? TryStepNamed(string scope, string stepName) =>
+        StepNamedOrNull(scope, stepName, null);
+
+    /// <summary>
+    /// The shared body of <see cref="StepNamed" /> and <see cref="TryStepNamed" />: <c>null</c> for
+    /// absent, the step's lines otherwise, and a loud failure for an ambiguous name either way.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Counts every match rather than taking the first (#302). Until then this was the looser of the two
+    /// primitives while guarding the weaker property: step <b>ids</b> are unique per job, so a duplicate
+    /// is invalid and <see cref="StepWithIdOrNull" /> was made loud in #267 — but step <b>names</b> need
+    /// not be unique at all, so a duplicate here is *legal* and silently resolving it to the first is a
+    /// wrong answer the caller cannot detect.
+    /// </para>
+    /// <para>
+    /// The realistic trigger is a job splitting its upload in two, which #256's per-project results
+    /// directories make a natural next step: <c>TestReportingTests</c>' content assertions would read
+    /// only the first, leaving the second free to omit <c>if: always()</c> while the suite stayed green.
+    /// </para>
+    /// <para>
+    /// Private, and carrying the <paramref name="scopeDescription" /> the public <c>Try</c> form does not
+    /// take, so the ambiguity message can still name a scope when the caller knows one.
+    /// </para>
+    /// </remarks>
+    private static string? StepNamedOrNull(string scope, string stepName, string? scopeDescription)
     {
         var lines = scope.Split('\n');
-        var start = Array.FindIndex(
-            lines,
-            l => l.TrimStart().StartsWith($"- name: '{stepName}'", StringComparison.Ordinal));
+        var header = $"- name: '{stepName}'";
 
-        return start < 0 ? null : StepFrom(lines, start);
+        var matches = new List<int>();
+        for (var index = 0; index < lines.Length; index++)
+        {
+            if (lines[index].TrimStart().StartsWith(header, StringComparison.Ordinal))
+            {
+                matches.Add(index);
+            }
+        }
+
+        matches.Count.ShouldBeLessThan(
+            2,
+            $"{scopeDescription ?? "the searched text"} has {matches.Count} steps named '{stepName}' — an ambiguous name cannot be resolved to one step");
+
+        // The matched line is already the step's own list item, so — unlike the id path — there is no
+        // walk-back to do: only the count changes.
+        return matches.Count == 0 ? null : StepFrom(lines, matches[0]);
     }
 
     /// <summary>

@@ -375,6 +375,37 @@ public class WorkflowSourceTests
     }
 
     [Fact]
+    public void StepNamed_Should_Fail_Loudly_When_Two_Steps_Share_A_Name()
+    {
+        // #302(b). Step names need not be unique in GitHub Actions — unlike ids, which are unique per
+        // job — so this is the primitive with the WEAKER guarantee, and until now it was the one still
+        // resolving a duplicate to the first silently, while StepWithId gained a loud failure in #267.
+        //
+        // The realistic trigger is a job splitting its upload in two, which #256's per-project results
+        // directories make a natural next step. TestReportingTests' four content assertions would then
+        // read only the first, and the second could lack `if: always()` or point at the stale glob while
+        // the suite stayed green.
+        const string Steps = """
+                             steps:
+                               - name: 'Publish: test-results'
+                                 if: always()
+                                 uses: actions/upload-artifact@v4
+                               - name: 'Publish: test-results'
+                                 uses: actions/upload-artifact@v4
+                             """;
+
+        Should.Throw<ShouldAssertException>(
+                () => WorkflowSource.StepNamed(Steps, "Publish: test-results", "the fixture"))
+            .Message.ShouldContain("ambiguous");
+
+        // The Try form must not soften it either — returning null for a duplicated step would report it
+        // as a *missing* one, which is the same silent wrong answer one call further out.
+        Should.Throw<ShouldAssertException>(
+                () => WorkflowSource.TryStepNamed(Steps, "Publish: test-results"))
+            .Message.ShouldContain("ambiguous");
+    }
+
+    [Fact]
     public void TryStepWithId_Should_Still_Fail_Loudly_On_An_Ambiguous_Id()
     {
         // The one thing the Try form must NOT soften. Absence and ambiguity are different answers:
