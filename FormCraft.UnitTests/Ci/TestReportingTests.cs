@@ -253,50 +253,139 @@ public class TestReportingTests
         jobs.Where(j => UploadStepFails(j, claim)).ToList();
 
     /// <summary>
-    /// The five claims this file makes about the upload step, keyed by a short name for each — so the
-    /// absence coverage below cannot drift out of step with the assertions themselves.
+    /// The jobs with no upload step at all — <see cref="UploadOffenders" /> under a claim every present
+    /// step satisfies.
     /// </summary>
-    private static Dictionary<string, Func<string, bool>> UploadClaims => new(StringComparer.Ordinal)
+    /// <remarks>
+    /// Named rather than spelled `_ =&gt; true` at the call site: "jobs that fail an always-true claim"
+    /// is a double negative the reader has to unfold before it reads as "jobs with no step".
+    /// </remarks>
+    private static List<TestRunningJob> UploadMissing(IReadOnlyList<TestRunningJob> jobs) =>
+        UploadOffenders(jobs, _ => true);
+
+    // The four content claims, each defined ONCE. The `[Fact]` that holds a claim against the real
+    // workflows and the coverage `[Theory]` that proves the claim reports an offender both reference
+    // the same delegate — a dictionary of re-typed copies would let the two drift apart silently, which
+    // is the failure this file exists to prevent rather than to commit.
+
+    /// <summary>
+    /// `if: always()` is the entire point of the artifact (#225): the failure path is the only one worth
+    /// preserving, and it is exactly the path a bare step skips.
+    /// </summary>
+    private static readonly Func<string, bool> RunsOnFailure =
+        s => s.Contains("if: always()", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Asserted as the whole <c>path:</c> value, not as a substring: <c>name: test-results</c> names the
+    /// artifact and would otherwise satisfy a claim about where it is read from.
+    /// </summary>
+    private static readonly Func<string, bool> PointsAtTheDirectoryTheBuildFills =
+        s => s.Split('\n').Any(line => line.Trim() == "path: test-results");
+
+    /// <summary>
+    /// Until #231 the per-assembly logs landed under <c>**/TestResults/</c>; <c>--results-directory</c>
+    /// moved them, so that glob now matches nothing on every run.
+    /// </summary>
+    private static readonly Func<string, bool> AvoidsThePathTheBuildNoLongerFills =
+        s => !s.Contains("**/TestResults/", StringComparison.Ordinal);
+
+    /// <summary>
+    /// These steps run under <c>if: always()</c>, which includes runs that failed before any test
+    /// executed and therefore before <c>test-results/</c> existed.
+    /// </summary>
+    private static readonly Func<string, bool> ToleratesAMissingPath =
+        s => s.Contains("if-no-files-found: ignore", StringComparison.Ordinal);
+
+    /// <summary>The four content claims by name, for the coverage theories below.</summary>
+    private static readonly IReadOnlyDictionary<string, Func<string, bool>> UploadClaims =
+        new Dictionary<string, Func<string, bool>>(StringComparer.Ordinal)
+        {
+            ["if: always()"] = RunsOnFailure,
+            ["path: test-results"] = PointsAtTheDirectoryTheBuildFills,
+            ["avoids **/TestResults/"] = AvoidsThePathTheBuildNoLongerFills,
+            ["if-no-files-found: ignore"] = ToleratesAMissingPath,
+        };
+
+    /// <summary>
+    /// The upload step as all three workflows really write it — copied from <c>ci.yml</c> rather than
+    /// simplified.
+    /// </summary>
+    /// <remarks>
+    /// The <c>name: test-results</c> line matters: it is the exact key
+    /// <see cref="PointsAtTheDirectoryTheBuildFills" /> exists to tell apart from <c>path:</c>, so a
+    /// fixture that dropped it could not exercise the one discrimination that claim makes.
+    /// </remarks>
+    private const string ConformingUploadStep = """
+                                                  - name: 'Publish: test-results'
+                                                    if: always()
+                                                    uses: actions/upload-artifact@v7
+                                                    with:
+                                                      name: test-results
+                                                      path: test-results
+                                                      if-no-files-found: ignore
+                                                """;
+
+    private static TestRunningJob Job(string name, string steps) =>
+        new("fixture.yml", name, $"steps:\n{steps}");
+
+    /// <summary>A step satisfying every content claim except the named one.</summary>
+    public static TheoryData<string, string> StepsViolatingOneClaim() => new()
     {
-        ["exists"] = _ => true,
-        ["if: always()"] = s => s.Contains("if: always()", StringComparison.Ordinal),
-        ["path: test-results"] = s => s.Split('\n').Any(line => line.Trim() == "path: test-results"),
-        ["avoids **/TestResults/"] = s => !s.Contains("**/TestResults/", StringComparison.Ordinal),
-        ["if-no-files-found: ignore"] = s => s.Contains("if-no-files-found: ignore", StringComparison.Ordinal),
+        { "if: always()", WithoutLine(ConformingUploadStep, "if: always()") },
+        { "path: test-results", ConformingUploadStep.Replace("path: test-results", "path: test-results/**", StringComparison.Ordinal) },
+        // Adds the stale glob rather than replacing the good path, so this violates that claim ALONE.
+        { "avoids **/TestResults/", ConformingUploadStep.Replace("      path: test-results\n", "      path: test-results\n      extra: '**/TestResults/'\n", StringComparison.Ordinal) },
+        { "if-no-files-found: ignore", WithoutLine(ConformingUploadStep, "if-no-files-found: ignore") },
     };
 
-    [Fact]
-    public void Every_Upload_Claim_Should_Report_A_Job_That_Has_No_Upload_Step()
+    private static string WithoutLine(string step, string marker) =>
+        string.Join('\n', step.Split('\n').Where(l => !l.Contains(marker, StringComparison.Ordinal)));
+
+    public static TheoryData<string> UploadClaimNames() => [.. UploadClaims.Keys];
+
+    [Theory]
+    [MemberData(nameof(UploadClaimNames))]
+    public void Every_Upload_Claim_Should_Report_A_Job_With_No_Upload_Step(string claimName)
     {
         // The branch this pins (#267, PR #287) shipped verified only by hand — deleting the step from
-        // ci.yml, watching all five tests name the job, then reverting. It cannot fire in a normal run,
-        // because every real test-running job HAS the step: that is what this file exists to keep true.
-        // So writing `is { } step &&` instead of `is not { } step ||` would ship green, and a missing
-        // upload would read as *satisfying* all five claims — the vacuity this suite guards against
-        // everywhere else, sitting in its own helper.
-        var missing = new TestRunningJob("fixture.yml", "build", """
-                                                                 steps:
-                                                                   - name: 'Run: Test'
-                                                                     run: ./build.sh Test
-                                                                 """);
+        // ci.yml, watching the tests name the job, then reverting. It fires exactly when this file does
+        // its job, but it cannot fire in a *green* run, because every real test-running job has the
+        // step. So writing `is { } step &&` instead of `is not { } step ||` would ship green, and a
+        // missing upload would read as *satisfying* every claim.
+        //
+        // The conforming job is in the same call on purpose: passed one job at a time, this would pass
+        // just as happily against a helper that returned the whole list whenever any member offended —
+        // which in production (three jobs) would destroy the "names the offending job" property.
+        var missing = Job("build", "  - name: 'Run: Test'\n    run: ./build.sh Test");
 
-        // The conforming job is not decoration: without it this test would pass just as happily against
-        // a helper that reported EVERY job as an offender.
-        var conforming = new TestRunningJob("fixture.yml", "good", $"""
-                                                                   steps:
-                                                                     - name: '{UploadStepName}'
-                                                                       if: always()
-                                                                       uses: actions/upload-artifact@v4
-                                                                       with:
-                                                                         path: test-results
-                                                                         if-no-files-found: ignore
-                                                                   """);
+        UploadOffenders([Job("good", ConformingUploadStep), missing], UploadClaims[claimName])
+            .ShouldBe([missing]);
+    }
+
+    [Theory]
+    [MemberData(nameof(StepsViolatingOneClaim))]
+    public void Every_Upload_Claim_Should_Report_A_Step_That_Violates_It(string claimName, string violatingStep)
+    {
+        // The other half, and the one the absence coverage cannot reach: a step that is PRESENT and
+        // wrong. Without it, a `UploadStepFails` that ignored `claim` entirely — reducing all four
+        // content assertions to "the step exists" — would pass every test in this file.
+        var violating = Job("violates", violatingStep);
+
+        UploadOffenders([Job("good", ConformingUploadStep), violating], UploadClaims[claimName])
+            .ShouldBe([violating]);
+    }
+
+    [Fact]
+    public void A_Conforming_Upload_Step_Should_Offend_No_Claim()
+    {
+        // The fixture the two theories above lean on has to be conforming, or both of them prove
+        // nothing: "reports the offender" is trivially satisfied by a helper that reports everyone.
+        var conforming = Job("good", ConformingUploadStep);
+
+        UploadMissing([conforming]).ShouldBeEmpty();
 
         foreach (var claim in UploadClaims)
         {
-            UploadOffenders([missing], claim.Value)
-                .ShouldBe([missing], $"the '{claim.Key}' claim does not report a job with no upload step");
-
             UploadOffenders([conforming], claim.Value)
                 .ShouldBeEmpty($"the '{claim.Key}' claim reports a conforming upload step as an offender");
         }
@@ -437,7 +526,7 @@ public class TestReportingTests
         // Asked through the same primitive as the four tests below rather than by a raw substring
         // search, so "present" means the one thing here and there — a step the scan can actually
         // isolate, not merely the text of a `- name:` line appearing somewhere in the job.
-        var missing = UploadOffenders(JobsThatRunTests(), _ => true);
+        var missing = UploadMissing(JobsThatRunTests());
 
         missing.ShouldBeEmpty();
     }
@@ -449,9 +538,7 @@ public class TestReportingTests
         // one worth preserving, and it is exactly the path a bare step skips. Microsoft.Testing.
         // Platform prints only a summary line to stdout, so without this a red CI run leaves no
         // record of *which* assertion failed — a cost that was paid for real during #200.
-        var offenders = UploadOffenders(
-            JobsThatRunTests(),
-            s => s.Contains("if: always()", StringComparison.Ordinal));
+        var offenders = UploadOffenders(JobsThatRunTests(), RunsOnFailure);
 
         offenders.ShouldBeEmpty();
     }
@@ -464,9 +551,7 @@ public class TestReportingTests
         // block listing test-results among other globs would satisfy a laxer line-wise check while
         // re-introducing the very globs the next test rejects. All three steps upload exactly one
         // directory, so that is what is pinned.
-        var offenders = UploadOffenders(
-            JobsThatRunTests(),
-            s => s.Split('\n').Any(line => line.Trim() == "path: test-results"));
+        var offenders = UploadOffenders(JobsThatRunTests(), PointsAtTheDirectoryTheBuildFills);
 
         offenders.ShouldBeEmpty();
     }
@@ -483,9 +568,7 @@ public class TestReportingTests
         // offends it, even though a step that is not there points at nothing: a missing step makes
         // this test red today by throwing, so letting it read as vacuously satisfied would trade a
         // loud failure for a quieter suite — the opposite of the point.
-        var offenders = UploadOffenders(
-            JobsThatRunTests(),
-            s => !s.Contains("**/TestResults/", StringComparison.Ordinal));
+        var offenders = UploadOffenders(JobsThatRunTests(), AvoidsThePathTheBuildNoLongerFills);
 
         offenders.ShouldBeEmpty();
     }
@@ -498,9 +581,7 @@ public class TestReportingTests
         // warns on a condition that is entirely expected, and a warning nobody can act on is how a
         // real one gets missed. The opposite risk — an *empty* directory passing unremarked — is
         // covered in the build rather than here, by the Assert.NotEmpty on the trx.
-        var offenders = UploadOffenders(
-            JobsThatRunTests(),
-            s => s.Contains("if-no-files-found: ignore", StringComparison.Ordinal));
+        var offenders = UploadOffenders(JobsThatRunTests(), ToleratesAMissingPath);
 
         offenders.ShouldBeEmpty();
     }
