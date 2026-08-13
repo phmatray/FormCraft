@@ -442,6 +442,27 @@ public class TestReportingTests
     }
 
     [Fact]
+    public void BuildScript_Should_Ask_For_Reports_Only_From_Projects_That_Completed()
+    {
+        // #259's property — the guard runs only for suites that COMPLETED — inherited unchanged by
+        // #276 and, until now, pinned by nothing. Which is this file's own subject matter: a suite
+        // that died writes no report either, so asking the reporter question about it reports one
+        // broken suite twice, once accurately as "did not complete" and once as a reporter
+        // regression that never happened, sending the reader off to audit MTP wiring for an
+        // unrelated failure. Drop the filter and every other assertion here stays green.
+        //
+        // Widening from one kind to two (#276) is exactly the kind of rewrite that loses a filter
+        // in passing, so the claim is anchored to the report guard specifically: the exclusion has
+        // to sit within reach of the ReporterBackedReports glob, not merely somewhere in the file.
+        var build = WorkflowSource.BuildScript;
+
+        build.ShouldMatch(
+            @"\.Where\(\s*\w+\s*=>\s*!failed\.Contains\(\w+\.Name\)\)[\s\S]{0,400}?ReporterBackedReports",
+            "the report guard no longer excludes projects that did not complete, so a crashed suite "
+            + "is reported twice — once as failed, once as a reporter regression that never happened");
+    }
+
+    [Fact]
     public void Test_Target_Should_Promise_Its_Artifacts_Recursively()
     {
         // Each test project writes into its own test-results/<project>/ subdirectory since #256, so
