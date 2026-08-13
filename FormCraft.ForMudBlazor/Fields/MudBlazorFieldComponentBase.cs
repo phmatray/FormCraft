@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
 
@@ -314,6 +313,39 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     protected string DiagnosticFieldKey =>
         ItemFieldScope?.DiagnosticKey(Context.Field.FieldName) ?? Context.Field.FieldName;
 
+    /// <summary>
+    /// Whether this component should report the given diagnostic for this field, consuming the
+    /// once-per-field latch when there is one (#284).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>No scope means report.</b> The latch exists because a collection renders one component
+    /// instance <i>per row</i>, so a diagnostic emitted from <c>OnInitialized</c> would fire fifty
+    /// times about one field's configuration in a fifty-item collection. Outside a collection there
+    /// is no scope, nothing to de-duplicate, and the field must report — the common case, and why
+    /// the default is <c>true</c>. Inverting it silences the diagnostics for ordinary fields while
+    /// leaving them working inside collections, so the failure hides in the case least likely to be
+    /// tested. Pinned by <c>DiagnosticLatchTests</c>.
+    /// </para>
+    /// <para>
+    /// <b>The category is part of the key.</b> One field can legitimately trip several diagnostics —
+    /// a masked multi-line password whose adornment is displaced trips two — and a key without the
+    /// category would let whichever fired first silence the rest for good. See
+    /// <see cref="CollectionItemFieldScope.ShouldWarnOnce"/>, which keeps that note at the other end.
+    /// </para>
+    /// <para>
+    /// ⛔ <b>Call this only once the diagnostic's rule has already said yes.</b> It has a side
+    /// effect: consulting it burns the latch. Asking on a row that had nothing to report would spend
+    /// the one warning a later row was entitled to, which would make whether a field is reported at
+    /// all depend on row order (#274).
+    /// </para>
+    /// </remarks>
+    /// <param name="category">
+    /// The diagnostic's logger category, e.g. <see cref="MaskedLinesDiagnostic.Category"/>.
+    /// </param>
+    protected bool ShouldReport(string category) =>
+        ItemFieldScope?.ShouldWarnOnce(category, DiagnosticFieldKey) ?? true;
+
     private bool _shrinkLabelDiagnosticEmitted;
 
     /// <summary>
@@ -374,29 +406,21 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
         // one component instance per row and _shrinkLabelDiagnosticEmitted is per INSTANCE, so an
         // unlatched fallback would log N identical warnings for one field's configuration. The
         // hand-rolled path latched this per field before #203.
-        if (ItemFieldScope?.ShouldWarnOnce(ShrinkLabelDiagnostic.Category, fieldName) == false)
+        //
+        // ShouldReport latches on DiagnosticFieldKey, which is what `fieldName` above already holds.
+        if (!ShouldReport(ShrinkLabelDiagnostic.Category))
         {
             return;
         }
 
-        // A diagnostic must never break a render, so a logger that throws is swallowed.
-        try
-        {
-            var logger = DiagnosticServices?
-                .GetService<ILoggerFactory>()?
-                .CreateLogger(ShrinkLabelDiagnostic.Category);
-
-            logger?.LogWarning(
-                "Field '{Field}' sets ShrinkLabel=false but also has {Conflict}, which MudBlazor " +
-                "lets win — the label stays pinned and will not float. Remove that property to get " +
-                "a floating label, or drop ShrinkLabel=false.",
-                field,
-                conflict);
-        }
-        catch
-        {
-            // Ignored: a failing diagnostic must not take the form down with it.
-        }
+        DiagnosticLog.Warn(
+            DiagnosticServices,
+            ShrinkLabelDiagnostic.Category,
+            "Field '{Field}' sets ShrinkLabel=false but also has {Conflict}, which MudBlazor " +
+            "lets win — the label stays pinned and will not float. Remove that property to get " +
+            "a floating label, or drop ShrinkLabel=false.",
+            field,
+            conflict);
     }
 
     /// <summary>

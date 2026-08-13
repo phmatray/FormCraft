@@ -108,7 +108,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
         // single field's configuration. The scope's latch is what the hand-rolled collection path
         // used to do with a HashSet of its own before #203 routed item fields through here.
         if (MaskedLinesDiagnostic.Applies(configuredInputType, ConfiguredLines)
-            && (ItemFieldScope?.ShouldWarnOnce(MaskedLinesDiagnostic.Category, DiagnosticFieldKey) ?? true))
+            && ShouldReport(MaskedLinesDiagnostic.Category))
         {
             MaskedLinesDiagnostic.Warn(
                 DiagnosticServiceProvider,
@@ -154,7 +154,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
             // reachable from a collection since #203 — the hand-rolled path had no password toggle
             // at all, so it could never displace an adornment and never took this branch.
             if ((customAdornment.HasValue || customAdornmentIcon is not null || displacedHandler is not null)
-                && (ItemFieldScope?.ShouldWarnOnce(PasswordAdornmentDiagnostic.Category, DiagnosticFieldKey) ?? true))
+                && ShouldReport(PasswordAdornmentDiagnostic.Category))
             {
                 PasswordAdornmentDiagnostic.Warn(
                     DiagnosticServiceProvider,
@@ -275,7 +275,7 @@ public partial class MudBlazorTextFieldComponent<TModel>
         //
         // The key carries the diagnostic's category, so this cannot silence a different diagnostic
         // that the same field also trips — the property the two separate HashSets used to provide.
-        if (!(ItemFieldScope?.ShouldWarnOnce(MaskedValueDiagnostic.Category, DiagnosticFieldKey) ?? true))
+        if (!ShouldReport(MaskedValueDiagnostic.Category))
         {
             // Another row got there first, and that verdict is permanent — so this instance is done
             // too, and must stop re-resolving its mask on every later model change.

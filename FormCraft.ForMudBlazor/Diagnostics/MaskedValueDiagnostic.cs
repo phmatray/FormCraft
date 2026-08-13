@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
 
@@ -255,50 +254,44 @@ internal static class MaskedValueDiagnostic
         string? pattern,
         string? maskedResult)
     {
-        // A diagnostic must never break a render, so everything here — including the service
-        // resolution, which is the one call that can realistically fail on a torn-down circuit —
-        // is inside the guard.
-        try
+        var field = string.IsNullOrWhiteSpace(label) ? fieldName : label;
+
+        // The shared half of both messages: WHY the divergence persists, and what to do about it.
+        const string Mechanism =
+            "MudBlazor builds the display text by running the value through the mask and does " +
+            "not write the result back, so a user who submits without touching this field " +
+            "leaves the stored value unchanged. Correct the data, widen the mask, or drop the " +
+            "mask if the stored format is intentional.";
+
+        // Resolving the logger, emitting, and swallowing all belong to DiagnosticLog (#284), so
+        // what is left here is this diagnostic's own two messages. Nothing above needs the guard:
+        // RendersEmpty and IsNullOrWhiteSpace are total, so the never-throws promise is unchanged.
+        //
+        // The SAME predicate Applies used to reach its verdict, not a second copy of it: the
+        // wording must follow from the decision rather than re-derive it.
+        if (RendersEmpty(maskedResult))
         {
-            var logger = services?
-                .GetService<ILoggerFactory>()?
-                .CreateLogger(Category);
-
-            var field = string.IsNullOrWhiteSpace(label) ? fieldName : label;
-
-            // The shared half of both messages: WHY the divergence persists, and what to do about it.
-            const string Mechanism =
-                "MudBlazor builds the display text by running the value through the mask and does " +
-                "not write the result back, so a user who submits without touching this field " +
-                "leaves the stored value unchanged. Correct the data, widen the mask, or drop the " +
-                "mask if the stored format is intentional.";
-
-            // The SAME predicate Applies used to reach its verdict, not a second copy of it: the
-            // wording must follow from the decision rather than re-derive it.
-            if (RendersEmpty(maskedResult))
-            {
-                logger?.LogWarning(
-                    "Field '{Field}' holds a value that its mask '{Mask}' rejects, so the field " +
-                    "renders empty while the model keeps the original. " + Mechanism,
-                    field,
-                    pattern);
-
-                return;
-            }
-
-            // The #283 case. It names what is on screen because that is the only way the developer
-            // can recognise it: nothing looks wrong, so "your field shows (155) 512-3456" is the
-            // fact that turns an abstract warning into something checkable against the record.
-            logger?.LogWarning(
-                "Field '{Field}' holds a value that its mask '{Mask}' only partly accepts, so the " +
-                "field displays '{Displayed}' — which is not what the model holds. " + Mechanism,
+            DiagnosticLog.Warn(
+                services,
+                Category,
+                "Field '{Field}' holds a value that its mask '{Mask}' rejects, so the field " +
+                "renders empty while the model keeps the original. " + Mechanism,
                 field,
-                pattern,
-                maskedResult);
+                pattern);
+
+            return;
         }
-        catch
-        {
-            // Ignored: a failing diagnostic must not take the form down with it.
-        }
+
+        // The #283 case. It names what is on screen because that is the only way the developer
+        // can recognise it: nothing looks wrong, so "your field shows (155) 512-3456" is the
+        // fact that turns an abstract warning into something checkable against the record.
+        DiagnosticLog.Warn(
+            services,
+            Category,
+            "Field '{Field}' holds a value that its mask '{Mask}' only partly accepts, so the " +
+            "field displays '{Displayed}' — which is not what the model holds. " + Mechanism,
+            field,
+            pattern,
+            maskedResult);
     }
 }
