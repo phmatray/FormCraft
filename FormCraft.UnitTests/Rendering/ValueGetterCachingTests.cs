@@ -55,9 +55,27 @@ public class ValueGetterCachingTests
     [Fact]
     public void RenderField_Should_Not_Rebuild_The_Value_Getter_On_Every_Render()
     {
-        // Arrange - a configuration that counts how often the service reads its expression.
-        var model = new TestModel { Name = "value" };
-        Expression<Func<TestModel, object>> valueExpression = m => (object)m.Name!;
+        // Arrange - a configuration that hands out a DIFFERENT expression on every read, each
+        // reading a different property. That makes a recompile visible in the rendered value: a
+        // getter compiled a second time necessarily targets a different property than the first,
+        // so "did it recompile?" becomes "did the observed value change?" — a question that cannot
+        // be answered by accident, and that stays honest no matter how the service resolves the
+        // field type.
+        var model = new TestModel
+        {
+            Name = "first read",
+            Other = "second read",
+            Third = "third read",
+            Fourth = "fourth read"
+        };
+
+        var expressions = new Queue<Expression<Func<TestModel, object>>>(
+        [
+            m => (object)m.Name!,
+            m => (object)m.Other!,
+            m => (object)m.Third!,
+            m => (object)m.Fourth!
+        ]);
         var reads = 0;
 
         var field = A.Fake<IFieldConfiguration<TestModel, object>>();
@@ -66,25 +84,23 @@ public class ValueGetterCachingTests
         A.CallTo(() => field.ValueExpression).ReturnsLazily(() =>
         {
             reads++;
-            return valueExpression;
+            return expressions.Count > 1 ? expressions.Dequeue() : expressions.Peek();
         });
 
-        var (service, _) = CreateService();
+        var (service, contexts) = CreateService();
 
         // Act
         Render(service, model, field);
-        var readsForFirstRender = reads;
-
         Render(service, model, field);
-        var readsForSecondRender = reads - readsForFirstRender;
 
-        // Assert - the first render reads the expression twice: once to resolve the field type, and
-        // once to compile the value getter. Compiling is the expensive half, so a second render must
-        // do strictly less work than the first: it may still resolve the type, but it must reuse the
-        // getter rather than emitting IL for it again.
-        readsForSecondRender.ShouldBeLessThan(
-            readsForFirstRender,
-            "the second render rebuilt the value getter instead of reusing the one already compiled");
+        // Assert - the second render reused the getter compiled for the first, so it observes the
+        // same property. Recompiling would pick up a later expression and change the value.
+        reads.ShouldBeGreaterThan(0, "the service never read the field's expression at all");
+        contexts.Count.ShouldBe(2);
+        contexts[0].CurrentValue.ShouldNotBeNull();
+        contexts[1].CurrentValue.ShouldBe(
+            contexts[0].CurrentValue,
+            "the second render recompiled the value getter instead of reusing the cached one");
     }
 
     [Fact]
@@ -165,6 +181,8 @@ public class ValueGetterCachingTests
     {
         public string? Name { get; set; }
         public string? Other { get; set; }
+        public string? Third { get; set; }
+        public string? Fourth { get; set; }
         public int? NullableValue { get; set; }
     }
 }

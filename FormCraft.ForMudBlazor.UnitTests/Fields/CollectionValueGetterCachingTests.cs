@@ -15,7 +15,11 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// <para>
 /// This is also where the optimization pays off: <c>UpdateItemFieldValue</c> notifies the parent
 /// while text fields render <c>Immediate="true"</c>, so a keystroke in any row re-renders the whole
-/// collection — rows × fields compiles per character before this change.
+/// collection — rows × fields compiles per character on the render path before this change.
+/// </para>
+/// <para>
+/// Of the two tests below, the DOM one is the cache guard; the model one covers the #203 write path,
+/// which does not go through the cached getter at all.
 /// </para>
 /// </summary>
 public class CollectionValueGetterCachingTests : MudBlazorTestBase
@@ -30,10 +34,16 @@ public class CollectionValueGetterCachingTests : MudBlazorTestBase
         // Act - type into the middle row
         component.FindAll("input")[1].Input("edited");
 
-        // Assert - the edit lands on row 1, and its siblings are untouched
-        model.Items[0].ProductName.ShouldBe("first");
-        model.Items[1].ProductName.ShouldBe("edited");
-        model.Items[2].ProductName.ShouldBe("third");
+        // Assert - the edit lands on row 1 and its siblings are untouched. This is the #203 write
+        // path (CollectionFieldComponent resolves the row by index and the member by reflection),
+        // which the value-getter cache is not on — it is asserted here so the read-side guard below
+        // is read against a known-good write, not so it guards the cache itself.
+        component.WaitForAssertion(() =>
+        {
+            model.Items[0].ProductName.ShouldBe("first");
+            model.Items[1].ProductName.ShouldBe("edited");
+            model.Items[2].ProductName.ShouldBe("third");
+        });
     }
 
     [Fact]
@@ -46,7 +56,9 @@ public class CollectionValueGetterCachingTests : MudBlazorTestBase
         // Act - editing one row re-renders every row through the shared cached getter
         component.FindAll("input")[1].Input("edited");
 
-        // Assert - each row still reads its own item rather than a value cached from another
+        // Assert - each row still reads its own item rather than a value cached from another. This
+        // is the guard that fails if the cache ever holds a value instead of a getter, or is keyed
+        // by anything the rows share: every row would then show row 0's content.
         component.WaitForAssertion(() =>
         {
             var inputs = component.FindAll("input");

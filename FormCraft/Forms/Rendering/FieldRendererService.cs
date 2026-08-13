@@ -187,6 +187,15 @@ public class FieldRendererService : IFieldRendererService
         /// What is cached is the <b>getter</b>, never the value it returns. The delegate takes the
         /// model as its parameter, so every render still reads the model afresh — caching a value here
         /// would freeze each field at its first-rendered content.
+        /// <para>
+        /// The entry is never invalidated, so this assumes a configuration's <c>ValueExpression</c>
+        /// keeps reading the same member for that configuration's lifetime. That is the fluent
+        /// builder's immutable-after-<c>Build()</c> contract, and <see cref="FieldConfiguration{TModel, TValue}" />
+        /// enforces it by assigning the expression in its constructor. A caller that hands
+        /// <see cref="IFieldRendererService.RenderField" /> a configuration which re-targets its
+        /// expression after first render would keep seeing the original member; use a separate
+        /// configuration instance per binding instead.
+        /// </para>
         /// </remarks>
         private static readonly ConditionalWeakTable<IFieldConfiguration<TModel, object>, Func<TModel, object>> Cache = new();
 

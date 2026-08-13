@@ -29,10 +29,23 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
 
     /// <inheritdoc />
     /// <remarks>
-    /// The projected lambda is built once and then reused. The wrapped configuration's expression is
-    /// fixed at construction, so rebuilding an equivalent tree on every access was pure waste — and
-    /// the renderer service reads this property on every render of every field, which since #203
-    /// includes every field of every row of a collection (#269).
+    /// The projected lambda is built once per wrapper and then reused, rather than rebuilt on every
+    /// access (#269). This requires the wrapped configuration to return a stable
+    /// <c>ValueExpression</c> — which <see cref="FieldConfiguration{TModel, TValue}" /> provides by
+    /// assigning it in its constructor, and which the fluent builder's immutable-after-<c>Build()</c>
+    /// contract extends to anything built through it. An implementation that re-targeted its
+    /// expression after construction would keep seeing this first projection.
+    /// <para>
+    /// The callers this actually saves are the ones that read it per <i>validation</i>:
+    /// <c>CollectionFieldValidator</c> and <c>DynamicFormValidator</c> read it once per item per
+    /// field. The renderer service reads it at most once per configuration, because it caches the
+    /// compiled getter itself.
+    /// </para>
+    /// <para>
+    /// The memo is deliberately not synchronized. Blazor renders on a single sync context, and two
+    /// racing readers would each build an equivalent tree with one winning the field — a wasted
+    /// allocation, never a wrong value.
+    /// </para>
     /// </remarks>
     public Expression<Func<TModel, object>> ValueExpression =>
         _valueExpression ??= Expression.Lambda<Func<TModel, object>>(
