@@ -52,7 +52,6 @@ class Build : NukeBuild
     AbsolutePath SourceDirectory => RootDirectory / "FormCraft";
     AbsolutePath MudBlazorDirectory => RootDirectory / "FormCraft.ForMudBlazor";
     AbsolutePath FluentUIDirectory => RootDirectory / "FormCraft.ForFluentUI";
-    AbsolutePath TestsDirectory => RootDirectory / "FormCraft.UnitTests";
     AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
     AbsolutePath TestResultsDirectory => RootDirectory / "test-results";
 
@@ -64,8 +63,37 @@ class Build : NukeBuild
                 .SetProject(Solution)
                 .SetConfiguration(Configuration));
 
-            SourceDirectory.GlobDirectories("**/bin", "**/obj").ForEach(x => x.DeleteDirectory());
-            TestsDirectory.GlobDirectories("**/bin", "**/obj").ForEach(x => x.DeleteDirectory());
+            // Enumerated from the solution rather than hand-listed (#275). The list this replaced
+            // named FormCraft and FormCraft.UnitTests — two of the solution's eight projects — so
+            // the other six kept their build output through every Clean: FormCraft.ForMudBlazor
+            // (a packaged, published library), FormCraft.ForMudBlazor.UnitTests,
+            // FormCraft.ForFluentUI and FormCraft.ForFluentUI.UnitTests (added later by #261, so
+            // never swept at all), FormCraft.DemoBlazorApp, and _build. Driving the sweep from the
+            // solution is what gets a project cleaned on the day it lands rather than on the day
+            // someone notices it never was.
+            //
+            // Deliberately NOT RootDirectory.GlobDirectories: that is shorter and would also delete
+            // build output under .claude/worktrees/, where this repo keeps other agents' full
+            // checkouts. Staying inside solution projects is what bounds the blast radius.
+            //
+            // ⚠️ _build is in FormCraft.sln, so this deletes build/bin and build/obj — the output
+            // the running Nuke process itself was launched from (build.sh/ps1 do
+            // `dotnet run --project build/_build.csproj --no-build`). On macOS/Linux the unlink
+            // succeeds and `Clean` exits 0 (measured). On Windows a loaded image is locked by the
+            // OS, so this may throw instead; CI is ubuntu-only and would not catch it. Sweeping
+            // every project is #275's explicit decision — its spec rules the _build sweep "correct
+            // and harmless" — so it is kept rather than quietly narrowed, and the Windows exposure
+            // is tracked as a follow-up on the PR instead.
+            //
+            // Materialised before deleting: SelectMany is lazy, so without ToList each project's
+            // glob would run after earlier projects had already been deleted. Harmless on today's
+            // flat layout, wrong the moment one project directory nests inside another.
+            Solution.AllProjects
+                .Select(project => project.Directory)
+                .SelectMany(directory => directory.GlobDirectories("**/bin", "**/obj"))
+                .ToList()
+                .ForEach(directory => directory.DeleteDirectory());
+
             ArtifactsDirectory.CreateOrCleanDirectory();
             TestResultsDirectory.CreateOrCleanDirectory();
         });
