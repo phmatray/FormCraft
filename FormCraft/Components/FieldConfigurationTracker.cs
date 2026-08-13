@@ -1,4 +1,4 @@
-namespace FormCraft.ForMudBlazor;
+namespace FormCraft;
 
 /// <summary>
 /// Tracks which field a component has loaded its configuration from, so it can tell when it has been
@@ -27,10 +27,13 @@ namespace FormCraft.ForMudBlazor;
 /// had to qualify around.
 /// </para>
 /// <para>
-/// It lives in its own type because two unrelated base classes need it —
-/// <c>MudBlazorFieldComponentBase</c> and <c>MudBlazorFileUploadComponentBase</c>, which share only
-/// <c>FieldComponentBase</c> in the UI-agnostic core. Copying three lines and their reasoning into
-/// both is how this package acquired the duplication #284 exists to undo.
+/// It lives in core, beside <see cref="FieldComponentBase{TModel, TValue}"/>, because every adapter
+/// needs it and it references no UI type — one <see cref="object"/> field and a
+/// <see cref="object.ReferenceEquals"/> call. #298 shipped it inside the MudBlazor package and had to
+/// wire it in <i>three</i> places there (the field base, the file-upload base, and the boolean
+/// component, which derives from <see cref="FieldComponentBase{TModel, TValue}"/> directly); #335
+/// found the Fluent adapter needed the same again. Three wirings in one package was the signal that
+/// this belongs a layer down — copying it per adapter is the duplication #279 spent a PR undoing.
 /// </para>
 /// </remarks>
 internal sealed class FieldConfigurationTracker

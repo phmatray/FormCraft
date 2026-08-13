@@ -20,6 +20,16 @@ public partial class FluentUIBooleanFieldComponent<TModel>
         base.OnInitialized();
 
         _localValue = CurrentValue;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#335).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
 
         // Checkbox is the default; a switch is opt-in, matching the MudBlazor adapter.
         DisplayStyle = GetAttribute("DisplayStyle", BooleanDisplayStyle.Checkbox);

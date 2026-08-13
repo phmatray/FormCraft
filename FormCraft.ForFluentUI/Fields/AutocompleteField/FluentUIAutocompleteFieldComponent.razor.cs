@@ -30,9 +30,30 @@ public partial class FluentUIAutocompleteFieldComponent<TModel, TValue>
     {
         base.OnInitialized();
 
+        SyncSelectedOption();
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#335).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
+
         _searchFunc = GetAttribute<Func<string, CancellationToken, Task<IEnumerable<SelectOption<TValue>>>>>(
             "AutocompleteSearchFunc");
         _optionProvider = GetAttribute<object>("AutocompleteOptionProvider");
+
+        // Both are results of the configuration above rather than of the value, so they belong to the
+        // field that produced them. _options is the previous field's last result set, which the
+        // dropdown would keep offering until a fresh search replaced it; _selectedOption is what the
+        // box displays, and SyncSelectedOption only rebuilds it when the VALUE differs — so two
+        // fields whose values compare equal but whose labels differ would leave the previous field's
+        // label on screen.
+        _options = [];
+        _selectedOption = null;
 
         SyncSelectedOption();
     }

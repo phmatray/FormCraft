@@ -45,16 +45,33 @@ public partial class FluentUILookupFieldComponent<TModel, TValue>
     private IReadOnlyList<LookupColumnView> Columns => _columns;
 
     /// <inheritdoc />
-    protected override void OnInitialized()
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#335). The hook runs on first render too,
+    /// so this component needs no <c>OnInitialized</c> of its own.
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
     {
-        base.OnInitialized();
+        base.OnFieldConfigurationChanged();
 
+        // Columns are read from the field's attributes, so they belong to the field rather than to
+        // this instance — a different field gets its own.
         _columns = BuildColumns();
 
-        if (CurrentValue is not null)
-        {
-            DisplayText = CurrentValue.ToString() ?? string.Empty;
-        }
+        // ⛔ Re-derived, not merely cleared. Nothing else in this component repopulates the display
+        // from the model: unlike the MudBlazor lookup, which calls UpdateDisplayText() from
+        // OnParametersSet on every render and would repair a blank on the same pass, here the only
+        // other writer is a row selection. Clearing alone therefore left a field with a perfectly
+        // good stored value rendering empty for ever — a worse bug than the staleness it replaced.
+        DisplayText = CurrentValue?.ToString() ?? string.Empty;
+
+        // The picker belongs to the field that opened it. Its rows came from the PREVIOUS field's
+        // LookupDataProvider, and _rows is a List<object> so nothing type-guards it: clicking one
+        // after a swap DynamicInvokes the new field's value/display selectors against the old
+        // field's row object, which throws out of a click handler when the item types differ.
+        _isOpen = false;
+        _rows.Clear();
+        _searchText = string.Empty;
     }
 
     private async Task TogglePickerAsync()

@@ -16,6 +16,21 @@ public partial class FluentUISelectFieldComponent<TModel, TValue>
         base.OnInitialized();
 
         _localValue = CurrentValue;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#335).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
+
+        // Cleared BEFORE resolving, because ResolveOptions returns the current Options for a field
+        // that configures none. That reads as "keep the default" and is exactly that on first load —
+        // but on a reload it means "keep the previous field's options" (#335).
+        Options = [];
         Options = ResolveOptions();
     }
 

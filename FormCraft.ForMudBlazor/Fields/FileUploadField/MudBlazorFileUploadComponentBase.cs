@@ -101,53 +101,6 @@ public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldCo
         HasLabel ? $"{Label} is required." : "This file upload is required.";
 
     /// <summary>
-    /// Tracks which field this instance's cached properties were loaded from (#298).
-    /// </summary>
-    /// <remarks>
-    /// The upload components sit on their own base rather than
-    /// <see cref="MudBlazorFieldComponentBase{TModel, TValue}"/>, but they cache configuration in
-    /// exactly the same way — <c>Accept</c>, <c>MaxFileSize</c>, <c>UploadMode</c> and the rest, read
-    /// once in <c>OnInitialized</c> — so they have the same staleness bug and need the same hook. The
-    /// shared piece is the tracker; only this wiring is repeated.
-    /// </remarks>
-    private readonly FieldConfigurationTracker _fieldTracker = new();
-
-    /// <inheritdoc />
-    protected override void OnInitialized()
-    {
-        base.OnInitialized();
-        RefreshFieldConfigurationIfChanged();
-    }
-
-    /// <inheritdoc />
-    protected override void OnParametersSet()
-    {
-        base.OnParametersSet();
-        RefreshFieldConfigurationIfChanged();
-    }
-
-    private void RefreshFieldConfigurationIfChanged()
-    {
-        if (_fieldTracker.HasChanged(Context?.Field))
-        {
-            OnFieldConfigurationChanged();
-        }
-    }
-
-    /// <summary>
-    /// Reads everything this component caches from <c>Context.Field</c>. Called once per field (#298).
-    /// </summary>
-    /// <remarks>
-    /// Override this instead of loading configuration in <c>OnInitialized</c>, and assign every cached
-    /// property on every call — including back to its default. The override is a reload, not a patch:
-    /// a property left untouched because the new field does not declare that attribute keeps the
-    /// <i>previous</i> field's value, which is the same bug in a smaller box.
-    /// </remarks>
-    protected virtual void OnFieldConfigurationChanged()
-    {
-    }
-
-    /// <summary>
     /// The field's <b>Browse</b> button, captured by <c>@ref</c> in both upload components.
     /// </summary>
     /// <remarks>

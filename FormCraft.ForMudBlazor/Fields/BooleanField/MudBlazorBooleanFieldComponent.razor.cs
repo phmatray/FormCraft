@@ -43,27 +43,17 @@ public partial class MudBlazorBooleanFieldComponent<TModel>
         _localValue = CurrentValue is bool val ? val : false;
     }
 
-    /// <summary>
-    /// Tracks which field this instance's cached properties were loaded from (#298).
-    /// </summary>
+    /// <inheritdoc />
     /// <remarks>
-    /// Wired locally, for the same reason <c>NativeRequiredValue</c> above is: this component derives
-    /// from <c>FieldComponentBase</c> directly, so it inherits neither the hook on
-    /// <c>MudBlazorFieldComponentBase</c> nor the one on <c>MudBlazorFileUploadComponentBase</c>. Only
-    /// the wiring repeats — <see cref="FieldConfigurationTracker"/> holds the rule and its reasoning.
+    /// Moved off <c>OnInitialized</c> so an instance handed a different field re-reads it rather than
+    /// rendering the previous field's settings (#298). Inherited from
+    /// <c>FieldComponentBase</c> since #335 — this component derives from it directly, so before the
+    /// hook moved into core it had to wire its own.
     /// </remarks>
-    private readonly FieldConfigurationTracker _fieldTracker = new();
-
-    private void RefreshFieldConfigurationIfChanged()
+    protected override void OnFieldConfigurationChanged()
     {
-        if (!_fieldTracker.HasChanged(Context?.Field))
-        {
-            return;
-        }
+        base.OnFieldConfigurationChanged();
 
-        // Moved off OnInitialized so an instance handed a different field re-reads it rather than
-        // rendering the previous field's settings (#298).
-        //
         // Checkbox is the default (parity with the legacy render path); a
         // switch can be requested explicitly via the DisplayStyle attribute.
         DisplayStyle = GetAttribute("DisplayStyle", BooleanDisplayStyle.Checkbox);
@@ -74,8 +64,6 @@ public partial class MudBlazorBooleanFieldComponent<TModel>
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
-
-        RefreshFieldConfigurationIfChanged();
 
         // Sync local value when model changes externally
         var currentVal = CurrentValue is bool val ? val : false;

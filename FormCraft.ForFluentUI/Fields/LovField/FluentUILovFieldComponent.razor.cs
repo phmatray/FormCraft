@@ -48,9 +48,27 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
     private IReadOnlyList<LovColumnDefinition<TItem>> Columns => LovConfig?.Columns ?? [];
 
     /// <inheritdoc />
-    protected override void OnInitialized()
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#335). The hook runs on first render too,
+    /// so this component needs no <c>OnInitialized</c> of its own.
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
     {
-        base.OnInitialized();
+        base.OnFieldConfigurationChanged();
+
+        // ⛔ Cleared before anything is rebuilt, and the SELECTION is the part that matters. It holds
+        // rows drawn from the previous field's data source, and a subsequent pick appends to it — so
+        // the display would read "old, old, new" and, worse, PublishSelectionAsync would write the
+        // previous field's values into the NEW field's model property. The MudBlazor LOV clears the
+        // same list for the same reason (#298); the two adapters drifting on this is exactly what
+        // moving the hook into core is meant to stop.
+        _selectedItems.Clear();
+        _rows.Clear();
+        DisplayText = string.Empty;
+        _searchText = string.Empty;
+        _isOpen = false;
+        _isLoading = false;
 
         LovConfig = GetAttribute<ILovConfiguration<TItem, TValue>>("LovConfiguration")
             ?? throw new InvalidOperationException(
