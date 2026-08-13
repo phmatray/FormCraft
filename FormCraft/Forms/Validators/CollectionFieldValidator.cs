@@ -53,6 +53,64 @@ public class CollectionFieldValidator<TModel, TItem>
     }
 
     /// <summary>
+    /// Validates a <b>single</b> item field — the one cell a field-change notification names — rather
+    /// than the whole collection.
+    /// </summary>
+    /// <remarks>
+    /// The field-changed path used to call <see cref="ValidateItemsAsync" /> and discard every result
+    /// but the matching cell. Since #203 a keystroke in any row raises that notification, so a
+    /// 50-row × 5-field form ran 250 validator invocations per character and used one of them; with
+    /// an async validator, that is 250 awaited calls (#329).
+    /// </remarks>
+    /// <param name="model">The parent model instance.</param>
+    /// <param name="itemIndex">Index of the item whose field changed.</param>
+    /// <param name="fieldName">Name of the item field that changed.</param>
+    /// <param name="services">The service provider for dependency injection.</param>
+    /// <returns>The errors for that one cell. Empty if it is valid, or if the cell does not exist.</returns>
+    public async Task<List<CollectionItemError>> ValidateItemFieldAsync(
+        TModel model,
+        int itemIndex,
+        string fieldName,
+        IServiceProvider services)
+    {
+        var errors = new List<CollectionItemError>();
+        var items = _configuration.CollectionAccessor(model);
+
+        if (items == null || _configuration.ItemFormConfiguration == null)
+        {
+            return errors;
+        }
+
+        // The index can be stale: a row removed between the notification and this call would
+        // previously just fail to match during the filter, so an out-of-range index stays a no-op.
+        if (itemIndex < 0 || itemIndex >= items.Count)
+        {
+            return errors;
+        }
+
+        var field = _configuration.ItemFormConfiguration.Fields
+            .FirstOrDefault(f => f.FieldName == fieldName);
+        if (field == null)
+        {
+            return errors;
+        }
+
+        var item = items[itemIndex];
+        var value = FieldValueGetterCache<TItem>.GetOrCompile(field)(item);
+
+        foreach (var validator in field.Validators)
+        {
+            var result = await validator.ValidateAsync(item, value, services);
+            if (!result.IsValid)
+            {
+                errors.Add(new CollectionItemError(itemIndex, field.FieldName, result.ErrorMessage!));
+            }
+        }
+
+        return errors;
+    }
+
+    /// <summary>
     /// Projects one traversal's structured errors into the flat, collection-level messages: the
     /// item-count rules first, then one line per item error in the order the traversal produced them.
     /// </summary>

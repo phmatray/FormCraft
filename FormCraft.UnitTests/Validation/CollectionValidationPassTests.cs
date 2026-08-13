@@ -99,6 +99,32 @@ public class CollectionValidationPassTests : BunitContext
             .ShouldBe(["Product name is required"]);
     }
 
+    [Fact]
+    public void Editing_One_Row_Should_Not_Invoke_Another_Rows_Validators()
+    {
+        // Arrange - two rows; only row 0 is edited.
+        var counter = new CountingValidator();
+        var model = new OrderModel
+        {
+            Items = { new OrderItem { ProductName = "Widget" }, new OrderItem { ProductName = "Gadget" } }
+        };
+        var editContext = new EditContext(model);
+        RenderValidator(editContext, BuildConfiguration(counter));
+
+        // Act - the notification a keystroke in row 0 produces (#91's nested identifier). The
+        // handler is `async void`, so there is no task to await; asserting directly is still
+        // deterministic because CountingValidator completes synchronously, which makes every await
+        // in the chain continue synchronously. Deliberately not WaitForAssertion: this path changes
+        // no rendered output, so a wait would poll once and then report a timeout instead of the
+        // assertion failure.
+        editContext.NotifyFieldChanged(new FieldIdentifier(model, "Items[0].ProductName"));
+
+        // Assert - only the edited cell is validated. Revalidating the whole collection to report on
+        // one cell costs items × fields per keystroke and, with an async validator, that many awaited
+        // calls per character.
+        counter.Seen.ShouldBe(["Widget"]);
+    }
+
     private static IFormConfiguration<OrderModel> BuildConfiguration(CountingValidator counter) =>
         FormBuilder<OrderModel>
             .Create()

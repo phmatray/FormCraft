@@ -178,16 +178,25 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         return await task;
     }
 
-    private async Task<List<CollectionItemError>> ValidateCollectionItemsAsync(TModel model, ICollectionFieldConfigurationBase collectionField)
+    /// <summary>
+    /// Validates one item field of one row — the cell a field-change notification named.
+    /// </summary>
+    private async Task<List<CollectionItemError>> ValidateCollectionCellAsync(
+        TModel model,
+        ICollectionFieldConfigurationBase collectionField,
+        int itemIndex,
+        string itemFieldName)
     {
         // Use reflection to create the typed validator and invoke it
         var validatorType = typeof(CollectionFieldValidator<,>).MakeGenericType(typeof(TModel), collectionField.ItemType);
         var validator = Activator.CreateInstance(validatorType, collectionField);
 
-        var validateMethod = validatorType.GetMethod("ValidateItemsAsync");
-        if (validateMethod == null) return new List<CollectionItemError>();
+        var validateMethod = validatorType.GetMethod("ValidateItemFieldAsync");
+        if (validateMethod == null) return [];
 
-        var task = (Task<List<CollectionItemError>>)validateMethod.Invoke(validator, new object[] { model!, ServiceProvider })!;
+        var task = (Task<List<CollectionItemError>>)validateMethod.Invoke(
+            validator,
+            new object[] { model!, itemIndex, itemFieldName, ServiceProvider })!;
         return await task;
     }
 
@@ -259,13 +268,12 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         // so stale errors disappear as soon as the user corrects the value.
         _messageStore!.Clear(fieldIdentifier);
 
-        var itemErrors = await ValidateCollectionItemsAsync(model, collectionField);
+        // Validate just this cell. This used to validate the whole collection and filter the result
+        // down to the matching item/field, which runs items × fields validators per keystroke (#329).
+        var itemErrors = await ValidateCollectionCellAsync(model, collectionField, itemIndex, itemFieldName);
         foreach (var itemError in itemErrors)
         {
-            if (itemError.ItemIndex == itemIndex && itemError.FieldName == itemFieldName)
-            {
-                _messageStore.Add(fieldIdentifier, itemError.Message);
-            }
+            _messageStore.Add(fieldIdentifier, itemError.Message);
         }
 
         _editContext.NotifyValidationStateChanged();
