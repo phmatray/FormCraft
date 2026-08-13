@@ -86,12 +86,15 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
             CurrentValue = fileList;
         }
 
-        // The chip this button sits in is gated on `CurrentValue?.Any() == true` and has just been
-        // rebuilt without its file, so the button the user activated has unmounted. Move focus
-        // deliberately or it falls to <body> (#318). Removing the *last* file unmounts the whole
-        // chip stack and "Clear All" too, which is why Browse — the one control that always
-        // survives — is the target.
-        await FocusBrowseAsync();
+        // ONLY when that was the last file. The chip loop is keyless, so with files still left the
+        // diff *retains* the close button the user activated — it simply becomes the next file's —
+        // and focus was never lost. Moving it to Browse anyway would make removing three files mean
+        // tabbing back into the chip stack twice. It is the empty case that unmounts the whole chip
+        // stack and "Clear All" together, leaving Browse as the only survivor (#318).
+        if (CurrentValue?.Any() != true)
+        {
+            await FocusBrowseAsync();
+        }
     }
 
     private string GetHeight()

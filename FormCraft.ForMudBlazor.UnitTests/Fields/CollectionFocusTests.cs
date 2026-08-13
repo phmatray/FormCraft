@@ -105,7 +105,10 @@ public class CollectionFocusTests : FocusAssertingTestBase
             .AllowRemove()
             .WithMinItems(2));
 
-        component.FindAll(".mud-toolbar button").ShouldBeEmpty();
+        // No Add is rendered at all (CanAdd was never allowed) — asserted on the button itself
+        // rather than on a `.mud-toolbar`, which this component never renders.
+        component.FindAll("button").Any(b => b.TextContent.Contains("Add Item")).ShouldBeFalse();
+        var buttonIdsBefore = await LearnEveryButtonIdAsync(component);
         var focusesBefore = FocusCount();
 
         // Act
@@ -114,6 +117,34 @@ public class CollectionFocusTests : FocusAssertingTestBase
         // Assert - nothing focusable is left in the field, yet focus was still moved deliberately
         component.FindAll(DeleteSelector).ShouldBeEmpty();
         FocusCount().ShouldBe(focusesBefore + 1);
+
+        // Read the component's focus id BEFORE learning any more: LearnEveryButtonIdAsync focuses
+        // each button it inspects, so calling it first would overwrite the very answer being tested.
+        var focusedId = LastFocusedElementId();
+
+        // ...and it landed on the header, not on a stale reference to a control that has unmounted —
+        // the failure this whole chain exists to avoid, and one a bare count would miss.
+        var buttonIdsAfter = await LearnEveryButtonIdAsync(component);
+        focusedId.ShouldNotBeOneOf([.. buttonIdsBefore.Concat(buttonIdsAfter)]);
+    }
+
+    [Fact]
+    public async Task Adding_A_Row_That_Leaves_Add_Standing_Should_Not_Steal_Focus_From_It()
+    {
+        // Arrange - MaxItems defaults to 0, so HasReachedMax is never true and Add does NOT unmount
+        // itself. There is no 2.4.3 failure to fix, and moving focus anyway would push a user
+        // building a list into the new row's header — which carries tabindex="-1" and so is OUTSIDE
+        // the tab order, costing them a Shift+Tab back to Add for every single row.
+        var component = RenderCollection(1, collection => collection.AllowAdd().AllowRemove());
+        var focusesBefore = FocusCount();
+
+        // Act
+        await component.InvokeAsync(() => AddButtonElement(component).Click());
+
+        // Assert - the row was added, Add survived, and focus was left where the user put it
+        component.FindAll(DeleteSelector).Count.ShouldBe(2);
+        component.FindAll("button").Any(b => b.TextContent.Contains("Add Item")).ShouldBeTrue();
+        FocusCount().ShouldBe(focusesBefore);
     }
 
     [Fact]
@@ -151,6 +182,27 @@ public class CollectionFocusTests : FocusAssertingTestBase
         var focusedId = LastFocusedElementId();
 
         var expectedId = await LearnElementIdAsync(component, MoveButtons(component, "Move up")[2]);
+        focusedId.ShouldBe(expectedId);
+    }
+
+    [Fact]
+    public async Task Moving_An_Item_Down_Within_The_Middle_Should_Focus_Its_Move_Down_Button()
+    {
+        // Arrange - the direction matters. Landing mid-list leaves BOTH controls enabled, so the
+        // choice is free — and it has to be the direction the user was already going, or a repeat
+        // Enter undoes the move instead of continuing it. Always preferring "up" passed the
+        // move-up test below and failed exactly here.
+        var component = RenderCollection(4, collection => collection.AllowReorder());
+        var focusesBefore = FocusCount();
+
+        // Act - move the second item down; it lands at index 2, still mid-list
+        await component.InvokeAsync(() => component.FindAll(MoveDownSelector)[1].Click());
+
+        // Assert
+        FocusCount().ShouldBe(focusesBefore + 1);
+        var focusedId = LastFocusedElementId();
+
+        var expectedId = await LearnElementIdAsync(component, MoveButtons(component, "Move down")[2]);
         focusedId.ShouldBe(expectedId);
     }
 

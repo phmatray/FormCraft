@@ -189,7 +189,7 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Styling the marker.** The asterisk is a text node in a `span.formcraft-required-marker`, not MudBlazor's CSS `::after` — MudBlazor's only `mud-input-required` rule targets a `.mud-input-label` descendant that this span does not have. So restyle **`.formcraft-required-marker`** for upload fields; the `.mud-input-required` advice in the #199 entry above does not reach them. `.WithNativeRequired(false)` suppresses both channels, as everywhere else.
 
-- **Every control that removes or disables itself now moves keyboard focus deliberately.** #281 fixed one such control — the upload **Clear** button — and this finishes the sweep across the five that were left, all the same WCAG 2.1 **2.4.3 Focus Order** (Level A) failure: activating them left focus on `<body>`, so the next <kbd>Tab</kbd> restarted from the top of the document (#318)
+- **In the MudBlazor adapter, every control that removes or disables itself now moves keyboard focus deliberately.** #281 fixed one such control — the upload **Clear** button — and this finishes the sweep across the five that were left, all the same WCAG 2.1 **2.4.3 Focus Order** (Level A) failure: activating them left focus on `<body>`, so the next <kbd>Tab</kbd> restarted from the top of the document (#318)
 
   | Control | Focus now goes to |
   |---|---|
@@ -198,7 +198,11 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
   | **Add**, on the click that reaches `MaxItems` | the new row itself — so <kbd>Tab</kbd> goes straight into its fields, and deliberately *not* its Delete button, where <kbd>Enter</kbd> would undo the add |
   | **Move up** / **Move down**, when the item lands at an end and the button becomes disabled | the same row's still-enabled counterpart, so focus follows the *item* rather than sitting on an index that now controls a different one |
 
+  Focus is moved only where it would actually have been lost: adding a row while **Add** survives (the default, since `MaxItems` is 0) leaves focus on Add, and removing one file chip of several leaves focus on the chip stack — in both cases the control the user is standing on is retained, so moving focus would cost them a tab back rather than help.
+
   The swallow-safe focus call is shared (`FocusRestore`), so a failed focus can never turn a completed removal into an unhandled exception — which on Blazor Server would tear down the circuit. Two behaviours worth knowing: a single-item collection cannot be reordered at all (both buttons are disabled and the handlers no-op), and with `MinItems` reached *and* adding disallowed, focus lands on the collection's header, which carries its label.
+
+  ⚠️ **`FormCraft.ForFluentUI` is not covered.** Its collection field carries the same self-unmounting Add/delete and self-disabling reorder controls and still drops focus; porting `FocusRestore` across is tracked separately.
 
 - **Clearing a file upload no longer throws keyboard focus away.** Both upload components render **Clear** inside an `@if` gated on the very value the button's own handler removes, so activating it unmounted the element the user was standing on and focus fell to `<body>` — the next <kbd>Tab</kbd> restarted from the top of the document instead of resuming where the user was, a WCAG 2.1 **2.4.3 Focus Order** (Level A) failure. Focus now moves deliberately to that field's **Browse** button (#281)
 

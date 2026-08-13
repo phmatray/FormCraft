@@ -259,29 +259,27 @@ public class FileUploadClearFocusTests : FocusAssertingTestBase
     }
 
     [Fact]
-    public async Task Removing_A_File_Chip_Should_Move_Focus_To_Browse()
+    public async Task Removing_A_File_Chip_With_Others_Left_Should_Leave_Focus_Alone()
     {
-        // Arrange - the chip's close button is the same defect shape as Clear (#318): it is rendered
-        // inside `@if (CurrentValue?.Any() == true)` and its own handler rebuilds CurrentValue
-        // without that file, so the chip it sits in unmounts. #281 fixed ClearAsync and left this
-        // one, ten lines away in the same file.
+        // Arrange - the chip loop is keyless, so with files still left the diff RETAINS the close
+        // button that was activated (it becomes the next file's) and focus was never lost. Moving it
+        // to Browse here would be a regression, not a fix: clearing a three-file field one chip at a
+        // time would bounce the user out to Browse after every removal.
         var component = RenderStandaloneMultipleUpload(new TestModel
         {
             Uploads = new List<IBrowserFile> { new StubBrowserFile(), new StubBrowserFile() },
         });
 
-        var browseId = await LearnElementIdAsync(component, component.FindComponents<MudButton>()[0].Instance);
         var focusesBefore = FocusCount();
 
-        // Act - remove the first file
+        // Act - remove the first of two files
         var chipCloseButtons = component.FindAll(FormCraftChipCloseSelector);
         chipCloseButtons.Count.ShouldBe(2);
         await component.InvokeAsync(() => chipCloseButtons[0].Click());
 
-        // Assert - one file left, and focus was moved rather than dropped
+        // Assert - one file left, and no focus request was issued at all
         component.FindAll(FormCraftChipCloseSelector).Count.ShouldBe(1);
-        FocusCount().ShouldBe(focusesBefore + 1);
-        LastFocusedElementId().ShouldBe(browseId);
+        FocusCount().ShouldBe(focusesBefore);
     }
 
     [Fact]

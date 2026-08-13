@@ -65,10 +65,16 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private int? _focusRowAfterRender;
 
     /// <summary>
-    /// Whether <see cref="_focusRowAfterRender"/> came from a reorder, where a still-enabled move
-    /// button on the row is the better target than the row itself.
+    /// Which way the item travelled, when <see cref="_focusRowAfterRender"/> came from a reorder;
+    /// <see langword="null"/> when it came from an add.
     /// </summary>
-    private bool _focusRowCameFromReorder;
+    /// <remarks>
+    /// The direction matters, it is not bookkeeping: focus must land on the button for the way the
+    /// user was already going, so pressing <kbd>Enter</kbd> again keeps moving the item. Preferring
+    /// <b>up</b> regardless would put a repeat keypress on "undo the move I just made" — the same
+    /// hazard that keeps focus off Delete after an add.
+    /// </remarks>
+    private bool? _reorderMovedDown;
 
     /// <summary>
     /// The collection's header, the last-resort focus target when an action leaves the field with no
@@ -140,10 +146,19 @@ public partial class CollectionFieldComponent<TModel, TItem>
         Items.Add(new TItem());
         await NotifyCollectionChanged();
 
-        // Add is gated on !HasReachedMax, so the click that reaches the max unmounts the button the
-        // user is standing on. Put them in the row they just created either way (#318).
+        // ONLY when this add unmounted Add itself. MaxItems defaults to 0, so HasReachedMax is
+        // normally never true and the button survives — with focus still on it, which is where a
+        // user building a list wants to stay. Moving focus anyway would push them into the new row's
+        // header (tabindex="-1", outside the tab order), forcing a Shift+Tab back to Add for every
+        // subsequent row: a regression in the common case, in the name of a failure that did not
+        // happen (#318).
+        if (!HasReachedMax)
+        {
+            return;
+        }
+
         _focusRowAfterRender = Items.Count - 1;
-        _focusRowCameFromReorder = false;
+        _reorderMovedDown = null;
     }
 
     private async Task RemoveItem(int index)
@@ -167,17 +182,27 @@ public partial class CollectionFieldComponent<TModel, TItem>
     {
         await base.OnAfterRenderAsync(firstRender);
 
-        if (_focusAfterRemovalFrom is { } removedIndex)
+        // Take and clear BOTH pending requests before dispatching either. They can both be set:
+        // AddItem/MoveItem* await NotifyCollectionChanged(), which releases the Blazor dispatcher
+        // when the consumer's handler is genuinely async, so a delete click can be processed in that
+        // window. Leaving the other flag set lets it fire on some unrelated later render — e.g.
+        // typing in an item field re-renders and focus is yanked out of the input into a row header.
+        var removedIndex = _focusAfterRemovalFrom;
+        var rowIndex = _focusRowAfterRender;
+        var movedDown = _reorderMovedDown;
+        _focusAfterRemovalFrom = null;
+        _focusRowAfterRender = null;
+        _reorderMovedDown = null;
+
+        if (removedIndex is { } removed)
         {
-            _focusAfterRemovalFrom = null;
-            await FocusAfterRemovalAsync(removedIndex);
+            await FocusAfterRemovalAsync(removed);
             return;
         }
 
-        if (_focusRowAfterRender is { } rowIndex)
+        if (rowIndex is { } row)
         {
-            _focusRowAfterRender = null;
-            await FocusRowAsync(rowIndex, _focusRowCameFromReorder);
+            await FocusRowAsync(row, movedDown);
         }
     }
 
@@ -185,20 +210,20 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// Puts focus in the row at <paramref name="index"/> after an add or a reorder.
     /// </summary>
     /// <param name="index">The row the acting item now occupies.</param>
-    /// <param name="fromReorder">
-    /// When the move came from a reorder, a still-enabled move button on that row is the better
-    /// target — it keeps the user on the control they were operating. After an <b>add</b> the row
-    /// itself is the target instead: the row's fields are what the user wants next, and its Delete
-    /// button would put <kbd>Enter</kbd> on "undo the add".
+    /// <param name="movedDown">
+    /// Which way the item travelled for a reorder, or <see langword="null"/> after an <b>add</b>.
+    /// A reorder prefers a still-enabled move button on that row — it keeps the user on the control
+    /// they were operating. After an add the row itself is the target instead: the row's fields are
+    /// what the user wants next, and its Delete button would put <kbd>Enter</kbd> on "undo the add".
     /// </param>
-    private async Task FocusRowAsync(int index, bool fromReorder)
+    private async Task FocusRowAsync(int index, bool? movedDown)
     {
-        if (fromReorder)
+        if (movedDown is { } down)
         {
-            var counterpart = EnabledMoveButtonAt(index);
-            if (counterpart is not null)
+            var target = EnabledMoveButtonAt(index, down);
+            if (target is not null)
             {
-                await FocusRestore.FocusSafelyAsync(counterpart);
+                await FocusRestore.FocusSafelyAsync(target);
                 return;
             }
         }
@@ -210,10 +235,16 @@ public partial class CollectionFieldComponent<TModel, TItem>
     }
 
     /// <summary>
-    /// A move button on the given row that is still enabled — preferring the direction the item just
-    /// travelled, and falling back to its counterpart when that one has become disabled at an end.
+    /// A still-enabled move button on the given row, preferring the direction the item just
+    /// travelled and falling back to its counterpart when that one has become disabled at an end.
     /// </summary>
-    private MudIconButton? EnabledMoveButtonAt(int index)
+    /// <remarks>
+    /// ⚠️ The preference is the point, not a nicety: landing on the button for the direction the
+    /// user was already going means a repeat <kbd>Enter</kbd> keeps moving the item. Always
+    /// preferring <b>up</b> — which this did until review caught it — puts that repeat keypress on
+    /// "undo the move I just made" whenever the item travelled down into a mid-list slot.
+    /// </remarks>
+    private MudIconButton? EnabledMoveButtonAt(int index, bool movedDown)
     {
         if (!Configuration.CanReorder || index < 0 || index >= Items.Count)
         {
@@ -224,12 +255,16 @@ public partial class CollectionFieldComponent<TModel, TItem>
         var upEnabled = index > 0;
         var downEnabled = index < Items.Count - 1;
 
-        if (upEnabled && _moveUpButtons.TryGetValue(index, out var up))
+        var travelled = movedDown ? _moveDownButtons : _moveUpButtons;
+        var travelledEnabled = movedDown ? downEnabled : upEnabled;
+        if (travelledEnabled && travelled.TryGetValue(index, out var preferred))
         {
-            return up;
+            return preferred;
         }
 
-        return downEnabled && _moveDownButtons.TryGetValue(index, out var down) ? down : null;
+        var counterpart = movedDown ? _moveUpButtons : _moveDownButtons;
+        var counterpartEnabled = movedDown ? upEnabled : downEnabled;
+        return counterpartEnabled && counterpart.TryGetValue(index, out var fallback) ? fallback : null;
     }
 
     /// <summary>
@@ -298,7 +333,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // Disabled under their finger, and browsers drop focus from a newly-disabled element — the
         // same 2.4.3 failure as an unmount (#318).
         _focusRowAfterRender = index - 1;
-        _focusRowCameFromReorder = true;
+        _reorderMovedDown = false;
     }
 
     private async Task MoveItemDown(int index)
@@ -309,7 +344,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
         await NotifyCollectionChanged();
 
         _focusRowAfterRender = index + 1;
-        _focusRowCameFromReorder = true;
+        _reorderMovedDown = true;
     }
 
     private async Task NotifyCollectionChanged()
