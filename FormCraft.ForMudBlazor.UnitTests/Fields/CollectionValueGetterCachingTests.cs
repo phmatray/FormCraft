@@ -67,4 +67,36 @@ public class CollectionValueGetterCachingTests : MudBlazorTestBase
             inputs[2].GetAttribute("value").ShouldBe("third");
         });
     }
+
+    [Fact]
+    public async Task Validating_A_Multi_Row_Item_Form_Should_Attribute_Each_Message_To_Its_Own_Row()
+    {
+        // Arrange - rows 0 and 2 are empty (invalid), row 1 is filled (valid). Since #312 the
+        // validators read every row's value through one cached getter shared by the whole
+        // collection, so this is where a getter that had been cached per *value* rather than per
+        // *field* would show: every row would be judged against row 0's content, marking the filled
+        // row invalid (or the empty rows valid).
+        var model = NewOrderWithItems("", "Widget", "");
+        EditContext? editContext = null;
+
+        var component = this.RenderItemForm(
+            model,
+            TextItemForm(field => field.Required("Product name is required")),
+            parameters => parameters.Add(p => p.OnEditContextCreated, ctx => editContext = ctx));
+
+        // Act
+        var isValid = true;
+        await component.InvokeAsync(async () => isValid = await component.Instance.ValidateAsync());
+
+        // Assert - the messages land on the rows that are actually empty, and only those (#91).
+        isValid.ShouldBeFalse();
+        editContext.ShouldNotBeNull();
+
+        editContext!.GetValidationMessages(new FieldIdentifier(model, "Items[0].ProductName"))
+            .ShouldContain("Product name is required");
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Items[1].ProductName"))
+            .ShouldBeEmpty();
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Items[2].ProductName"))
+            .ShouldContain("Product name is required");
+    }
 }
