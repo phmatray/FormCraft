@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace FormCraft;
 
@@ -165,39 +167,71 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
     /// Replaces the pair of calls this method used to make. <c>ValidateAllAsync</c> is non-generic in
     /// its return type precisely so it can be invoked reflectively here without knowing the item type.
     /// </remarks>
-    private async Task<CollectionValidationResult> ValidateCollectionAsync(TModel model, ICollectionFieldConfigurationBase collectionField)
-    {
-        // Use reflection to create the typed validator and invoke it
-        var validatorType = typeof(CollectionFieldValidator<,>).MakeGenericType(typeof(TModel), collectionField.ItemType);
-        var validator = Activator.CreateInstance(validatorType, collectionField);
-
-        var validateMethod = validatorType.GetMethod("ValidateAllAsync");
-        if (validateMethod == null) return new CollectionValidationResult([], []);
-
-        var task = (Task<CollectionValidationResult>)validateMethod.Invoke(validator, new object[] { model!, ServiceProvider })!;
-        return await task;
-    }
+    private Task<CollectionValidationResult> ValidateCollectionAsync(TModel model, ICollectionFieldConfigurationBase collectionField)
+        => GetInvoker(collectionField).ValidateAllAsync(model!, ServiceProvider);
 
     /// <summary>
     /// Validates one item field of one row — the cell a field-change notification named.
     /// </summary>
-    private async Task<List<CollectionItemError>> ValidateCollectionCellAsync(
+    private Task<List<CollectionItemError>> ValidateCollectionCellAsync(
         TModel model,
         ICollectionFieldConfigurationBase collectionField,
         int itemIndex,
         string itemFieldName)
+        => GetInvoker(collectionField).ValidateItemFieldAsync(model!, itemIndex, itemFieldName, ServiceProvider);
+
+    /// <summary>
+    /// The reflective plumbing for one collection field's typed validator, resolved once.
+    /// </summary>
+    /// <remarks>
+    /// Keyed by the <b>configuration instance</b>, not by item type. The generic type and its methods
+    /// depend only on the item type, but the validator instance is constructed <i>from the
+    /// configuration</i> — so two collections of the same item type with different configurations
+    /// (different item forms, different min/max) must not share one. A
+    /// <see cref="ConditionalWeakTable{TKey, TValue}" /> also means an entry lives no longer than the
+    /// configuration it describes.
+    /// </remarks>
+    private static readonly ConditionalWeakTable<ICollectionFieldConfigurationBase, CollectionValidatorInvoker> ValidatorCache = new();
+
+    private static CollectionValidatorInvoker GetInvoker(ICollectionFieldConfigurationBase collectionField)
+        => ValidatorCache.GetValue(collectionField, static field => new CollectionValidatorInvoker(field));
+
+    /// <summary>
+    /// Holds one collection field's typed validator and the two methods this component invokes on it,
+    /// so <c>MakeGenericType</c> / <c>Activator.CreateInstance</c> / <c>GetMethod</c> run once per
+    /// configuration rather than on every validation pass and every keystroke (#329).
+    /// </summary>
+    private sealed class CollectionValidatorInvoker
     {
-        // Use reflection to create the typed validator and invoke it
-        var validatorType = typeof(CollectionFieldValidator<,>).MakeGenericType(typeof(TModel), collectionField.ItemType);
-        var validator = Activator.CreateInstance(validatorType, collectionField);
+        private readonly object? _validator;
+        private readonly MethodInfo? _validateAll;
+        private readonly MethodInfo? _validateCell;
 
-        var validateMethod = validatorType.GetMethod("ValidateItemFieldAsync");
-        if (validateMethod == null) return [];
+        internal CollectionValidatorInvoker(ICollectionFieldConfigurationBase collectionField)
+        {
+            var validatorType = typeof(CollectionFieldValidator<,>)
+                .MakeGenericType(typeof(TModel), collectionField.ItemType);
 
-        var task = (Task<List<CollectionItemError>>)validateMethod.Invoke(
-            validator,
-            new object[] { model!, itemIndex, itemFieldName, ServiceProvider })!;
-        return await task;
+            _validator = Activator.CreateInstance(validatorType, collectionField);
+            _validateAll = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.ValidateAllAsync));
+            _validateCell = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.ValidateItemFieldAsync));
+        }
+
+        internal Task<CollectionValidationResult> ValidateAllAsync(object model, IServiceProvider services)
+            => _validator is null || _validateAll is null
+                ? Task.FromResult(new CollectionValidationResult([], []))
+                : (Task<CollectionValidationResult>)_validateAll.Invoke(_validator, [model, services])!;
+
+        internal Task<List<CollectionItemError>> ValidateItemFieldAsync(
+            object model,
+            int itemIndex,
+            string fieldName,
+            IServiceProvider services)
+            => _validator is null || _validateCell is null
+                ? Task.FromResult(new List<CollectionItemError>())
+                : (Task<List<CollectionItemError>>)_validateCell.Invoke(
+                    _validator,
+                    [model, itemIndex, fieldName, services])!;
     }
 
     private FieldIdentifier CreateCollectionItemFieldIdentifier(string collectionFieldName, int itemIndex, string itemFieldName)

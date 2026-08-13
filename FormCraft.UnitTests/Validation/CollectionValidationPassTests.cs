@@ -125,6 +125,50 @@ public class CollectionValidationPassTests : BunitContext
         counter.Seen.ShouldBe(["Widget"]);
     }
 
+    [Fact]
+    public async Task Two_Collections_Of_The_Same_Item_Type_Should_Not_Share_A_Validator()
+    {
+        // Arrange - two collections whose items are the same type but whose item forms differ. The
+        // reflective validator is cached per CONFIGURATION for exactly this reason: caching it per
+        // item type would serve the second collection the first one's configuration, and each would
+        // report the other's message.
+        var model = new TwoListModel
+        {
+            Items = { new OrderItem { ProductName = "" } },
+            Extras = { new OrderItem { ProductName = "" } }
+        };
+        var editContext = new EditContext(model);
+
+        var configuration = FormBuilder<TwoListModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field
+                        .WithLabel("Product")
+                        .Required("Items message"))))
+            .AddCollectionField(x => x.Extras, collection => collection
+                .WithLabel("Extras")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field
+                        .WithLabel("Product")
+                        .Required("Extras message"))))
+            .Build();
+
+        var validator = Render<DynamicFormValidator<TwoListModel>>(parameters => parameters
+            .AddCascadingValue(editContext)
+            .Add(p => p.Configuration, configuration));
+
+        // Act
+        await validator.Instance.ValidateModelAsync();
+
+        // Assert - each collection reports its own configured message.
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Items[0].ProductName"))
+            .ShouldBe(["Items message"]);
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Extras[0].ProductName"))
+            .ShouldBe(["Extras message"]);
+    }
+
     private static IFormConfiguration<OrderModel> BuildConfiguration(CountingValidator counter) =>
         FormBuilder<OrderModel>
             .Create()
@@ -168,6 +212,13 @@ public class CollectionValidationPassTests : BunitContext
     public class OrderModel
     {
         public List<OrderItem> Items { get; set; } = [];
+    }
+
+    public class TwoListModel
+    {
+        public List<OrderItem> Items { get; set; } = [];
+
+        public List<OrderItem> Extras { get; set; } = [];
     }
 
     public class OrderItem
