@@ -334,6 +334,14 @@ internal static class CollectionItemFixture
     /// <c>Suppliers</c> changes what that suite observes — this is not a free rename.
     /// </para>
     /// <para>
+    /// The collection <i>labels</i> are deliberately <b>different</b> from those property names
+    /// ("Contact list", not "Contacts"). With the two identical, an assertion on
+    /// <c>Contacts[].Secret</c> would pass whether the key were built from the property name or from
+    /// the label, so it could not pin the thing it exists to pin — and a refactor that keyed on the
+    /// label would sail through while breaking every real form whose collection label differs from
+    /// its property name.
+    /// </para>
+    /// <para>
     /// Shared rather than local because two suites had independently declared it under different
     /// names (#297): <c>ShrinkLabelKeyCollisionTests</c> asked whether the collector <i>counts</i>
     /// both, <c>CollectionInputTypeTests</c> whether the message <i>names</i> both. Same shape, same
@@ -346,7 +354,7 @@ internal static class CollectionItemFixture
         FormBuilder<TwoCollectionModel>
             .Create()
             .AddCollectionField(x => x.Contacts, collection => collection
-                .WithLabel("Contacts")
+                .WithLabel("Contact list")
                 .WithItemForm(item => item
                     .AddField(x => x.ProductName, field =>
                     {
@@ -354,7 +362,7 @@ internal static class CollectionItemFixture
                         configureContact?.Invoke(field);
                     })))
             .AddCollectionField(x => x.Suppliers, collection => collection
-                .WithLabel("Suppliers")
+                .WithLabel("Supplier list")
                 .WithItemForm(item => item
                     .AddField(x => x.ProductName, field =>
                     {

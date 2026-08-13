@@ -362,8 +362,11 @@ public class CollectionItemFixtureTests : MudBlazorTestBase
                 configureContact: field => field.WithLabel("Renamed contact"),
                 configureSupplier: field => field.WithLabel("Renamed supplier")));
 
-        // Assert
+        // Assert - count first: if the builder regressed to attaching both item forms to one
+        // collection, only one field renders and fields[1] throws IndexOutOfRange, turning the
+        // defect this test names into a stack trace instead of a diagnosis.
         var fields = component.FindComponents<MudTextField<string>>();
+        fields.Count.ShouldBe(2);
         fields[0].Instance.Label.ShouldBe("Renamed contact");
         fields[1].Instance.Label.ShouldBe("Renamed supplier");
     }
@@ -379,6 +382,10 @@ public class CollectionItemFixtureTests : MudBlazorTestBase
         blank.Contacts.ShouldHaveSingleItem();
         blank.Suppliers.ShouldHaveSingleItem();
         blank.Contacts[0].ProductName.ShouldBe(string.Empty);
+        // Both halves: with only the Contacts one asserted, changing the `supplier` default to a
+        // non-empty value would leave ShrinkLabelKeyCollisionTests silently seeded when it calls
+        // NewTwoCollections() expecting two blank rows.
+        blank.Suppliers[0].ProductName.ShouldBe(string.Empty);
         seeded.Contacts[0].ProductName.ShouldBe("Ada");
         seeded.Suppliers[0].ProductName.ShouldBe("Acme");
 
