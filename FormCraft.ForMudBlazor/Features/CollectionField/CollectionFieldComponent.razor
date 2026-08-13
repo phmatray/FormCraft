@@ -31,6 +31,22 @@
             @for (var i = 0; i < Items.Count; i++)
             {
                 var index = i;
+                @* ⛔ Deliberately NOT keyed. #298 tried `@key="Items[index]"` and reverted it: Blazor
+                   matches keys by Equals, not by reference, and TItem is constrained only to `new()`.
+                   For a record or struct item type — or any class overriding Equals — two rows with
+                   equal content are a duplicate key, and RenderTreeDiffBuilder throws
+                   "More than one sibling ... has the same key value". `AddItem()` adds `new TItem()`,
+                   so on a record-typed item form clicking "Add item" twice was enough to crash the
+                   render before the user typed anything.
+
+                   Keying on the index instead is what a keyless loop already does, so it buys
+                   nothing. A correct key needs a per-row identity independent of item equality, and
+                   the obvious candidates do not survive the fact that `Items` IS the caller's model
+                   list and can be mutated from outside this component entirely. That is real work
+                   with a real design question behind it, so it is filed rather than guessed at.
+
+                   What positional matching costs is component IDENTITY, not displayed values: those
+                   already reload via FieldComponentBase.ShouldReloadValue(). *@
                 <MudCard Class="mb-3" Elevation="0" Outlined="true">
                     <MudCardContent>
                         <div class="d-flex justify-space-between align-center mb-2">

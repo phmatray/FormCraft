@@ -200,8 +200,15 @@ public class TestReportingTests
     /// is genuinely unsatisfied by a job with no upload step.
     /// </para>
     /// </remarks>
+    /// <remarks>
+    /// The <c>job.ToString()</c> is not decoration. Absence comes back as <c>null</c> and is reported by
+    /// the caller — but an <em>ambiguous</em> name (this job carrying two identically-named upload steps,
+    /// which is legal YAML) still throws from inside the reader, and without a scope description that
+    /// failure reads "the searched text has 2 steps named …" across all five assertions: precisely the
+    /// undifferentiated shared-reader failure #267 set out to remove, reintroduced by omission.
+    /// </remarks>
     private static string? UploadStep(TestRunningJob job) =>
-        WorkflowSource.TryStepNamed(job.Text, UploadStepName);
+        WorkflowSource.TryStepNamed(job.Text, UploadStepName, job.ToString());
 
     /// <summary>
     /// Whether <paramref name="job" />'s upload step fails <paramref name="claim" /> — including by
