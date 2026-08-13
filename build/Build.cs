@@ -340,11 +340,19 @@ class Build : NukeBuild
                 // WorkflowSource strips comments but not string literals — so naming
                 // --report-xunit-trx here would let that assertion be satisfied by this error
                 // message alone, long after the flag itself was removed from the invocation.
+                // Framed per KIND, not as total failure. Since #276 this fires when *any* promised
+                // kind is absent, so the old "the reporters are wired but emitted nothing" wording
+                // would misdiagnose one dead reporter — a runner that still writes the trx and has
+                // stopped writing the html — as the whole reporting path being dead, and send the
+                // reader off to audit --results-directory and the MTP wiring for something that is
+                // working. That is the same "accurate entry, inaccurate framing" mistake the #256
+                // and #259 notes above exist to prevent: the entry says which kinds are missing, so
+                // the summary must not claim more than the entry does.
                 problems.Add(
-                    $"produced no promised report: {string.Join(", ", missingReports)} — the "
-                    + "reporters are wired but emitted nothing, so check whether the runner still "
-                    + "honours the results directory and the xunit reporter options above "
-                    + "(see #231, #276)");
+                    $"are missing a promised report: {string.Join(", ", missingReports)} — each "
+                    + "entry names the kinds that did not appear, so check the reporter for THOSE "
+                    + "kinds first; only if a project is missing every kind is the results "
+                    + "directory itself the likely cause (see #231, #276)");
             }
 
             if (failed.Count > 0)
