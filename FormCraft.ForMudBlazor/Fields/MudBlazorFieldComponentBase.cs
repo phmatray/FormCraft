@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
 
@@ -314,6 +313,39 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     protected string DiagnosticFieldKey =>
         ItemFieldScope?.DiagnosticKey(Context.Field.FieldName) ?? Context.Field.FieldName;
 
+    /// <summary>
+    /// Whether this component should report the given diagnostic for this field, consuming the
+    /// once-per-field latch when there is one (#284).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>No scope means report.</b> The latch exists because a collection renders one component
+    /// instance <i>per row</i>, so a diagnostic emitted from <c>OnInitialized</c> would fire fifty
+    /// times about one field's configuration in a fifty-item collection. Outside a collection there
+    /// is no scope, nothing to de-duplicate, and the field must report — the common case, and why
+    /// the default is <c>true</c>. Inverting it silences the diagnostics for ordinary fields while
+    /// leaving them working inside collections, so the failure hides in the case least likely to be
+    /// tested. Pinned by <c>DiagnosticLatchTests</c>.
+    /// </para>
+    /// <para>
+    /// <b>The category is part of the key.</b> One field can legitimately trip several diagnostics —
+    /// a masked multi-line password whose adornment is displaced trips two — and a key without the
+    /// category would let whichever fired first silence the rest for good. See
+    /// <see cref="CollectionItemFieldScope.ShouldWarnOnce"/>, which keeps that note at the other end.
+    /// </para>
+    /// <para>
+    /// ⛔ <b>Call this only once the diagnostic's rule has already said yes.</b> It has a side
+    /// effect: consulting it burns the latch. Asking on a row that had nothing to report would spend
+    /// the one warning a later row was entitled to, which would make whether a field is reported at
+    /// all depend on row order (#274).
+    /// </para>
+    /// </remarks>
+    /// <param name="category">
+    /// The diagnostic's logger category, e.g. <see cref="MaskedLinesDiagnostic.Category"/>.
+    /// </param>
+    protected bool ShouldReport(string category) =>
+        ItemFieldScope?.ShouldWarnOnce(category, DiagnosticFieldKey) ?? true;
+
     private bool _shrinkLabelDiagnosticEmitted;
 
     /// <summary>
@@ -374,29 +406,21 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
         // one component instance per row and _shrinkLabelDiagnosticEmitted is per INSTANCE, so an
         // unlatched fallback would log N identical warnings for one field's configuration. The
         // hand-rolled path latched this per field before #203.
-        if (ItemFieldScope?.ShouldWarnOnce(ShrinkLabelDiagnostic.Category, fieldName) == false)
+        //
+        // ShouldReport latches on DiagnosticFieldKey, which is what `fieldName` above already holds.
+        if (!ShouldReport(ShrinkLabelDiagnostic.Category))
         {
             return;
         }
 
-        // A diagnostic must never break a render, so a logger that throws is swallowed.
-        try
-        {
-            var logger = DiagnosticServices?
-                .GetService<ILoggerFactory>()?
-                .CreateLogger(ShrinkLabelDiagnostic.Category);
-
-            logger?.LogWarning(
-                "Field '{Field}' sets ShrinkLabel=false but also has {Conflict}, which MudBlazor " +
-                "lets win — the label stays pinned and will not float. Remove that property to get " +
-                "a floating label, or drop ShrinkLabel=false.",
-                field,
-                conflict);
-        }
-        catch
-        {
-            // Ignored: a failing diagnostic must not take the form down with it.
-        }
+        DiagnosticLog.Warn(
+            DiagnosticServices,
+            ShrinkLabelDiagnostic.Category,
+            "Field '{Field}' sets ShrinkLabel=false but also has {Conflict}, which MudBlazor " +
+            "lets win — the label stays pinned and will not float. Remove that property to get " +
+            "a floating label, or drop ShrinkLabel=false.",
+            field,
+            conflict);
     }
 
     /// <summary>
@@ -405,43 +429,6 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// </summary>
     private string? ShrinkLabelConflict() =>
         ShrinkLabelDiagnostic.Conflict(Placeholder, RenderedAdornment);
-}
-
-/// <summary>
-/// The single implementation of the native-required rule (#199), used by
-/// <see cref="MudBlazorFieldComponentBase{TModel, TValue}"/>.
-/// <para>
-/// #199 introduced it as a rule the component path and the imperative collection path both had to
-/// apply identically — one implementation so <c>RenderPipelineParityTests</c> guarded against
-/// regressions rather than against a copy-paste drifting. #203 then deleted the imperative path
-/// outright, so the rule now reaches collection item fields the same way every other field
-/// capability does: they render through this component. The type stays because the rule — an
-/// explicit opt-in/out winning over <c>IsRequired</c> in <i>both</i> directions — is worth stating
-/// and testing on its own.
-/// </para>
-/// </summary>
-internal static class NativeRequired
-{
-    /// <summary>The attribute name carrying the explicit opt-in/opt-out.</summary>
-    internal const string AttributeName = "Required";
-
-    /// <summary>
-    /// Whether MudBlazor's <c>Required</c> should be set: the explicit
-    /// <c>.WithNativeRequired(...)</c> attribute when the field sets one, otherwise the field's own
-    /// <c>IsRequired</c>.
-    /// </summary>
-    /// <remarks>
-    /// Presence is tested separately from value on purpose. Collapsing "not configured" and
-    /// "configured false" into one fallback — which a plain get-with-default does — would make
-    /// <c>.WithNativeRequired(false)</c> on a <c>.Required(...)</c> field silently re-acquire the
-    /// decoration it was written to suppress. The explicit value has to win in both directions.
-    /// </remarks>
-    /// <param name="additionalAttributes">The field's configured additional attributes.</param>
-    /// <param name="isRequired">The field's own required flag, used when nothing is configured.</param>
-    internal static bool Resolve(IReadOnlyDictionary<string, object> additionalAttributes, bool isRequired)
-        => additionalAttributes.TryGetValue(AttributeName, out var configured) && configured is bool optIn
-            ? optIn
-            : isRequired;
 }
 
 /// <summary>

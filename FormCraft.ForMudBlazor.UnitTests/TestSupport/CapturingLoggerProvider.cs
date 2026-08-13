@@ -17,27 +17,47 @@ namespace FormCraft.ForMudBlazor.UnitTests.TestSupport;
 /// </remarks>
 internal sealed class CapturingLoggerProvider : ILoggerProvider
 {
-    private readonly List<string> _warnings = [];
+    private readonly List<(string Category, string Message)> _entries = [];
 
     /// <summary>A snapshot of the warnings captured so far.</summary>
     public IReadOnlyList<string> Warnings
     {
         get
         {
-            lock (_warnings)
+            lock (_entries)
             {
-                return _warnings.ToList();
+                return _entries.Select(entry => entry.Message).ToList();
             }
         }
     }
 
-    public ILogger CreateLogger(string categoryName) => new CapturingLogger(_warnings);
+    /// <summary>
+    /// The same warnings, each paired with the logger category it was emitted under (#284).
+    /// </summary>
+    /// <remarks>
+    /// The category is how a caller tells one diagnostic from another — <c>DiagnosticLog.Warn</c>
+    /// takes it as a parameter, so "was this logged under the category it was given" is a claim
+    /// only this can check. Every existing suite asserts on <see cref="Warnings"/> and is unaffected.
+    /// </remarks>
+    public IReadOnlyList<(string Category, string Message)> Entries
+    {
+        get
+        {
+            lock (_entries)
+            {
+                return _entries.ToList();
+            }
+        }
+    }
+
+    public ILogger CreateLogger(string categoryName) => new CapturingLogger(categoryName, _entries);
 
     public void Dispose()
     {
     }
 
-    private sealed class CapturingLogger(List<string> warnings) : ILogger
+    private sealed class CapturingLogger(string category, List<(string Category, string Message)> warnings)
+        : ILogger
     {
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
 
@@ -57,7 +77,7 @@ internal sealed class CapturingLoggerProvider : ILoggerProvider
 
             lock (warnings)
             {
-                warnings.Add(formatter(state, exception));
+                warnings.Add((category, formatter(state, exception)));
             }
         }
     }

@@ -28,11 +28,20 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// is the whole reason the boolean model lives here rather than being left to each suite.
 /// </para>
 /// <para>
-/// <b>One shape beyond the field types.</b> Every builder above produces a form containing nothing but
-/// a collection. <see cref="NamedOrderModel"/> / <see cref="NamedOrderItem"/> and
-/// <see cref="RootFieldAndItemForm"/> are the exception: a root-level field <i>beside</i> the
-/// collection, with the two members sharing the name <c>Name</c>. Look here before hand-rolling a
-/// model for a form that is not collection-only (#213, #258).
+/// <b>Two shapes beyond the field types.</b> Every builder above produces a form containing nothing
+/// but a collection, whose item form holds exactly one field. Two members break each of those
+/// assumptions in turn:
+/// <list type="bullet">
+/// <item><description><see cref="NamedOrderModel"/> / <see cref="NamedOrderItem"/> and
+/// <see cref="RootFieldAndItemForm"/> — a root-level field <i>beside</i> the collection, with the
+/// two members sharing the name <c>Name</c>. Look here before hand-rolling a model for a form that
+/// is not collection-only (#213, #258).</description></item>
+/// <item><description><see cref="MixedItemModel"/> / <see cref="MixedItem"/> and
+/// <see cref="MultiFieldItemForm"/> — <i>four</i> fields in one item row, one of each of the four
+/// original component types. The shape a suite needs when its subject is rows of differing
+/// render-tree frame counts in a keyless loop, which a single-field row cannot express
+/// (#282).</description></item>
+/// </list>
 /// </para>
 /// <para>
 /// ⚠️ <b>These were four separate render paths when this fixture was written (#205).</b> Item fields
@@ -195,6 +204,103 @@ internal static class CollectionItemFixture
             .Build();
 
     /// <summary>
+    /// Creates a mixed-row model with one row per <paramref name="rows"/> entry, in order.
+    /// </summary>
+    /// <remarks>
+    /// Takes whole rows rather than a params list of scalars the way
+    /// <see cref="NewOrderWithItems"/> does: four members cannot each be seeded from one value, and
+    /// four parallel arrays would be worse at the call site than the object initialiser it replaced.
+    /// Pass <c>new MixedItem()</c> for a blank row — the seeds stay the caller's choice here as
+    /// everywhere else in this fixture.
+    /// <para>
+    /// ⚠️ <b>Give each row its own <see cref="MixedItem"/>.</b> This is the one factory here that
+    /// stores instances the caller supplied rather than constructing them itself, so
+    /// <c>NewMixedItems(row, row)</c> — or a seed hoisted out of a loop — puts the <i>same object</i>
+    /// in both rows. A reorder test then compares two aliases that cannot disagree, and a
+    /// per-row-binding test asserting row 1's edit left row 0 alone passes without proving anything.
+    /// The sibling factories cannot be misused this way because they build their items internally;
+    /// this one trades that safety for the ability to seed four members at once.
+    /// </para>
+    /// </remarks>
+    internal static MixedItemModel NewMixedItems(params MixedItem[] rows)
+    {
+        var model = new MixedItemModel();
+        foreach (var row in rows)
+        {
+            model.Rows.Add(row);
+        }
+
+        return model;
+    }
+
+    /// <summary>
+    /// A collection whose item form holds <b>four fields in one row</b> — <c>string</c>,
+    /// <c>int</c>, <c>bool</c> and <c>DateTime</c> together — rather than one field per model pair.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every other builder here produces a single-field item form, which is the right default: a
+    /// suite asking "does this attribute reach a numeric item field?" should not have to read past
+    /// three fields it does not care about. But two suites need rows of <i>differing render-tree
+    /// frame counts inside one keyless loop</i>, which only a multi-field row produces —
+    /// <c>CollectionAdornmentTests</c>' reorder test (an adornment makes a text row emit more frames
+    /// than a date row) and <c>CollectionRenderCharacterisationTests</c> (#282). Both carried their
+    /// own <c>MixedRow</c>, and the two copies had already drifted — one declared
+    /// <c>{ Name, When }</c>, the other <c>{ Name, Quantity, IsGift, When }</c> — which is the harm
+    /// #205 predicted, observed.
+    /// </para>
+    /// <para>
+    /// The row carries the union of the two, which happens to be one of each of the four original
+    /// component types. So it doubles as the "several field types in one row" case rather than being
+    /// a bespoke shape for one suite. A consumer that wants only two of the fields configures only
+    /// those two; the others still render, which is what makes the row mixed.
+    /// </para>
+    /// <para>
+    /// <paramref name="configureCollection"/> is the one callback here that reaches the
+    /// <i>collection</i> rather than a field. The reorder test needs <c>.AllowReorder()</c>, which is
+    /// a property of the collection, and without it that suite would have to hand-roll the whole
+    /// configuration — and would keep its own model copy along with it, which is the duplication
+    /// this member exists to remove.
+    /// </para>
+    /// </remarks>
+    internal static IFormConfiguration<MixedItemModel> MultiFieldItemForm(
+        Action<FieldBuilder<MixedItem, string>>? configureText = null,
+        Action<FieldBuilder<MixedItem, int>>? configureNumeric = null,
+        Action<FieldBuilder<MixedItem, bool>>? configureBoolean = null,
+        Action<FieldBuilder<MixedItem, DateTime>>? configureDate = null,
+        Action<CollectionFieldBuilder<MixedItemModel, MixedItem>>? configureCollection = null) =>
+        FormBuilder<MixedItemModel>
+            .Create()
+            .AddCollectionField(x => x.Rows, collection =>
+            {
+                collection
+                    .WithLabel("Rows")
+                    .WithItemForm(item => item
+                        .AddField(x => x.Name, field =>
+                        {
+                            field.WithLabel("Name");
+                            configureText?.Invoke(field);
+                        })
+                        .AddField(x => x.Quantity, field =>
+                        {
+                            field.WithLabel("Quantity");
+                            configureNumeric?.Invoke(field);
+                        })
+                        .AddField(x => x.IsGift, field =>
+                        {
+                            field.WithLabel("Gift");
+                            configureBoolean?.Invoke(field);
+                        })
+                        .AddField(x => x.When, field =>
+                        {
+                            field.WithLabel("When");
+                            configureDate?.Invoke(field);
+                        }));
+                configureCollection?.Invoke(collection);
+            })
+            .Build();
+
+    /// <summary>
     /// A root-level <c>string</c> field <i>beside</i> a collection whose item form holds a
     /// <c>string</c> field of the same name — the only shape here that is not a form containing
     /// nothing but a collection.
@@ -309,6 +415,34 @@ internal sealed class NamedOrderModel
 internal sealed class NamedOrderItem
 {
     public string Name { get; set; } = string.Empty;
+}
+
+/// <summary>Root model for the multi-field row shape.</summary>
+internal sealed class MixedItemModel
+{
+    public List<MixedItem> Rows { get; set; } = new();
+}
+
+/// <summary>
+/// Item for the multi-field row — four members of four different types, so one item form renders a
+/// <c>MudTextField</c>, a <c>MudNumericField&lt;int&gt;</c>, a <c>MudCheckBox</c> and a
+/// <c>MudDatePicker</c> side by side (#282).
+/// <para>
+/// The union of the two <c>MixedRow</c> copies this replaced, not a widening of
+/// <see cref="OrderItem"/>: growing a shared model one field per consumer is the failure #205 set
+/// out to prevent, and a row that is multi-field <i>by design</i> is a different thing from a
+/// single-field row that accreted three more.
+/// </para>
+/// </summary>
+internal sealed class MixedItem
+{
+    public string Name { get; set; } = string.Empty;
+
+    public int Quantity { get; set; }
+
+    public bool IsGift { get; set; }
+
+    public DateTime When { get; set; }
 }
 
 /// <summary>

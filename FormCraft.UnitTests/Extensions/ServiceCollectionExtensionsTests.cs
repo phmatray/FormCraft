@@ -1,3 +1,5 @@
+using FormCraft.ForMudBlazor.Extensions;
+
 namespace FormCraft.UnitTests.Extensions;
 
 public class ServiceCollectionExtensionsTests
@@ -121,6 +123,66 @@ public class ServiceCollectionExtensionsTests
 
         var fieldRendererService = serviceProvider.GetService<IFieldRendererService>();
         fieldRendererService.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void AddFormCraft_Alone_Should_Register_The_Built_In_Renderers()
+    {
+        // Arrange & Act - with no adapter in the container, core's own renderers are what render
+        // the form, so they must be registered.
+        var services = new ServiceCollection();
+        services.AddFormCraft();
+
+        // Assert
+        CoreRendererCount(services).ShouldBe(7);
+    }
+
+    [Fact]
+    public void AddFormCraft_Then_An_Adapter_Should_Leave_No_Core_Renderers()
+    {
+        // Arrange & Act - the ordinary order. The adapter strips core's defaults so its own take
+        // precedence; renderer selection is first-match-wins and core's would otherwise win.
+        var services = new ServiceCollection();
+        services.AddFormCraft();
+        services.AddFormCraftMudBlazor();
+
+        // Assert
+        CoreRendererCount(services).ShouldBe(0);
+    }
+
+    [Fact]
+    public void An_Adapter_Then_AddFormCraft_Should_Not_Register_The_Core_Renderers()
+    {
+        // Arrange & Act - the order the guard in AddFormCraft() exists for. #279 replaced the
+        // IUIFrameworkAdapter-presence test that used to answer this question with an explicit
+        // adapter marker; the interface is gone, this behaviour must not be.
+        var services = new ServiceCollection();
+        services.AddFormCraftMudBlazor();
+        services.AddFormCraft();
+
+        // Assert - core's renderers are never added, rather than added and removed.
+        CoreRendererCount(services).ShouldBe(0);
+    }
+
+    [Fact]
+    public void AddFormCraft_Without_An_Adapter_Should_Resolve_Its_Own_Renderers()
+    {
+        // The registration counts above are structural; this one proves the container actually
+        // builds, so a marker change cannot pass by leaving descriptors that fail to resolve.
+        var services = new ServiceCollection();
+        services.AddFormCraft();
+
+        using var provider = services.BuildServiceProvider();
+
+        provider.GetServices<IFieldRenderer>().ShouldNotBeEmpty();
+    }
+
+    private static int CoreRendererCount(IServiceCollection services)
+    {
+        var coreAssembly = typeof(IFieldRenderer).Assembly;
+        return services.Count(s =>
+            s.ServiceType == typeof(IFieldRenderer) &&
+            s.ImplementationType?.Assembly == coreAssembly);
     }
 
     // Test interface and implementation for additional service testing
