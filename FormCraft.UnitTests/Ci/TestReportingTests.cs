@@ -221,9 +221,86 @@ public class TestReportingTests
     /// silence this file guards against everywhere else (see <see cref="JobsThatRunTests" />). Absence
     /// offends every claim here — a step that is not there has no <c>if: always()</c>, and equally
     /// does not "avoid the stale glob" in any sense worth being green about.
+    /// <para>
+    /// That <c>&amp;&amp;</c> inversion is no longer a hazard a reader has to hold in mind (#303):
+    /// <see cref="Every_Upload_Claim_Should_Report_A_Job_That_Has_No_Upload_Step" /> drives every claim
+    /// over a synthetic job that lacks the step and fails if any of them lets it pass. Before that, the
+    /// branch was reachable only by hand — #267 verified it by deleting the step from <c>ci.yml</c> and
+    /// reverting, which proved the behaviour once and could not prove it again.
+    /// </para>
     /// </remarks>
     private static bool UploadStepFails(TestRunningJob job, Func<string, bool> claim) =>
         UploadStep(job) is not { } step || !claim(step);
+
+    /// <summary>
+    /// The jobs in <paramref name="jobs" /> whose upload step fails <paramref name="claim" /> —
+    /// including by not existing.
+    /// </summary>
+    /// <remarks>
+    /// Takes the job set rather than reading <see cref="JobsThatRunTests" /> itself (#303), and that
+    /// parameter is the whole point: every real test-running job has the upload step, so a test that
+    /// cannot supply its own jobs cannot reach the "the step is missing" branch at all. The five
+    /// assertions below pass <see cref="JobsThatRunTests" />; the coverage test passes a synthetic pair.
+    /// <para>
+    /// The vacuity guard stays in <see cref="JobsThatRunTests" /> rather than moving here — a hand-built
+    /// list cannot be accidentally empty, and asserting non-emptiness of the *caller's* argument would
+    /// make the synthetic case impossible to express.
+    /// </para>
+    /// </remarks>
+    private static List<TestRunningJob> UploadOffenders(
+        IReadOnlyList<TestRunningJob> jobs,
+        Func<string, bool> claim) =>
+        jobs.Where(j => UploadStepFails(j, claim)).ToList();
+
+    /// <summary>
+    /// The five claims this file makes about the upload step, keyed by a short name for each — so the
+    /// absence coverage below cannot drift out of step with the assertions themselves.
+    /// </summary>
+    private static Dictionary<string, Func<string, bool>> UploadClaims => new(StringComparer.Ordinal)
+    {
+        ["exists"] = _ => true,
+        ["if: always()"] = s => s.Contains("if: always()", StringComparison.Ordinal),
+        ["path: test-results"] = s => s.Split('\n').Any(line => line.Trim() == "path: test-results"),
+        ["avoids **/TestResults/"] = s => !s.Contains("**/TestResults/", StringComparison.Ordinal),
+        ["if-no-files-found: ignore"] = s => s.Contains("if-no-files-found: ignore", StringComparison.Ordinal),
+    };
+
+    [Fact]
+    public void Every_Upload_Claim_Should_Report_A_Job_That_Has_No_Upload_Step()
+    {
+        // The branch this pins (#267, PR #287) shipped verified only by hand — deleting the step from
+        // ci.yml, watching all five tests name the job, then reverting. It cannot fire in a normal run,
+        // because every real test-running job HAS the step: that is what this file exists to keep true.
+        // So writing `is { } step &&` instead of `is not { } step ||` would ship green, and a missing
+        // upload would read as *satisfying* all five claims — the vacuity this suite guards against
+        // everywhere else, sitting in its own helper.
+        var missing = new TestRunningJob("fixture.yml", "build", """
+                                                                 steps:
+                                                                   - name: 'Run: Test'
+                                                                     run: ./build.sh Test
+                                                                 """);
+
+        // The conforming job is not decoration: without it this test would pass just as happily against
+        // a helper that reported EVERY job as an offender.
+        var conforming = new TestRunningJob("fixture.yml", "good", $"""
+                                                                   steps:
+                                                                     - name: '{UploadStepName}'
+                                                                       if: always()
+                                                                       uses: actions/upload-artifact@v4
+                                                                       with:
+                                                                         path: test-results
+                                                                         if-no-files-found: ignore
+                                                                   """);
+
+        foreach (var claim in UploadClaims)
+        {
+            UploadOffenders([missing], claim.Value)
+                .ShouldBe([missing], $"the '{claim.Key}' claim does not report a job with no upload step");
+
+            UploadOffenders([conforming], claim.Value)
+                .ShouldBeEmpty($"the '{claim.Key}' claim reports a conforming upload step as an offender");
+        }
+    }
 
     [Fact]
     public void BuildScript_Should_Not_Set_The_VSTest_Properties_That_Mtp_Ignores()
@@ -360,9 +437,7 @@ public class TestReportingTests
         // Asked through the same primitive as the four tests below rather than by a raw substring
         // search, so "present" means the one thing here and there — a step the scan can actually
         // isolate, not merely the text of a `- name:` line appearing somewhere in the job.
-        var missing = JobsThatRunTests()
-            .Where(j => UploadStep(j) is null)
-            .ToList();
+        var missing = UploadOffenders(JobsThatRunTests(), _ => true);
 
         missing.ShouldBeEmpty();
     }
@@ -374,9 +449,9 @@ public class TestReportingTests
         // one worth preserving, and it is exactly the path a bare step skips. Microsoft.Testing.
         // Platform prints only a summary line to stdout, so without this a red CI run leaves no
         // record of *which* assertion failed — a cost that was paid for real during #200.
-        var offenders = JobsThatRunTests()
-            .Where(j => UploadStepFails(j, s => s.Contains("if: always()", StringComparison.Ordinal)))
-            .ToList();
+        var offenders = UploadOffenders(
+            JobsThatRunTests(),
+            s => s.Contains("if: always()", StringComparison.Ordinal));
 
         offenders.ShouldBeEmpty();
     }
@@ -389,9 +464,9 @@ public class TestReportingTests
         // block listing test-results among other globs would satisfy a laxer line-wise check while
         // re-introducing the very globs the next test rejects. All three steps upload exactly one
         // directory, so that is what is pinned.
-        var offenders = JobsThatRunTests()
-            .Where(j => UploadStepFails(j, s => s.Split('\n').Any(line => line.Trim() == "path: test-results")))
-            .ToList();
+        var offenders = UploadOffenders(
+            JobsThatRunTests(),
+            s => s.Split('\n').Any(line => line.Trim() == "path: test-results"));
 
         offenders.ShouldBeEmpty();
     }
@@ -408,9 +483,9 @@ public class TestReportingTests
         // offends it, even though a step that is not there points at nothing: a missing step makes
         // this test red today by throwing, so letting it read as vacuously satisfied would trade a
         // loud failure for a quieter suite — the opposite of the point.
-        var offenders = JobsThatRunTests()
-            .Where(j => UploadStepFails(j, s => !s.Contains("**/TestResults/", StringComparison.Ordinal)))
-            .ToList();
+        var offenders = UploadOffenders(
+            JobsThatRunTests(),
+            s => !s.Contains("**/TestResults/", StringComparison.Ordinal));
 
         offenders.ShouldBeEmpty();
     }
@@ -423,9 +498,9 @@ public class TestReportingTests
         // warns on a condition that is entirely expected, and a warning nobody can act on is how a
         // real one gets missed. The opposite risk — an *empty* directory passing unremarked — is
         // covered in the build rather than here, by the Assert.NotEmpty on the trx.
-        var offenders = JobsThatRunTests()
-            .Where(j => UploadStepFails(j, s => s.Contains("if-no-files-found: ignore", StringComparison.Ordinal)))
-            .ToList();
+        var offenders = UploadOffenders(
+            JobsThatRunTests(),
+            s => s.Contains("if-no-files-found: ignore", StringComparison.Ordinal));
 
         offenders.ShouldBeEmpty();
     }
