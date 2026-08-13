@@ -13,20 +13,27 @@ public partial class MudBlazorAutocompleteFieldComponent<TModel, TValue>
     /// </summary>
     private readonly Dictionary<string, TValue> _valueLookup = new();
 
-    protected override void OnInitialized()
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#298).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
     {
-        base.OnInitialized();
+        base.OnFieldConfigurationChanged();
 
         _searchFunc = GetAttribute<Func<string, CancellationToken, Task<IEnumerable<SelectOption<TValue>>>>>("AutocompleteSearchFunc");
         _optionProvider = GetAttribute<object>("AutocompleteOptionProvider");
         _debounceMs = GetAttribute("AutocompleteDebounceMs", 300);
         _minCharacters = GetAttribute("AutocompleteMinCharacters", 1);
 
-        var customToString = GetAttribute<Func<TValue, string>>("AutocompleteToStringFunc");
-        if (customToString != null)
-        {
-            _toStringFunc = customToString;
-        }
+        // Assigned unconditionally, falling back to the same default the field initialiser uses. The
+        // previous "only overwrite when the new field supplies one" shape is the patch-not-reload
+        // trap (#298): a field that declares no converter would keep displaying its predecessor's.
+        // The option-loading path below re-derives a label-based converter on the next search when
+        // none is configured, exactly as before.
+        _toStringFunc = GetAttribute<Func<TValue, string>>("AutocompleteToStringFunc")
+                        ?? (value => value?.ToString() ?? string.Empty);
     }
 
     private async Task<IEnumerable<TValue>> SearchAsync(string searchText, CancellationToken cancellationToken)

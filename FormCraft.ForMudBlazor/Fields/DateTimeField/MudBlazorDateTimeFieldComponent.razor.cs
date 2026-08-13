@@ -61,6 +61,16 @@ public partial class MudBlazorDateTimeFieldComponent<TModel>
 
         // Initialize local value
         _localValue = CurrentValue == default ? null : CurrentValue;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#298).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
 
         // Load configuration from additional attributes
         InputMode = GetAttribute("InputMode", DateTimeInputMode.Date);

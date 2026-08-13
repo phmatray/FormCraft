@@ -22,6 +22,20 @@ public partial class MudBlazorLookupFieldComponent<TModel, TValue>
         UpdateDisplayText();
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// This component reads its attributes on demand rather than caching them, so it has no
+    /// configuration staleness to fix — but <c>_displayText</c> is derived from them, and
+    /// <c>UpdateDisplayText</c> only fills it when it is empty. Without this reset an instance handed
+    /// a different field would keep displaying the previous field's text for ever (#298).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
+
+        _displayText = string.Empty;
+    }
+
     private void UpdateDisplayText()
     {
         // Try to get the display selector and use it to show current value
