@@ -27,7 +27,8 @@ The test projects are **Microsoft.Testing.Platform** hosts, not VSTest. That cha
 see the warning below the commands, which is the part that costs time if you skip it.
 
 ```bash
-# Run everything — 1340 tests across the three test projects (808 + 464 + 68)
+# Run everything — ~1,550 tests across the three test projects (approximate on purpose: the
+# exact figure drifts with every merge, and a stale precise number reads as authoritative)
 dotnet test
 
 # Run one test project
