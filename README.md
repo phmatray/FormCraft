@@ -328,6 +328,12 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Deprecation notice:** the `Expression<Func<…>>` overloads of `WithDisplay` and `WithKey` are now `[Obsolete]` and **will be removed in v4.0.0**. They only compiled the expression and discarded the tree, so they never did anything the lambda form does not — and under Blazor WebAssembly that `Expression.Compile()` is the trimming-hostile path. Pass a lambda, or `expr.Compile()` if you genuinely hold an expression.
 
+- **Rendering a field no longer recompiles its value getter every time.** Each field's value expression was rebuilt *and* run through `Expression.Compile()` — which emits IL — on every render. Since #203 routed collection item fields through the same service, a collection paid that per row per field, on every keystroke in any row: a 50-row × 5-field item form did 250 expression builds and 250 compiles per character typed on the render path alone. The compiled getter is now cached per field configuration, and the projected expression is built once (#269)
+
+  **This covers the render path, and only that path.** Validation still compiles per call — `CollectionFieldValidator` compiles once per item per field on each validation pass, and `DynamicFormValidator` does the same — so a keystroke in a *validated* collection still pays there. If you are measuring, expect the render-path compiles to go to zero and the validation-path compiles to remain; the rest is tracked separately.
+
+  **Nothing to change, and nothing to notice but speed.** The cache holds the *getter*, never the value it returns, so every render still reads the model afresh; it is keyed by configuration instance, so two configurations over the same property never share an entry and nothing is held alive beyond the configuration it belongs to. No public API moved, and `IFieldRenderContext.CurrentValue` keeps its type, timing and meaning for custom renderers. It does assume what the fluent builder already guarantees: that a configuration's `ValueExpression` does not change identity after `Build()`.
+
 ## 🎉 What's New in v3.1.0
 
 v3.1.0 implements every issue that was open after v3.0 — all features, no breaking changes. [Full changelog →](https://github.com/phmatray/FormCraft/releases/tag/v3.1.0)
