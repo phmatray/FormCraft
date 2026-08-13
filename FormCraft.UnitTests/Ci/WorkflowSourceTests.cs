@@ -245,6 +245,78 @@ public class WorkflowSourceTests
     }
 
     [Fact]
+    public void TryStepNamed_Should_Return_Null_Where_StepNamed_Asserts()
+    {
+        // Why absence needs a non-asserting form at all: StepNamed asserts from inside the shared
+        // helper, so one missing step turns every test that reaches for it red — each of them
+        // reporting the same single root cause as an apparent *helper* failure. TestReportingTests
+        // had four tests doing that, next to one that reported the offender cleanly.
+        const string Steps = """
+                             steps:
+                               - name: 'Publish: test-results'
+                                 uses: actions/upload-artifact@v4
+                             """;
+
+        WorkflowSource.TryStepNamed(Steps, "nope").ShouldBeNull();
+
+        // A present step still comes back whole, from its own header.
+        WorkflowSource.TryStepNamed(Steps, "Publish: test-results")
+            .ShouldNotBeNull()
+            .ShouldContain("- name: 'Publish: test-results'");
+
+        // And the asserting form is untouched — it is still the right choice for a caller with
+        // nothing better to say about absence, because it names the scope the scan cannot infer.
+        var error = Should.Throw<ShouldAssertException>(
+            () => WorkflowSource.StepNamed(Steps, "nope", "the fixture"));
+
+        error.Message.ShouldContain("the fixture");
+        error.Message.ShouldContain("no longer has a step named 'nope'");
+    }
+
+    [Fact]
+    public void TryStepWithId_Should_Return_Null_Where_StepWithId_Asserts()
+    {
+        const string Steps = """
+                             steps:
+                               - name: current login
+                                 id: login
+                                 uses: NuGet/login@v1
+                             """;
+
+        WorkflowSource.TryStepWithId(Steps, "nope").ShouldBeNull();
+
+        WorkflowSource.TryStepWithId(Steps, "login")
+            .ShouldNotBeNull()
+            .ShouldContain("- name: current login");
+
+        var error = Should.Throw<ShouldAssertException>(
+            () => WorkflowSource.StepWithId(Steps, "nope", "the fixture"));
+
+        error.Message.ShouldContain("the fixture");
+        error.Message.ShouldContain("no longer has a step with `id: nope`");
+    }
+
+    [Fact]
+    public void TryStepWithId_Should_Still_Fail_Loudly_On_An_Ambiguous_Id()
+    {
+        // The one thing the Try form must NOT soften. Absence and ambiguity are different answers:
+        // returning null for two steps claiming one id would report a duplicated step as a missing
+        // one, quietly undoing Task 1's whole point one call further out.
+        const string Steps = """
+                             steps:
+                               - name: first login
+                                 id: login
+                                 uses: NuGet/login@v1
+                               - name: second login
+                                 id: login
+                                 uses: NuGet/login@v2
+                             """;
+
+        Should.Throw<ShouldAssertException>(() => WorkflowSource.TryStepWithId(Steps, "login"))
+            .Message.ShouldContain("ambiguous");
+    }
+
+    [Fact]
     public void Matching_Should_Find_The_Workflows_That_Invoke_The_Build()
     {
         // The discovery primitive the whole TestReportingTests family rests on: it decides which

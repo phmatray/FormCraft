@@ -211,15 +211,31 @@ internal static class WorkflowSource
     /// </param>
     internal static string StepNamed(string scope, string stepName, string? scopeDescription = null)
     {
+        var step = TryStepNamed(scope, stepName);
+        step.ShouldNotBeNull($"{scopeDescription ?? "the searched text"} no longer has a step named '{stepName}'");
+
+        return step!;
+    }
+
+    /// <summary>
+    /// <see cref="StepNamed" /> without the assertion: the step's own lines, or <c>null</c> when the
+    /// scope has no such step.
+    /// </summary>
+    /// <remarks>
+    /// For callers that have something better to say about absence than this helper does (#267).
+    /// Asserting from in here means one missing step reddens every test that reaches for it, each
+    /// reporting the same single root cause as an apparent *helper* failure — so the one test whose
+    /// actual subject is "the step is present" is drowned out by four whose subject is what the step
+    /// contains. A caller collecting offenders can name the job instead, once, per test that cares.
+    /// </remarks>
+    internal static string? TryStepNamed(string scope, string stepName)
+    {
         var lines = scope.Split('\n');
         var start = Array.FindIndex(
             lines,
             l => l.TrimStart().StartsWith($"- name: '{stepName}'", StringComparison.Ordinal));
-        start.ShouldBeGreaterThanOrEqualTo(
-            0,
-            $"{scopeDescription ?? "the searched text"} no longer has a step named '{stepName}'");
 
-        return StepFrom(lines, start);
+        return start < 0 ? null : StepFrom(lines, start);
     }
 
     /// <summary>
@@ -253,6 +269,34 @@ internal static class WorkflowSource
     /// </remarks>
     internal static string StepWithId(string scope, string stepId, string? scopeDescription = null)
     {
+        var step = StepWithIdOrNull(scope, stepId, scopeDescription);
+        step.ShouldNotBeNull($"{scopeDescription ?? "the searched text"} no longer has a step with `id: {stepId}`");
+
+        return step!;
+    }
+
+    /// <summary>
+    /// <see cref="StepWithId" /> without the absence assertion: the step's own lines, or <c>null</c>
+    /// when the scope has no step carrying that id.
+    /// </summary>
+    /// <remarks>
+    /// An <em>ambiguous</em> id still fails loudly here rather than reading as absent. The two are
+    /// different answers with different remedies, and reporting a duplicated step as a missing one
+    /// would quietly undo the anchoring above, one call further out.
+    /// </remarks>
+    internal static string? TryStepWithId(string scope, string stepId) =>
+        StepWithIdOrNull(scope, stepId, null);
+
+    /// <summary>
+    /// The shared body of <see cref="StepWithId" /> and <see cref="TryStepWithId" />: <c>null</c> for
+    /// absent, the step's lines otherwise, and a loud failure for an ambiguous id either way.
+    /// </summary>
+    /// <remarks>
+    /// Private, and carrying the <paramref name="scopeDescription" /> the public <c>Try</c> form does
+    /// not take, so the ambiguity message can still name a scope when the caller knows one.
+    /// </remarks>
+    private static string? StepWithIdOrNull(string scope, string stepId, string? scopeDescription)
+    {
         var lines = scope.Split('\n');
         var matches = LinesDeclaring(lines, stepId);
 
@@ -262,13 +306,10 @@ internal static class WorkflowSource
 
         // Both "no such id" and "an id belonging to no list item" are absence: the second is a
         // malformed scope, and slicing it from line 0 would hand back the file's preamble dressed up
-        // as a step. One message covers both because the caller's remedy is the same either way.
+        // as a step. One answer covers both because the caller's remedy is the same either way.
         var header = matches.Count == 1 ? HeaderAtOrAbove(lines, matches[0]) : -1;
-        header.ShouldBeGreaterThanOrEqualTo(
-            0,
-            $"{scopeDescription ?? "the searched text"} no longer has a step with `id: {stepId}`");
 
-        return StepFrom(lines, header);
+        return header < 0 ? null : StepFrom(lines, header);
     }
 
     /// <summary>
