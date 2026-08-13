@@ -21,6 +21,34 @@ dotnet build /p:TreatWarningsAsErrors=true
 ./pack-local.ps1 # Windows
 ```
 
+### Code style (`.editorconfig`) — enforced in CI, not in the build
+
+```bash
+./build.sh Format                        # the CI gate: verify only, fails on any diff
+dotnet format FormCraft.sln              # apply the fixes
+dotnet format FormCraft.sln whitespace   # or scope it: whitespace only
+dotnet format FormCraft.sln style        # ...or the IDE* code-style rules only
+```
+
+- **`EnforceCodeStyleInBuild` is deliberately NOT set**, so `IDE*` analyzers do not run during
+  `dotnet build`. That is why `.editorconfig`'s `warning` severities never met
+  `TreatWarningsAsErrors` and 574 violations accumulated across 201 files before #301 — the two
+  settings *look* like enforcement together and are not. ⛔ Don't "fix" that by switching the
+  property on: with warnings-as-errors, one missing brace would break `dotnet build` mid-edit and
+  every incremental build would pay for the analyzer pass. The `Format` CI step is where regression
+  is caught.
+- ⚠️ **`dotnet format` can corrupt multi-targeted files when it *applies* fixes.** `FormCraft` is
+  `net8.0;net10.0`, and a fix applied once per TFM can land as a literal
+  `<<<<<<< TODO: Unmerged change from project 'FormCraft(net10.0)'` conflict block **written into
+  the `.cs` file** — code that does not compile (measured in #301 on `FieldRendererBase.cs`).
+  Verify mode never writes, so CI is safe. After any apply run:
+  `grep -rl '<<<<<<< TODO' --include='*.cs' .` and hand-resolve before committing.
+- **`IDE0032` now rewrites a private backing field into C# 14's `field` keyword.** Value-identical,
+  but it silently deletes the XML docs that lived on the field — which on
+  `MudBlazorFileUploadComponentBase.RequiredDescriptionId` were documenting a real correctness
+  invariant (#262: the hint id must be unique per rendered instance). Read those hunks; move the
+  explanation onto the property rather than losing it.
+
 ### Running Tests
 ```bash
 # Run all tests (600+ unit tests across 2 test projects)
