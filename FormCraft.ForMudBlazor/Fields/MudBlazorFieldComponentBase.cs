@@ -354,11 +354,91 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// </summary>
     protected virtual bool SuppressShrinkLabelDiagnostic => false;
 
+    /// <summary>
+    /// The field whose configuration is currently cached in this instance's properties (#298).
+    /// </summary>
+    /// <remarks>
+    /// Compared by reference, and that is the whole mechanism. A built
+    /// <see cref="IFieldConfiguration{TModel, TValue}"/> is immutable and handed out by reference, so
+    /// "same object" answers exactly the question being asked — <i>am I still showing the field I
+    /// loaded?</i> — for nothing. #269 keys its compiled-getter cache on the same property.
+    /// <para>
+    /// A value-based key such as <c>FieldName</c> would be wrong, not merely slower: two collections
+    /// can each hold a field called <c>Phone</c>, which is the collision #283's diagnostic key already
+    /// had to qualify around.
+    /// </para>
+    /// </remarks>
+    private object? _loadedField;
+
+    /// <inheritdoc />
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // Before the derived component's own OnInitialized body runs — it calls base.OnInitialized()
+        // first, so its configuration is loaded by the time its diagnostics look at it.
+        RefreshFieldConfigurationIfChanged();
+    }
+
     /// <inheritdoc />
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
+
+        // #298. Blazor reuses a component instance whenever the render-tree shape matches, so this is
+        // the only place a component learns it has been handed a different field. Without it the
+        // instance renders the previous field's mask, adornment and input type indefinitely — silently,
+        // and with output that looks entirely plausible.
+        RefreshFieldConfigurationIfChanged();
+
         EmitShrinkLabelDiagnosticIfNeeded();
+    }
+
+    /// <summary>
+    /// Calls <see cref="OnFieldConfigurationChanged"/> when, and only when, the field changed.
+    /// </summary>
+    /// <remarks>
+    /// The guard is what makes this affordable. <see cref="OnParametersSet"/> runs on every keystroke
+    /// (fields bind with <c>Immediate="true"</c>), and reloading unconditionally would repeat a
+    /// dictionary lookup and a type test for every attribute the component reads — eight of them on
+    /// the text field — per character typed. One reference comparison replaces all of it.
+    /// </remarks>
+    private void RefreshFieldConfigurationIfChanged()
+    {
+        var field = (object?)Context?.Field;
+
+        if (ReferenceEquals(field, _loadedField))
+        {
+            return;
+        }
+
+        _loadedField = field;
+        OnFieldConfigurationChanged();
+    }
+
+    /// <summary>
+    /// Reads everything this component caches from <c>Context.Field</c>. Called once per field (#298).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Override this instead of loading configuration in <c>OnInitialized</c>. It runs on first render
+    /// and again whenever a different field arrives, so a component that puts all of its
+    /// <c>GetAttribute</c> calls here can never render a stale setting.
+    /// </para>
+    /// <para>
+    /// ⛔ <b>Assign every cached property on every call, including back to its default.</b> The override
+    /// is a reload, not a patch: a property left untouched because the new field does not declare that
+    /// attribute keeps the <i>previous</i> field's value, which is the same bug in a smaller box. A
+    /// field that dropped its mask would go on masking.
+    /// </para>
+    /// <para>
+    /// Configuration-shaped diagnostics belong here too — they describe the field, so a new field
+    /// deserves its own verdict, and any per-instance latch they use should be reset alongside the
+    /// properties it guards.
+    /// </para>
+    /// </remarks>
+    protected virtual void OnFieldConfigurationChanged()
+    {
     }
 
     /// <summary>

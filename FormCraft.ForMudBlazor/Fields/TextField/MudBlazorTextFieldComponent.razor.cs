@@ -83,10 +83,29 @@ public partial class MudBlazorTextFieldComponent<TModel>
 
     protected override void OnInitialized()
     {
+        // base.OnInitialized() loads the value from the model AND runs the configuration hook below,
+        // so by the time this line executes both are current (#298).
         base.OnInitialized();
 
         // Initialize local value from CurrentValue
         _localValue = CurrentValue;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Everything this component caches from the field lives here rather than in
+    /// <see cref="OnInitialized"/>, so a component instance handed a different field re-reads it
+    /// instead of rendering the previous field's settings (#298). Every property is assigned on every
+    /// call — including back to its default — because an untouched property would keep the old field's
+    /// value, which is the same bug the hook exists to fix.
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
+
+        // A different field gets its own verdict from the value diagnostic (#283): the latch is
+        // per-instance, and this instance is now showing something else.
+        _maskedValueReportingSettled = false;
 
         // Load configuration - prioritize field.InputType over AdditionalAttributes
         ConfiguredLines = GetAttribute("Lines", 1);
@@ -126,6 +145,14 @@ public partial class MudBlazorTextFieldComponent<TModel>
         // — so it cannot run until both are loaded, or it would report on a mask the field does not
         // use.
         WarnIfMaskChangesTheStoredValue();
+
+        // Cleared before the branches below, because neither of them necessarily runs: a field that
+        // configures no adornment and no password toggle assigns nothing, and on a reload that would
+        // leave the PREVIOUS field's adornment — icon, colour and click handler — on screen (#298).
+        Adornment = null;
+        AdornmentIcon = null;
+        AdornmentColor = Color.Default;
+        OnAdornmentClick = null;
 
         // Load adornment configuration
         var customAdornment = GetAttribute<Adornment?>("Adornment");
