@@ -149,8 +149,28 @@ register exactly one adapter and prefer putting `AddFormCraftFluentUI()` last if
 
 A `.Required(...)` field is announced to assistive technology with `aria-required="true"`, matching
 the guarantee the MudBlazor adapter carries since
-[#199](https://github.com/phmatray/FormCraft/issues/199). Suppress the decoration per-field with
-`.WithAttribute("Required", false)`.
+[#199](https://github.com/phmatray/FormCraft/issues/199).
+
+Control the decoration independently of the validator with the typed `.WithNativeRequired(...)`
+(add `using FormCraft.ForFluentUI.Extensions;`):
+
+```csharp
+.AddField(x => x.Email, f => f
+    .Required("Email is required")   // the validation
+    .WithNativeRequired())           // the decoration
+
+.AddField(x => x.Nickname, f => f
+    .Required("Nickname is required")
+    .WithNativeRequired(false))      // validated, but not announced
+```
+
+It wins over the validator in **both** directions, and replaces the raw
+`.WithAttribute("Required", …)` form this README used to document — that still works and writes the
+same attribute, but it is a magic string one typo away from silently doing nothing.
+
+**File uploads are the exception:** a required upload is marked with a visible `*` on its label and
+an `aria-describedby` hint on its Browse button, not `aria-required` on the hidden file input, which
+no keyboard user ever reaches.
 
 FormCraft validates server-side: the form renders `novalidate`, so the browser runs no constraint
 validation of its own.
