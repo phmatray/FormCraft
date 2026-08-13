@@ -385,6 +385,14 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     public CollectionItemFieldScope? ItemFieldScope { get; set; }
 
     /// <summary>
+    /// The form this field is rendered inside, or <c>null</c> when it is rendered standalone through
+    /// <see cref="IFieldRendererService"/> with no <see cref="FormCraftComponent{TModel}"/> around it
+    /// (#304).
+    /// </summary>
+    [CascadingParameter(Name = FormCraftCascadingValues.FormDiagnosticScope)]
+    public FormDiagnosticScope? FormDiagnosticScope { get; set; }
+
+    /// <summary>
     /// The identity this field is reported under by the form-wide diagnostic collectors: its bare
     /// field name, or <c>&lt;collection&gt;[].&lt;field&gt;</c> when it is an item field (#213).
     /// </summary>
@@ -402,13 +410,20 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>No scope means report.</b> The latch exists because a collection renders one component
-    /// instance <i>per row</i>, so a diagnostic emitted from <c>OnInitialized</c> would fire fifty
-    /// times about one field's configuration in a fifty-item collection. Outside a collection there
-    /// is no scope, nothing to de-duplicate, and the field must report — the common case, and why
-    /// the default is <c>true</c>. Inverting it silences the diagnostics for ordinary fields while
-    /// leaving them working inside collections, so the failure hides in the case least likely to be
-    /// tested. Pinned by <c>DiagnosticLatchTests</c>.
+    /// <b>Three arms, most specific first.</b> A collection renders one component instance <i>per
+    /// row</i>, so a diagnostic emitted from <c>OnInitialized</c> would fire fifty times about one
+    /// field's configuration in a fifty-item collection — <see cref="ItemFieldScope"/> answers that.
+    /// Failing that, <see cref="FormDiagnosticScope"/> answers the same question for the form (#304),
+    /// which is what makes the guarantee survive a <b>re-mount</b>: <c>.VisibleWhen(...)</c> toggled
+    /// or a wizard step revisited destroys the component and builds a new one, and no per-instance
+    /// flag can outlive that.
+    /// </para>
+    /// <para>
+    /// <b>Neither scope means report.</b> A field rendered standalone through
+    /// <see cref="IFieldRendererService"/> has nothing to de-duplicate against, so it always reports
+    /// — and that default is <c>true</c> deliberately. Inverting it silences the diagnostics for
+    /// ordinary fields while leaving them working inside collections, so the failure hides in the
+    /// case least likely to be tested. Pinned by <c>DiagnosticLatchTests</c>.
     /// </para>
     /// <para>
     /// <b>The category is part of the key.</b> One field can legitimately trip several diagnostics —
@@ -426,8 +441,29 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     /// <param name="category">
     /// The diagnostic's logger category, e.g. <see cref="MaskedLinesDiagnostic.Category"/>.
     /// </param>
-    protected bool ShouldReport(string category) =>
-        ItemFieldScope?.ShouldWarnOnce(category, DiagnosticFieldKey) ?? true;
+    protected bool ShouldReport(string category)
+    {
+        // A collection field asks its collection: "has this field reported for any ROW?" One
+        // instance per collection, so it already survives row churn — and it takes precedence,
+        // because inside a collection it is the more specific question.
+        if (ItemFieldScope is not null)
+        {
+            return ItemFieldScope.ShouldWarnOnce(category, DiagnosticFieldKey);
+        }
+
+        // Otherwise the form, when there is one: "has this field reported at all?" (#304). This is
+        // the arm that survives a re-mount — `.VisibleWhen(...)` toggled, a wizard step revisited —
+        // which no per-instance flag can, since a re-mount is by definition a new instance.
+        if (FormDiagnosticScope is not null)
+        {
+            return FormDiagnosticScope.ShouldWarnOnce(category, DiagnosticFieldKey);
+        }
+
+        // Neither scope: a field rendered standalone through IFieldRendererService, with nothing to
+        // de-duplicate against. It always reports — the polarity DiagnosticLatchTests pins, and the
+        // one #284 warns never to invert.
+        return true;
+    }
 
     private bool _shrinkLabelDiagnosticEmitted;
 
