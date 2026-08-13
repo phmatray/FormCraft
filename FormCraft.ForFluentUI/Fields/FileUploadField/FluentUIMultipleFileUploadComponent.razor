@@ -1,0 +1,43 @@
+@namespace FormCraft.ForFluentUI
+@typeparam TModel
+@inherits FluentUIFileUploadComponentBase<TModel, List<IBrowserFile>>
+
+<div class="formcraft-file-upload">
+    @if (HasLabel)
+    {
+        <FluentLabel Weight="LabelWeight.Semibold">
+            @Label@if (NativeRequiredValue)
+            {
+                <FileUploadRequiredMarker />
+            }
+        </FluentLabel>
+    }
+
+    <FluentInputFile Multiple="true"
+                     Accept="@Accept"
+                     Disabled="@IsDisabled"
+                     Mode="InputFileMode.Stream"
+                     MaximumFileCount="@MaximumFileCount"
+                     MaximumFileSize="@MaximumFileSize"
+                     OnInputFileChange="@HandleFilesChangedAsync"
+                     AnchorId="@BrowseButtonId"
+                     aria-label="@FileInputAccessibleName" />
+
+    <FluentButton Id="@BrowseButtonId"
+                  Appearance="ButtonAppearance.Outline"
+                  Disabled="@IsDisabled"
+                  aria-describedby="@RequiredDescribedBy"
+                  data-testid="formcraft-upload-browse">
+        Browse
+    </FluentButton>
+
+    @if (NativeRequiredValue)
+    {
+        <FileUploadRequiredHint Id="@RequiredDescriptionId" Text="@RequiredDescription" />
+    }
+
+    @foreach (var file in SelectedFiles)
+    {
+        <FluentLabel data-testid="formcraft-upload-selected">@file.Name</FluentLabel>
+    }
+</div>

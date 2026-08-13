@@ -72,9 +72,24 @@ var config = FormBuilder<ContactModel>.Create()
 Set `SecurityContextId` on the component to a per-user or per-session value, or rate limits are
 shared across every user of the form (it defaults to the model type name).
 
+## Lookup and LOV pickers are inline, not modal
+
+`.AsLookup(...)` and `.AsLov(...)` render a read-only display plus a **Browse** button that reveals
+the candidate rows in an inline panel. The MudBlazor adapter opens a modal dialog instead, and the
+difference is deliberate: Fluent UI v5's dialog service renders nothing unless the host application
+places a `FluentDialogProvider` in its layout, and a field component cannot check that. A Browse
+button that silently did nothing on an app which had not added the provider is the kind of quiet
+failure this library avoids elsewhere, so the picker is rendered where it cannot fail to appear.
+
+⚠️ **`.AsLookup(...)` for Fluent lives in `FormCraft.ForFluentUI.Extensions`**, not in namespace
+`FormCraft`, because the MudBlazor package already publishes a method of that name there and a
+project referencing both would get `CS0121` on every call. Add
+`using FormCraft.ForFluentUI.Extensions;` and call it as usual. Both write the same attributes, so
+either package's `.AsLookup(...)` renders correctly under either adapter.
+
 ## Not yet covered
 
-- Lookup and LOV dialogs, autocomplete, multi-select, file upload, and custom renderers.
+- Custom renderers (colour picker, rating, slider).
 
 See the follow-ups on [#260](https://github.com/phmatray/FormCraft/issues/260).
 

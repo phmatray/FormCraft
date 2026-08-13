@@ -64,11 +64,22 @@ public static class ServiceCollectionExtensions
             }
 
             // Register Fluent UI-specific renderers. Renderer selection picks the FIRST renderer
-            // whose CanRender matches, so configuration-driven renderers (select) must be
-            // registered before the generic type-based ones or a string field carrying options
-            // would always end up with the text renderer. Follow-ups adding LOV, lookup and
-            // autocomplete must insert them above the type-based block too.
+            // whose CanRender matches, so ORDER IS BEHAVIOUR, not tidiness:
+            //
+            //  1. Configuration-driven renderers (LOV, lookup, autocomplete, multi-select, select)
+            //     come first. A string field carrying options or a search function is still a
+            //     string, so registered after the text renderer it would silently render as a
+            //     plain text box with its configuration ignored.
+            //  2. The multiple-file renderer precedes the single-file one: a
+            //     List<IBrowserFile> field satisfies both predicates.
+            //  3. The type-based block comes last, most specific first.
+            services.AddScoped<IFieldRenderer, FluentUILovFieldRenderer>();
+            services.AddScoped<IFieldRenderer, FluentUILookupFieldRenderer>();
+            services.AddScoped<IFieldRenderer, FluentUIAutocompleteFieldRenderer>();
+            services.AddScoped<IFieldRenderer, FluentUIMultiSelectFieldRenderer>();
             services.AddScoped<IFieldRenderer, FluentUISelectFieldRenderer>();
+            services.AddScoped<IFieldRenderer, FluentUIMultipleFileUploadRenderer>();
+            services.AddScoped<IFieldRenderer, FluentUIFileUploadFieldRenderer>();
             services.AddScoped<IFieldRenderer, FluentUIDateTimeFieldRenderer>();
             services.AddScoped<IFieldRenderer, FluentUIDateOnlyFieldRenderer>();
             services.AddScoped<IFieldRenderer, FluentUITimeOnlyFieldRenderer>();

@@ -1,0 +1,73 @@
+@namespace FormCraft.ForFluentUI
+@typeparam TModel
+@typeparam TValue
+@inherits FluentUIFieldComponentBase<TModel, TValue>
+
+<div class="formcraft-lookup">
+    <FluentTextInput Value="@DisplayText"
+                     Label="@Label"
+                     Placeholder="@(Placeholder ?? "Click to select...")"
+                     ReadOnly="true"
+                     Disabled="@IsDisabled"
+                     Required="@EffectiveNativeRequired"
+                     aria-describedby="@AriaDescribedBy"
+                     aria-required="@AriaRequired" />
+
+    <FluentButton Appearance="ButtonAppearance.Outline"
+                  Disabled="@(IsDisabled || IsReadOnly)"
+                  OnClick="@TogglePickerAsync"
+                  aria-expanded="@(_isOpen ? "true" : "false")"
+                  aria-label="@($"Browse {Label ?? "values"}")"
+                  data-testid="formcraft-lookup-open">
+        @(_isOpen ? "Close" : "Browse")
+    </FluentButton>
+
+    @if (_isOpen)
+    {
+        <FluentCard Class="formcraft-lookup-panel" data-testid="formcraft-lookup-panel">
+            <FluentTextInput Value="@_searchText"
+                             ValueChanged="@OnSearchChangedAsync"
+                             Immediate="true"
+                             Placeholder="Search..."
+                             aria-label="Search values"
+                             data-testid="formcraft-lookup-search" />
+
+            @if (_isLoading)
+            {
+                <FluentSpinner aria-label="Loading values" />
+            }
+            else if (_rows.Count == 0)
+            {
+                <FluentLabel data-testid="formcraft-lookup-empty">No matches.</FluentLabel>
+            }
+            else
+            {
+                <table class="formcraft-lookup-grid">
+                    <thead>
+                        <tr>
+                            @foreach (var column in Columns)
+                            {
+                                <th scope="col">@column.Title</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in _rows)
+                        {
+                            var captured = row;
+                            <tr role="button"
+                                tabindex="0"
+                                @onclick="@(() => SelectRowAsync(captured))"
+                                data-testid="formcraft-lookup-row">
+                                @foreach (var column in Columns)
+                                {
+                                    <td>@column.ValueSelector(captured)</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </FluentCard>
+    }
+</div>

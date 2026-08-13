@@ -1,0 +1,96 @@
+@namespace FormCraft.ForFluentUI
+@typeparam TModel
+@typeparam TValue
+@typeparam TItem
+@inherits FluentUIFieldComponentBase<TModel, TValue>
+
+<div class="formcraft-lov">
+    <FluentTextInput Value="@DisplayText"
+                     Label="@Label"
+                     Placeholder="@(Placeholder ?? "Click to select...")"
+                     ReadOnly="true"
+                     Disabled="@IsDisabled"
+                     Required="@EffectiveNativeRequired"
+                     aria-describedby="@AriaDescribedBy"
+                     aria-required="@AriaRequired" />
+
+    <FluentButton Appearance="ButtonAppearance.Outline"
+                  Disabled="@(IsDisabled || IsReadOnly)"
+                  OnClick="@TogglePickerAsync"
+                  aria-expanded="@(_isOpen ? "true" : "false")"
+                  aria-label="@($"Browse {Label ?? "values"}")"
+                  data-testid="formcraft-lov-open">
+        @(_isOpen ? "Close" : "Browse")
+    </FluentButton>
+
+    @if (_isOpen)
+    {
+        <FluentCard Class="formcraft-lov-panel" data-testid="formcraft-lov-panel">
+            @if (SearchEnabled)
+            {
+                <FluentTextInput Value="@_searchText"
+                                 ValueChanged="@OnSearchChangedAsync"
+                                 Immediate="true"
+                                 Placeholder="@SearchPlaceholder"
+                                 aria-label="Search values"
+                                 data-testid="formcraft-lov-search" />
+            }
+
+            @if (_isLoading)
+            {
+                <FluentSpinner aria-label="Loading values" />
+            }
+            else if (_rows.Count == 0)
+            {
+                <FluentLabel data-testid="formcraft-lov-empty">No matches.</FluentLabel>
+            }
+            else
+            {
+                <table class="formcraft-lov-grid">
+                    <thead>
+                        <tr>
+                            @foreach (var column in Columns)
+                            {
+                                <th scope="col">@column.Header</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in _rows)
+                        {
+                            var captured = row;
+                            <tr role="button"
+                                tabindex="0"
+                                @onclick="@(() => SelectRowAsync(captured))"
+                                data-testid="formcraft-lov-row">
+                                @foreach (var column in Columns)
+                                {
+                                    <td>@column.ValueSelector(captured)</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </FluentCard>
+    }
+
+    @if (IsMultiSelect && _selectedItems.Count > 0)
+    {
+        <div class="formcraft-lov-selection">
+            @foreach (var item in _selectedItems)
+            {
+                var captured = item;
+                <FluentBadge Appearance="BadgeAppearance.Filled" data-testid="formcraft-lov-chip">
+                    @LovConfig!.DisplaySelector(captured)
+                    <FluentButton Appearance="ButtonAppearance.Transparent"
+                                  OnClick="@(() => RemoveSelectedAsync(captured))"
+                                  aria-label="@($"Remove {LovConfig.DisplaySelector(captured)}")"
+                                  data-testid="formcraft-lov-chip-remove">
+                        &#215;
+                    </FluentButton>
+                </FluentBadge>
+            }
+        </div>
+    }
+</div>

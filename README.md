@@ -68,7 +68,9 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Field groups render with their layout** — `ShowInCard()` gives a `FluentCard`, `WithColumns(n)` spreads the group across Fluent's 12-column grid, and ungrouped fields still render after the groups (#278). `ShowInCard(elevation: n)` is mapped onto Fluent's five shadow buckets rather than ignored, since Fluent has no equivalent of MudBlazor's integer elevation scale.
 
-  **Not yet covered:** lookup and LOV dialogs, autocomplete, multi-select, file upload, and custom renderers.
+  **Autocomplete, multi-select, file upload, lookup and LOV all render** (#278). Two things worth knowing: the lookup and LOV pickers are **inline panels rather than modals**, because Fluent v5's dialog service draws nothing unless the host app adds a `FluentDialogProvider` and a Browse button that silently did nothing would be worse than a different presentation; and a required **file upload** is announced by a visible `*` on its label plus an `aria-describedby` hint on the Browse button rather than `aria-required` on the hidden input, following the same measurement as #262.
+
+  **Not yet covered:** custom renderers (colour picker, rating, slider).
 
   **One adapter per application:** `AddFormCraftFluentUI()` throws if the MudBlazor adapter is already registered, because renderer selection is first-match-wins and a mixed container would silently render a half-Material form. ⚠️ The guard is one-directional — registering MudBlazor *after* Fluent is not caught yet. Fluent UI Blazor v5 is still an RC, so this package depends on a prerelease.
 
