@@ -25,9 +25,17 @@ public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TMo
     /// <inheritdoc />
     public string FieldName => _inner.FieldName;
 
+    private Expression<Func<TModel, object>>? _valueExpression;
+
     /// <inheritdoc />
+    /// <remarks>
+    /// The projected lambda is built once and then reused. The wrapped configuration's expression is
+    /// fixed at construction, so rebuilding an equivalent tree on every access was pure waste — and
+    /// the renderer service reads this property on every render of every field, which since #203
+    /// includes every field of every row of a collection (#269).
+    /// </remarks>
     public Expression<Func<TModel, object>> ValueExpression =>
-        Expression.Lambda<Func<TModel, object>>(
+        _valueExpression ??= Expression.Lambda<Func<TModel, object>>(
             Expression.Convert(_inner.ValueExpression.Body, typeof(object)),
             _inner.ValueExpression.Parameters);
 

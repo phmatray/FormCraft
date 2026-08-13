@@ -87,6 +87,22 @@ public class ValueGetterCachingTests
             "the second render rebuilt the value getter instead of reusing the one already compiled");
     }
 
+    [Fact]
+    public void ValueExpression_Should_Return_The_Same_Instance_On_Repeated_Access()
+    {
+        // Arrange
+        var wrapper = new FieldConfigurationWrapper<TestModel, string?>(
+            new FieldConfiguration<TestModel, string?>(x => x.Name));
+
+        // Act
+        var first = wrapper.ValueExpression;
+        var second = wrapper.ValueExpression;
+
+        // Assert - the wrapped configuration's expression is fixed at construction, so the object
+        // typed projection around it is built once rather than rebuilt per access.
+        second.ShouldBeSameAs(first);
+    }
+
     private (FieldRendererService Service, List<IFieldRenderContext<TestModel>> Contexts) CreateService()
     {
         var contexts = new List<IFieldRenderContext<TestModel>>();
