@@ -43,15 +43,31 @@ Then render a form exactly as you would with any other FormCraft adapter:
 | `DateTime`, `DateOnly` (and nullable forms) | `FluentDatePicker<T>` |
 | `TimeOnly`, `TimeOnly?` | `FluentTimePicker<T>` |
 
+## Security
+
+`.WithSecurity(...)` is **enforced** — rate limiting, CSRF protection, audit logging and field
+encryption all behave as they do in the MudBlazor adapter (#278). A blocked submission never reaches
+your `OnValidSubmit` handler, and the reason is shown in a `FluentMessageBar`.
+
+```csharp
+var config = FormBuilder<ContactModel>.Create()
+    .AddField(x => x.Email, f => f.WithLabel("Email"))
+    .WithSecurity(s => s
+        .WithRateLimit(5, TimeSpan.FromMinutes(1))
+        .EnableCsrfProtection()
+        .EnableAuditLogging())
+    .Build();
+```
+
+Set `SecurityContextId` on the component to a per-user or per-session value, or rate limits are
+shared across every user of the form (it defaults to the model type name).
+
 ## Not yet covered
 
 - Collection/item-form fields, lookup and LOV dialogs, autocomplete, multi-select, file upload, and
   custom renderers.
 - **Field groups** — `.AddFieldGroup(...)` fields render, but ungrouped and without the card/column
   layout the MudBlazor adapter gives them.
-- **`.WithSecurity(...)`** — rate limiting, CSRF protection, audit logging and field encryption are
-  *not* enforced. Rather than drop them silently, a form configured with security **throws** at
-  render time. Use `FormCraft.ForMudBlazor` for forms that need them.
 
 See the follow-ups on [#260](https://github.com/phmatray/FormCraft/issues/260).
 

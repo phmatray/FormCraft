@@ -32,6 +32,19 @@
             }
         }
 
+        @* Security enforcement feedback (rate limiting, CSRF, misconfiguration).
+           `data-testid` matches the MudBlazor container's hook so the two suites assert the
+           same selector - the banner is part of the behavioural contract, not decoration. *@
+        @if (!string.IsNullOrEmpty(_securityError))
+        {
+            @* v5 renamed this enum: MessageBarIntent, not v4's MessageIntent (#260's lesson). *@
+            <FluentMessageBar Intent="MessageBarIntent.Error"
+                              AllowDismiss="false"
+                              data-testid="formcraft-security-error">
+                @_securityError
+            </FluentMessageBar>
+        }
+
         @if (ShowSubmitButton)
         {
             <div>

@@ -62,7 +62,9 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Covers** text (including multiline and password), numeric (including nullable, which keeps `null` rather than coercing to `0`), boolean (checkbox or switch via `BooleanDisplayStyle`), `DateTime`/`DateOnly`/`TimeOnly`, and select from `.WithOptions(...)`. Required fields are announced with `aria-required="true"` and the form renders `novalidate`, matching the MudBlazor adapter's guarantees (#199, #206). Fluent v5 does **not** emit `aria-required` from its own `Required` parameter — measured, not assumed — so FormCraft writes it.
 
-  **Not yet covered:** collection/item-form fields, lookup and LOV dialogs, autocomplete, multi-select, file upload, custom renderers, and field-group layout. **`.WithSecurity(...)` is not enforced** — rate limiting, CSRF, audit logging and field encryption — so a form configured with it **throws at render time** rather than silently dropping the protections; use the MudBlazor adapter for those forms.
+  **`.WithSecurity(...)` is enforced** — rate limiting, CSRF protection, audit logging and field encryption behave as they do in the MudBlazor adapter, and a blocked submission never reaches your `OnValidSubmit` handler (#278). The render-time `NotSupportedException` #260 shipped as a fail-closed guard is gone, replaced by the enforcement it was standing in for.
+
+  **Not yet covered:** collection/item-form fields, lookup and LOV dialogs, autocomplete, multi-select, file upload, custom renderers, and field-group layout.
 
   **One adapter per application:** `AddFormCraftFluentUI()` throws if the MudBlazor adapter is already registered, because renderer selection is first-match-wins and a mixed container would silently render a half-Material form. ⚠️ The guard is one-directional — registering MudBlazor *after* Fluent is not caught yet. Fluent UI Blazor v5 is still an RC, so this package depends on a prerelease.
 
