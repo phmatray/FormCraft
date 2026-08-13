@@ -1,3 +1,4 @@
+using AngleSharp.Dom;
 using FormCraft.ForMudBlazor.UnitTests.TestSupport;
 using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
 
@@ -27,6 +28,8 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 public class CollectionFocusTests : FocusAssertingTestBase
 {
     private const string DeleteSelector = "button[aria-label='Remove item']";
+    private const string MoveUpSelector = "button[aria-label='Move up']";
+    private const string MoveDownSelector = "button[aria-label='Move down']";
 
     [Fact]
     public async Task Removing_A_Middle_Row_Should_Focus_The_Delete_Button_That_Takes_Its_Place()
@@ -112,6 +115,144 @@ public class CollectionFocusTests : FocusAssertingTestBase
         component.FindAll(DeleteSelector).ShouldBeEmpty();
         FocusCount().ShouldBe(focusesBefore + 1);
     }
+
+    [Fact]
+    public async Task Moving_An_Item_To_The_Top_Should_Focus_Its_Move_Down_Button()
+    {
+        // Arrange - the disable-self variant: the item lands at index 0, so the Move-up button the
+        // user just pressed becomes Disabled under their finger. Browsers drop focus from a
+        // newly-disabled element, so this is the same 2.4.3 failure as an unmount.
+        var component = RenderCollection(3, collection => collection.AllowReorder());
+        var focusesBefore = FocusCount();
+
+        // Act
+        await component.InvokeAsync(() => component.FindAll(MoveUpSelector)[1].Click());
+
+        // Assert - focus moved to the counterpart that is still enabled on that row
+        FocusCount().ShouldBe(focusesBefore + 1);
+        var focusedId = LastFocusedElementId();
+
+        var expectedId = await LearnElementIdAsync(component, MoveButtons(component, "Move down")[0]);
+        focusedId.ShouldBe(expectedId);
+    }
+
+    [Fact]
+    public async Task Moving_An_Item_To_The_Bottom_Should_Focus_Its_Move_Up_Button()
+    {
+        // Arrange - the mirror case at the other end of the list
+        var component = RenderCollection(3, collection => collection.AllowReorder());
+        var focusesBefore = FocusCount();
+
+        // Act - move the middle item down, landing it last
+        await component.InvokeAsync(() => component.FindAll(MoveDownSelector)[1].Click());
+
+        // Assert
+        FocusCount().ShouldBe(focusesBefore + 1);
+        var focusedId = LastFocusedElementId();
+
+        var expectedId = await LearnElementIdAsync(component, MoveButtons(component, "Move up")[2]);
+        focusedId.ShouldBe(expectedId);
+    }
+
+    [Fact]
+    public async Task Moving_An_Item_Within_The_Middle_Should_Follow_It_To_Its_New_Row()
+    {
+        // Arrange - four rows, so the moved item lands somewhere both controls stay enabled. Focus
+        // should follow the ITEM to its new row rather than sit on the index the user started at,
+        // which would silently now control a different item.
+        var component = RenderCollection(4, collection => collection.AllowReorder());
+        var focusesBefore = FocusCount();
+
+        // Act - move the third item up; it lands at index 1, still mid-list
+        await component.InvokeAsync(() => component.FindAll(MoveUpSelector)[2].Click());
+
+        // Assert
+        FocusCount().ShouldBe(focusesBefore + 1);
+        var focusedId = LastFocusedElementId();
+
+        var expectedId = await LearnElementIdAsync(component, MoveButtons(component, "Move up")[1]);
+        focusedId.ShouldBe(expectedId);
+    }
+
+    [Fact]
+    public async Task A_Single_Item_Cannot_Be_Moved_So_Nothing_Is_Focused()
+    {
+        // Arrange - both move buttons are Disabled with one row, and the handlers early-return, so
+        // there is no state change and nothing to move focus to. Pinned so the "no enabled
+        // counterpart" fallback is not mistaken for a reachable path through a move.
+        var component = RenderCollection(1, collection => collection.AllowReorder());
+        var focusesBefore = FocusCount();
+
+        // Act & Assert - the controls are disabled, and no focus request is issued
+        component.FindAll(MoveUpSelector)[0].HasAttribute("disabled").ShouldBeTrue();
+        component.FindAll(MoveDownSelector)[0].HasAttribute("disabled").ShouldBeTrue();
+        FocusCount().ShouldBe(focusesBefore);
+    }
+
+    [Fact]
+    public async Task Adding_The_Last_Allowed_Row_Should_Move_Focus_Into_That_Row()
+    {
+        // Arrange - MaxItems 2 with one row: the Add click reaches the max, so Add unmounts itself.
+        var component = RenderCollection(1, collection => collection
+            .AllowAdd()
+            .AllowRemove()
+            .WithMaxItems(2));
+
+        var buttonIdsBefore = await LearnEveryButtonIdAsync(component);
+        var focusesBefore = FocusCount();
+
+        // Act
+        await component.InvokeAsync(() => AddButtonElement(component).Click());
+
+        // Assert - Add is gone, and focus was moved deliberately
+        component.FindAll("button")
+            .Any(b => b.TextContent.Contains("Add Item"))
+            .ShouldBeFalse();
+        FocusCount().ShouldBe(focusesBefore + 1);
+        var focusedId = LastFocusedElementId();
+
+        // ...into the new row itself rather than onto any control. The row container is the target
+        // because the row's *fields* render through IFieldRendererService and expose no reference to
+        // aim at; landing on the row puts the user's next Tab into those fields, and deliberately
+        // not on the row's Delete button, where Enter would undo the add.
+        var buttonIdsAfter = await LearnEveryButtonIdAsync(component);
+        focusedId.ShouldNotBeOneOf([.. buttonIdsBefore.Concat(buttonIdsAfter)]);
+    }
+
+    private async Task<List<string>> LearnEveryButtonIdAsync(
+        IRenderedComponent<FormCraftComponent<MixedItemModel>> component)
+    {
+        var ids = new List<string>();
+        foreach (var button in component.FindComponents<MudIconButton>().Select(b => b.Instance))
+        {
+            ids.Add(await LearnElementIdAsync(component, button));
+        }
+
+        foreach (var button in component.FindComponents<MudButton>().Select(b => b.Instance))
+        {
+            ids.Add(await LearnElementIdAsync(component, button));
+        }
+
+        return ids;
+    }
+
+    /// <summary>
+    /// The collection's <b>Add</b> button element. Note it is <i>not</i> inside a
+    /// <c>.mud-toolbar</c> — that is the upload component's layout; the collection renders Add in
+    /// its own header.
+    /// </summary>
+    private static IElement AddButtonElement(
+        IRenderedComponent<FormCraftComponent<MixedItemModel>> component) =>
+        component.FindAll("button").First(b => b.TextContent.Contains("Add Item"));
+
+    private static List<MudIconButton> MoveButtons(
+        IRenderedComponent<FormCraftComponent<MixedItemModel>> component,
+        string ariaLabel) =>
+        component.FindComponents<MudIconButton>()
+            .Where(b => b.Instance.UserAttributes.TryGetValue("aria-label", out var label)
+                        && (label as string) == ariaLabel)
+            .Select(b => b.Instance)
+            .ToList();
 
     private IRenderedComponent<FormCraftComponent<MixedItemModel>> RenderCollection(
         int rows,

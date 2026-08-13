@@ -37,19 +37,28 @@
                 var index = i;
                 <MudCard Class="mb-3" Elevation="0" Outlined="true">
                     <MudCardContent>
-                        <div class="d-flex justify-space-between align-center mb-2">
+                        @* tabindex="-1" so a row can take focus without joining the tab order: it is
+                           where focus goes when the acting control leaves no usable target — after
+                           Add (the row's own fields render through IFieldRendererService and expose
+                           no reference to aim at, and landing on Delete would put Enter on "undo the
+                           add"), and as the reorder fallback (#318). *@
+                        <div class="d-flex justify-space-between align-center mb-2"
+                             @ref="_rowHeaders[index]"
+                             tabindex="-1">
                             <MudText Typo="Typo.subtitle2" Color="Color.Default">
                                 Item @(index + 1)
                             </MudText>
                             <div class="d-flex gap-1">
                                 @if (Configuration.CanReorder)
                                 {
-                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward"
+                                    <MudIconButton @ref="_moveUpButtons[index]"
+                                                   Icon="@Icons.Material.Filled.ArrowUpward"
                                                    Size="Size.Small"
                                                    Disabled="@(index == 0)"
                                                    OnClick="@(() => MoveItemUp(index))"
                                                    aria-label="Move up" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward"
+                                    <MudIconButton @ref="_moveDownButtons[index]"
+                                                   Icon="@Icons.Material.Filled.ArrowDownward"
                                                    Size="Size.Small"
                                                    Disabled="@(index == Items.Count - 1)"
                                                    OnClick="@(() => MoveItemDown(index))"

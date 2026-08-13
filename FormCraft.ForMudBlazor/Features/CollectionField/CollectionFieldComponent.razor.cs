@@ -35,6 +35,18 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// </remarks>
     private readonly Dictionary<int, MudIconButton> _deleteButtons = new();
 
+    /// <summary>Each row's reorder buttons, by index. Same capture rules as <see cref="_deleteButtons"/>.</summary>
+    private readonly Dictionary<int, MudIconButton> _moveUpButtons = new();
+
+    /// <inheritdoc cref="_moveUpButtons"/>
+    private readonly Dictionary<int, MudIconButton> _moveDownButtons = new();
+
+    /// <summary>
+    /// Each row's header element, by index — the focus target when a row has no usable control to
+    /// take focus. Element references, unlike component references, are re-captured every render.
+    /// </summary>
+    private readonly Dictionary<int, ElementReference> _rowHeaders = new();
+
     /// <summary>The <b>Add</b> button, when one is rendered — the second focus target in the chain.</summary>
     private MudButton? _addButton;
 
@@ -42,6 +54,21 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// The index a row was just removed from, pending the focus move on the next completed render.
     /// </summary>
     private int? _focusAfterRemovalFrom;
+
+    /// <summary>
+    /// The row index to put focus in on the next completed render, after an add or a reorder.
+    /// </summary>
+    /// <remarks>
+    /// Deferred for the same reason as <see cref="_focusAfterRemovalFrom"/>: the row the focus is
+    /// aimed at may not exist — or may not be at that index — until the next render batch is applied.
+    /// </remarks>
+    private int? _focusRowAfterRender;
+
+    /// <summary>
+    /// Whether <see cref="_focusRowAfterRender"/> came from a reorder, where a still-enabled move
+    /// button on the row is the better target than the row itself.
+    /// </summary>
+    private bool _focusRowCameFromReorder;
 
     /// <summary>
     /// The collection's header, the last-resort focus target when an action leaves the field with no
@@ -112,6 +139,11 @@ public partial class CollectionFieldComponent<TModel, TItem>
 
         Items.Add(new TItem());
         await NotifyCollectionChanged();
+
+        // Add is gated on !HasReachedMax, so the click that reaches the max unmounts the button the
+        // user is standing on. Put them in the row they just created either way (#318).
+        _focusRowAfterRender = Items.Count - 1;
+        _focusRowCameFromReorder = false;
     }
 
     private async Task RemoveItem(int index)
@@ -135,13 +167,69 @@ public partial class CollectionFieldComponent<TModel, TItem>
     {
         await base.OnAfterRenderAsync(firstRender);
 
-        if (_focusAfterRemovalFrom is not { } removedIndex)
+        if (_focusAfterRemovalFrom is { } removedIndex)
         {
+            _focusAfterRemovalFrom = null;
+            await FocusAfterRemovalAsync(removedIndex);
             return;
         }
 
-        _focusAfterRemovalFrom = null;
-        await FocusAfterRemovalAsync(removedIndex);
+        if (_focusRowAfterRender is { } rowIndex)
+        {
+            _focusRowAfterRender = null;
+            await FocusRowAsync(rowIndex, _focusRowCameFromReorder);
+        }
+    }
+
+    /// <summary>
+    /// Puts focus in the row at <paramref name="index"/> after an add or a reorder.
+    /// </summary>
+    /// <param name="index">The row the acting item now occupies.</param>
+    /// <param name="fromReorder">
+    /// When the move came from a reorder, a still-enabled move button on that row is the better
+    /// target — it keeps the user on the control they were operating. After an <b>add</b> the row
+    /// itself is the target instead: the row's fields are what the user wants next, and its Delete
+    /// button would put <kbd>Enter</kbd> on "undo the add".
+    /// </param>
+    private async Task FocusRowAsync(int index, bool fromReorder)
+    {
+        if (fromReorder)
+        {
+            var counterpart = EnabledMoveButtonAt(index);
+            if (counterpart is not null)
+            {
+                await FocusRestore.FocusSafelyAsync(counterpart);
+                return;
+            }
+        }
+
+        if (_rowHeaders.TryGetValue(index, out var header))
+        {
+            await FocusRestore.FocusSafelyAsync(header);
+        }
+    }
+
+    /// <summary>
+    /// A move button on the given row that is still enabled — preferring the direction the item just
+    /// travelled, and falling back to its counterpart when that one has become disabled at an end.
+    /// </summary>
+    private MudIconButton? EnabledMoveButtonAt(int index)
+    {
+        if (!Configuration.CanReorder || index < 0 || index >= Items.Count)
+        {
+            return null;
+        }
+
+        // Mirrors the Disabled bindings in the markup: up is dead at the top, down at the bottom.
+        var upEnabled = index > 0;
+        var downEnabled = index < Items.Count - 1;
+
+        if (upEnabled && _moveUpButtons.TryGetValue(index, out var up))
+        {
+            return up;
+        }
+
+        return downEnabled && _moveDownButtons.TryGetValue(index, out var down) ? down : null;
     }
 
     /// <summary>
@@ -205,6 +293,12 @@ public partial class CollectionFieldComponent<TModel, TItem>
 
         (Items[index], Items[index - 1]) = (Items[index - 1], Items[index]);
         await NotifyCollectionChanged();
+
+        // Follow the item to its new row. At index 0 the Move-up button the user pressed becomes
+        // Disabled under their finger, and browsers drop focus from a newly-disabled element — the
+        // same 2.4.3 failure as an unmount (#318).
+        _focusRowAfterRender = index - 1;
+        _focusRowCameFromReorder = true;
     }
 
     private async Task MoveItemDown(int index)
@@ -213,6 +307,9 @@ public partial class CollectionFieldComponent<TModel, TItem>
 
         (Items[index], Items[index + 1]) = (Items[index + 1], Items[index]);
         await NotifyCollectionChanged();
+
+        _focusRowAfterRender = index + 1;
+        _focusRowCameFromReorder = true;
     }
 
     private async Task NotifyCollectionChanged()
