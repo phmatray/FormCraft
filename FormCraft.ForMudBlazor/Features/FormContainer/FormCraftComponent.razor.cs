@@ -340,7 +340,10 @@ public partial class FormCraftComponent<TModel>
             if (field.CustomTemplate != null && _editContext != null)
             {
                 var property = typeof(TModel).GetProperty(field.FieldName);
-                if (property == null) return;
+                if (property == null)
+                {
+                    return;
+                }
 
                 var templateContext = new FieldContext<TModel, object>(
                     Model,

@@ -217,9 +217,14 @@ public partial class TabbedForm
     private object? GetPersonalInfoBadge()
     {
         if (IsPersonalInfoComplete())
+        {
             return Icons.Material.Filled.CheckCircle;
+        }
+
         if (HasPersonalInfoData())
+        {
             return Icons.Material.Filled.Warning;
+        }
 
         return null;
     }
@@ -227,9 +232,14 @@ public partial class TabbedForm
     private object? GetContactInfoBadge()
     {
         if (IsContactInfoComplete())
+        {
             return Icons.Material.Filled.CheckCircle;
+        }
+
         if (HasContactInfoData())
+        {
             return Icons.Material.Filled.Warning;
+        }
 
         return null;
     }
@@ -237,9 +247,14 @@ public partial class TabbedForm
     private object? GetProfessionalInfoBadge()
     {
         if (IsProfessionalInfoComplete())
+        {
             return Icons.Material.Filled.CheckCircle;
+        }
+
         if (HasProfessionalInfoData())
+        {
             return Icons.Material.Filled.Warning;
+        }
 
         return null;
     }
@@ -247,9 +262,14 @@ public partial class TabbedForm
     private Color GetTabBadgeColor(bool isComplete, bool hasData)
     {
         if (isComplete)
+        {
             return Color.Success;
+        }
+
         if (hasData)
+        {
             return Color.Warning;
+        }
 
         return Color.Default;
     }

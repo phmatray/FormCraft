@@ -13,6 +13,17 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
+      # Runs BEFORE Test so a style slip reports in ~30s instead of behind a full build+test.
+      #
+      # This is the only thing that reads .editorconfig (#301). Its severities say `warning` and
+      # Directory.Build.props sets TreatWarningsAsErrors=true, which together look like enforcement
+      # and are not: IDE* analyzers need EnforceCodeStyleInBuild, which is deliberately NOT set —
+      # turning it on would make one missing brace break `dotnet build` mid-edit. Delete this step
+      # and the rules go back to being decorative, which is how 574 violations accumulated.
+      - run: ./build.cmd Format
+        env:
+          DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
       - run: ./build.cmd Test
         env:
           DOTNET_CLI_TELEMETRY_OPTOUT: 1

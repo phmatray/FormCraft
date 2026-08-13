@@ -109,7 +109,10 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
 
     private static string FormatFileSize(long bytes)
     {
-        if (bytes == 0) return "0 Bytes";
+        if (bytes == 0)
+        {
+            return "0 Bytes";
+        }
 
         const int scale = 1024;
         string[] orders = { "GB", "MB", "KB", "Bytes" };
@@ -118,7 +121,9 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
         foreach (string order in orders)
         {
             if (bytes > max)
+            {
                 return $"{decimal.Divide(bytes, max):##.##} {order}";
+            }
 
             max /= scale;
         }

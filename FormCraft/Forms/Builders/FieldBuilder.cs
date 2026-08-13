@@ -20,18 +20,17 @@ namespace FormCraft;
 public class FieldBuilder<TModel, TValue> where TModel : new()
 {
     private readonly FormBuilder<TModel> _formBuilder;
-    private readonly FieldConfiguration<TModel, TValue> _fieldConfiguration;
 
     internal FieldBuilder(FormBuilder<TModel> formBuilder, FieldConfiguration<TModel, TValue> fieldConfiguration)
     {
         _formBuilder = formBuilder;
-        _fieldConfiguration = fieldConfiguration;
+        Configuration = fieldConfiguration;
     }
 
     /// <summary>
     /// Gets the underlying field configuration for advanced scenarios.
     /// </summary>
-    internal FieldConfiguration<TModel, TValue> Configuration => _fieldConfiguration;
+    internal FieldConfiguration<TModel, TValue> Configuration { get; }
 
     /// <summary>
     /// Sets the display label for the field.
@@ -45,7 +44,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithLabel(string label)
     {
-        _fieldConfiguration.Label = label;
+        Configuration.Label = label;
         return this;
     }
 
@@ -61,7 +60,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithPlaceholder(string placeholder)
     {
-        _fieldConfiguration.Placeholder = placeholder;
+        Configuration.Placeholder = placeholder;
         return this;
     }
 
@@ -77,7 +76,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithHelpText(string helpText)
     {
-        _fieldConfiguration.HelpText = helpText;
+        Configuration.HelpText = helpText;
         return this;
     }
 
@@ -93,7 +92,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithCssClass(string cssClass)
     {
-        _fieldConfiguration.CssClass = cssClass;
+        Configuration.CssClass = cssClass;
         return this;
     }
 
@@ -110,7 +109,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithInputType(string inputType)
     {
-        _fieldConfiguration.InputType = inputType;
+        Configuration.InputType = inputType;
         return this;
     }
 
@@ -126,8 +125,8 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> Required(string? errorMessage = null)
     {
-        _fieldConfiguration.IsRequired = true;
-        _fieldConfiguration.AddValidator(new RequiredValidator<TModel, TValue>(errorMessage));
+        Configuration.IsRequired = true;
+        Configuration.AddValidator(new RequiredValidator<TModel, TValue>(errorMessage));
         return this;
     }
 
@@ -143,7 +142,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> Disabled(bool disabled = true)
     {
-        _fieldConfiguration.IsDisabled = disabled;
+        Configuration.IsDisabled = disabled;
         return this;
     }
 
@@ -159,7 +158,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> ReadOnly(bool readOnly = true)
     {
-        _fieldConfiguration.IsReadOnly = readOnly;
+        Configuration.IsReadOnly = readOnly;
         return this;
     }
 
@@ -175,7 +174,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> VisibleWhen(Func<TModel, bool> condition)
     {
-        _fieldConfiguration.VisibilityCondition = condition;
+        Configuration.VisibilityCondition = condition;
         return this;
     }
 
@@ -191,7 +190,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> DisabledWhen(Func<TModel, bool> condition)
     {
-        _fieldConfiguration.DisabledCondition = condition;
+        Configuration.DisabledCondition = condition;
         return this;
     }
 
@@ -208,7 +207,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithAttribute(string name, object value)
     {
-        _fieldConfiguration.AdditionalAttributes[name] = value;
+        Configuration.AdditionalAttributes[name] = value;
         return this;
     }
 
@@ -230,7 +229,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     {
         foreach (var attr in attributes)
         {
-            _fieldConfiguration.AdditionalAttributes[attr.Key] = attr.Value;
+            Configuration.AdditionalAttributes[attr.Key] = attr.Value;
         }
         return this;
     }
@@ -247,7 +246,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithValidator(IFieldValidator<TModel, TValue> validator)
     {
-        _fieldConfiguration.AddValidator(validator);
+        Configuration.AddValidator(validator);
         return this;
     }
 
@@ -264,7 +263,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithValidator(Func<TValue, bool> validation, string errorMessage)
     {
-        _fieldConfiguration.AddValidator(new CustomValidator<TModel, TValue>(validation, errorMessage));
+        Configuration.AddValidator(new CustomValidator<TModel, TValue>(validation, errorMessage));
         return this;
     }
 
@@ -281,7 +280,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithAsyncValidator(Func<TValue, Task<bool>> validation, string errorMessage)
     {
-        _fieldConfiguration.AddValidator(new AsyncValidator<TModel, TValue>(validation, errorMessage));
+        Configuration.AddValidator(new AsyncValidator<TModel, TValue>(validation, errorMessage));
         return this;
     }
 
@@ -306,7 +305,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         Action<TModel, TDependsOn> onChanged)
     {
         var dependency = new FieldDependency<TModel, TDependsOn>(dependsOnExpression, onChanged);
-        _fieldConfiguration.Dependencies.Add(dependency);
+        Configuration.Dependencies.Add(dependency);
         // Key by the WATCHED field's name: the runtime looks the dictionary up with
         // the name of the field that just changed to find the callbacks to fire.
         _formBuilder.AddFieldDependency(dependency.DependentFieldName, dependency);
@@ -335,7 +334,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         Func<TModel, TDependsOn, Task> onChangedAsync)
     {
         var dependency = new FieldDependency<TModel, TDependsOn>(dependsOnExpression, onChangedAsync);
-        _fieldConfiguration.Dependencies.Add(dependency);
+        Configuration.Dependencies.Add(dependency);
         // Key by the WATCHED field's name: the runtime looks the dictionary up with
         // the name of the field that just changed to find the callbacks to fire.
         _formBuilder.AddFieldDependency(dependency.DependentFieldName, dependency);
@@ -358,7 +357,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithCustomTemplate(RenderFragment<IFieldContext<TModel, TValue>> template)
     {
-        _fieldConfiguration.CustomTemplate = template;
+        Configuration.CustomTemplate = template;
         return this;
     }
 
@@ -374,7 +373,7 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithOrder(int order)
     {
-        _fieldConfiguration.Order = order;
+        Configuration.Order = order;
         return this;
     }
 
@@ -390,8 +389,8 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
     /// </example>
     public FieldBuilder<TModel, TValue> WithCustomRenderer(IFieldRenderer renderer)
     {
-        _fieldConfiguration.CustomRendererType = renderer.GetType();
-        _fieldConfiguration.AdditionalAttributes["CustomRendererInstance"] = renderer;
+        Configuration.CustomRendererType = renderer.GetType();
+        Configuration.AdditionalAttributes["CustomRendererInstance"] = renderer;
         return this;
     }
 

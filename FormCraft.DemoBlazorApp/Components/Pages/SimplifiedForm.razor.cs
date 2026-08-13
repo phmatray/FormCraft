@@ -149,12 +149,16 @@ public partial class SimplifiedForm
         };
 
         if (!string.IsNullOrEmpty(_model.City))
+        {
             items.Add(new() { Label = "City", Value = _model.City });
+        }
 
         items.Add(new() { Label = "Newsletter", Value = _model.SubscribeToNewsletter ? "Yes" : "No" });
 
         if (_fieldChanges.Any())
+        {
             items.Add(new() { Label = "Field Changes", Value = $"{_fieldChanges.Count} changes tracked" });
+        }
 
         return items;
     }

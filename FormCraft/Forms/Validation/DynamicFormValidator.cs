@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace FormCraft;
 
@@ -269,7 +269,10 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
             // Find the field configuration for the changed field
             var fieldConfig = Configuration.Fields.FirstOrDefault(f => f.FieldName == e.FieldIdentifier.FieldName);
-            if (fieldConfig == null) return;
+            if (fieldConfig == null)
+            {
+                return;
+            }
 
             var model = (TModel)_editContext!.Model;
             var getter = FieldValueGetterCache<TModel>.GetOrCompile(fieldConfig);
@@ -298,7 +301,10 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
     private async Task ValidateCollectionItemFieldAsync(FieldIdentifier fieldIdentifier, System.Text.RegularExpressions.Match nestedMatch)
     {
-        if (Configuration is not ICollectionFormConfiguration<TModel> collectionConfig) return;
+        if (Configuration is not ICollectionFormConfiguration<TModel> collectionConfig)
+        {
+            return;
+        }
 
         var collectionFieldName = nestedMatch.Groups["collection"].Value;
         // TryParse, not Parse: the regex guarantees digits but not that they fit in an int, and an
@@ -312,7 +318,10 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
         var collectionField = collectionConfig.CollectionFields
             .FirstOrDefault(f => f.FieldName == collectionFieldName);
-        if (collectionField == null) return;
+        if (collectionField == null)
+        {
+            return;
+        }
 
         var model = (TModel)_editContext!.Model;
 

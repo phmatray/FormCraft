@@ -56,7 +56,9 @@ public class BlazorCsrfTokenService : ICsrfTokenService
     public async Task<bool> ValidateTokenAsync(string token)
     {
         if (string.IsNullOrEmpty(token))
+        {
             return false;
+        }
 
         string? storedToken = null;
         try
@@ -69,14 +71,19 @@ public class BlazorCsrfTokenService : ICsrfTokenService
         }
 
         if (!string.IsNullOrEmpty(storedToken))
+        {
             return FixedTimeEquals(storedToken, token);
+        }
 
         // No stored token: accept the token this service instance issued (it may not have been
         // persisted yet because generation happened during prerendering) and try to persist it now.
         if (_currentToken != null && FixedTimeEquals(_currentToken, token))
         {
             if (!_isPersisted)
+            {
                 _isPersisted = await TryPersistTokenAsync(_currentToken);
+            }
+
             return true;
         }
 

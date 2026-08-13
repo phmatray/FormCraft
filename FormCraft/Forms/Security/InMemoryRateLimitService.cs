@@ -48,7 +48,9 @@ public class InMemoryRateLimitService : IRateLimitService, IDisposable
                         var oldestAttempt = attempts.Min();
                         var computed = oldestAttempt.Add(timeWindow).Subtract(now);
                         if (computed > TimeSpan.Zero)
+                        {
                             retryAfter = computed;
+                        }
                     }
 
                     return Task.FromResult(new RateLimitResult
@@ -123,7 +125,9 @@ public class InMemoryRateLimitService : IRateLimitService, IDisposable
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         _disposed = true;
         _cleanupTimer.Dispose();
