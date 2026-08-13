@@ -82,6 +82,13 @@ public partial class FormCraftComponent<TModel> where TModel : new()
     private string? _csrfToken;
     private string? _securityError;
 
+    /// <summary>
+    /// The configuration's collection fields, when it carries any. A configuration built without
+    /// <c>.AddCollectionField(...)</c> does not implement this interface, so the cast is the test.
+    /// </summary>
+    private ICollectionFormConfiguration<TModel>? CollectionConfiguration =>
+        Configuration as ICollectionFormConfiguration<TModel>;
+
     /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
@@ -370,6 +377,12 @@ public partial class FormCraftComponent<TModel> where TModel : new()
 
         await HandleFieldDependencyChanged(fieldName);
 
+        StateHasChanged();
+    }
+
+    private void HandleCollectionChanged()
+    {
+        _editContext?.NotifyValidationStateChanged();
         StateHasChanged();
     }
 

@@ -32,6 +32,20 @@
             }
         }
 
+        @* Collection (one-to-many) fields. Their item fields go through the same
+           IFieldRendererService registry as the ordinary fields above (#203). *@
+        @if (CollectionConfiguration != null)
+        {
+            @foreach (var collectionField in CollectionConfiguration.CollectionFields.OrderBy(f => f.Order))
+            {
+                if (collectionField.IsVisible)
+                {
+                    @(FluentUICollectionFieldRenderer.Render(Model, collectionField,
+                        EventCallback.Factory.Create(this, HandleCollectionChanged)))
+                }
+            }
+        }
+
         @* Security enforcement feedback (rate limiting, CSRF, misconfiguration).
            `data-testid` matches the MudBlazor container's hook so the two suites assert the
            same selector - the banner is part of the behavioural contract, not decoration. *@

@@ -1,0 +1,92 @@
+@namespace FormCraft.ForFluentUI
+@typeparam TModel where TModel : new()
+@typeparam TItem where TItem : new()
+@inject IFieldRendererService FieldRendererService
+
+@if (Configuration.IsVisible)
+{
+    <FluentCard Class="formcraft-collection">
+        <FluentStack Orientation="Orientation.Horizontal"
+                     HorizontalAlignment="HorizontalAlignment.SpaceBetween"
+                     VerticalAlignment="VerticalAlignment.Center">
+            <FluentLabel Weight="LabelWeight.Semibold">@(Configuration.Label ?? Configuration.FieldName)</FluentLabel>
+            @if (Configuration.CanAdd && !HasReachedMax)
+            {
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              OnClick="@AddItem"
+                              data-testid="formcraft-collection-add">
+                    @Configuration.AddButtonText
+                </FluentButton>
+            }
+        </FluentStack>
+
+        @if (Items.Count == 0)
+        {
+            <FluentMessageBar Intent="MessageBarIntent.Info"
+                              AllowDismiss="false"
+                              data-testid="formcraft-collection-empty">
+                @Configuration.EmptyText
+            </FluentMessageBar>
+        }
+        else
+        {
+            @for (var i = 0; i < Items.Count; i++)
+            {
+                var index = i;
+                <FluentCard Class="formcraft-collection-item" data-testid="formcraft-collection-item">
+                    <FluentStack Orientation="Orientation.Horizontal"
+                                 HorizontalAlignment="HorizontalAlignment.SpaceBetween"
+                                 VerticalAlignment="VerticalAlignment.Center">
+                        <FluentLabel>Item @(index + 1)</FluentLabel>
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4">
+                            @if (Configuration.CanReorder)
+                            {
+                                <FluentButton Appearance="ButtonAppearance.Subtle"
+                                              Disabled="@(index == 0)"
+                                              OnClick="@(() => MoveItemUp(index))"
+                                              aria-label="Move up"
+                                              data-testid="formcraft-collection-move-up">
+                                    &#8593;
+                                </FluentButton>
+                                <FluentButton Appearance="ButtonAppearance.Subtle"
+                                              Disabled="@(index == Items.Count - 1)"
+                                              OnClick="@(() => MoveItemDown(index))"
+                                              aria-label="Move down"
+                                              data-testid="formcraft-collection-move-down">
+                                    &#8595;
+                                </FluentButton>
+                            }
+                            @if (Configuration.CanRemove && !HasReachedMin)
+                            {
+                                <FluentButton Appearance="ButtonAppearance.Subtle"
+                                              OnClick="@(() => RemoveItem(index))"
+                                              aria-label="Remove item"
+                                              data-testid="formcraft-collection-remove">
+                                    Remove
+                                </FluentButton>
+                            }
+                        </FluentStack>
+                    </FluentStack>
+
+                    @if (Configuration.ItemFormConfiguration != null)
+                    {
+                        @* No CollectionItemFieldScope is cascaded here, unlike the MudBlazor
+                           container. That type lives in FormCraft.ForMudBlazor (not core) and exists
+                           for one job: keying and latching that adapter's ShrinkLabel diagnostics so
+                           a 50-row collection reports a field's configuration once rather than 50
+                           times. This adapter emits no such diagnostics and no Fluent component
+                           reads the cascade, so copying the type over would cascade a value to
+                           nobody.
+
+                           When Fluent gains its own per-field diagnostics, this is where the scope
+                           goes — and the MudBlazor original is the reference for two decisions worth
+                           inheriting: the key is row-agnostic (`<collection>[].<field>`, #213),
+                           and the CascadingValue must NOT be IsFixed, or the rebuilt scope would
+                           never reach the item fields. *@
+                        @RenderItemFields(index)
+                    }
+                </FluentCard>
+            }
+        }
+    </FluentCard>
+}

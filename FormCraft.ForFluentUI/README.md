@@ -64,8 +64,7 @@ shared across every user of the form (it defaults to the model type name).
 
 ## Not yet covered
 
-- Collection/item-form fields, lookup and LOV dialogs, autocomplete, multi-select, file upload, and
-  custom renderers.
+- Lookup and LOV dialogs, autocomplete, multi-select, file upload, and custom renderers.
 - **Field groups** — `.AddFieldGroup(...)` fields render, but ungrouped and without the card/column
   layout the MudBlazor adapter gives them.
 
