@@ -81,7 +81,9 @@ public class CollectionFieldValidator<TModel, TItem>
             var item = items[i];
             foreach (var field in _configuration.ItemFormConfiguration.Fields)
             {
-                var getter = field.ValueExpression.Compile();
+                // Cached per field configuration: this loop is items × fields, and since #203 it runs
+                // on every keystroke in a collection row, so compiling here was the dominant cost (#312).
+                var getter = FieldValueGetterCache<TItem>.GetOrCompile(field);
                 var value = getter(item);
 
                 foreach (var validator in field.Validators)
