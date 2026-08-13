@@ -19,10 +19,19 @@ public class TrustedPublishingWorkflowTests
     /// same expression sitting on some other step.
     /// </summary>
     /// <remarks>
-    /// Deliberately reads the workflow *unstripped*. The scan runs from the <c>id:</c> line to the
-    /// next list item, so the slice carries whatever explanatory comments sit between the step and
-    /// its successor — harmless here, because every claim below is about a line these files spell
-    /// as wiring (<c>if:</c>, <c>uses:</c>) rather than as prose.
+    /// Deliberately reads the workflow *unstripped*. The scan runs from the step's own list item to
+    /// the next one, so the slice carries whatever explanatory comments sit between the step and its
+    /// successor.
+    /// <para>
+    /// ⚠️ That is <b>not</b> harmless, and this remark used to claim it was. The login step's slice
+    /// carries a comment block that mentions <c>release_created</c> in prose, so
+    /// <see cref="ReleaseWorkflow_Should_Gate_The_Login_On_A_Created_Release" /> — a whole-slice
+    /// <c>ShouldContain</c> — is satisfied by that comment alone and would stay green if the step's
+    /// <c>if:</c> were deleted outright, which is the #226 regression it exists to catch. Pre-existing
+    /// (the prose sat inside the slice before #267 moved its start), not introduced here, and left
+    /// standing only because narrowing it changes *what* this suite asserts. The tests that go through
+    /// <see cref="StepCondition" /> read the <c>if:</c> line alone and are unaffected.
+    /// </para>
     /// </remarks>
     private static string StepWithId(string workflowFile, string stepId) =>
         WorkflowSource.StepWithId(WorkflowSource.Read(workflowFile), stepId, workflowFile);

@@ -432,43 +432,6 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
 }
 
 /// <summary>
-/// The single implementation of the native-required rule (#199), used by
-/// <see cref="MudBlazorFieldComponentBase{TModel, TValue}"/>.
-/// <para>
-/// #199 introduced it as a rule the component path and the imperative collection path both had to
-/// apply identically — one implementation so <c>RenderPipelineParityTests</c> guarded against
-/// regressions rather than against a copy-paste drifting. #203 then deleted the imperative path
-/// outright, so the rule now reaches collection item fields the same way every other field
-/// capability does: they render through this component. The type stays because the rule — an
-/// explicit opt-in/out winning over <c>IsRequired</c> in <i>both</i> directions — is worth stating
-/// and testing on its own.
-/// </para>
-/// </summary>
-internal static class NativeRequired
-{
-    /// <summary>The attribute name carrying the explicit opt-in/opt-out.</summary>
-    internal const string AttributeName = "Required";
-
-    /// <summary>
-    /// Whether MudBlazor's <c>Required</c> should be set: the explicit
-    /// <c>.WithNativeRequired(...)</c> attribute when the field sets one, otherwise the field's own
-    /// <c>IsRequired</c>.
-    /// </summary>
-    /// <remarks>
-    /// Presence is tested separately from value on purpose. Collapsing "not configured" and
-    /// "configured false" into one fallback — which a plain get-with-default does — would make
-    /// <c>.WithNativeRequired(false)</c> on a <c>.Required(...)</c> field silently re-acquire the
-    /// decoration it was written to suppress. The explicit value has to win in both directions.
-    /// </remarks>
-    /// <param name="additionalAttributes">The field's configured additional attributes.</param>
-    /// <param name="isRequired">The field's own required flag, used when nothing is configured.</param>
-    internal static bool Resolve(IReadOnlyDictionary<string, object> additionalAttributes, bool isRequired)
-        => additionalAttributes.TryGetValue(AttributeName, out var configured) && configured is bool optIn
-            ? optIn
-            : isRequired;
-}
-
-/// <summary>
 /// The single implementation of the ShrinkLabel conflict rule, used by
 /// <see cref="MudBlazorFieldComponentBase{TModel, TValue}"/>.
 /// </summary>

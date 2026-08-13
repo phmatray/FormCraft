@@ -1,5 +1,7 @@
+using FormCraft.ForMudBlazor.UnitTests.Fields;
 using FormCraft.ForMudBlazor.UnitTests.TestSupport;
 using Microsoft.Extensions.Logging;
+using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Diagnostics;
 
@@ -134,23 +136,13 @@ public class PasswordAdornmentDiagnosticTests : MudBlazorTestBase
         // without a latch a three-row collection reports the same field's configuration three times.
         // A 50-row one would report it fifty times. The configuration is a property of the FIELD, not
         // of a row, so the correct count is one however many rows exist.
-        var config = FormBuilder<VaultModel>
-            .Create()
-            .AddCollectionField(x => x.Entries, collection => collection
-                .WithLabel("Entries")
-                .WithItemForm(item => item
-                    .AddField(x => x.Secret, f => f
-                        .WithLabel("Password")
-                        .WithAdornment(Icons.Material.Filled.Search, Adornment.End, onClick: _ => { })
-                        .AsPassword())))
-            .Build();
-
-        var model = new VaultModel { Entries = { new VaultEntry(), new VaultEntry(), new VaultEntry() } };
+        var config = TextItemForm(f => f
+            .WithLabel("Password")
+            .WithAdornment(Icons.Material.Filled.Search, Adornment.End, onClick: _ => { })
+            .AsPassword());
 
         // Act
-        var component = Render<FormCraftComponent<VaultModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
+        var component = this.RenderItemForm(NewOrderWithItems("", "", ""), config);
 
         // Assert - three rows really did render, and produced one warning between them.
         component.FindComponents<MudTextField<string>>().Count.ShouldBe(3);
@@ -170,22 +162,14 @@ public class PasswordAdornmentDiagnosticTests : MudBlazorTestBase
         // Latching on the field alone would report one of these and hide the other for good — a
         // silent loss of a security-adjacent warning, which is the shape of bug this whole issue is
         // about.
-        var config = FormBuilder<VaultModel>
-            .Create()
-            .AddCollectionField(x => x.Entries, collection => collection
-                .WithLabel("Entries")
-                .WithItemForm(item => item
-                    .AddField(x => x.Secret, f => f
-                        .WithLabel("Password")
-                        .WithAdornment(Icons.Material.Filled.Search, Adornment.End, onClick: _ => { })
-                        .AsPassword()
-                        .AsTextArea(lines: 4))))
-            .Build();
+        var config = TextItemForm(f => f
+            .WithLabel("Password")
+            .WithAdornment(Icons.Material.Filled.Search, Adornment.End, onClick: _ => { })
+            .AsPassword()
+            .AsTextArea(lines: 4));
 
         // Act
-        Render<FormCraftComponent<VaultModel>>(parameters => parameters
-            .Add(p => p.Model, new VaultModel { Entries = { new VaultEntry() } })
-            .Add(p => p.Configuration, config));
+        this.RenderItemForm(NewOrder(), config);
 
         // Assert - one of each, not one in total.
         var warnings = _logs.Warnings;
@@ -201,16 +185,6 @@ public class PasswordAdornmentDiagnosticTests : MudBlazorTestBase
             .Add(p => p.Configuration, config));
 
     private class TestModel
-    {
-        public string Secret { get; set; } = string.Empty;
-    }
-
-    private class VaultModel
-    {
-        public List<VaultEntry> Entries { get; set; } = new();
-    }
-
-    private class VaultEntry
     {
         public string Secret { get; set; } = string.Empty;
     }
