@@ -115,6 +115,286 @@ public class WorkflowSourceTests
     }
 
     [Fact]
+    public void StepWithId_Should_Not_Bind_To_A_Step_Whose_Id_Merely_Starts_With_The_One_Asked_For()
+    {
+        // The defect #267 exists to remove: the scan matched `id: <stepId>` as an unanchored
+        // substring, so a search for `login` also matched `id: login-legacy` — and it takes the
+        // *first* hit, so an unrelated earlier step silently redefined the whole slice and every
+        // claim about the login step's `if:` and `uses:` was answered by the wrong step. That is the
+        // exact failure StepWithId exists to prevent, reintroduced one level down, on the one
+        // primitive #226 depends on — where a wrong answer is a green run on a version that never
+        // reached nuget.org.
+        const string Steps = """
+                             steps:
+                               - name: legacy login
+                                 id: login-legacy
+                                 uses: NuGet/login-legacy@v0
+                               - name: current login
+                                 id: login
+                                 uses: NuGet/login@v1
+                             """;
+
+        var step = WorkflowSource.StepWithId(Steps, "login");
+
+        step.ShouldContain("uses: NuGet/login@v1");
+        step.ShouldNotContain("login-legacy");
+    }
+
+    [Fact]
+    public void StepWithId_Should_Fail_Loudly_When_Two_Steps_Claim_One_Id()
+    {
+        // Two steps sharing an id is invalid in GitHub Actions, so the only open question is what the
+        // scan does when a workflow gets there anyway. Resolving to the first is how the old scan
+        // returned the wrong step without saying so, and anchoring the match buys nothing if an
+        // ambiguous one still quietly picks a winner: the caller would be told about *a* step, with
+        // no way to know it was not the one it asked about.
+        const string Steps = """
+                             steps:
+                               - name: first login
+                                 id: login
+                                 uses: NuGet/login@v1
+                               - name: second login
+                                 id: login
+                                 uses: NuGet/login@v2
+                             """;
+
+        var error = Should.Throw<ShouldAssertException>(
+            () => WorkflowSource.StepWithId(Steps, "login", "the fixture"));
+
+        error.Message.ShouldContain("ambiguous");
+
+        // The scan cannot infer what it was handed, so the scope description is the only thing that
+        // tells a reader *which* file or job to go and look at.
+        error.Message.ShouldContain("the fixture");
+    }
+
+    [Fact]
+    public void StepWithId_Should_Match_An_Id_Carrying_Trailing_Space_Or_A_Comment()
+    {
+        // The tolerance an exact key match has to keep, and the reason it is spelled as a regex
+        // rather than as string equality. `WithoutComments` only drops *whole-line* comments (so a
+        // URL's "//" survives), which means a trailing `# …` reaches this scan intact — and callers
+        // may hand over unstripped text anyway, as TrustedPublishingWorkflowTests does. An anchored
+        // match that forgot either case would report a step that is plainly there as absent.
+        const string Steps = """
+                             steps:
+                               - name: current login
+                                 id: login   # minted per run
+                                 uses: NuGet/login@v1
+                             """;
+
+        WorkflowSource.StepWithId(Steps, "login").ShouldContain("uses: NuGet/login@v1");
+
+        // `-  id:` and `-<tab>id:` are the same YAML as `- id:`; requiring exactly one space reported
+        // a step that is plainly present as absent.
+        WorkflowSource.TryStepWithId("steps:\n  -  id: login\n     uses: NuGet/login@v1", "login")
+            .ShouldNotBeNull()
+            .ShouldContain("uses: NuGet/login@v1");
+    }
+
+    [Fact]
+    public void StepWithId_Should_Return_The_Step_From_Its_Own_Header()
+    {
+        // The second half of #267: the scan started at the `id:` line, so the "step" it returned
+        // excluded the step's own `- name:` — it could not be used to assert anything *about* the
+        // name, and it silently differed in shape from what StepNamed returns for the very same step.
+        // Two primitives on one reader answering the same question differently is how the looser of
+        // them drifts unnoticed.
+        // Only the header claim lives here. The upper bound on the same step is already owned by
+        // StepWithId_Should_Return_Only_That_Steps_Own_Lines above; re-asserting it would leave two
+        // near-identical bodies to be kept in step when release-please.yml's login step moves.
+        WorkflowSource.StepWithId(WorkflowSource.Read("release-please.yml"), "login")
+            .ShouldContain("- name: NuGet login");
+    }
+
+    [Fact]
+    public void StepWithId_Should_Not_Stop_The_Walk_Back_On_A_Nested_List_Item()
+    {
+        // "The nearest dash above" is not the rule — containment is. A sequence nested inside the
+        // step (here under `with:`, but a bullet in a `path: |` block behaves identically) sits
+        // between the `id:` and its real header, and stopping on it returns a fragment of the step as
+        // the step: every later claim about this step's `uses:` would then be answered by nothing.
+        const string Steps = """
+                             steps:
+                               - name: current login
+                                 with:
+                                   args:
+                                     - --verbose
+                                 id: login
+                                 uses: NuGet/login@v1
+                             """;
+
+        var step = WorkflowSource.StepWithId(Steps, "login");
+
+        step.ShouldContain("- name: current login");
+        step.ShouldContain("uses: NuGet/login@v1");
+    }
+
+    [Fact]
+    public void StepWithId_Should_Recognise_A_Bare_Dash_Step_Header()
+    {
+        // `-` alone, with the item's keys starting on the next line, is legal YAML and the failure it
+        // caused was the silent kind: `StartsWith("- ")` skipped this header and the walk-back carried
+        // on into the PREVIOUS step, so a claim about `login` was answered by the checkout step.
+        const string Steps = """
+                             steps:
+                               - name: previous step
+                                 uses: actions/checkout@v4
+                               -
+                                 name: current login
+                                 id: login
+                                 uses: NuGet/login@v1
+                             """;
+
+        var step = WorkflowSource.StepWithId(Steps, "login");
+
+        step.ShouldContain("name: current login");
+        step.ShouldNotContain("previous step");
+    }
+
+    [Fact]
+    public void StepWithId_Should_Not_Bind_To_An_Id_Whose_Hash_Is_Part_Of_The_Value()
+    {
+        // The trailing-comment tolerance has to require whitespace before the `#`. YAML only starts a
+        // comment after whitespace, so `login#1` is one scalar naming a different step — and a
+        // tolerance spelled `\s*#` swallowed the `#1`, letting a LONGER id back in through the very
+        // clause added to keep longer ids out.
+        const string Steps = """
+                             steps:
+                               - name: hash login
+                                 id: login#1
+                                 uses: NuGet/login@v1
+                             """;
+
+        WorkflowSource.TryStepWithId(Steps, "login").ShouldBeNull();
+        WorkflowSource.TryStepWithId(Steps, "login#1").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void StepWithId_Should_Treat_An_Id_Outside_Any_Step_As_Absent()
+    {
+        // Walking back has to be allowed to fail. An `id:` key that belongs to no list item is not a
+        // step, and slicing from line 0 would hand the caller the file's preamble dressed up as one —
+        // a wrong answer of exactly the kind the anchored match was added to stop, arriving by the
+        // other door.
+        //
+        // The fixture carries a real step in an EARLIER job on purpose. Without one it proves nothing:
+        // a scope containing no list item at all reaches the top of the file whatever the walk-back
+        // does, so the test passed while the loose "nearest dash above" version happily crossed the
+        // job boundary and returned `- name: real step` as the login step. What makes this absent is
+        // that `env:` is indented shallower than the id — a container, reached without a header.
+        const string Malformed = """
+                                 jobs:
+                                   build:
+                                     steps:
+                                       - name: real step
+                                         uses: actions/checkout@v4
+                                   publish:
+                                     env:
+                                       id: login
+                                 """;
+
+        var error = Should.Throw<ShouldAssertException>(
+            () => WorkflowSource.StepWithId(Malformed, "login", "the fixture"));
+
+        error.Message.ShouldContain("no longer has a step with `id: login`");
+    }
+
+    [Fact]
+    public void StepWithId_Should_Find_An_Id_Written_On_The_List_Item_Line()
+    {
+        // `- id: login` is legal, common in the wild, and the one shape an anchored `^id:` match
+        // loses that the old substring scan handled. Losing it fails in the opposite direction to
+        // #267's bug — loudly, reporting a step that is plainly present as gone — which is a better
+        // failure but still a wrong answer, and one no workflow in this repo would currently catch.
+        const string Steps = """
+                             steps:
+                               - id: login
+                                 uses: NuGet/login@v1
+                             """;
+
+        var step = WorkflowSource.StepWithId(Steps, "login");
+
+        // The matched line *is* the header here, so the walk-back must stop on it rather than run
+        // past it to `steps:`.
+        step.ShouldContain("- id: login");
+        step.ShouldContain("uses: NuGet/login@v1");
+        step.ShouldNotContain("steps:");
+    }
+
+    [Fact]
+    public void TryStepNamed_Should_Return_Null_Where_StepNamed_Asserts()
+    {
+        // Why absence needs a non-asserting form at all: StepNamed asserts from inside the shared
+        // helper, so one missing step turns every test that reaches for it red — each of them
+        // reporting the same single root cause as an apparent *helper* failure. TestReportingTests
+        // had four tests doing that, next to one that reported the offender cleanly.
+        const string Steps = """
+                             steps:
+                               - name: 'Publish: test-results'
+                                 uses: actions/upload-artifact@v4
+                             """;
+
+        WorkflowSource.TryStepNamed(Steps, "nope").ShouldBeNull();
+
+        // A present step still comes back whole, from its own header.
+        WorkflowSource.TryStepNamed(Steps, "Publish: test-results")
+            .ShouldNotBeNull()
+            .ShouldContain("- name: 'Publish: test-results'");
+
+        // And the asserting form is untouched — it is still the right choice for a caller with
+        // nothing better to say about absence, because it names the scope the scan cannot infer.
+        var error = Should.Throw<ShouldAssertException>(
+            () => WorkflowSource.StepNamed(Steps, "nope", "the fixture"));
+
+        error.Message.ShouldContain("the fixture");
+        error.Message.ShouldContain("no longer has a step named 'nope'");
+    }
+
+    [Fact]
+    public void TryStepWithId_Should_Return_Null_Where_StepWithId_Asserts()
+    {
+        const string Steps = """
+                             steps:
+                               - name: current login
+                                 id: login
+                                 uses: NuGet/login@v1
+                             """;
+
+        WorkflowSource.TryStepWithId(Steps, "nope").ShouldBeNull();
+
+        WorkflowSource.TryStepWithId(Steps, "login")
+            .ShouldNotBeNull()
+            .ShouldContain("- name: current login");
+
+        var error = Should.Throw<ShouldAssertException>(
+            () => WorkflowSource.StepWithId(Steps, "nope", "the fixture"));
+
+        error.Message.ShouldContain("the fixture");
+        error.Message.ShouldContain("no longer has a step with `id: nope`");
+    }
+
+    [Fact]
+    public void TryStepWithId_Should_Still_Fail_Loudly_On_An_Ambiguous_Id()
+    {
+        // The one thing the Try form must NOT soften. Absence and ambiguity are different answers:
+        // returning null for two steps claiming one id would report a duplicated step as a missing
+        // one, quietly undoing Task 1's whole point one call further out.
+        const string Steps = """
+                             steps:
+                               - name: first login
+                                 id: login
+                                 uses: NuGet/login@v1
+                               - name: second login
+                                 id: login
+                                 uses: NuGet/login@v2
+                             """;
+
+        Should.Throw<ShouldAssertException>(() => WorkflowSource.TryStepWithId(Steps, "login"))
+            .Message.ShouldContain("ambiguous");
+    }
+
+    [Fact]
     public void Matching_Should_Find_The_Workflows_That_Invoke_The_Build()
     {
         // The discovery primitive the whole TestReportingTests family rests on: it decides which
