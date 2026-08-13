@@ -1,0 +1,34 @@
+@namespace FormCraft.ForFluentUI
+@typeparam TModel
+@inherits FieldComponentBase<TModel, double>
+
+@if (!string.IsNullOrEmpty(Label))
+{
+    <FluentLabel Weight="LabelWeight.Semibold">@Label</FluentLabel>
+}
+
+<FluentSlider TValue="double"
+              Value="@CurrentValue"
+              ValueChanged="@HandleValueChangedAsync"
+              Min="@MinValue"
+              Max="@MaxValue"
+              Step="@StepValue"
+              Disabled="@IsDisabled"
+              aria-label="@(Label ?? "Value")" />
+
+@code {
+    /// <summary>The slider's lower bound, from <c>.WithAttribute("Min", ...)</c>.</summary>
+    private double MinValue => GetAttribute("Min", 0.0);
+
+    /// <summary>The slider's upper bound, from <c>.WithAttribute("Max", ...)</c>.</summary>
+    private double MaxValue => GetAttribute("Max", 100.0);
+
+    /// <summary>The slider's increment, from <c>.WithAttribute("Step", ...)</c>.</summary>
+    private double StepValue => GetAttribute("Step", 1.0);
+
+    private async Task HandleValueChangedAsync(double value)
+    {
+        SetValueWithoutNotification(value);
+        await Context.OnValueChanged.InvokeAsync(value);
+    }
+}
