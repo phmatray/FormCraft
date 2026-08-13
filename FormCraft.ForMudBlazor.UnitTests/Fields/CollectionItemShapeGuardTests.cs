@@ -84,6 +84,46 @@ public class CollectionItemShapeGuardTests
         none.ShouldBeEmpty();
     }
 
+    [Fact]
+    public void No_Suite_Should_Re_Declare_A_Collection_Item_Shape_The_Fixture_Provides()
+    {
+        // Arrange - the guard itself. Every type in the assembly that owns a List<T>, with T's shape
+        // compared against the fixture's item types BY SHAPE, not by name.
+        var scanned = CollectionItemShapeGuard.TestAssemblyTypes()
+            .SelectMany(
+                owner => CollectionItemShapeGuard.CollectionItemTypes(owner),
+                (owner, item) => (Owner: owner, Item: item))
+            .ToList();
+
+        // A ShouldBeEmpty below passes just as happily when the scan found NOTHING, so prove it
+        // found something first. Without this, a reflection change that silently returned no types
+        // would leave this test green forever while checking nothing — which is precisely the
+        // "the check looked fine and saw nothing" failure #258 shipped.
+        scanned.ShouldNotBeEmpty("the assembly scan found no collection-owning types at all");
+        scanned.Select(pair => pair.Item).ShouldContain(typeof(OrderItem));
+
+        var offenders = scanned
+            .Where(pair => !CollectionItemShapeGuard.IsFixtureOwned(pair.Item))
+            .Where(pair => !CollectionItemShapeGuard.AllowedLocalModels.ContainsKey(pair.Item))
+            .Where(pair => CollectionItemShapeGuard.FixtureItemTypes.Any(fixtureItem =>
+                CollectionItemShapeGuard.ShapeSignature(fixtureItem)
+                    == CollectionItemShapeGuard.ShapeSignature(pair.Item)))
+            .Select(pair =>
+                $"{pair.Owner.DeclaringType?.Name ?? pair.Owner.Namespace}.{pair.Owner.Name} " +
+                $"holds List<{pair.Item.Name}> whose shape ({CollectionItemShapeGuard.ShapeSignature(pair.Item)}) " +
+                "is already a CollectionItemFixture model")
+            .OrderBy(message => message, StringComparer.Ordinal)
+            .ToList();
+
+        // Assert - the message has to name the offender AND say what to do, because the reader is a
+        // contributor who has just watched a green build turn red on a file they did not touch.
+        offenders.ShouldBeEmpty(
+            "These types re-declare a shape CollectionItemFixture already provides. Use the fixture's "
+            + "model and item-form builder instead (#205, #258, #282). If a local copy is genuinely "
+            + "warranted, add it to CollectionItemShapeGuard.AllowedLocalModels with the reason:\n  "
+            + string.Join("\n  ", offenders));
+    }
+
     private class OrderedOneWay
     {
         public string Name { get; set; } = string.Empty;
