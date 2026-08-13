@@ -211,7 +211,7 @@ internal static class WorkflowSource
     /// </param>
     internal static string StepNamed(string scope, string stepName, string? scopeDescription = null)
     {
-        var step = StepNamedOrNull(scope, stepName, scopeDescription);
+        var step = TryStepNamed(scope, stepName, scopeDescription);
 
         return step.ShouldNotBeNull(
             $"{scopeDescription ?? "the searched text"} no longer has a step named '{stepName}'");
@@ -228,58 +228,67 @@ internal static class WorkflowSource
     /// actual subject is "the step is present" is drowned out by four whose subject is what the step
     /// contains. A caller collecting offenders can name the job instead, once, per test that cares.
     /// <para>
-    /// An <em>ambiguous</em> name still fails loudly here rather than reading as absent (#302) — the
-    /// same line the id path draws. Absence and ambiguity are different answers with different
-    /// remedies, and reporting a duplicated step as a missing one would undo the tightening one call
-    /// further out, which is exactly the silent wrong answer this whole family exists to prevent.
+    /// An <em>ambiguous</em> name fails loudly here rather than reading as absent (#302) — the same line
+    /// the id path draws. Absence and ambiguity are different answers with different remedies, and
+    /// reporting a duplicated step as a missing one would undo the tightening one call further out.
+    /// Duplicates matter *more* on this path than on the id path, not less: step ids are unique per job
+    /// so a duplicate is invalid, whereas duplicate step <b>names</b> are perfectly legal, which is
+    /// exactly why silently taking the first was a wrong answer no caller could detect.
+    /// </para>
+    /// <para>
+    /// ⚠️ Pass <paramref name="scopeDescription" /> whenever you have one, even here in the
+    /// non-asserting form. The ambiguity failure throws from inside this helper, so without it a
+    /// caller-side offender loop reports "the searched text" and reintroduces the undifferentiated
+    /// shared-reader failure #267 removed — <see cref="Read" />'s remark states the principle: a message
+    /// naming neither the file nor the job is the one failure that cannot say what broke.
+    /// </para>
+    /// <para>
+    /// ⚠️ Names are unique per <b>job</b> at best, and not even that. A caller passing a whole file as
+    /// the scope can therefore see two legitimate matches from two different jobs and fail here on a
+    /// valid workflow — more easily than the id path, whose same caveat points at #198.
+    /// <c>TestReportingTests</c> is already job-scoped via <see cref="JobsOf" /> and so unaffected;
+    /// <c>WorkflowSourceTests</c> does pass whole files, deliberately, on names that appear once.
     /// </para>
     /// </remarks>
-    internal static string? TryStepNamed(string scope, string stepName) =>
-        StepNamedOrNull(scope, stepName, null);
+    internal static string? TryStepNamed(string scope, string stepName, string? scopeDescription = null)
+    {
+        var lines = scope.Split('\n');
+        var matches = LinesMatching(lines, StepNameKey(stepName));
+
+        ShouldNotBeAmbiguous(matches, scopeDescription, $"steps named '{stepName}'");
+
+        // The matched line is already the step's own list item — the key and the header are one and the
+        // same — so unlike the id path there is no walk-back to do.
+        return matches.Count == 0 ? null : StepFrom(lines, matches[0]);
+    }
 
     /// <summary>
-    /// The shared body of <see cref="StepNamed" /> and <see cref="TryStepNamed" />: <c>null</c> for
-    /// absent, the step's lines otherwise, and a loud failure for an ambiguous name either way.
+    /// A step's <c>- name:</c> key, tolerating the quoting and spacing YAML allows.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Counts every match rather than taking the first (#302). Until then this was the looser of the two
-    /// primitives while guarding the weaker property: step <b>ids</b> are unique per job, so a duplicate
-    /// is invalid and <see cref="StepWithIdOrNull" /> was made loud in #267 — but step <b>names</b> need
-    /// not be unique at all, so a duplicate here is *legal* and silently resolving it to the first is a
-    /// wrong answer the caller cannot detect.
+    /// The counting in <see cref="TryStepNamed" /> is only as good as this match (#302): a duplicate
+    /// spelled any way the matcher misses resolves silently to the first, which is the very defect the
+    /// ambiguity check was added to stop. So single quotes, double quotes and no quotes all match, and
+    /// <c>-\s+</c> allows <c>-  name:</c> and <c>-&lt;tab&gt;name:</c>. <c>deploy-docs.yml</c> is the
+    /// measured case for the unquoted form — all ten of its step names are bare, and the old
+    /// <c>StartsWith("- name: '…'")</c> could not find one of them.
     /// </para>
     /// <para>
-    /// The realistic trigger is a job splitting its upload in two, which #256's per-project results
-    /// directories make a natural next step: <c>TestReportingTests</c>' content assertions would read
-    /// only the first, leaving the second free to omit <c>if: always()</c> while the suite stayed green.
-    /// </para>
-    /// <para>
-    /// Private, and carrying the <paramref name="scopeDescription" /> the public <c>Try</c> form does not
-    /// take, so the ambiguity message can still name a scope when the caller knows one.
+    /// ⚠️ The leading <c>-</c> is <b>required</b>, which is the one place this deliberately does *not*
+    /// mirror <see cref="TryStepWithId" />. That path may match a bare <c>id:</c> key and walk back to
+    /// its header, because <c>id:</c> appears nowhere else. <c>name:</c> does: every
+    /// <c>actions/upload-artifact</c> step in this repo carries <c>name: test-results</c> inside its
+    /// <c>with:</c> block, so dropping the anchor would let an artifact name answer for a step name.
+    /// The cost is that a step written <c>-</c> alone with <c>name:</c> on the next line is not found —
+    /// no workflow here writes that, and a miss there is loud (reported absent) rather than silent.
     /// </para>
     /// </remarks>
-    private static string? StepNamedOrNull(string scope, string stepName, string? scopeDescription)
+    private static Regex StepNameKey(string stepName)
     {
-        var lines = scope.Split('\n');
-        var header = $"- name: '{stepName}'";
+        var name = Regex.Escape(stepName);
 
-        var matches = new List<int>();
-        for (var index = 0; index < lines.Length; index++)
-        {
-            if (lines[index].TrimStart().StartsWith(header, StringComparison.Ordinal))
-            {
-                matches.Add(index);
-            }
-        }
-
-        matches.Count.ShouldBeLessThan(
-            2,
-            $"{scopeDescription ?? "the searched text"} has {matches.Count} steps named '{stepName}' — an ambiguous name cannot be resolved to one step");
-
-        // The matched line is already the step's own list item, so — unlike the id path — there is no
-        // walk-back to do: only the count changes.
-        return matches.Count == 0 ? null : StepFrom(lines, matches[0]);
+        return new Regex($@"^-\s+name:\s*(?:'{name}'|""{name}""|{name})\s*(?:\s+#.*)?$");
     }
 
     /// <summary>
@@ -321,7 +330,7 @@ internal static class WorkflowSource
     /// </remarks>
     internal static string StepWithId(string scope, string stepId, string? scopeDescription = null)
     {
-        var step = StepWithIdOrNull(scope, stepId, scopeDescription);
+        var step = TryStepWithId(scope, stepId, scopeDescription);
 
         return step.ShouldNotBeNull(
             $"{scopeDescription ?? "the searched text"} no longer has a step with `id: {stepId}`");
@@ -336,25 +345,12 @@ internal static class WorkflowSource
     /// different answers with different remedies, and reporting a duplicated step as a missing one
     /// would quietly undo the anchoring above, one call further out.
     /// </remarks>
-    internal static string? TryStepWithId(string scope, string stepId) =>
-        StepWithIdOrNull(scope, stepId, null);
-
-    /// <summary>
-    /// The shared body of <see cref="StepWithId" /> and <see cref="TryStepWithId" />: <c>null</c> for
-    /// absent, the step's lines otherwise, and a loud failure for an ambiguous id either way.
-    /// </summary>
-    /// <remarks>
-    /// Private, and carrying the <paramref name="scopeDescription" /> the public <c>Try</c> form does
-    /// not take, so the ambiguity message can still name a scope when the caller knows one.
-    /// </remarks>
-    private static string? StepWithIdOrNull(string scope, string stepId, string? scopeDescription)
+    internal static string? TryStepWithId(string scope, string stepId, string? scopeDescription = null)
     {
         var lines = scope.Split('\n');
-        var matches = LinesDeclaring(lines, stepId);
+        var matches = LinesMatching(lines, StepIdKey(stepId));
 
-        matches.Count.ShouldBeLessThan(
-            2,
-            $"{scopeDescription ?? "the searched text"} has {matches.Count} steps claiming `id: {stepId}` — an ambiguous id cannot be resolved to one step");
+        ShouldNotBeAmbiguous(matches, scopeDescription, $"steps claiming `id: {stepId}`");
 
         // Both "no such id" and "an id belonging to no list item" are absence: the second is a
         // malformed scope, and slicing it from line 0 would hand back the file's preamble dressed up
@@ -365,18 +361,62 @@ internal static class WorkflowSource
     }
 
     /// <summary>
-    /// The indexes of every line in <paramref name="lines" /> that declares the key
-    /// <c>id: &lt;stepId&gt;</c> and nothing else — optionally opening a list item, and optionally
-    /// followed by a whitespace-separated <c># comment</c>.
+    /// The shared body of <see cref="StepWithId" /> and <see cref="TryStepWithId" />: <c>null</c> for
+    /// absent, the step's lines otherwise, and a loud failure for an ambiguous id either way.
     /// </summary>
     /// <remarks>
-    /// Every index, not the first: the count is what tells <see cref="StepWithId" /> apart absent,
-    /// found, and ambiguous — and only the last of those can pass itself off as the middle one.
-    /// A trailing <c># comment</c> is tolerated because <see cref="WithoutComments" /> drops only
-    /// whole-line comments (so a URL's <c>//</c> survives), and callers may hand over unstripped text
-    /// anyway — <c>TrustedPublishingWorkflowTests</c> does.
+    /// Private, and carrying the <paramref name="scopeDescription" /> the public <c>Try</c> form does
+    /// not take, so the ambiguity message can still name a scope when the caller knows one.
     /// </remarks>
-    private static List<int> LinesDeclaring(string[] lines, string stepId)
+    /// <summary>
+    /// The indexes of every line satisfying <paramref name="key" />.
+    /// </summary>
+    /// <remarks>
+    /// Every index, not the first: the count is what tells the scans apart absent, found, and ambiguous
+    /// — and only the last of those can pass itself off as the middle one. Shared by both step keys
+    /// (#302); it was two byte-similar loops, which is the duplication class this whole type exists to
+    /// remove (see the class remarks, and #255).
+    /// </remarks>
+    private static List<int> LinesMatching(string[] lines, Regex key)
+    {
+        var matches = new List<int>();
+        for (var index = 0; index < lines.Length; index++)
+        {
+            if (key.IsMatch(lines[index].Trim()))
+            {
+                matches.Add(index);
+            }
+        }
+
+        return matches;
+    }
+
+    /// <summary>
+    /// Fails loudly when <paramref name="matches" /> holds more than one candidate.
+    /// </summary>
+    /// <remarks>
+    /// Shared by both scans (#302) so the two cannot drift into disagreeing about what ambiguity means
+    /// — the asymmetry #302 was filed about started as exactly that kind of near-copy.
+    /// <paramref name="what" /> completes the sentence "<c>… has N …</c>", so it reads as a plural noun
+    /// phrase: <c>steps named 'x'</c> or <c>steps claiming `id: x`</c>.
+    /// </remarks>
+    private static void ShouldNotBeAmbiguous(List<int> matches, string? scopeDescription, string what) =>
+        matches.Count.ShouldBeLessThan(
+            2,
+            $"{scopeDescription ?? "the searched text"} has {matches.Count} {what} — an ambiguous match cannot be resolved to one step");
+
+    /// <summary>
+    /// A step's <c>id:</c> key: the trimmed line must be that key and nothing else — optionally opening
+    /// a list item, and optionally followed by a whitespace-separated <c># comment</c>.
+    /// </summary>
+    /// <remarks>
+    /// The trailing-comment tolerance is not vestigial even though the two in-repo callers now pass
+    /// comment-stripped text (<c>TestReportingTests</c> via <see cref="JobsOf" />, and
+    /// <c>TrustedPublishingWorkflowTests</c> since #302): <see cref="WithoutComments" /> strips only
+    /// <em>whole-line</em> comments, so a trailing <c># v1.2.0</c> reaches this scan on stripped text
+    /// too. The scope is the caller's to choose, and nothing stops a future one passing raw text.
+    /// </remarks>
+    private static Regex StepIdKey(string stepId)
     {
         // Built per call rather than compiled once, unlike JobsKey/JobHeader: the pattern depends on
         // the id being looked for, and RegexOptions.Compiled pays its cost up front — strictly a loss
@@ -394,18 +434,7 @@ internal static class WorkflowSource
         // `id: login#1` is a single scalar naming a *different* step. With `\s*` the `#.*` swallowed
         // the `#1` and a search for `login` bound to it — a longer id re-entering through the very
         // clause added to keep longer ids out.
-        var key = new Regex($@"^(?:-\s+)?id:\s*{Regex.Escape(stepId)}(?:\s+#.*)?\s*$");
-
-        var matches = new List<int>();
-        for (var index = 0; index < lines.Length; index++)
-        {
-            if (key.IsMatch(lines[index].Trim()))
-            {
-                matches.Add(index);
-            }
-        }
-
-        return matches;
+        return new Regex($@"^(?:-\s+)?id:\s*{Regex.Escape(stepId)}(?:\s+#.*)?\s*$");
     }
 
     /// <summary>

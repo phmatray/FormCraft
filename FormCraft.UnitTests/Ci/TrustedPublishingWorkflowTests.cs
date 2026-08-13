@@ -36,18 +36,31 @@ public class TrustedPublishingWorkflowTests
     /// <c>condition.ShouldContain("release_created")</c> reads the <c>if:</c> line alone via
     /// <see cref="StepCondition" />. So the gate was covered — but only *incidentally*, by a test named
     /// for a different question, and narrowing that test to match its name would have dropped the cover
-    /// with nothing failing. Stripping makes the gate test carry its own claim again.
+    /// with nothing failing.
+    /// </para>
+    /// <para>
+    /// Stripping alone does <b>not</b> finish that job, which is why
+    /// <see cref="ReleaseWorkflow_Should_Gate_The_Login_On_A_Created_Release" /> now reads
+    /// <see cref="StepCondition" /> too. A whole-slice <c>ShouldContain</c> over a stripped step is still
+    /// satisfied by a non-gating mention — delete the <c>if:</c> and add
+    /// <c>foo: ${{ … release_created }}</c> under <c>with:</c> and the token is present exactly once — so
+    /// the claim "the login is gated on a created release" has to be asserted on the <c>if:</c> itself.
+    /// #302's *Alternatives* called this narrower fix "correct" and noted doing both is fine; both is
+    /// what this is.
     /// </para>
     /// <para>
     /// Stripping is safe for every other claim here because <see cref="WorkflowSource.WithoutComments" />
     /// drops only <em>whole-line</em> comments: <c>uses: NuGet/login@8d19675… # v1.2.0</c> keeps its
-    /// digest, so the <c>uses:</c> regex still matches. Pinned by
-    /// <see cref="ReleaseWorkflow_Login_Step_Should_Be_Read_Without_Its_Prose" />, which asserts the
-    /// slice carries no comment line and names the gate token exactly once.
+    /// digest, so the <c>uses:</c> regex still matches — pinned by
+    /// <see cref="ReleaseWorkflow_Should_Exchange_The_OidcToken_For_A_ShortLived_Key" />, which is the
+    /// test that actually asserts on <c>uses:</c>. That the slice is prose-free is pinned separately by
+    /// <see cref="ReleaseWorkflow_Login_Step_Should_Be_Read_Without_Its_Prose" />.
     /// </para>
     /// <para>
-    /// ⛔ Do not "restore" <see cref="WorkflowSource.Read" /> here to keep a slice human-readable — that
-    /// is the defect above, and it re-arms silently: every test still passes on a correct workflow.
+    /// ⛔ Do not "restore" <see cref="WorkflowSource.Read" /> here to keep a slice human-readable. It does
+    /// not fail silently — <see cref="ReleaseWorkflow_Login_Step_Should_Be_Read_Without_Its_Prose" />
+    /// turns red immediately, which is the point of having it — but the reason it exists is worth reading
+    /// before overriding it.
     /// </para>
     /// </remarks>
     private static string StepWithId(string workflowFile, string stepId) =>
@@ -73,19 +86,23 @@ public class TrustedPublishingWorkflowTests
     public void ReleaseWorkflow_Login_Step_Should_Be_Read_Without_Its_Prose()
     {
         // #302. A whole-slice ShouldContain cannot tell wiring from a comment, and this step is
-        // surrounded by more prose than wiring — so `release_created` appearing twice in the slice is
-        // not a curiosity, it is the reason ReleaseWorkflow_Should_Gate_The_Login_On_A_Created_Release
-        // passes even when the `if:` is gone. Asserted on the slice this suite actually reads, so it
-        // pins the property that makes every claim in this file about wiring rather than about prose.
-        var step = StepWithId("release-please.yml", "login");
+        // surrounded by more prose than wiring — which *was* why
+        // ReleaseWorkflow_Should_Gate_The_Login_On_A_Created_Release passed with the `if:` deleted, and
+        // again with it re-pointed at an unrelated condition. (The suite still went red both times,
+        // through the StepCondition-based sibling; see the StepWithId remark above — this was a hole in
+        // one test, not an unguarded release path.) Asserted on the slice this suite actually reads, so
+        // it pins the property that makes every claim in this file about wiring rather than about prose.
+        var lines = StepWithId("release-please.yml", "login").Split('\n');
 
-        step.Split('\n').ShouldAllBe(l => !l.TrimStart().StartsWith("#", StringComparison.Ordinal));
+        lines.ShouldAllBe(l => !l.TrimStart().StartsWith("#", StringComparison.Ordinal));
 
-        // Exactly once, not merely "present": the count is what distinguishes the `if:` line from the
-        // #221 comment block that also names the token.
-        step.Split('\n')
-            .Count(l => l.Contains("release_created", StringComparison.Ordinal))
-            .ShouldBe(1);
+        // Two different regressions land on this count, so the message has to say which is which: a 2
+        // means the helper stopped stripping (this test's own subject), a 0 means the workflow lost its
+        // gate (which is Should_Gate_The_Login_On_A_Created_Release's subject, via StepCondition).
+        lines.Count(l => l.Contains("release_created", StringComparison.Ordinal))
+            .ShouldBe(
+                1,
+                "2 means the login slice is being read unstripped again; 0 means release-please.yml's login step no longer mentions the gate at all");
     }
 
     [Fact]
@@ -112,9 +129,11 @@ public class TrustedPublishingWorkflowTests
     [Fact]
     public void ReleaseWorkflow_Should_Gate_The_Login_On_A_Created_Release()
     {
-        // Scoped to the login step: the same condition on an unrelated step would leave a real
-        // nuget.org key minted on runs that publish nothing.
-        StepWithId("release-please.yml", "login").ShouldContain("release_created");
+        // Scoped to the login step's `if:`, not to its whole slice (#302): the same condition on an
+        // unrelated step would leave a real nuget.org key minted on runs that publish nothing, and a
+        // whole-slice ShouldContain cannot tell the gate from any other mention of the token — a
+        // `with:` input reading `release_created` would satisfy it with the step ungated.
+        StepCondition("release-please.yml", "login").ShouldContain("release_created");
     }
 
     [Fact]
