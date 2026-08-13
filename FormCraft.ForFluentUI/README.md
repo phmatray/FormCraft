@@ -87,11 +87,13 @@ failure this library avoids elsewhere, so the picker is rendered where it cannot
 either package's `.AsLookup(...)` renders correctly under either adapter.
 
 Note that the separate namespace does not, on its own, let a project reference **both** packages and
-call these by extension syntax: extension lookup spans every imported namespace at once, and the
-signatures are identical, so such a project gets `CS0121`. One adapter per application — the
-supported configuration — never hits it. If you genuinely need both referenced, call the method
+call `.AsLookup(...)` by extension syntax: extension lookup spans every imported namespace at once,
+and the two signatures are identical, so such a project gets `CS0121`. One adapter per application —
+the supported configuration — never hits it. If you genuinely need both referenced, call the method
 statically (`FluentUIFieldBuilderExtensions.AsLookup(field, …)`) or use an `extern alias`; this
 library's own test project does the former.
+
+(`.WithNativeRequired(...)` has no such caveat: #279 moved it into core, so there is exactly one.)
 
 ## Custom renderers
 
@@ -156,8 +158,8 @@ A `.Required(...)` field is announced to assistive technology with `aria-require
 the guarantee the MudBlazor adapter carries since
 [#199](https://github.com/phmatray/FormCraft/issues/199).
 
-Control the decoration independently of the validator with the typed `.WithNativeRequired(...)`
-(add `using FormCraft.ForFluentUI.Extensions;`):
+Control the decoration independently of the validator with the typed `.WithNativeRequired(...)`,
+which lives in **core** since #279 and so needs no extra `using`:
 
 ```csharp
 .AddField(x => x.Email, f => f

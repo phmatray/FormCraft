@@ -25,46 +25,18 @@ namespace FormCraft.ForFluentUI.Extensions;
 /// </remarks>
 public static class FluentUIFieldBuilderExtensions
 {
-    /// <summary>
-    /// Marks the field as required for presentation purposes, so the Fluent input renders its
-    /// required decoration and announces <c>aria-required="true"</c>.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Independent of <c>.Required(...)</c>, which adds the <b>validator</b>. This adds the
-    /// <b>decoration</b>, and wins over the validator's answer in <b>both</b> directions: a field
-    /// that calls this without <c>.Required(...)</c> is announced as required, and one that calls
-    /// <c>.WithNativeRequired(false)</c> stays silent even when <c>.Required(...)</c> is configured
-    /// (#199, #204). Only an unconfigured field falls through to the validator.
-    /// </para>
-    /// <para>
-    /// Replaces the magic string <c>.WithAttribute("Required", true)</c> the Fluent README used to
-    /// document, which is undiscoverable and one typo away from silently doing nothing. The raw form
-    /// still works and writes the same attribute - this is additive, and
-    /// <c>FluentUIFieldComponentBase.EffectiveNativeRequired</c> reads the one attribute either way.
-    /// </para>
-    /// <para>
-    /// Forms render <c>novalidate</c> (#206), so the browser enforces nothing here; what this buys
-    /// is the semantics for assistive technology and the visual marker, not validation bubbles.
-    /// </para>
-    /// </remarks>
-    /// <typeparam name="TModel">The model type the form binds to.</typeparam>
-    /// <typeparam name="TValue">The field's value type.</typeparam>
-    /// <param name="builder">The field builder.</param>
-    /// <param name="enabled">Whether the decoration is rendered. Defaults to <c>true</c>.</param>
-    /// <returns>The field builder, for chaining.</returns>
-    /// <example>
-    /// <code>
-    /// .AddField(x => x.Email, field => field
-    ///     .Required("Email is required")   // the validation
-    ///     .WithNativeRequired())           // the decoration
-    /// </code>
-    /// </example>
-    public static FieldBuilder<TModel, TValue> WithNativeRequired<TModel, TValue>(
-        this FieldBuilder<TModel, TValue> builder,
-        bool enabled = true)
-        where TModel : new()
-        => builder.WithAttribute("Required", enabled);
+    // ⛔ No WithNativeRequired here.
+    //
+    // #279 moved it into core (`FormCraft.FieldBuilderExtensions.WithNativeRequired`), which is the
+    // outcome this issue's plan anticipated: "check whether the shared-machinery issue has moved
+    // WithNativeRequired into core - if it has, this task is only a test that Fluent honours it".
+    // It has, so a Fluent copy would not merely be redundant: core's lives in namespace `FormCraft`,
+    // which every consumer imports for FormBuilder, so two identical signatures in scope would make
+    // `.WithNativeRequired(...)` CS0121-ambiguous for EVERY Fluent user rather than only for the
+    // rare project referencing both adapters.
+    //
+    // Fluent honours the core method through NativeRequired.Resolve in
+    // FluentUIFieldComponentBase.EffectiveNativeRequired; NativeRequiredBuilderTests pins that.
 
     /// <summary>
     /// Configures the field as a lookup: a read-only display with a browsable grid of candidate

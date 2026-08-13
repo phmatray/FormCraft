@@ -1,18 +1,21 @@
-using FormCraft.ForFluentUI.Extensions;
 using FormCraft.ForFluentUI.UnitTests.Components;
 
 namespace FormCraft.ForFluentUI.UnitTests.Extensions;
 
 /// <summary>
-/// The typed <c>.WithNativeRequired(...)</c> replaces the raw
-/// <c>.WithAttribute("Required", ...)</c> form for Fluent consumers (#278).
+/// The Fluent adapter honours the typed <c>.WithNativeRequired(...)</c> (#278).
 /// </summary>
 /// <remarks>
-/// Called as a static method throughout, not as an extension. This project references both adapters,
-/// and the MudBlazor package publishes a <c>WithNativeRequired</c> of the same name into namespace
-/// <c>FormCraft</c>; the extension-method form would therefore be <c>CS0121</c>-ambiguous here. A
-/// Fluent-only application has one in scope and writes <c>.WithNativeRequired()</c> normally - which
-/// is the whole reason the Fluent one lives in its own namespace.
+/// The method itself is <b>core's</b> since #279, not this package's. This issue's plan allowed for
+/// exactly that: "check whether the shared-machinery issue has moved <c>WithNativeRequired</c> into
+/// core - if it has, this task is only a test that Fluent honours it". So these assert the
+/// adapter's end of the contract - that the attribute the builder writes reaches
+/// <c>aria-required</c> through <c>NativeRequired.Resolve</c> - rather than re-testing the builder.
+/// <para>
+/// A Fluent copy of the method would be worse than redundant: core's lives in namespace
+/// <c>FormCraft</c>, which every consumer imports for <c>FormBuilder</c>, so a second identical
+/// signature would make every call <c>CS0121</c>-ambiguous.
+/// </para>
 /// </remarks>
 public class NativeRequiredBuilderTests : FluentUITestBase
 {
@@ -21,11 +24,11 @@ public class NativeRequiredBuilderTests : FluentUITestBase
     {
         // Arrange & Act
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name, f => FluentUIFieldBuilderExtensions.WithNativeRequired(f.WithLabel("Name")))
+            .AddField(x => x.Name, f => f.WithLabel("Name").WithNativeRequired())
             .Build();
 
         // Assert
-        config.Fields[0].AdditionalAttributes["Required"].ShouldBe(true);
+        config.Fields[0].AdditionalAttributes[NativeRequired.AttributeName].ShouldBe(true);
     }
 
     [Fact]
@@ -33,11 +36,11 @@ public class NativeRequiredBuilderTests : FluentUITestBase
     {
         // Arrange & Act
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name, f => FluentUIFieldBuilderExtensions.WithNativeRequired(f.WithLabel("Name"), false))
+            .AddField(x => x.Name, f => f.WithLabel("Name").WithNativeRequired(false))
             .Build();
 
         // Assert
-        config.Fields[0].AdditionalAttributes["Required"].ShouldBe(false);
+        config.Fields[0].AdditionalAttributes[NativeRequired.AttributeName].ShouldBe(false);
     }
 
     [Fact]
@@ -45,7 +48,7 @@ public class NativeRequiredBuilderTests : FluentUITestBase
     {
         // Arrange - the decoration without the validator, which is the point of the opt-in
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name, f => FluentUIFieldBuilderExtensions.WithNativeRequired(f.WithLabel("Name")))
+            .AddField(x => x.Name, f => f.WithLabel("Name").WithNativeRequired())
             .Build();
 
         // Act
@@ -60,8 +63,10 @@ public class NativeRequiredBuilderTests : FluentUITestBase
     {
         // Arrange - the explicit opt-out must beat the validator's own answer (#199, #204)
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name, f => FluentUIFieldBuilderExtensions.WithNativeRequired(
-                f.WithLabel("Name").Required("Name is required"), false))
+            .AddField(x => x.Name, f => f
+                .WithLabel("Name")
+                .Required("Name is required")
+                .WithNativeRequired(false))
             .Build();
 
         // Act
@@ -77,14 +82,14 @@ public class NativeRequiredBuilderTests : FluentUITestBase
         // Arrange - the typed method is sugar over the documented magic string, not a second
         // mechanism; if these ever diverge the sugar is lying.
         var typed = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name, f => FluentUIFieldBuilderExtensions.WithNativeRequired(f.WithLabel("Name")))
+            .AddField(x => x.Name, f => f.WithLabel("Name").WithNativeRequired())
             .Build();
         var raw = FormBuilder<TestModel>.Create()
             .AddField(x => x.Name, f => f.WithLabel("Name").WithAttribute("Required", true))
             .Build();
 
         // Assert
-        typed.Fields[0].AdditionalAttributes["Required"]
+        typed.Fields[0].AdditionalAttributes[NativeRequired.AttributeName]
             .ShouldBe(raw.Fields[0].AdditionalAttributes["Required"]);
     }
 
