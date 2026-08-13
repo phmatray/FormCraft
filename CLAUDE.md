@@ -284,8 +284,14 @@ public interface IUIFrameworkAdapter
   `MudBlazorFileUploadComponentBase`, per-instance via `@ref`, so focus lands on the *cleared*
   field's Browse button rather than the first upload on the page (#281). **Browse** is the target
   because it carries #262's `aria-describedby`, so the requirement is announced at the moment
-  clearing makes the field unsatisfied. ⛔ Don't let the focus call throw: the clear has already
-  succeeded, so a dead reference/disposed component/dropped circuit is swallowed, not raised
+  clearing makes the field unsatisfied. ⚠️ Only the *helper* is shared — the `@ref` and the
+  `await FocusBrowseAsync()` are one line each in **both** components' markup, and the null guard
+  makes a dropped `@ref` silent, so a new upload component needs its own focus test. ⛔ Don't let
+  the focus call throw, and **don't narrow its catch list**: the clear has already succeeded, so a
+  failed focus must stay a no-op. `JSException` is the likely one — `domWrapper.focus` raises it
+  for an element that has left the DOM, which `OnValueChanged` can cause between the clear and the
+  awaited interop call. Losing that catch escapes the click handler and tears down a Server
+  circuit; `A_Failing_Focus_Call_Should_Not_Break_A_*_Clear` pins it
 - **Asserting focus in bUnit: assert the interop call, not DOM state.** bUnit models no real focus.
   `MudButton.FocusAsync()` records `Blazor._internal.domWrapper.focus` with the target
   `ElementReference` as `Arguments[0]` (measured on bUnit 2.9.0 / MudBlazor 9.8.0). MudButton exposes

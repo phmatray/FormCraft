@@ -1,3 +1,5 @@
+using Microsoft.JSInterop;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
@@ -65,8 +67,13 @@ public class FileUploadClearFocusTests : MudBlazorTestBase
         await button.InvokeAsync(async () => await button.Instance.FocusAsync());
 
         // Assert - one focus request, carrying an ElementReference and the preventScroll flag
-        var invocation = JSInterop.Invocations.ShouldHaveSingleItem();
-        invocation.Identifier.ShouldBe(FocusIdentifier);
+        // Filtered by identifier rather than asserting a single invocation overall: a MudBlazor
+        // release that adds unrelated interop on button init (ripple, popover) would otherwise
+        // fail this canary for the opposite of the reason it exists. An identifier that changes
+        // still trips it — the filter then matches nothing.
+        var invocation = JSInterop.Invocations
+            .Where(i => i.Identifier == FocusIdentifier)
+            .ShouldHaveSingleItem();
         invocation.Arguments.Count.ShouldBe(2);
         invocation.Arguments[0].ShouldBeOfType<ElementReference>();
     }
@@ -85,16 +92,20 @@ public class FileUploadClearFocusTests : MudBlazorTestBase
             .Add(p => p.Model, model)
             .Add(p => p.Configuration, config));
 
-        var browseId = await LearnElementIdAsync(component, component.FindComponents<MudButton>()[0].Instance);
+        // Scoped to the field's own subtree, not a flat index over the whole form: the form renders
+        // a submit MudButton of its own, so a layout change that moved it above the fields would
+        // otherwise silently retarget this assertion.
+        var field = component.FindComponent<MudBlazorFileUploadFieldComponent<TestModel>>();
+        var browseId = await LearnElementIdAsync(component, field.FindComponents<MudButton>()[0].Instance);
         var focusesBeforeClear = FocusCount();
 
         // Act - a file is present, so the toolbar carries Browse then Clear
-        var buttons = component.FindAll(".mud-toolbar button");
+        var buttons = field.FindAll(".mud-toolbar button");
         buttons.Count.ShouldBe(2);
         await component.InvokeAsync(() => buttons[1].Click());
 
         // Assert - the Clear button really did unmount itself, which is what loses focus...
-        component.FindAll(".mud-toolbar button").Count.ShouldBe(1);
+        field.FindAll(".mud-toolbar button").Count.ShouldBe(1);
 
         // ...so exactly one focus request must have been issued, and to THIS field's Browse button
         FocusCount().ShouldBe(focusesBeforeClear + 1);
@@ -107,22 +118,7 @@ public class FileUploadClearFocusTests : MudBlazorTestBase
         // Arrange - standalone, with no cascaded EditContext. #262 found this to be the risky render
         // path (it is where MudBlazor's own RequiredError surfaced), and it is the one a bare
         // IFieldRendererService.RenderField produces, so the focus move has to hold here too.
-        var model = new TestModel { Upload = new StubBrowserFile() };
-        var config = FormBuilder<TestModel>
-            .Create()
-            .AddField(x => x.Upload, f => f.WithLabel("Passport scan").Required("A scan is required"))
-            .Build();
-
-        var context = new FieldRenderContext<TestModel>
-        {
-            Model = model,
-            Field = config.Fields.First(),
-            ActualFieldType = typeof(IBrowserFile),
-            CurrentValue = model.Upload,
-        };
-
-        var component = Render<MudBlazorFileUploadFieldComponent<TestModel>>(parameters => parameters
-            .Add(p => p.Context, context));
+        var component = RenderStandaloneSingleUpload(new TestModel { Upload = new StubBrowserFile() });
 
         var browseId = await LearnElementIdAsync(component, component.FindComponents<MudButton>()[0].Instance);
         var focusesBeforeClear = FocusCount();
@@ -173,22 +169,10 @@ public class FileUploadClearFocusTests : MudBlazorTestBase
     public async Task Clearing_A_Standalone_Multiple_File_Upload_Should_Focus_Browse_Without_Throwing()
     {
         // Arrange - the standalone path, mirroring the single-file component's coverage exactly
-        var model = new TestModel { Uploads = new List<IBrowserFile> { new StubBrowserFile() } };
-        var config = FormBuilder<TestModel>
-            .Create()
-            .AddField(x => x.Uploads, f => f.WithLabel("Certificates").Required("A certificate is required"))
-            .Build();
-
-        var context = new FieldRenderContext<TestModel>
+        var component = RenderStandaloneMultipleUpload(new TestModel
         {
-            Model = model,
-            Field = config.Fields.First(),
-            ActualFieldType = typeof(IReadOnlyList<IBrowserFile>),
-            CurrentValue = model.Uploads,
-        };
-
-        var component = Render<MudBlazorMultipleFileUploadComponent<TestModel>>(parameters => parameters
-            .Add(p => p.Context, context));
+            Uploads = new List<IBrowserFile> { new StubBrowserFile() },
+        });
 
         var browseId = await LearnElementIdAsync(component, component.FindComponents<MudButton>()[0].Instance);
         var focusesBeforeClear = FocusCount();
@@ -243,8 +227,107 @@ public class FileUploadClearFocusTests : MudBlazorTestBase
         // Assert - focus went to the second field's Browse, and the first field was left alone
         FocusCount().ShouldBe(focusesBeforeClear + 1);
         LastFocusedElementId().ShouldBe(secondBrowseId);
-        LastFocusedElementId().ShouldNotBe(firstBrowseId);
         fields[0].FindAll(".mud-toolbar button").Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task A_Failing_Focus_Call_Should_Not_Break_A_Single_File_Clear()
+    {
+        FailTheFocusInterop();
+
+        await ClearShouldSucceedDespiteTheFailingFocusAsync(
+            RenderStandaloneSingleUpload(new TestModel { Upload = new StubBrowserFile() }));
+    }
+
+    [Fact]
+    public async Task A_Failing_Focus_Call_Should_Not_Break_A_Multiple_File_Clear()
+    {
+        FailTheFocusInterop();
+
+        await ClearShouldSucceedDespiteTheFailingFocusAsync(
+            RenderStandaloneMultipleUpload(new TestModel
+            {
+                Uploads = new List<IBrowserFile> { new StubBrowserFile() },
+            }));
+    }
+
+    /// <summary>
+    /// Makes the focus interop throw the way a real browser does when the target has left the DOM.
+    /// </summary>
+    /// <remarks>
+    /// These are the only tests here that exercise <c>FocusBrowseAsync</c>'s catch block, because
+    /// <c>MudBlazorTestBase</c> runs JSInterop in <c>Loose</c> mode where focus always succeeds —
+    /// so without them the "Without_Throwing" tests assert exactly what their siblings already do
+    /// and the catch list has no coverage at all. That gap is how a missing
+    /// <c>catch (JSException)</c> shipped once: the clear worked in every test and still tore down
+    /// the circuit in production. This wording is what Blazor's <c>domWrapper.focus</c> raises for
+    /// a stale element, and it is reachable — assigning <c>CurrentValue</c> raises
+    /// <c>OnValueChanged</c>, so a parent that hides the field or drops the collection row can
+    /// unmount Browse before the awaited interop call lands.
+    /// </remarks>
+    private void FailTheFocusInterop() =>
+        JSInterop
+            .SetupVoid(FocusIdentifier, _ => true)
+            .SetException(new JSException("Unable to focus an invalid element."));
+
+    private static async Task ClearShouldSucceedDespiteTheFailingFocusAsync<TComponent>(
+        IRenderedComponent<TComponent> cut)
+        where TComponent : IComponent
+    {
+        // Act - clear it; the focus call underneath is now guaranteed to throw
+        var buttons = cut.FindAll(".mud-toolbar button");
+        buttons.Count.ShouldBe(2);
+        await Should.NotThrowAsync(() => cut.InvokeAsync(() => buttons[1].Click()));
+
+        // Assert - the clear still completed: Clear unmounted, so the value really did go
+        cut.FindAll(".mud-toolbar button").Count.ShouldBe(1);
+    }
+
+    /// <summary>
+    /// Renders the single-file upload standalone — no cascaded <c>EditContext</c>, the render path
+    /// a bare <c>IFieldRendererService.RenderField</c> produces and the one #262 found risky.
+    /// </summary>
+    private IRenderedComponent<MudBlazorFileUploadFieldComponent<TestModel>> RenderStandaloneSingleUpload(
+        TestModel model)
+    {
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan").Required("A scan is required"))
+            .Build();
+
+        var context = new FieldRenderContext<TestModel>
+        {
+            Model = model,
+            Field = config.Fields.First(),
+            ActualFieldType = typeof(IBrowserFile),
+            CurrentValue = model.Upload,
+        };
+
+        return Render<MudBlazorFileUploadFieldComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Context, context));
+    }
+
+    /// <summary>
+    /// The multiple-file counterpart of <see cref="RenderStandaloneSingleUpload"/>.
+    /// </summary>
+    private IRenderedComponent<MudBlazorMultipleFileUploadComponent<TestModel>> RenderStandaloneMultipleUpload(
+        TestModel model)
+    {
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Uploads, f => f.WithLabel("Certificates").Required("A certificate is required"))
+            .Build();
+
+        var context = new FieldRenderContext<TestModel>
+        {
+            Model = model,
+            Field = config.Fields.First(),
+            ActualFieldType = typeof(IReadOnlyList<IBrowserFile>),
+            CurrentValue = model.Uploads,
+        };
+
+        return Render<MudBlazorMultipleFileUploadComponent<TestModel>>(parameters => parameters
+            .Add(p => p.Context, context));
     }
 
     /// <summary>

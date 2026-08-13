@@ -117,13 +117,27 @@ public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldCo
     /// requirement at the exact moment clearing makes the field unsatisfied.
     /// </para>
     /// <para>
-    /// <b>Failures are swallowed on purpose.</b> The clear itself has already succeeded by the time
-    /// this runs; moving focus is the courtesy on top, and it must never turn a working clear into a
-    /// thrown exception. The caught cases are all "there is no live element to focus": the circuit
-    /// is gone, the component was disposed mid-clear (a collection-item row removed while clearing,
-    /// which #203's shared render path makes reachable), or the reference was never attached to a
-    /// live element. Note the null check covers the prerender/SSR pass on its own — <c>@ref</c> is
-    /// assigned after a render completes, and no render has completed on the server pass.
+    /// <b>Failures are swallowed on purpose, and the catch list is deliberately wide.</b> The clear
+    /// itself has already succeeded by the time this runs — the value is gone and the model is
+    /// notified — so moving focus is the courtesy on top. Letting it throw would turn a working
+    /// clear into an unhandled exception, which on Blazor Server tears down the circuit and takes
+    /// every other field's state with it: far worse than the focus bug being fixed.
+    /// </para>
+    /// <para>
+    /// ⛔ <b>Do not narrow this to the "obvious" cases.</b> The likely failure is
+    /// <see cref="JSException"/> — <c>domWrapper.focus</c> raises <i>"Unable to focus an invalid
+    /// element"</i> when the button has left the DOM, which is reachable here: assigning
+    /// <c>CurrentValue</c> raises <c>OnValueChanged</c>, and a parent that hides the field
+    /// (<c>WithVisibilityProvider</c>) or drops the collection row can unmount Browse before the
+    /// awaited interop call reaches the browser. The rest cover a dropped circuit
+    /// (<see cref="JSDisconnectedException"/>), the interop timeout
+    /// (<see cref="OperationCanceledException"/>), a component disposed mid-clear
+    /// (<see cref="ObjectDisposedException"/>), and interop issued before the client is connected —
+    /// prerender/SSR — where <c>RemoteJSRuntime</c> raises
+    /// <see cref="InvalidOperationException"/>. That last clause is broader than its one named
+    /// cause and knowingly so; the null check below does <b>not</b> cover prerender, because
+    /// component reference captures are assigned while the render batch is applied and so run on
+    /// the server pass too.
     /// </para>
     /// </remarks>
     protected async Task FocusBrowseAsync()
@@ -137,9 +151,17 @@ public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldCo
         {
             await BrowseButton.FocusAsync();
         }
+        catch (JSException)
+        {
+            // The element is no longer focusable — typically gone from the DOM.
+        }
         catch (JSDisconnectedException)
         {
             // The circuit is gone; there is nothing left to focus.
+        }
+        catch (OperationCanceledException)
+        {
+            // The interop call timed out or was cancelled.
         }
         catch (ObjectDisposedException)
         {
@@ -147,8 +169,7 @@ public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldCo
         }
         catch (InvalidOperationException)
         {
-            // "ElementReference has not been configured correctly" — captured, but with no live
-            // element behind it.
+            // No usable JS runtime behind the reference yet — the prerender/SSR pass.
         }
     }
 }
