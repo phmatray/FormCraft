@@ -31,7 +31,13 @@
             @for (var i = 0; i < Items.Count; i++)
             {
                 var index = i;
-                <MudCard Class="mb-3" Elevation="0" Outlined="true">
+                @* Keyed on the ITEM, not the index (#298). Without a key Blazor matches rows by
+                   position, so removing row 0 tears down the LAST component and re-points every
+                   survivor at its neighbour's data. Values recover on the next reload, but nothing
+                   else does: the password-visibility toggle, the per-instance masked-value latch
+                   (#283) and MudBlazor's own input state all stay behind on the wrong row. Keying on
+                   the item makes Blazor move the component that owns the data instead. *@
+                <MudCard @key="Items[index]" Class="mb-3" Elevation="0" Outlined="true">
                     <MudCardContent>
                         <div class="d-flex justify-space-between align-center mb-2">
                             <MudText Typo="Typo.subtitle2" Color="Color.Default">

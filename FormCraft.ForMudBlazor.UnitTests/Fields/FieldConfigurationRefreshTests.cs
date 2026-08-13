@@ -177,6 +177,109 @@ public class FieldConfigurationRefreshTests : MudBlazorTestBase
         logs.Warnings.Count.ShouldBe(1);
     }
 
+    /// <summary>
+    /// Removing a row leaves the survivors showing their own values (#298).
+    /// </summary>
+    /// <remarks>
+    /// Recorded because it is the half that already worked, and knowing which half is which is the
+    /// point of the exercise. The item loop is a plain <c>@for</c> and there was no <c>@key</c>
+    /// anywhere in the repository, so Blazor matches item components by <b>position</b> — but the
+    /// displayed <i>value</i> survives that anyway, because <c>FieldComponentBase.ShouldReloadValue()</c>
+    /// reloads from the model whenever the two diverge. The field <i>configuration</i> is likewise
+    /// safe here, for a different reason: one configuration object is shared by every row, so a row
+    /// shift never hands a component a different field.
+    /// <para>
+    /// What positional matching does break is component <b>identity</b> — see
+    /// <see cref="Removing_A_Collection_Row_Should_Move_The_Surviving_Components_Not_Repoint_Them"/>.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Removing_A_Collection_Row_Should_Leave_The_Others_Showing_Their_Own_Values()
+    {
+        // Arrange - three rows with distinguishable values.
+        var model = new OrderModel
+        {
+            Items =
+            [
+                new OrderItem { ProductName = "first" },
+                new OrderItem { ProductName = "second" },
+                new OrderItem { ProductName = "third" },
+            ],
+        };
+
+        var component = this.RenderItemForm(model, CollectionItemFixture.TextItemForm());
+
+        component.FindAll("input").Select(i => i.GetAttribute("value"))
+            .ShouldBe(["first", "second", "third"]);
+
+        // Act - drop the FIRST row, so every surviving component shifts position. Done on the model
+        // rather than through the delete button because `Items` IS the model's list (the component
+        // reads it through `Configuration.CollectionAccessor`), so this is the same mutation the
+        // button performs — without pinning the test to the icon button's markup.
+        model.Items.RemoveAt(0);
+        component.Render();
+
+        // Assert - the model lost "first", and the inputs show what the model now holds.
+        model.Items.Select(i => i.ProductName).ShouldBe(["second", "third"]);
+        component.FindAll("input").Select(i => i.GetAttribute("value"))
+            .ShouldBe(["second", "third"]);
+    }
+
+    /// <summary>
+    /// A surviving row keeps its own component instance rather than inheriting a neighbour's (#298).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is what <c>@key</c> is for, and what the value-reload above cannot cover. In a keyless
+    /// loop Blazor matches children by position, so removing row 0 does not remove row 0's component
+    /// — it removes the <i>last</i> one and re-points every survivor at its neighbour's data. The
+    /// values then correct themselves on reload, which is why the previous test passes, but every
+    /// piece of state a component holds that is <b>not</b> derived from the value stays put and is
+    /// now attached to the wrong row: the password-visibility toggle, the per-instance diagnostic
+    /// latch (#283), and whatever MudBlazor's own input keeps.
+    /// </para>
+    /// <para>
+    /// Asserted on instance identity because that is the mechanism itself, and it is the one thing a
+    /// value assertion structurally cannot see. Keying on the item makes Blazor <i>move</i> the
+    /// component that owns the data — so the instance showing "second" before the removal is the
+    /// same object showing "second" afterwards.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Removing_A_Collection_Row_Should_Move_The_Surviving_Components_Not_Repoint_Them()
+    {
+        // Arrange
+        var model = new OrderModel
+        {
+            Items =
+            [
+                new OrderItem { ProductName = "first" },
+                new OrderItem { ProductName = "second" },
+                new OrderItem { ProductName = "third" },
+            ],
+        };
+
+        var component = this.RenderItemForm(model, CollectionItemFixture.TextItemForm());
+
+        var before = component.FindComponents<MudBlazorTextFieldComponent<OrderItem>>()
+            .Select(c => c.Instance)
+            .ToList();
+        before.Count.ShouldBe(3);
+
+        var secondRowComponent = before[1];
+
+        // Act
+        model.Items.RemoveAt(0);
+        component.Render();
+
+        // Assert - "second" is still rendered by the very instance that was rendering it.
+        var after = component.FindComponents<MudBlazorTextFieldComponent<OrderItem>>()
+            .Select(c => c.Instance)
+            .ToList();
+        after.Count.ShouldBe(2);
+        ReferenceEquals(after[0], secondRowComponent).ShouldBeTrue();
+    }
+
     private static IFormConfiguration<TestModel> MaskedConfiguration(string pattern) =>
         FormBuilder<TestModel>
             .Create()
