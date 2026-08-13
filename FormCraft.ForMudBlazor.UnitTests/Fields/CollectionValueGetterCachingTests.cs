@@ -3,7 +3,7 @@ using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
-/// Guards the collection case of the value-getter cache (#269).
+/// Guards the collection case of the value-getter cache, on both paths that use it (#269, #312).
 /// <para>
 /// Since #203 every row of an item form renders through <c>IFieldRendererService</c>, and every row
 /// of one collection shares a single field configuration instance — the cache is keyed by that
@@ -18,8 +18,10 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// collection — rows × fields compiles per character on the render path before this change.
 /// </para>
 /// <para>
-/// Of the two tests below, the DOM one is the cache guard; the model one covers the #203 write path,
-/// which does not go through the cached getter at all.
+/// The three tests below cover different things on purpose: the DOM one guards the cache on the
+/// <b>render</b> path, the validation one guards it on the <b>validation</b> path (both share one
+/// cache since #312), and the model one covers the #203 write path, which does not go through the
+/// cached getter at all.
 /// </para>
 /// </summary>
 public class CollectionValueGetterCachingTests : MudBlazorTestBase

@@ -50,9 +50,9 @@ public class ValidatorValueGetterCachingTests
         var model = new OrderModel { Items = { new ItemModel { First = "from First", Second = "from Second" } } };
 
         var (firstValidator, firstRecorder) =
-            CreateValidator(nameof(ItemModel.ProductName), _ => Expr(m => (object)m.First));
+            CreateValidator(nameof(ItemModel.ProductName), () => Expr(m => (object)m.First));
         var (secondValidator, secondRecorder) =
-            CreateValidator(nameof(ItemModel.ProductName), _ => Expr(m => (object)m.Second));
+            CreateValidator(nameof(ItemModel.ProductName), () => Expr(m => (object)m.Second));
 
         // Act
         await firstValidator.ValidateItemsAsync(model, _services);
@@ -69,8 +69,9 @@ public class ValidatorValueGetterCachingTests
         // Arrange - a configuration that hands out a DIFFERENT expression on every read, each
         // reading a different member. A recompile therefore necessarily observes a different value,
         // so "did it recompile?" becomes "did the observed value change?" — which cannot pass by
-        // accident. CollectionFieldValidator reads ValueExpression exactly once per item per field,
-        // so there is no second reader to muddy the count.
+        // accident. Nothing else in this path reads ValueExpression, so the only thing that can
+        // advance the queue is the validator compiling a getter: before the fix that was once per
+        // item per field, and after it, once per configuration.
         var model = new OrderModel
         {
             Items =
@@ -78,24 +79,23 @@ public class ValidatorValueGetterCachingTests
                 new ItemModel
                 {
                     First = "first read",
-                    Second = "second read",
-                    Third = "third read",
-                    Fourth = "fourth read"
+                    Second = "second read"
                 }
             }
         };
 
+        // Two entries are all the test can observe: the first read compiles First, and every read
+        // after it yields Second. A third pass would still see Second, which is the point — the
+        // assertion is that no read after the first one ever reaches the validator's getter.
         var expressions = new Queue<Expression<Func<ItemModel, object>>>(
         [
             Expr(m => (object)m.First),
-            Expr(m => (object)m.Second),
-            Expr(m => (object)m.Third),
-            Expr(m => (object)m.Fourth)
+            Expr(m => (object)m.Second)
         ]);
 
         var (validator, recorder) = CreateValidator(
             nameof(ItemModel.ProductName),
-            _ => expressions.Count > 1 ? expressions.Dequeue() : expressions.Peek());
+            () => expressions.Count > 1 ? expressions.Dequeue() : expressions.Peek());
 
         // Act
         await validator.ValidateItemsAsync(model, _services);
@@ -116,15 +116,14 @@ public class ValidatorValueGetterCachingTests
     /// </summary>
     private static (CollectionFieldValidator<OrderModel, ItemModel> Validator, RecordingValidator Recorder) CreateValidator(
         string fieldName,
-        Func<int, Expression<Func<ItemModel, object>>> expressionFactory)
+        Func<Expression<Func<ItemModel, object>>> expressionFactory)
     {
         var recorder = new RecordingValidator();
-        var reads = 0;
 
         var field = A.Fake<IFieldConfiguration<ItemModel, object>>();
         A.CallTo(() => field.FieldName).Returns(fieldName);
         A.CallTo(() => field.Validators).Returns(new List<IFieldValidator<ItemModel, object>> { recorder });
-        A.CallTo(() => field.ValueExpression).ReturnsLazily(() => expressionFactory(reads++));
+        A.CallTo(() => field.ValueExpression).ReturnsLazily(expressionFactory);
 
         var itemForm = A.Fake<IFormConfiguration<ItemModel>>();
         A.CallTo(() => itemForm.Fields).Returns([field]);
@@ -164,7 +163,5 @@ public class ValidatorValueGetterCachingTests
         public string ProductName { get; set; } = "";
         public string First { get; set; } = "";
         public string Second { get; set; } = "";
-        public string Third { get; set; } = "";
-        public string Fourth { get; set; } = "";
     }
 }

@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 
 namespace FormCraft;
@@ -32,15 +31,19 @@ namespace FormCraft;
 /// The entry is never invalidated, so this assumes a configuration's <c>ValueExpression</c> keeps
 /// reading the same member for that configuration's lifetime. That is the fluent builder's
 /// immutable-after-<c>Build()</c> contract, and <see cref="FieldConfiguration{TModel, TValue}" />
-/// enforces it by assigning the expression in its constructor. A caller that hands
-/// <see cref="IFieldRendererService.RenderField" /> a configuration which re-targets its expression
-/// after first use would keep seeing the original member; use a separate configuration instance per
-/// binding instead.
+/// enforces it by assigning the expression in its constructor. This binds **both** paths: a custom
+/// <see cref="IFieldConfiguration{TModel, TValue}" /> whose <c>ValueExpression</c> re-targets itself
+/// after first use — by a flag, a culture, a discriminator — keeps being read through whichever
+/// member was compiled first, whether that first read came from rendering or from validation. Before
+/// #312 validation re-read it every pass, so such an implementation happened to work there; it does
+/// not any more. Use a separate configuration instance per binding instead.
 /// </para>
 /// <para>
-/// <b>This is the only such cache — deliberately.</b> #269 introduced an equivalent one private to
-/// <see cref="FieldRendererService" />; #312 retired it in favour of this one rather than leave two
-/// mechanisms for one concept. Because both paths key off the same configuration instance, a field
+/// <b>This is the only cache of a compiled value getter — deliberately.</b> #269 introduced an
+/// equivalent one private to <see cref="FieldRendererService" />; #312 retired it in favour of this
+/// one rather than leave two mechanisms for one concept. (Reading a value by reflection is a
+/// separate matter: the adapters' custom-template paths still use
+/// <c>GetProperty</c>/<c>GetValue</c> and do not come through here.) Because both paths key off the same configuration instance, a field
 /// that is rendered <i>and</i> validated now compiles its getter once in total, not once per path.
 /// The alternative considered and rejected was widening
 /// <see cref="IFieldConfiguration{TModel, TValue}" /> with a compiled-getter member: it would let each
