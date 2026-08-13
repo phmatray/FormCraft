@@ -26,9 +26,15 @@ public partial class MudBlazorFileUploadFieldComponent<TModel>
     public bool EnableDragDrop { get; set; } = true;
     public FileUploadMode UploadMode { get; set; } = FileUploadMode.Immediate;
 
-    protected override void OnInitialized()
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#298).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
     {
-        base.OnInitialized();
+        base.OnFieldConfigurationChanged();
+
         Accept = GetAttribute<string>("Accept");
         AllowMultiple = GetAttribute<bool>("AllowMultiple");
         MaxFileSize = GetAttribute<long?>("MaxFileSize");

@@ -14,6 +14,16 @@ public partial class MudBlazorDateOnlyFieldComponent<TModel>
         base.OnInitialized();
 
         _localValue = CurrentValue == default ? null : CurrentValue.ToDateTime(TimeOnly.MinValue);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#298).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
 
         Format = GetAttribute("Format", "yyyy-MM-dd");
         MinDate = GetAttribute<DateTime?>("MinDate");

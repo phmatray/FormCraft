@@ -24,9 +24,14 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
     public bool ShowPreview { get; set; } = true;
     public bool EnableDragDrop { get; set; } = true;
 
-    protected override void OnInitialized()
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#298).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
     {
-        base.OnInitialized();
+        base.OnFieldConfigurationChanged();
 
         // Get configuration from FileUploadConfiguration if available
         var config = GetAttribute<FileUploadConfiguration>("FileUploadConfiguration");

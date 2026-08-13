@@ -54,6 +54,16 @@ public partial class MudBlazorNumericFieldComponent<TModel, TValue>
 
         // Initialize local value (CurrentValue is TValue, not TValue? due to TValue? behavior with unconstrained generics)
         _localValue = CurrentValue is TValue val ? val : default!;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#298).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
 
         Min = GetAttribute<TValue?>("Min");
         Max = GetAttribute<TValue?>("Max");
