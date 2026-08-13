@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace FormCraft.ForMudBlazor;
@@ -69,29 +68,15 @@ internal static class MaskedValueDiagnostic
         IServiceProvider? services,
         string fieldName,
         string? label,
-        string? pattern)
-    {
-        // A diagnostic must never break a render, so everything here — including the service
-        // resolution, which is the one call that can realistically fail on a torn-down circuit —
-        // is inside the guard.
-        try
-        {
-            var logger = services?
-                .GetService<ILoggerFactory>()?
-                .CreateLogger(Category);
-
-            logger?.LogWarning(
-                "Field '{Field}' holds a value that its mask '{Mask}' rejects, so the field renders " +
-                "empty while the model keeps the original. MudBlazor builds the display text by " +
-                "running the value through the mask and does not write the result back, so a user " +
-                "who submits without touching this field leaves the stored value unchanged. Correct " +
-                "the data, widen the mask, or drop the mask if the stored format is intentional.",
-                string.IsNullOrWhiteSpace(label) ? fieldName : label,
-                pattern);
-        }
-        catch
-        {
-            // Ignored: a failing diagnostic must not take the form down with it.
-        }
-    }
+        string? pattern) =>
+        DiagnosticLog.Warn(
+            services,
+            Category,
+            "Field '{Field}' holds a value that its mask '{Mask}' rejects, so the field renders " +
+            "empty while the model keeps the original. MudBlazor builds the display text by " +
+            "running the value through the mask and does not write the result back, so a user " +
+            "who submits without touching this field leaves the stored value unchanged. Correct " +
+            "the data, widen the mask, or drop the mask if the stored format is intentional.",
+            string.IsNullOrWhiteSpace(label) ? fieldName : label,
+            pattern);
 }

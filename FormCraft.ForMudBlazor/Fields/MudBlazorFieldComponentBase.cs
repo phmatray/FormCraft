@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
 
@@ -414,24 +413,14 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
             return;
         }
 
-        // A diagnostic must never break a render, so a logger that throws is swallowed.
-        try
-        {
-            var logger = DiagnosticServices?
-                .GetService<ILoggerFactory>()?
-                .CreateLogger(ShrinkLabelDiagnostic.Category);
-
-            logger?.LogWarning(
-                "Field '{Field}' sets ShrinkLabel=false but also has {Conflict}, which MudBlazor " +
-                "lets win — the label stays pinned and will not float. Remove that property to get " +
-                "a floating label, or drop ShrinkLabel=false.",
-                field,
-                conflict);
-        }
-        catch
-        {
-            // Ignored: a failing diagnostic must not take the form down with it.
-        }
+        DiagnosticLog.Warn(
+            DiagnosticServices,
+            ShrinkLabelDiagnostic.Category,
+            "Field '{Field}' sets ShrinkLabel=false but also has {Conflict}, which MudBlazor " +
+            "lets win — the label stays pinned and will not float. Remove that property to get " +
+            "a floating label, or drop ShrinkLabel=false.",
+            field,
+            conflict);
     }
 
     /// <summary>

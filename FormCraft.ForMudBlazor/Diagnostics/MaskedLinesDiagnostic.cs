@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
 
@@ -45,29 +44,15 @@ internal static class MaskedLinesDiagnostic
         IServiceProvider? services,
         string fieldName,
         string? label,
-        int configuredLines)
-    {
-        // A diagnostic must never break a render, so everything here — including the service
-        // resolution, which is the one call that can realistically fail on a torn-down circuit —
-        // is inside the guard.
-        try
-        {
-            var logger = services?
-                .GetService<ILoggerFactory>()?
-                .CreateLogger(Category);
-
-            logger?.LogWarning(
-                "Field '{Field}' is a password field and also asks for {Lines} lines. MudBlazor " +
-                "renders a <textarea> past one line, and a textarea has no `type` attribute — so " +
-                "honouring the line count would display the value in clear text. The field is " +
-                "rendered masked on a single line instead. Drop the multi-line setting to silence " +
-                "this, or drop .AsPassword() if the value is not a secret.",
-                string.IsNullOrWhiteSpace(label) ? fieldName : label,
-                configuredLines);
-        }
-        catch
-        {
-            // Ignored: a failing diagnostic must not take the form down with it.
-        }
-    }
+        int configuredLines) =>
+        DiagnosticLog.Warn(
+            services,
+            Category,
+            "Field '{Field}' is a password field and also asks for {Lines} lines. MudBlazor " +
+            "renders a <textarea> past one line, and a textarea has no `type` attribute — so " +
+            "honouring the line count would display the value in clear text. The field is " +
+            "rendered masked on a single line instead. Drop the multi-line setting to silence " +
+            "this, or drop .AsPassword() if the value is not a secret.",
+            string.IsNullOrWhiteSpace(label) ? fieldName : label,
+            configuredLines);
 }
