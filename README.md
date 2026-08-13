@@ -96,7 +96,26 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
   **Three things to check before you upgrade**, if you already pass `Mask` — it did nothing until now, so all three are newly reachable:
 
   1. **The model stores the *masked* text.** With the mask above, `model.Phone` becomes `"(555) 123-4567"`, not `"5551234567"`. Validation, database columns and APIs keyed to raw digits will see the delimiters. This is still the default, but it is no longer the only option: `.WithMask("(000) 000-0000", cleanDelimiters: true)` stores `"5551234567"` instead — see the `.WithMask(...)` entry below (#265).
-  2. **An existing value that doesn't fit the pattern renders as an empty field** — while the model quietly keeps the original. The user sees a blank input, submits without touching it, and the old value survives. FormCraft now **says so** instead of leaving you to find it in a bug report: a warning under the `FormCraft.ForMudBlazor.MaskedValue` category names the field and the pattern, on both render paths, once per field — a fifty-row collection reports once, not fifty times (#266). It judges whichever mask the field actually renders with, a factory supplied via `.WithMask(...)` included. It fires only when the mask rejects a value *outright*; a value it merely reformats (`5551234567` → `(555) 123-4567`) is the mask working, and stays silent. The diagnostic reports only — the stored value is never rewritten, on any path, including read-only views. Still worth auditing stored data against the pattern before turning a mask on; the warning tells you where to look. Silence it by configuring that log category off.
+  2. **An existing value that doesn't fit the pattern is displayed wrongly** — while the model quietly keeps the original. Either it renders as an empty field, or, less obviously, the mask keeps the characters that happen to fit and drops the rest. The user submits without touching the field and the old value survives. FormCraft now **says so** instead of leaving you to find it in a bug report: a warning under the `FormCraft.ForMudBlazor.MaskedValue` category names the field and the pattern, on both render paths, once per field — a fifty-row collection reports once, not fifty times (#266). It judges whichever mask the field actually renders with, a factory supplied via `.WithMask(...)` included.
+
+      **What it reports** is the mask changing what the value *means*, not merely how it looks (#283):
+
+      | Stored | Renders as | Reported |
+      |---|---|---|
+      | `"N/A"` | `""` | ✅ the value was rejected outright |
+      | `"+1 555 123 4567"` | `(155) 512-3456` | ✅ **a different phone number** — the country code was consumed as the area code and the last digit dropped |
+      | `"N/A5551234567"` | `(555) 123-4567` | ✅ the digits survived, the `N/A` marker did not |
+      | `"5551234567"` | `(555) 123-4567` | — reformatting is the mask working |
+      | `"555 123 4567"` | `(555) 123-4567` | — same, even though the stored value had its own separators |
+      | `"123 45 6789"` under `000-00-0000` | `123-45-6789` | — same again, and the separators aren't the mask's either |
+
+      The `+1` row is the one worth knowing about: nothing looks wrong on screen, so the message quotes the text the field displays, which is what lets you check it against the record.
+
+      **Reformatting stays silent however the value happens to be punctuated.** The rule reduces both sides to the characters that carry the data — dropping punctuation, the mask's own literals, and its placeholder padding — and compares those, so stored data keeps its meaning whether it arrives as `5551234567`, `555 123 4567` or `555.123.4567`, and whether or not those separators are the ones the mask spells. That matters because legacy data is punctuated however whoever stored it felt like, which is rarely the way a newly-added mask is. `cleanDelimiters` does not enter into it either way. A mask FormCraft cannot read like that — a `RegexMask` from the factory overload, or one carrying a `Transformation` — falls back to reporting outright rejection only, rather than guessing.
+
+      **It also fires for values that arrive after the field is on screen** (#283) — the async-fetch case, where the model is populated once the request resolves and the field was empty at first render. It was previously checked only at initialisation, so precisely the legacy data most likely to predate the mask went unreported. It never fires for a value *you* type, and never for a field you clear: it reports stored data, not live editing.
+
+      The diagnostic reports only — the stored value is never rewritten, on any path, including read-only views. Still worth auditing stored data against the pattern before turning a mask on; the warning tells you where to look. Silence it by configuring that log category off.
   3. **Masked fields render through MudBlazor's `MudMask`**, which MudBlazor documents as *"recommended to be used in WASM projects only because it has known problems in BSS, especially with high network latency"*. On Blazor Server, test the field under realistic latency before shipping it.
 
   A field that configures no mask is untouched by all of this.
