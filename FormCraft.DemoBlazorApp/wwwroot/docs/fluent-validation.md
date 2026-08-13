@@ -233,7 +233,7 @@ Remember that validation state is managed by Blazor's `EditContext`:
 ```
 
 > `DynamicFormValidator<TModel>` lives in the **`FormCraft`** namespace (it moved there from
-> `FormCraft.ForMudBlazor` in 3.2.0, so both UI adapters share one implementation). The `@using
+> `FormCraft.ForMudBlazor` in #279, so both UI adapters share one implementation). The `@using
 > FormCraft` above is what makes the tag resolve; the adapter's own `@using` is not enough.
 > `FormCraftComponent` renders it for you, so most forms never name it directly.
 

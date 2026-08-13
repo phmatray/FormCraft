@@ -53,7 +53,7 @@ FormCraft.ForMudBlazor/
 │       └── FieldValidationMessage.razor.cs
 ```
 
-## ⚠️ Moved to FormCraft core in 3.2.0
+## ⚠️ Moved to FormCraft core (#279) — breaking
 
 `DynamicFormValidator<TModel>` used to live in this package, in namespace
 `FormCraft.ForMudBlazor`. It references nothing from MudBlazor, so a second UI adapter could not
