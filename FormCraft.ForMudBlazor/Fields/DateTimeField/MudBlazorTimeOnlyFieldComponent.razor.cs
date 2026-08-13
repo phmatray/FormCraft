@@ -11,6 +11,16 @@ public partial class MudBlazorTimeOnlyFieldComponent<TModel>
         base.OnInitialized();
 
         _localValue = CurrentValue == default ? null : CurrentValue.ToTimeSpan();
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#298).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
 
         ShowClearButton = GetAttribute("ShowClearButton", true);
     }
