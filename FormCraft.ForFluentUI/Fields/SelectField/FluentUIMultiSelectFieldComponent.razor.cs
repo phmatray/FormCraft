@@ -13,7 +13,6 @@ public partial class FluentUIMultiSelectFieldComponent<TModel, TItem>
     private IEnumerable<SelectOption<TItem>> Options { get; set; } = [];
 
     /// <inheritdoc />
-    /// <inheritdoc />
     /// <remarks>
     /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
     /// rather than rendering the previous field's settings (#335).
@@ -28,8 +27,9 @@ public partial class FluentUIMultiSelectFieldComponent<TModel, TItem>
         Options = GetAttribute<IEnumerable<SelectOption<TItem>>>("MultiSelectOptions")?.ToList()
                   ?? [];
 
-        // Recomputed here as well as in OnInitialized: the selection is projected THROUGH Options, so
-        // it is stale the moment they change.
+        // Recomputed whenever Options are: the selection is projected THROUGH them, so it is stale the
+        // moment they change. This component has no OnInitialized of its own — the hook runs on first
+        // render too, so this is the only place that needs to do it.
         _selectedOptions = OptionsFor(CurrentValue);
     }
 

@@ -1,3 +1,4 @@
+using FormCraft.ForFluentUI.Extensions;
 using FormCraft.ForFluentUI.UnitTests.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -165,6 +166,75 @@ public class FieldConfigurationRefreshTests : FluentUITestBase
         // Assert
         component.FindComponent<FluentNumberInput<int>>().Instance.Min.ShouldBe(9);
     }
+
+    /// <summary>
+    /// A lookup keeps showing its stored value after a configuration swap (#335).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The regression test for a fix that was almost worse than the bug. The first attempt reset
+    /// <c>_displayText</c> to empty in the hook — correct for staleness, and catastrophic on its own,
+    /// because nothing else in this component repopulates it from the model. The MudBlazor lookup
+    /// gets away with clearing because its <c>OnParametersSet</c> calls <c>UpdateDisplayText()</c> on
+    /// every render and repairs the blank on the same pass; the Fluent one has no such call, so a
+    /// field with a perfectly good stored value rendered empty for ever.
+    /// </para>
+    /// <para>
+    /// The hook now re-derives the text rather than clearing it, which is what "reload, not patch"
+    /// means when the property is derived rather than read.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void LookupField_Should_Keep_Displaying_Its_Value_After_A_Configuration_Swap()
+    {
+        // Arrange
+        var model = new TripModel { CityId = 7 };
+
+        var component = Render<FormCraftComponent<TripModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, LookupConfiguration()));
+
+        component.FindComponent<FluentTextInput>().Instance.Value.ShouldBe("7");
+
+        // Act - a different configuration object declaring the same lookup field.
+        component.Render(parameters => parameters
+            .Add(p => p.Configuration, LookupConfiguration()));
+
+        // Assert - the display still reflects the model, rather than having been blanked.
+        component.FindComponent<FluentTextInput>().Instance.Value.ShouldBe("7");
+    }
+
+    private static IFormConfiguration<TripModel> LookupConfiguration() =>
+        FormBuilder<TripModel>
+            .Create()
+            .AddField(x => x.CityId, field =>
+            {
+                field.WithLabel("City");
+
+                // Called as a static method rather than as an extension on purpose: this project
+                // references BOTH adapters, and the MudBlazor package publishes an .AsLookup(...) of
+                // the same name into namespace FormCraft, so the extension form would be
+                // CS0121-ambiguous here. Same reasoning as FluentUILookupFieldComponentTests.
+                FluentUIFieldBuilderExtensions.AsLookup<TripModel, int, City>(
+                    field,
+                    dataProvider: _ => Task.FromResult(new LookupResult<City>
+                    {
+                        Items = [new City(7, "Lisbon")],
+                        TotalCount = 1,
+                    }),
+                    valueSelector: c => c.Id,
+                    displaySelector: c => c.Name,
+                    configureColumns: cols =>
+                        cols.Add(new LookupColumn<City> { Title = "Name", ValueSelector = c => c.Name }));
+            })
+            .Build();
+
+    private class TripModel
+    {
+        public int CityId { get; set; }
+    }
+
+    private record City(int Id, string Name);
 
     private static IFormConfiguration<NumericModel> BoundedConfiguration(int min) =>
         FormBuilder<NumericModel>
