@@ -32,6 +32,21 @@ public partial class FluentUINumericFieldComponent<TModel, TValue> where TValue 
         base.OnInitialized();
 
         _localValue = CurrentValue;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#335).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
+
+        // CLEARED first. ExtraAttributes is a dictionary and AddIfConfigured only ever adds, so
+        // without this the new field inherits every bound the previous one declared — the
+        // patch-not-reload trap in its purest form (#335).
+        ExtraAttributes.Clear();
 
         AddIfConfigured("Min");
         AddIfConfigured("Max");

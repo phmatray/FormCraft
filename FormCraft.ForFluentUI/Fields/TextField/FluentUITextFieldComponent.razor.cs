@@ -22,6 +22,16 @@ public partial class FluentUITextFieldComponent<TModel>
         base.OnInitialized();
 
         _localValue = CurrentValue;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#335).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
 
         var configuredInputType = Context.Field.InputType ?? GetAttribute("InputType", "text") ?? "text";
         InputType = FluentTextInputTypeMap.Resolve(configuredInputType);

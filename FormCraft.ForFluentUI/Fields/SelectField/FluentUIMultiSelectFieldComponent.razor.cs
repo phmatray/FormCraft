@@ -13,11 +13,23 @@ public partial class FluentUIMultiSelectFieldComponent<TModel, TItem>
     private IEnumerable<SelectOption<TItem>> Options { get; set; } = [];
 
     /// <inheritdoc />
-    protected override void OnInitialized()
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#335).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
     {
-        base.OnInitialized();
+        base.OnFieldConfigurationChanged();
 
-        Options = GetAttribute<IEnumerable<SelectOption<TItem>>>("MultiSelectOptions")?.ToList() ?? Options;
+        // Falls back to an EMPTY list rather than to the current value of Options. `?? Options` reads
+        // as "keep the default" and is that on first load, but on a reload it means "keep the previous
+        // field's options" — offering the user choices from a field no longer on screen (#335).
+        Options = GetAttribute<IEnumerable<SelectOption<TItem>>>("MultiSelectOptions")?.ToList()
+                  ?? [];
+
+        // Recomputed here as well as in OnInitialized: the selection is projected THROUGH Options, so
+        // it is stale the moment they change.
         _selectedOptions = OptionsFor(CurrentValue);
     }
 

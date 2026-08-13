@@ -30,11 +30,21 @@ public partial class FluentUIAutocompleteFieldComponent<TModel, TValue>
     {
         base.OnInitialized();
 
+        SyncSelectedOption();
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#335).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
+
         _searchFunc = GetAttribute<Func<string, CancellationToken, Task<IEnumerable<SelectOption<TValue>>>>>(
             "AutocompleteSearchFunc");
         _optionProvider = GetAttribute<object>("AutocompleteOptionProvider");
-
-        SyncSelectedOption();
     }
 
     /// <inheritdoc />

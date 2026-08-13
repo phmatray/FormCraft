@@ -122,43 +122,57 @@ public class FieldConfigurationRefreshTests : FluentUITestBase
     }
 
     /// <summary>
-    /// A numeric field drops the previous field's <c>Min</c> rather than accumulating it (#335).
+    /// A numeric field rebinds its <c>Min</c> when a different field declares another one (#335).
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The numeric component collects <c>Min</c>/<c>Max</c>/<c>Step</c> into a
     /// <c>Dictionary&lt;string, object&gt;</c> through a helper that only ever <i>adds</i> when the
-    /// attribute is configured. That is the patch-not-reload shape in its purest form: nothing removes
-    /// a key, so on a reload the new field inherits every bound the old one declared, and the input
-    /// silently constrains input the developer never asked it to.
+    /// attribute is configured, then splats it with <c>@attributes</c>. Nothing removed a key, so
+    /// before this fix the dictionary accumulated across fields; it is now cleared on every reload.
+    /// </para>
+    /// <para>
+    /// ⚠️ <b>Scope of this test.</b> It swaps one bound for another rather than dropping it, because
+    /// <i>omission</i> cannot be expressed through a splat: Blazor retains a component parameter that
+    /// a later render stops supplying, so a field that declares no <c>Min</c> leaves
+    /// <c>FluentNumberInput.Min</c> holding the previous field's value even though FormCraft's
+    /// dictionary is correct. Expressing "unset" would mean FormCraft supplying Fluent's own defaults
+    /// (<c>int.MinValue</c>) explicitly, i.e. binding the bounds as real parameters instead of
+    /// splatting a dictionary. That is a change to how the Fluent numeric components are written and
+    /// is recorded as a follow-up rather than smuggled in here.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void NumericField_Should_Drop_A_Bound_The_New_Configuration_Does_Not_Declare()
+    public void NumericField_Should_Rebind_Its_Min_When_The_Configuration_Is_Swapped()
     {
         // Arrange
-        var bounded = FormBuilder<NumericModel>
+        // Typed as int? deliberately: AddIfConfigured reads it back with GetAttribute<TValue?>, so a
+        // plainly-boxed int would not match and the bound would never be configured at all. The
+        // existing numeric suite spells its Min/Max/Step the same way.
+        var component = Render<FormCraftComponent<NumericModel>>(parameters => parameters
+            .Add(p => p.Model, new NumericModel())
+            .Add(p => p.Configuration, BoundedConfiguration(5)));
+
+        // Asserted on what the Fluent input was actually bound, the way the existing numeric suite
+        // does: ExtraAttributes is splatted onto the component, so the dictionary's contents become
+        // its parameters.
+        component.FindComponent<FluentNumberInput<int>>().Instance.Min.ShouldBe(5);
+
+        // Act
+        component.Render(parameters => parameters
+            .Add(p => p.Configuration, BoundedConfiguration(9)));
+
+        // Assert
+        component.FindComponent<FluentNumberInput<int>>().Instance.Min.ShouldBe(9);
+    }
+
+    private static IFormConfiguration<NumericModel> BoundedConfiguration(int min) =>
+        FormBuilder<NumericModel>
             .Create()
             .AddField(x => x.Amount, field => field
                 .WithLabel("Amount")
-                .WithAttribute("Min", 5))
+                .WithAttribute("Min", (int?)min))
             .Build();
-
-        var unbounded = FormBuilder<NumericModel>
-            .Create()
-            .AddField(x => x.Amount, field => field.WithLabel("Amount"))
-            .Build();
-
-        var component = Render<FormCraftComponent<NumericModel>>(parameters => parameters
-            .Add(p => p.Model, new NumericModel())
-            .Add(p => p.Configuration, bounded));
-
-        component.Markup.ShouldContain("min");
-
-        // Act
-        component.Render(parameters => parameters.Add(p => p.Configuration, unbounded));
-
-        // Assert - the bound belonged to a field that is no longer on screen.
-        component.Markup.ShouldNotContain("min=");
-    }
 
     private static IFormConfiguration<TestModel> TextConfiguration(string inputType) =>
         FormBuilder<TestModel>

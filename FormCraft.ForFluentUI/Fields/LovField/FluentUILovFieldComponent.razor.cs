@@ -50,9 +50,18 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
     private IReadOnlyList<LovColumnDefinition<TItem>> Columns => _lovConfig?.Columns ?? [];
 
     /// <inheritdoc />
-    protected override void OnInitialized()
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#335).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
     {
-        base.OnInitialized();
+        base.OnFieldConfigurationChanged();
+
+        // Reset before reloading: _displayText is derived from the configuration, and is only ever
+        // filled when empty, so carrying it into a new field would show the previous field's text.
+        _displayText = string.Empty;
 
         _lovConfig = GetAttribute<ILovConfiguration<TItem, TValue>>("LovConfiguration")
             ?? throw new InvalidOperationException(

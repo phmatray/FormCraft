@@ -50,12 +50,28 @@ public partial class FluentUILookupFieldComponent<TModel, TValue>
     {
         base.OnInitialized();
 
-        _columns = BuildColumns();
-
         if (CurrentValue is not null)
         {
             _displayText = CurrentValue.ToString() ?? string.Empty;
         }
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
+    /// rather than rendering the previous field's settings (#335).
+    /// </remarks>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
+
+        // Columns are read from the field's attributes, so they belong to the field rather than to
+        // this instance — a different field gets its own.
+        _columns = BuildColumns();
+
+        // Derived from the configuration too, and only ever filled when empty, so without this reset
+        // an instance handed a different field would keep displaying the previous field's text.
+        _displayText = string.Empty;
     }
 
     private async Task TogglePickerAsync()
