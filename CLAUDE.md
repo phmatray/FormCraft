@@ -43,6 +43,10 @@ dotnet format FormCraft.sln style        # ...or the IDE* code-style rules only
   the `.cs` file** — code that does not compile (measured in #301 on `FieldRendererBase.cs`).
   Verify mode never writes, so CI is safe. After any apply run:
   `grep -rl '<<<<<<< TODO' --include='*.cs' .` and hand-resolve before committing.
+- ⚠️ **One `dotnet format` run does not always reach a fixpoint.** Measured in #301: after formatting
+  a `field`-keyword property, verify still reported three `WHITESPACE` diagnostics on it, and a
+  second run cleared them. If `./build.sh Format` fails right after you formatted, run the formatter
+  again before assuming the gate is wrong.
 - **`IDE0032` now rewrites a private backing field into C# 14's `field` keyword.** Value-identical,
   but it silently deletes the XML docs that lived on the field — which on
   `MudBlazorFileUploadComponentBase.RequiredDescriptionId` were documenting a real correctness
