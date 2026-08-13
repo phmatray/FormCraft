@@ -19,22 +19,39 @@ public class TrustedPublishingWorkflowTests
     /// same expression sitting on some other step.
     /// </summary>
     /// <remarks>
-    /// Deliberately reads the workflow *unstripped*. The scan runs from the step's own list item to
-    /// the next one, so the slice carries whatever explanatory comments sit between the step and its
-    /// successor.
     /// <para>
-    /// ⚠️ That is <b>not</b> harmless, and this remark used to claim it was. The login step's slice
-    /// carries a comment block that mentions <c>release_created</c> in prose, so
-    /// <see cref="ReleaseWorkflow_Should_Gate_The_Login_On_A_Created_Release" /> — a whole-slice
-    /// <c>ShouldContain</c> — is satisfied by that comment alone and would stay green if the step's
-    /// <c>if:</c> were deleted outright, which is the #226 regression it exists to catch. Pre-existing
-    /// (the prose sat inside the slice before #267 moved its start), not introduced here, and left
-    /// standing only because narrowing it changes *what* this suite asserts. The tests that go through
-    /// <see cref="StepCondition" /> read the <c>if:</c> line alone and are unaffected.
+    /// Reads the workflow <b>comment-stripped</b> (#302). The scan runs from the step's own list item
+    /// to the next one, so an unstripped slice carries whatever prose sits between the step and its
+    /// successor — and the login step is surrounded by far more prose than wiring. That is not a
+    /// cosmetic difference: every claim in this file is a <c>ShouldContain</c>/<c>ShouldMatch</c> over
+    /// the whole slice, which cannot tell wiring from a comment, and
+    /// <see cref="ReleaseWorkflow_Should_Gate_The_Login_On_A_Created_Release" /> was satisfied by the
+    /// #221 comment block naming <c>release_created</c> — measured: with the step's <c>if:</c> deleted,
+    /// and again with it re-pointed at an unrelated condition, that test passed both times.
+    /// </para>
+    /// <para>
+    /// It was never the *only* cover, which is worth stating precisely so nobody re-derives a panic
+    /// from this comment: in both measurements the suite still went red through
+    /// <see cref="ReleaseWorkflow_Should_Not_Gate_The_Login_On_The_NuGetUser_Secret" />, whose
+    /// <c>condition.ShouldContain("release_created")</c> reads the <c>if:</c> line alone via
+    /// <see cref="StepCondition" />. So the gate was covered — but only *incidentally*, by a test named
+    /// for a different question, and narrowing that test to match its name would have dropped the cover
+    /// with nothing failing. Stripping makes the gate test carry its own claim again.
+    /// </para>
+    /// <para>
+    /// Stripping is safe for every other claim here because <see cref="WorkflowSource.WithoutComments" />
+    /// drops only <em>whole-line</em> comments: <c>uses: NuGet/login@8d19675… # v1.2.0</c> keeps its
+    /// digest, so the <c>uses:</c> regex still matches. Pinned by
+    /// <see cref="ReleaseWorkflow_Login_Step_Should_Be_Read_Without_Its_Prose" />, which asserts the
+    /// slice carries no comment line and names the gate token exactly once.
+    /// </para>
+    /// <para>
+    /// ⛔ Do not "restore" <see cref="WorkflowSource.Read" /> here to keep a slice human-readable — that
+    /// is the defect above, and it re-arms silently: every test still passes on a correct workflow.
     /// </para>
     /// </remarks>
     private static string StepWithId(string workflowFile, string stepId) =>
-        WorkflowSource.StepWithId(WorkflowSource.Read(workflowFile), stepId, workflowFile);
+        WorkflowSource.StepWithId(WorkflowSource.Stripped(workflowFile), stepId, workflowFile);
 
     /// <summary>
     /// The <c>if:</c> expression of a single step, so a claim about what a step is *gated on* cannot
@@ -50,6 +67,25 @@ public class TrustedPublishingWorkflowTests
 
         condition.ShouldNotBeNull($"the `{stepId}` step of {workflowFile} no longer has an `if:` condition");
         return condition;
+    }
+
+    [Fact]
+    public void ReleaseWorkflow_Login_Step_Should_Be_Read_Without_Its_Prose()
+    {
+        // #302. A whole-slice ShouldContain cannot tell wiring from a comment, and this step is
+        // surrounded by more prose than wiring — so `release_created` appearing twice in the slice is
+        // not a curiosity, it is the reason ReleaseWorkflow_Should_Gate_The_Login_On_A_Created_Release
+        // passes even when the `if:` is gone. Asserted on the slice this suite actually reads, so it
+        // pins the property that makes every claim in this file about wiring rather than about prose.
+        var step = StepWithId("release-please.yml", "login");
+
+        step.Split('\n').ShouldAllBe(l => !l.TrimStart().StartsWith("#", StringComparison.Ordinal));
+
+        // Exactly once, not merely "present": the count is what distinguishes the `if:` line from the
+        // #221 comment block that also names the token.
+        step.Split('\n')
+            .Count(l => l.Contains("release_created", StringComparison.Ordinal))
+            .ShouldBe(1);
     }
 
     [Fact]
