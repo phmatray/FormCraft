@@ -15,7 +15,7 @@
     -->
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.11" />
     <!-- UI Framework packages -->
-    <PackageVersion Include="MudBlazor" Version="9.8.0" />
+    <PackageVersion Include="MudBlazor" Version="9.9.0" />
     <!--
       Fluent UI Blazor v5 is still an RC (#260). v4 loses support in November 2026 and v5 renamed
       most of the input surface, so the adapter targets v5 directly rather than being born
