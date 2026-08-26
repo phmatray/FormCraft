@@ -5,16 +5,27 @@ public partial class MudBlazorBooleanFieldComponent<TModel>
     private bool _localValue;
 
     /// <summary>
-    /// Whether this field renders MudBlazor's native required decoration (#199), resolved by the
-    /// same rule as every other field type — see <see cref="NativeRequired.Resolve"/>.
+    /// Whether this field renders MudBlazor's native required decoration — the asterisk and the
+    /// HTML5 <c>required</c> attribute. Set only by the explicit <c>.WithNativeRequired(...)</c>
+    /// opt-in since #263; the announcement lives in <see cref="AriaRequired"/>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Declared here rather than inherited because this component derives from
-    /// <c>FieldComponentBase</c> directly, not from <c>MudBlazorFieldComponentBase</c>, so it has no
-    /// <c>EffectiveNativeRequired</c>. Rebasing it would drag in the variant cascade and the
-    /// ShrinkLabel diagnostic, neither of which a checkbox has any use for.
+    /// <c>FieldComponentBase</c> directly, not from <c>MudBlazorFieldComponentBase</c>. Rebasing it
+    /// would drag in the variant cascade and the ShrinkLabel diagnostic, neither of which a checkbox
+    /// has any use for.
+    /// </para>
+    /// <para>
+    /// ⚠️ It carries the <b>same name and the same meaning</b> as the base's property on purpose.
+    /// This pair was called <c>NativeRequiredValue</c>/<c>AriaRequiredValue</c> until #263 split the
+    /// decoration from the announcement — at which point the old name would have meant "explicit
+    /// opt-in only" here while <c>MudBlazorFileUploadComponentBase.NativeRequiredValue</c> went on
+    /// meaning "is this field required", the full resolve. Two sibling components, one identifier,
+    /// opposite answers, and nothing to catch a copy-paste between them.
+    /// </para>
     /// </remarks>
-    private bool NativeRequiredValue =>
+    private bool EffectiveNativeRequired =>
         NativeRequired.Resolve(Context.Field.AdditionalAttributes, isRequired: false);
 
     /// <summary>
@@ -30,13 +41,13 @@ public partial class MudBlazorBooleanFieldComponent<TModel>
     /// types can return <c>null</c> there; this one cannot.
     /// </para>
     /// <para>
-    /// Resolved from <c>IsRequired</c> rather than from <see cref="NativeRequiredValue"/> since
+    /// Resolved from <c>IsRequired</c> rather than from <see cref="EffectiveNativeRequired"/> since
     /// #263, which split the announcement from the native decoration. Reading the sibling property
     /// would silently re-couple them and leave a required checkbox unannounced the moment it stopped
     /// setting <c>Required</c>.
     /// </para>
     /// </remarks>
-    private string AriaRequiredValue =>
+    private string AriaRequired =>
         NativeRequired.Resolve(Context.Field.AdditionalAttributes, IsRequired) ? "true" : "false";
 
     public BooleanDisplayStyle DisplayStyle { get; set; } = BooleanDisplayStyle.Checkbox;
