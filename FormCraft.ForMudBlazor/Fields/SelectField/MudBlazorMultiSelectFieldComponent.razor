@@ -16,7 +16,8 @@
     Variant="@EffectiveVariant"
     Margin="Margin.Dense"
     ShrinkLabel="@EffectiveShrinkLabel"
-    Required="@EffectiveNativeRequired">
+    Required="@EffectiveNativeRequired"
+    aria-required="@AriaRequired">
     @foreach (SelectOption<TItem> option in Options)
     {
         <MudSelectItem T="TItem" Value="@option.Value">

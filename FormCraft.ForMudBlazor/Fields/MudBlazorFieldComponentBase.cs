@@ -324,35 +324,59 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
     protected virtual Adornment? RenderedAdornment => null;
 
     /// <summary>
-    /// Whether MudBlazor's native required decoration is rendered: the explicit
-    /// <c>.WithNativeRequired(...)</c> opt-in (or the equivalent raw <c>"Required"</c> attribute)
-    /// when the field sets one, otherwise <c>Context.Field.IsRequired</c> (#199, #204).
+    /// Whether MudBlazor's native required decoration is rendered — its asterisk and the HTML5
+    /// <c>required</c> attribute, which one parameter drives together. Set only by the explicit
+    /// <c>.WithNativeRequired(...)</c> opt-in (or the equivalent raw <c>"Required"</c> attribute);
+    /// <c>Context.Field.IsRequired</c> alone no longer implies it (#263).
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The explicit attribute wins in <b>both</b> directions — a field that asked for the decoration
-    /// without <c>.Required(...)</c> gets it, and one that suppressed it with
-    /// <c>.WithNativeRequired(false)</c> keeps it suppressed even when <c>.Required(...)</c> is
-    /// configured. Only an unconfigured field falls through to the validator's own answer.
+    /// <c>.Required(...)</c> is announced through <see cref="AriaRequired"/> instead, so a required
+    /// field is identified to assistive technology without acquiring the HTML5 attribute the
+    /// project's validation convention forbids. Between #199 and #263 this property carried both
+    /// jobs, because MudBlazor 9.8.0 fused them: <c>MudInput</c> splatted <c>UserAttributes</c> and
+    /// then wrote its own <c>required</c> and <c>aria-required</c> afterwards, both off this single
+    /// bool, and last-write-wins meant a caller-supplied <c>aria-required</c> was always discarded.
     /// </para>
     /// <para>
-    /// ⚠️ This property used to read the attribute and <b>never</b> <c>IsRequired</c>, because #190
-    /// had removed that forward. #199 restores it deliberately: a required field that is not
-    /// announced as required fails WCAG 2.1 <b>3.3.2</b> (Level A), and on MudBlazor 9.8.0 there is
-    /// no way to say so without this flag. <c>MudInput</c> splats <c>UserAttributes</c> and then
-    /// writes its own <c>required</c> and <c>aria-required</c> afterwards, both off this single
-    /// bool; Blazor resolves duplicate attributes last-write-wins, so a caller-supplied
-    /// <c>aria-required</c> is always overwritten and the two attributes cannot be separated.
+    /// MudBlazor 9.9.0 moved those ARIA writes <i>above</i> the splat
+    /// (<see href="https://github.com/MudBlazor/MudBlazor/pull/13613">MudBlazor#13613</see>), making
+    /// them caller-overridable while <c>required</c> stayed below it and deliberately not. That is
+    /// what separates the pair, and it is why <c>Directory.Packages.props</c> must not drop below
+    /// 9.9.0 — on an older MudBlazor every ARIA assertion in <c>AriaRequiredTests</c> goes red.
     /// </para>
     /// <para>
-    /// What #190 actually fixed — the same <c>.Required("…")</c> call decorating an item field but
-    /// not an ordinary one — stays fixed: <c>CollectionFieldComponent</c> resolves the flag by the
-    /// same rule, so the two render paths agree. The HTML5 attribute that returns with it is inert
-    /// for validation here, since FormCraft forms render <c>novalidate</c> (#206).
+    /// ⚠️ The visible asterisk goes with the decoration, so a plain <c>.Required(...)</c> field no
+    /// longer shows one. That is the spec's decision, not an oversight:
+    /// <c>.WithNativeRequired()</c> is the documented way back to native semantics, asterisk
+    /// included. <c>AriaRequiredTests</c> pins both halves.
     /// </para>
     /// </remarks>
     protected bool EffectiveNativeRequired =>
-        NativeRequired.Resolve(Context.Field.AdditionalAttributes, IsRequired);
+        NativeRequired.Resolve(Context.Field.AdditionalAttributes, isRequired: false);
+
+    /// <summary>
+    /// The value of <c>aria-required</c> to contribute through <c>UserAttributes</c> (#263).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This carries the <i>announcement</i>, which <see cref="EffectiveNativeRequired"/> no longer
+    /// does. It resolves by the full rule — an explicit <c>.WithNativeRequired(...)</c> winning over
+    /// <c>Context.Field.IsRequired</c> in both directions — so <c>.WithNativeRequired(false)</c> on a
+    /// <c>.Required(...)</c> field still suppresses the annotation, as it always has.
+    /// </para>
+    /// <para>
+    /// ⚠️ Always a string, never <c>null</c>. Returning <c>null</c> to "leave MudBlazor's own
+    /// fallback in place" does the opposite: a null component parameter is still captured into
+    /// <c>UserAttributes</c> as a present key with a null value, and Blazor deletes an attribute
+    /// whose last write is null — so the optional case lost <c>aria-required</c> altogether instead
+    /// of keeping <c>"false"</c>. Measured, not reasoned: it turned five DOM assertions red.
+    /// Spelling both values out also stops the negative case depending on a MudBlazor fallback that
+    /// some components (<c>MudSelect</c> among them) do not emit at all.
+    /// </para>
+    /// </remarks>
+    protected string AriaRequired =>
+        NativeRequired.Resolve(Context.Field.AdditionalAttributes, IsRequired) ? "true" : "false";
 
     /// <summary>
     /// Service provider used to resolve an optional <see cref="ILoggerFactory"/> for the
