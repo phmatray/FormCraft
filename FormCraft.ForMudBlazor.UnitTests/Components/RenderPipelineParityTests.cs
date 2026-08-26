@@ -475,14 +475,19 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         standaloneRender.Find("input").GetAttribute("type").ShouldBe("password");
         itemRender.Find("input").GetAttribute("type").ShouldBe("password");
 
-        // Required is compared here for a .Required(...) field, which since #199 renders TRUE on both
-        // paths so the field is announced to assistive technology. This assertion used to read
-        // ShouldBeFalse (#190); the value flipped, the guard did not. Its bite is unchanged and
-        // symmetric — Presentation() above compares the two paths, and this line pins WHICH of the
-        // two agreed values they settled on, so levelling both back down to silence fails here
-        // rather than passing as a vacuous agreement. The explicit .WithNativeRequired() opt-in is
-        // guarded by the test below (#204), and the opt-OUT by AriaRequiredTests.
-        standalone.Required.ShouldBeTrue();
+        // Required is compared here for a .Required(...) field, which since #263 renders FALSE on
+        // both paths: the announcement moved to aria-required via UserAttributes, and MudBlazor's
+        // Required parameter — which drags the HTML5 attribute and the asterisk along with it — is
+        // now reserved for the explicit .WithNativeRequired() opt-in.
+        //
+        // The value has now flipped twice (#190 false, #199 true, #263 false) while the guard stayed
+        // put, so it is worth being explicit about what it still guards. On its own this line no
+        // longer distinguishes "correctly announced" from "levelled back down to silence" — both
+        // read false here. The pair below does: aria-required must be "true" on the standalone path
+        // AND equal on the item path. So read the two together — this line pins that the native
+        // decoration is off, the next pins that the field is still announced anyway. Silence fails
+        // the second even though it passes the first.
+        standalone.Required.ShouldBeFalse();
 
         // And the accessibility attribute itself, on both paths (#199). The parameter comparison
         // above cannot see this: Required is what FormCraft sets, aria-required is what MudBlazor
@@ -867,9 +872,11 @@ public class RenderPipelineParityTests : MudBlazorTestBase
         standalone.Adornment.ShouldBe(Adornment.End);
         standalone.AdornmentIcon.ShouldBe(Icons.Material.Filled.Numbers);
         standalone.Variant.ShouldBe(Variant.Filled);
-        standalone.Required.ShouldBeTrue();
+        standalone.Required.ShouldBeFalse();
 
-        // The accessibility attribute a screen reader reads, on both paths (#199)
+        // The accessibility attribute a screen reader reads, on both paths (#199, #263). Since #263
+        // this is the assertion carrying the weight — see the longer note on the text-field parity
+        // test above — because the Required parameter reads false for silence and success alike.
         standaloneRender.Find("input").GetAttribute("aria-required").ShouldBe("true");
         itemRender.Find("input").GetAttribute("aria-required")
             .ShouldBe(standaloneRender.Find("input").GetAttribute("aria-required"));

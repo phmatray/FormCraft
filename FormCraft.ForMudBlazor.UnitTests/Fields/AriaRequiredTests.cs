@@ -3,33 +3,42 @@ using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
-/// Tests that a <c>.Required(...)</c> field is announced as required to assistive technology, on
-/// both render paths (#199). WCAG 2.1 <b>3.3.2 Labels or Instructions</b> (Level A) expects required
-/// fields to be identified; before this they were not, on either path.
+/// Tests that a <c>.Required(...)</c> field is announced as required to assistive technology (#199),
+/// and — since #263 — that it is announced <i>without</i> acquiring the HTML5 <c>required</c>
+/// attribute. WCAG 2.1 <b>3.3.2 Labels or Instructions</b> (Level A) expects required fields to be
+/// identified; before #199 they were not.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Why the HTML5 attribute comes back.</b> The issue asked for <c>aria-required="true"</c>
-/// <i>without</i> HTML5 <c>required</c>. Measured against MudBlazor 9.8.0, that is unreachable:
-/// <c>MudInput</c> splats <c>UserAttributes</c> into the element and then writes its own
-/// <c>required</c> and <c>aria-required</c> afterwards, both off the single <c>Required</c> bool.
-/// Blazor resolves duplicate attributes last-write-wins, so a caller-supplied <c>aria-required</c>
-/// is always overwritten and the two attributes cannot be separated. The owner's decision was to
-/// drive <c>Required</c> from <c>IsRequired</c> and accept the HTML5 attribute, which is inert here:
-/// FormCraft forms render <c>novalidate</c>, a guarantee #206 pins with tests.
+/// <b>How the two attributes came apart.</b> #199 asked for <c>aria-required="true"</c> without
+/// HTML5 <c>required</c> and could not have it: measured against MudBlazor 9.8.0, <c>MudInput</c>
+/// splatted <c>UserAttributes</c> and then wrote its own <c>required</c> and <c>aria-required</c>
+/// afterwards, both off the single <c>Required</c> bool, and Blazor resolves duplicate attributes
+/// last-write-wins — so a caller-supplied <c>aria-required</c> was always overwritten. #199 shipped
+/// the compromise: drive <c>Required</c> from <c>IsRequired</c> and accept the HTML5 attribute,
+/// inert here because FormCraft forms render <c>novalidate</c> (#206).
 /// </para>
 /// <para>
-/// This deliberately reverses the collection-path half of #190. What #190 actually fixed was the
-/// <i>divergence</i> — the same <c>.Required("…")</c> call decorating an item field and not an
-/// ordinary one — and that stays fixed, because both paths now resolve the flag the same way. What
-/// it also did, and what this undoes, is level the two paths down to silence.
+/// <see href="https://github.com/MudBlazor/MudBlazor/pull/13613">MudBlazor#13613</see>, released in
+/// <b>9.9.0</b>, moved those ARIA writes above the splat so callers win, while leaving
+/// <c>required</c> below it and deliberately not overridable. #263 is FormCraft taking that up:
+/// the announcement travels through <c>UserAttributes</c>, and MudBlazor's <c>Required</c> parameter
+/// is reserved for the explicit <c>.WithNativeRequired()</c> opt-in. These tests will go red on any
+/// MudBlazor older than 9.9.0 — that version floor is the point, not an accident.
+/// </para>
+/// <para>
+/// ⚠️ <b>The asterisk is the cost.</b> MudBlazor's visible marker is driven by the same
+/// <c>Required</c> parameter as the HTML5 attribute, so it goes too. That trade is the spec's
+/// explicit decision and is pinned by
+/// <c>Required_Field_Should_No_Longer_Carry_MudBlazors_Visible_Marker</c> together with
+/// <c>Explicit_Native_Required_Should_Restore_The_Marker_And_The_Html5_Attribute</c> — read as a
+/// pair, they are the decision, not an accident anyone has to reverse-engineer later.
 /// </para>
 /// <para>
 /// ⚠️ <c>aria-required="false"</c> is asserted for optional fields rather than the attribute's
-/// absence. MudBlazor emits it unconditionally, and <c>false</c> is the correct ARIA value for an
-/// optional field, so its presence is not the defect — the defect was a <i>required</i> field
-/// saying <c>"false"</c>, which is an affirmatively wrong statement to a screen reader rather than
-/// merely a missing one.
+/// absence. <c>false</c> is the correct ARIA value for an optional field, so its presence was never
+/// the defect — the defect was a <i>required</i> field saying <c>"false"</c>, which is an
+/// affirmatively wrong statement to a screen reader rather than merely a missing one.
 /// </para>
 /// </remarks>
 public class AriaRequiredTests : MudBlazorTestBase
@@ -40,8 +49,11 @@ public class AriaRequiredTests : MudBlazorTestBase
         // Arrange & Act - the plain .Required(...) call, on an ordinary (non-collection) field
         var component = RenderField(f => f.WithLabel("Name").Required("Name is required"));
 
-        // Assert - the attribute a screen reader actually reads, on the element it reads it from
+        // Assert - the attribute a screen reader actually reads, on the element it reads it from,
+        // and NOT the HTML5 one. Both halves matter: #199 could only deliver the first because
+        // MudBlazor fused them, and #263 exists to separate them.
         component.Find("input").GetAttribute("aria-required").ShouldBe("true");
+        component.Find("input").HasAttribute("required").ShouldBeFalse();
     }
 
     [Fact]
@@ -55,15 +67,41 @@ public class AriaRequiredTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void Required_Field_Should_Also_Carry_The_Visible_Required_Marker()
+    public void Required_Field_Should_No_Longer_Carry_MudBlazors_Visible_Marker()
     {
-        // Arrange & Act - MudBlazor's asterisk is a CSS ::after on .mud-input-required, so the CLASS
-        // is the measurable proxy. The spec listed the asterisk as a non-goal; under this mechanism
-        // it is not separable from the ARIA flag, so it ships - and it is itself a WCAG 3.3.2
-        // *visible* identification. Pinned so the pairing is a decision on record, not an accident.
+        // Arrange & Act - THE ASTERISK DECISION (#263 Task 3 Step 4), recorded as a test rather than
+        // left to be discovered. MudBlazor's asterisk is a CSS ::after on .mud-input-required, and
+        // that class comes from the same Required parameter as the HTML5 attribute - one flag, both
+        // effects, still fused after MudBlazor#13613 (which separated only the ARIA write). So
+        // dropping the attribute drops the asterisk with it; they cannot be had separately.
+        //
+        // The spec chose to accept that rather than invent a FormCraft-owned marker: its behaviour
+        // diagram ends "no asterisk unless .WithNativeRequired()", and its non-goals keep the
+        // decoration available through that opt-in. #199 had shipped the asterisk as a *visible*
+        // WCAG 3.3.2 identification, so this is a real trade, not a free win - which is exactly why
+        // it is pinned here and in the test below rather than merely inverted in silence.
         var component = RenderField(f => f.WithLabel("Name").Required("Name is required"));
 
+        // Assert - announced to assistive technology, but no longer marked for sighted users
+        component.Find("input").GetAttribute("aria-required").ShouldBe("true");
+        component.FindAll(".mud-input-required").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Explicit_Native_Required_Should_Restore_The_Marker_And_The_Html5_Attribute()
+    {
+        // Arrange & Act - the other half of that decision: .WithNativeRequired() is the documented
+        // way back to MudBlazor's native semantics, and "native" means the whole package. A caller
+        // who wants the asterisk has to accept the HTML5 attribute that comes with it, and this
+        // test is what makes that promise checkable.
+        var component = RenderField(f => f
+            .WithLabel("Name")
+            .Required("Name is required")
+            .WithNativeRequired());
+
         // Assert
+        component.Find("input").GetAttribute("aria-required").ShouldBe("true");
+        component.Find("input").HasAttribute("required").ShouldBeTrue();
         component.FindAll(".mud-input-required").ShouldNotBeEmpty();
     }
 
@@ -108,7 +146,7 @@ public class AriaRequiredTests : MudBlazorTestBase
         var component = RenderConfig(config);
 
         // Assert
-        component.FindComponent<MudNumericField<int>>().Instance.Required.ShouldBeTrue();
+        component.FindComponent<MudNumericField<int>>().Instance.Required.ShouldBeFalse();
         component.Find("input").GetAttribute("aria-required").ShouldBe("true");
     }
 
@@ -126,7 +164,7 @@ public class AriaRequiredTests : MudBlazorTestBase
         var component = RenderConfig(config);
 
         // Assert
-        component.FindComponent<MudDatePicker>().Instance.Required.ShouldBeTrue();
+        component.FindComponent<MudDatePicker>().Instance.Required.ShouldBeFalse();
         component.Find("input").GetAttribute("aria-required").ShouldBe("true");
     }
 
@@ -139,7 +177,7 @@ public class AriaRequiredTests : MudBlazorTestBase
         var component = this.RenderItemForm(NewOrder(), TextItemForm(f => f.Required("Product is required")));
 
         // Assert
-        component.FindComponent<MudTextField<string>>().Instance.Required.ShouldBeTrue();
+        component.FindComponent<MudTextField<string>>().Instance.Required.ShouldBeFalse();
         component.Find("input").GetAttribute("aria-required").ShouldBe("true");
     }
 
@@ -150,7 +188,7 @@ public class AriaRequiredTests : MudBlazorTestBase
         var component = this.RenderItemForm(NewBasket(), NumericItemForm(f => f.Required("Quantity is required")));
 
         // Assert
-        component.FindComponent<MudNumericField<int>>().Instance.Required.ShouldBeTrue();
+        component.FindComponent<MudNumericField<int>>().Instance.Required.ShouldBeFalse();
         component.Find("input").GetAttribute("aria-required").ShouldBe("true");
     }
 
@@ -161,7 +199,7 @@ public class AriaRequiredTests : MudBlazorTestBase
         var component = this.RenderItemForm(NewAppointment(), DateItemForm(f => f.Required("When is required")));
 
         // Assert
-        component.FindComponent<MudDatePicker>().Instance.Required.ShouldBeTrue();
+        component.FindComponent<MudDatePicker>().Instance.Required.ShouldBeFalse();
         component.Find("input").GetAttribute("aria-required").ShouldBe("true");
     }
 
@@ -206,8 +244,8 @@ public class AriaRequiredTests : MudBlazorTestBase
 
         // Assert - the parameter, the asterisk class, and the attribute on the real <input>
         component.FindComponent<MudCheckBox<bool>>().Instance.Label.ShouldBe("Gift");
-        component.FindComponent<MudCheckBox<bool>>().Instance.Required.ShouldBeTrue();
-        component.FindAll(".mud-input-required").ShouldNotBeEmpty();
+        component.FindComponent<MudCheckBox<bool>>().Instance.Required.ShouldBeFalse();
+        component.FindAll(".mud-input-required").ShouldBeEmpty();
         component.Find("input[type=checkbox]").GetAttribute("aria-required").ShouldBe("true");
     }
 
@@ -227,7 +265,7 @@ public class AriaRequiredTests : MudBlazorTestBase
         var component = RenderConfig(config);
 
         // Assert
-        component.FindComponent<MudCheckBox<bool>>().Instance.Required.ShouldBeTrue();
+        component.FindComponent<MudCheckBox<bool>>().Instance.Required.ShouldBeFalse();
         component.Find("input[type=checkbox]").GetAttribute("aria-required").ShouldBe("true");
     }
 
@@ -266,7 +304,7 @@ public class AriaRequiredTests : MudBlazorTestBase
         var component = RenderConfig(config);
 
         // Assert - MudSelect forwards Required to its inner MudInput, which is what emits the ARIA
-        component.FindComponent<MudSelect<string>>().Instance.Required.ShouldBeTrue();
+        component.FindComponent<MudSelect<string>>().Instance.Required.ShouldBeFalse();
         component.Find("input").GetAttribute("aria-required").ShouldBe("true");
     }
 
@@ -306,7 +344,7 @@ public class AriaRequiredTests : MudBlazorTestBase
         var component = RenderConfig(config);
 
         // Assert
-        component.FindComponent<MudAutocomplete<string>>().Instance.Required.ShouldBeTrue();
+        component.FindComponent<MudAutocomplete<string>>().Instance.Required.ShouldBeFalse();
         component.Find("input").GetAttribute("aria-required").ShouldBe("true");
     }
 

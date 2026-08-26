@@ -15,20 +15,29 @@ public partial class MudBlazorBooleanFieldComponent<TModel>
     /// ShrinkLabel diagnostic, neither of which a checkbox has any use for.
     /// </remarks>
     private bool NativeRequiredValue =>
-        NativeRequired.Resolve(Context.Field.AdditionalAttributes, IsRequired);
+        NativeRequired.Resolve(Context.Field.AdditionalAttributes, isRequired: false);
 
     /// <summary>
     /// <c>aria-required</c> as MudBlazor would spell it, for the <c>UserAttributes</c> splat below.
     /// </summary>
     /// <remarks>
-    /// ⚠️ Passed explicitly because <c>MudCheckBox</c> and <c>MudSwitch</c> emit <b>no</b>
-    /// <c>aria-required</c> of their own — unlike <c>MudInput</c>, whose own write overrides the
-    /// caller's. Their <c>GetInputAttributes()</c> copies <c>UserAttributes</c> onto the rendered
-    /// <c>&lt;input&gt;</c> and nothing downstream re-emits this key, so here the splat really does
-    /// land. That asymmetry is the whole reason a checkbox can be announced correctly while a text
-    /// field cannot (measured on MudBlazor 9.8.0).
+    /// <para>
+    /// ⚠️ Passed explicitly, and never <c>null</c>, because <c>MudCheckBox</c> and <c>MudSwitch</c>
+    /// emit <b>no</b> <c>aria-required</c> of their own. Their <c>GetInputAttributes()</c> copies
+    /// <c>UserAttributes</c> onto the rendered <c>&lt;input&gt;</c> and nothing downstream re-emits
+    /// this key, so there is no fallback to leave in place — omitting it for an optional field would
+    /// drop the attribute entirely rather than leave it <c>"false"</c>. The MudInput-backed field
+    /// types can return <c>null</c> there; this one cannot.
+    /// </para>
+    /// <para>
+    /// Resolved from <c>IsRequired</c> rather than from <see cref="NativeRequiredValue"/> since
+    /// #263, which split the announcement from the native decoration. Reading the sibling property
+    /// would silently re-couple them and leave a required checkbox unannounced the moment it stopped
+    /// setting <c>Required</c>.
+    /// </para>
     /// </remarks>
-    private string AriaRequiredValue => NativeRequiredValue ? "true" : "false";
+    private string AriaRequiredValue =>
+        NativeRequired.Resolve(Context.Field.AdditionalAttributes, IsRequired) ? "true" : "false";
 
     public BooleanDisplayStyle DisplayStyle { get; set; } = BooleanDisplayStyle.Checkbox;
     public string? TrueText { get; set; }
