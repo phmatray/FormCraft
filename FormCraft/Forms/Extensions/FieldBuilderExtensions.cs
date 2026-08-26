@@ -203,14 +203,16 @@ public static class FieldBuilderExtensions
 
         /// <summary>
         /// Overrides whether this field renders the UI framework's native required decoration — the
-        /// HTML5 <c>required</c> attribute, <c>aria-required</c>, and the framework's required
-        /// styling (the asterisk) on the rendered input. Pass <c>false</c> to suppress a decoration
-        /// that <c>.Required(...)</c> would otherwise produce.
+        /// HTML5 <c>required</c> attribute and the framework's required styling (the asterisk) on
+        /// the rendered input. Pass <c>true</c> to add a decoration that <c>.Required(...)</c> alone
+        /// no longer produces; pass <c>false</c> to suppress the field's required annotation
+        /// entirely.
         /// </summary>
         /// <param name="enabled">
-        /// <c>true</c> (default) to force the decoration on a field that never called
-        /// <c>.Required(...)</c>; <c>false</c> to suppress it on one that did. Either way the
-        /// explicit value wins over the inference — this method is an override, not merely an opt-in.
+        /// <c>true</c> (default) to render the native decoration, whether or not
+        /// <c>.Required(...)</c> was called; <c>false</c> to suppress the requirement annotation on a
+        /// field that did call it. Either way the explicit value wins over the inference — this
+        /// method is an override, not merely an opt-in.
         /// </param>
         /// <returns>The FieldBuilder instance for method chaining.</returns>
         /// <remarks>
@@ -221,13 +223,20 @@ public static class FieldBuilderExtensions
         /// <c>false</c> here suppresses the decoration and leaves that validation entirely intact.
         /// </para>
         /// <para>
-        /// ⛔ <b>Think twice before passing <c>false</c> on a <c>.Required(...)</c> field.</b> Since
-        /// #199 a required field renders <c>aria-required="true"</c> so assistive technology
-        /// announces it; suppressing that puts <c>aria-required="false"</c> back on a genuinely
-        /// required input, which states the opposite of the truth to a screen reader and is a
-        /// WCAG 2.1 3.3.2 (Level A) failure. If the visible asterisk is what you want gone, restyle
-        /// the framework's required class instead. Legitimate uses of <c>false</c> are fields whose
-        /// requirement is conditional or communicated elsewhere.
+        /// ⛔ <b>Think twice before passing <c>false</c> on a <c>.Required(...)</c> field.</b> A
+        /// required field renders <c>aria-required="true"</c> so assistive technology announces it;
+        /// suppressing that puts <c>aria-required="false"</c> back on a genuinely required input,
+        /// which states the opposite of the truth to a screen reader and is a WCAG 2.1 3.3.2
+        /// (Level A) failure. Legitimate uses of <c>false</c> are fields whose requirement is
+        /// conditional or communicated elsewhere.
+        /// </para>
+        /// <para>
+        /// <b>What <c>true</c> buys you since #263.</b> A plain <c>.Required(...)</c> field is now
+        /// announced through <c>aria-required</c> alone and carries neither the HTML5 attribute nor
+        /// the framework's asterisk — MudBlazor drives both from its own <c>Required</c> parameter
+        /// and they cannot be separated from each other. This method is what sets that parameter, so
+        /// it is the supported way to get the visible marker back, and the HTML5 attribute comes with
+        /// it. Between #199 and #263 the pairing was unavoidable rather than chosen; it is now opt-in.
         /// </para>
         /// <para>
         /// Lives in core rather than in an adapter because the value it writes is read by every
@@ -251,8 +260,8 @@ public static class FieldBuilderExtensions
         /// <example>
         /// <code>
         /// .AddField(x => x.Email, field => field
-        ///     .Required("Email is required")   // the validation
-        ///     .WithNativeRequired())           // the decoration
+        ///     .Required("Email is required")   // the validation, and aria-required="true"
+        ///     .WithNativeRequired())           // the visible asterisk + HTML5 required
         /// </code>
         /// </example>
         public FieldBuilder<TModel, TValue> WithNativeRequired(bool enabled = true)

@@ -335,15 +335,24 @@ because it lives in core rather than in one of the two packages that need it.
 #### Validation Behavior
 - **The convention governs browser *constraint validation*, not accessibility annotations** (#199).
   Those are different things, and conflating them is what left required fields silent to screen
-  readers. `Required()` still routes validation server-side and the browser still runs none — but a
-  required field must be *identified*, which is WCAG 2.1 3.3.2 (Level A)
-- `Required()` therefore DOES set MudBlazor's `Required` on both render paths, which emits
-  `aria-required="true"`, the `*` asterisk, and the HTML5 `required` attribute. MudBlazor derives all
-  three from one flag and they cannot be separated: `MudInput` splats `UserAttributes` and then writes
-  its own `required`/`aria-required` afterwards, so a caller-supplied value is always overwritten
-  (measured on 9.8.0). The HTML5 attribute is inert here because the form renders `novalidate`.
-  ⛔ Do not "restore the convention" by dropping this — that is #190, which #199 reversed, and it
-  reintroduces a Level A accessibility failure. `.WithNativeRequired(false)` is the per-field opt-out
+  readers. `Required()` routes validation server-side and the browser runs none — but a required
+  field must still be *identified*, which is WCAG 2.1 3.3.2 (Level A)
+- **`Required()` adds validation but NOT the HTML5 `required` attribute** — the convention in its
+  literal form, restored by #263. It was amended between #199 and #263 only because MudBlazor 9.8.0
+  fused the two: `MudInput` splatted `UserAttributes` and then wrote its own `required` **and**
+  `aria-required` afterwards, both off one `Required` flag, so last-write-wins meant a caller could
+  never supply the annotation on its own. [MudBlazor#13613](https://github.com/MudBlazor/MudBlazor/pull/13613)
+  moved the ARIA writes *above* the splat and left `required` below it; shipped in **9.9.0**
+- `Required()` therefore now contributes **`aria-required="true"` through `UserAttributes`** and
+  leaves MudBlazor's `Required` parameter alone. ⛔ Do not "simplify" this back to setting `Required`
+  — that reintroduces the HTML5 attribute this convention forbids. And do not drop the annotation
+  either: that is #190, and it is a Level A failure. Both halves are pinned by `AriaRequiredTests`
+- ⚠️ **The visible asterisk is gone for a plain `.Required(...)` field**, and that is a decision, not
+  a regression to fix. MudBlazor draws it from the same `Required` parameter as the HTML5 attribute,
+  and #13613 did not separate *those* two. `.WithNativeRequired()` is the documented way back to
+  native semantics — asterisk and HTML5 attribute together
+- 🔒 **Version floor: MudBlazor ≥ 9.9.0.** On anything older, 9 of the 35 `AriaRequiredTests` fail
+  (measured by reverting the pin). Do not lower `Directory.Packages.props` below it
 - Browser validation disabled via a `novalidate` attribute **rendered on the form** by
   `FormCraftComponent` (#206). It is a real attribute in the markup, so it applies during
   prerender/SSR, targets this component's own form rather than the first one on the page, and needs
@@ -352,15 +361,18 @@ because it lives in core rather than in one of the two packages that need it.
   ran on the server pass, failed silently, and was blocked outright by a strict CSP
 - All validation through FluentValidation
 - Validation messages from server, not browser
-- MudBlazor components DO set `Required` for a `.Required(...)` field since #199 (see above), on
-  **every** field type that can carry it: text, numeric, date, select, multi-select, autocomplete,
-  lookup, LOV and boolean, on both render paths. ⛔ Keep it uniform when adding a field type. Once
-  required fields carry an asterisk, absence stops meaning "not annotated" and starts meaning
-  "optional", so a new renderer that skips this actively mis-signals rather than merely omitting
-- **Checkboxes take a different route.** `MudCheckBox`/`MudSwitch` emit no `aria-required`, so
-  FormCraft passes it via `UserAttributes` — which lands there because nothing downstream re-emits
-  it. Do **not** copy that trick to `MudInput`-based fields: there MudBlazor's own later write always
-  wins, which is the whole reason `Required` had to be the mechanism (see `EffectiveNativeRequired`)
+- MudBlazor components announce `aria-required` for a `.Required(...)` field on **every** field type
+  that can carry it: text, numeric, date, select, multi-select, autocomplete, lookup, LOV and
+  boolean. ⛔ Keep it uniform when adding a field type — a required field that says nothing is a
+  Level A failure, and one that says `aria-required="false"` states the opposite of the truth. The
+  value comes from `MudBlazorFieldComponentBase.AriaRequired`; bind it alongside `Required` in the
+  new component's `.razor`
+- **Every field type now takes the `UserAttributes` route** that checkboxes always did. Since 9.9.0
+  a caller-supplied `aria-required` wins on `MudInput`-based fields too, so there is one mechanism
+  rather than two. ⚠️ `AriaRequired` returns `"true"`/`"false"` and **never `null`**: a null
+  component parameter is still captured into `UserAttributes` as a present key, and Blazor deletes
+  an attribute whose last write is null — returning `null` for optional fields drops
+  `aria-required` entirely instead of leaving it `"false"` (measured; it turned five assertions red)
 - **File upload is covered too, but NOT via `Required` on `MudFileUpload`** (#262). Its
   `<input type="file">` carries `tabindex="-1"` at `opacity-0` behind a custom drop zone, so
   annotating that input satisfies a DOM assertion while reaching no user who navigates by focus.
