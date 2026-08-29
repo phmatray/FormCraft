@@ -8,6 +8,75 @@ All notable changes to this project will be documented in this file.
   release's section here when it opens the release PR.
 -->
 
+## [4.0.0](https://github.com/phmatray/FormCraft/compare/v3.1.0...v4.0.0) (2026-08-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* **core:** move the UI-agnostic adapter machinery into core ([#279](https://github.com/phmatray/FormCraft/issues/279)) (#289)
+* **core:** expose Validators as IReadOnlyList and require AddValidator ([#245](https://github.com/phmatray/FormCraft/issues/245))
+* **lov:** WithDisplay(Expression<Func<TItem,string>>) is removed. Pass a lambda directly, or expr.Compile() if you hold an Expression.
+
+### Features
+
+* **demo:** redesign the demo site around the code-to-form binding ([#268](https://github.com/phmatray/FormCraft/issues/268)) ([679e0a2](https://github.com/phmatray/FormCraft/commit/679e0a2afb06111ec9ef4f222ec1cc1dd3851f8d))
+* **fluentui:** add a FormCraft.ForFluentUI adapter for Fluent UI Blazor v5 ([#260](https://github.com/phmatray/FormCraft/issues/260)) ([#261](https://github.com/phmatray/FormCraft/issues/261)) ([713e358](https://github.com/phmatray/FormCraft/commit/713e358d10c4900190f6f4caf3d4b922b3126421))
+* **fluentui:** bring the Fluent UI adapter to parity with MudBlazor ([#278](https://github.com/phmatray/FormCraft/issues/278)) ([#291](https://github.com/phmatray/FormCraft/issues/291)) ([6f6acaf](https://github.com/phmatray/FormCraft/commit/6f6acafdfbae0b4d8c0e7050918006d5534627c2))
+* **mudblazor:** add a typed builder method for the native required opt-in ([#204](https://github.com/phmatray/FormCraft/issues/204)) ([#236](https://github.com/phmatray/FormCraft/issues/236)) ([4210be4](https://github.com/phmatray/FormCraft/commit/4210be4a260294d166fd76e4af2b013a29edc08e))
+* **mudblazor:** add a typed WithMask builder for text field masks ([#265](https://github.com/phmatray/FormCraft/issues/265)) ([#273](https://github.com/phmatray/FormCraft/issues/273)) ([61e6445](https://github.com/phmatray/FormCraft/commit/61e6445621c727098a3c7d904e6c50a232b98ad8))
+* **mudblazor:** announce required fields without the HTML5 required attribute ([#263](https://github.com/phmatray/FormCraft/issues/263)) ([#353](https://github.com/phmatray/FormCraft/issues/353)) ([3341705](https://github.com/phmatray/FormCraft/commit/33417058cd97838a090841696043f59f70442abb))
+* **mudblazor:** announce required file-upload fields to assistive technology ([#262](https://github.com/phmatray/FormCraft/issues/262)) ([#270](https://github.com/phmatray/FormCraft/issues/270)) ([ba02aad](https://github.com/phmatray/FormCraft/commit/ba02aad2fd3e5661234de86f2b6b9edb804d0e75))
+* **mudblazor:** give numeric adornments a typed click handler ([#215](https://github.com/phmatray/FormCraft/issues/215)) ([#244](https://github.com/phmatray/FormCraft/issues/244)) ([8a03598](https://github.com/phmatray/FormCraft/commit/8a0359809827bcb2613e3bbe3938e4aaf68257a3))
+* **mudblazor:** make ShrinkLabel configurable per field and per form ([#177](https://github.com/phmatray/FormCraft/issues/177)) ([#178](https://github.com/phmatray/FormCraft/issues/178)) ([7a7dc30](https://github.com/phmatray/FormCraft/commit/7a7dc30d6822c55e6bedebef32826f94e0cd1f88))
+* **mudblazor:** warn when a mask blanks a stored value ([#266](https://github.com/phmatray/FormCraft/issues/266)) ([#274](https://github.com/phmatray/FormCraft/issues/274)) ([1ea5425](https://github.com/phmatray/FormCraft/commit/1ea5425ef712cc13dc7992dc9e0ad6563fe1c797))
+* **mudblazor:** warn when ShrinkLabel=false cannot be honoured ([#181](https://github.com/phmatray/FormCraft/issues/181)) ([#183](https://github.com/phmatray/FormCraft/issues/183)) ([b22d05d](https://github.com/phmatray/FormCraft/commit/b22d05d8f2dd19ee9fc79e02fba6f300b8cef465))
+* **mudblazor:** warn when the password toggle displaces a configured adornment ([#219](https://github.com/phmatray/FormCraft/issues/219)) ([#243](https://github.com/phmatray/FormCraft/issues/243)) ([eccbf2d](https://github.com/phmatray/FormCraft/commit/eccbf2d67970d6fe5db26607966e5acb12dfe376))
+
+
+### Bug Fixes
+
+* **core:** validate each collection item field once per pass ([#329](https://github.com/phmatray/FormCraft/issues/329)) ([#331](https://github.com/phmatray/FormCraft/issues/331)) ([65944e5](https://github.com/phmatray/FormCraft/commit/65944e5adf37ee36d3e3705046a9ecf1391905ee))
+* **demo:** correct ARIA state, disposal and fade-in regressions ([#285](https://github.com/phmatray/FormCraft/issues/285)) ([#295](https://github.com/phmatray/FormCraft/issues/295)) ([3dd997c](https://github.com/phmatray/FormCraft/commit/3dd997c02455c2bd8b0b292424e45e35e3b35ba4))
+* **demo:** guard every timed re-render against component disposal ([#315](https://github.com/phmatray/FormCraft/issues/315)) ([#323](https://github.com/phmatray/FormCraft/issues/323)) ([8557ce3](https://github.com/phmatray/FormCraft/commit/8557ce38e6ea65397f7c1696b10dc9acc14f69e2))
+* **fluentui:** re-read a field's configuration when the rendered field changes ([#335](https://github.com/phmatray/FormCraft/issues/335)) ([#336](https://github.com/phmatray/FormCraft/issues/336)) ([d3af1ff](https://github.com/phmatray/FormCraft/commit/d3af1ff22017680b7da9ea44d9f772fbcb4be2df))
+* **lov:** let WithDisplay and WithKey accept a plain lambda ([#180](https://github.com/phmatray/FormCraft/issues/180)) ([#182](https://github.com/phmatray/FormCraft/issues/182)) ([fa88097](https://github.com/phmatray/FormCraft/commit/fa8809742fa7aa365fc319dd725783e3d1e1f1b0))
+* **mudblazor:** announce required fields to assistive technology ([#199](https://github.com/phmatray/FormCraft/issues/199)) ([#254](https://github.com/phmatray/FormCraft/issues/254)) ([e8e3586](https://github.com/phmatray/FormCraft/commit/e8e3586f2051100d78bce85d722d4e7ed3f2eced))
+* **mudblazor:** bind a configured mask on both render paths ([#211](https://github.com/phmatray/FormCraft/issues/211)) ([#253](https://github.com/phmatray/FormCraft/issues/253)) ([8484dba](https://github.com/phmatray/FormCraft/commit/8484dba3006faacbb5aad629d5edbc6d841c2753))
+* **mudblazor:** dedupe field diagnostics across component re-mounts ([#304](https://github.com/phmatray/FormCraft/issues/304)) ([#309](https://github.com/phmatray/FormCraft/issues/309)) ([44d46ff](https://github.com/phmatray/FormCraft/commit/44d46ff9e8b67795ba119d4d48d0a305767dd3d2))
+* **mudblazor:** focus Browse after clearing a file upload ([#281](https://github.com/phmatray/FormCraft/issues/281)) ([#292](https://github.com/phmatray/FormCraft/issues/292)) ([da7d1dc](https://github.com/phmatray/FormCraft/commit/da7d1dc7c9393e6164b98d7a7526db8d2a246823))
+* **mudblazor:** forward a configured adornment to date item fields ([#217](https://github.com/phmatray/FormCraft/issues/217)) ([#248](https://github.com/phmatray/FormCraft/issues/248)) ([b4b649f](https://github.com/phmatray/FormCraft/commit/b4b649fc9e652bc6072691a6ddb5b54e043d9a6a))
+* **mudblazor:** honour a configured Culture on numeric item fields ([#218](https://github.com/phmatray/FormCraft/issues/218)) ([#247](https://github.com/phmatray/FormCraft/issues/247)) ([e31a7e6](https://github.com/phmatray/FormCraft/commit/e31a7e62c31fe90ba14decbe3ef58b28872e9cb4))
+* **mudblazor:** honour Format and ShowSpinButtons on numeric fields ([#208](https://github.com/phmatray/FormCraft/issues/208)) ([#240](https://github.com/phmatray/FormCraft/issues/240)) ([cefa8a8](https://github.com/phmatray/FormCraft/commit/cefa8a82fa8458d1ec39b07799f2eabc25d54620))
+* **mudblazor:** invoke the adornment click handler passed to WithAdornment ([#192](https://github.com/phmatray/FormCraft/issues/192)) ([#194](https://github.com/phmatray/FormCraft/issues/194)) ([92add18](https://github.com/phmatray/FormCraft/commit/92add18dd0eeef327717031395e3c08d57c0288b))
+* **mudblazor:** judge the ShrinkLabel diagnostic on the rendered adornment ([#212](https://github.com/phmatray/FormCraft/issues/212)) ([#241](https://github.com/phmatray/FormCraft/issues/241)) ([36dc2aa](https://github.com/phmatray/FormCraft/commit/36dc2aa9544b42142d84f41cffb7a8bc2f596ef2))
+* **mudblazor:** keep a password field masked when it also configures multiple lines ([#207](https://github.com/phmatray/FormCraft/issues/207)) ([#232](https://github.com/phmatray/FormCraft/issues/232)) ([aea3e40](https://github.com/phmatray/FormCraft/commit/aea3e408b5725853ddf82f88173524889dff914a))
+* **mudblazor:** map number, date and time to their input types ([#210](https://github.com/phmatray/FormCraft/issues/210)) ([#239](https://github.com/phmatray/FormCraft/issues/239)) ([6dcab2d](https://github.com/phmatray/FormCraft/commit/6dcab2dc6d661b5d71b7e4d4fec08eec9c76ab7a))
+* **mudblazor:** mask password fields inside collection item forms ([#189](https://github.com/phmatray/FormCraft/issues/189)) ([#196](https://github.com/phmatray/FormCraft/issues/196)) ([421eee3](https://github.com/phmatray/FormCraft/commit/421eee3f8e72658b31bb52974e338921c87988a0))
+* **mudblazor:** move focus deliberately after a self-unmounting control ([#318](https://github.com/phmatray/FormCraft/issues/318)) ([#324](https://github.com/phmatray/FormCraft/issues/324)) ([33102ff](https://github.com/phmatray/FormCraft/commit/33102ffff4cf78598ee8c04c1695f03f306d6646))
+* **mudblazor:** qualify the ShrinkLabel diagnostic key so scopes cannot collide ([#242](https://github.com/phmatray/FormCraft/issues/242)) ([2d591c3](https://github.com/phmatray/FormCraft/commit/2d591c3d72c394e7d8b21477b6eb1db8a6af9c8e))
+* **mudblazor:** re-read a field's configuration when the rendered field changes ([#298](https://github.com/phmatray/FormCraft/issues/298)) ([#308](https://github.com/phmatray/FormCraft/issues/308)) ([947a3a5](https://github.com/phmatray/FormCraft/commit/947a3a527f45508806143cb44fa31e26c1324dbf))
+* **mudblazor:** render a handler-less adornment as a plain icon, not a button ([#216](https://github.com/phmatray/FormCraft/issues/216)) ([#224](https://github.com/phmatray/FormCraft/issues/224)) ([789acae](https://github.com/phmatray/FormCraft/commit/789acae6bc8de806f8297086c033a62be45909aa))
+* **mudblazor:** render adornments on collection item fields ([#184](https://github.com/phmatray/FormCraft/issues/184)) ([#188](https://github.com/phmatray/FormCraft/issues/188)) ([89f0dbc](https://github.com/phmatray/FormCraft/commit/89f0dbc90d0d381b4949b9189b6cbc34a7b4e973))
+* **mudblazor:** render adornments on numeric fields ([#191](https://github.com/phmatray/FormCraft/issues/191)) ([#195](https://github.com/phmatray/FormCraft/issues/195)) ([7b3743f](https://github.com/phmatray/FormCraft/commit/7b3743f52fafc23611d2fa61dc3ffa1b4e9aeb24))
+* **mudblazor:** render long, float, short and byte collection item fields ([#209](https://github.com/phmatray/FormCraft/issues/209)) ([#246](https://github.com/phmatray/FormCraft/issues/246)) ([0c8be25](https://github.com/phmatray/FormCraft/commit/0c8be25b12239e58063f547625368c39c9f859d1))
+* **mudblazor:** render novalidate on the form instead of applying it by script ([#206](https://github.com/phmatray/FormCraft/issues/206)) ([#235](https://github.com/phmatray/FormCraft/issues/235)) ([c9b5047](https://github.com/phmatray/FormCraft/commit/c9b5047c1e1f6c72ccb3ba97808049a11979bca5))
+* **mudblazor:** report post-init and partially-discarded masked values ([#283](https://github.com/phmatray/FormCraft/issues/283)) ([#293](https://github.com/phmatray/FormCraft/issues/293)) ([af5c605](https://github.com/phmatray/FormCraft/commit/af5c605717dbc9fadb1da2ca76ed32debf53bef5))
+* **mudblazor:** stop emitting the HTML5 Required attribute on collection item fields ([#190](https://github.com/phmatray/FormCraft/issues/190)) ([#193](https://github.com/phmatray/FormCraft/issues/193)) ([3bb3bde](https://github.com/phmatray/FormCraft/commit/3bb3bdecd6fd78b2253bb1c95b46f75d0958db20))
+
+
+### Performance
+
+* **core:** compile each field's value getter once ([#269](https://github.com/phmatray/FormCraft/issues/269)) ([#286](https://github.com/phmatray/FormCraft/issues/286)) ([cdc9ec4](https://github.com/phmatray/FormCraft/commit/cdc9ec4aa91cf73e7f681e43a1d5ad9e8e057a1a))
+* **core:** compile each field's value getter once per validation ([#312](https://github.com/phmatray/FormCraft/issues/312)) ([#320](https://github.com/phmatray/FormCraft/issues/320)) ([320d689](https://github.com/phmatray/FormCraft/commit/320d689cebfac6079b38a53cbd5e97b1be21f61e))
+
+
+### Refactor
+
+* **core:** expose Validators as IReadOnlyList and require AddValidator ([#245](https://github.com/phmatray/FormCraft/issues/245)) ([376866b](https://github.com/phmatray/FormCraft/commit/376866b9fd4793fae7ffcd53bf1204b32e9041c5))
+* **core:** move the UI-agnostic adapter machinery into core ([#279](https://github.com/phmatray/FormCraft/issues/279)) ([#289](https://github.com/phmatray/FormCraft/issues/289)) ([e31cc39](https://github.com/phmatray/FormCraft/commit/e31cc3999b3aeb08aa9f40d915443548a5413267))
+* **mudblazor:** express the two diagnostic idioms once each ([#284](https://github.com/phmatray/FormCraft/issues/284)) ([#294](https://github.com/phmatray/FormCraft/issues/294)) ([17e0dea](https://github.com/phmatray/FormCraft/commit/17e0dea4cec1e7d3f584570a844fbd23fc24a97c))
+* **mudblazor:** render collection item fields through IFieldRendererService ([#203](https://github.com/phmatray/FormCraft/issues/203)) ([#250](https://github.com/phmatray/FormCraft/issues/250)) ([5c66e29](https://github.com/phmatray/FormCraft/commit/5c66e29ad87bace3f3a74665ffe4bde7081d25ba))
+
 ## [2.5.0] - 2025-08-08
 
 ### ♻️ Refactor
