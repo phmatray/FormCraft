@@ -5,7 +5,7 @@
   <!-- Framework-agnostic packages -->
   <ItemGroup>
     <!-- Epinglee directement : bunit tire AngleSharp 1.4.0, vulnerable (GHSA-pgww-w46g-26qg). -->
-    <PackageVersion Include="AngleSharp" Version="1.7.1" />
+    <PackageVersion Include="AngleSharp" Version="1.7.2" />
     <!--
       Pinned directly for the same reason as AngleSharp above: Nuke.Common 10.1.0 (the latest
       published version — a bump does not help) pulls System.Security.Cryptography.Xml 9.0.0
