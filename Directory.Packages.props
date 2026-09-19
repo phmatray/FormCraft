@@ -5,7 +5,7 @@
   <!-- Framework-agnostic packages -->
   <ItemGroup>
     <!-- Epinglee directement : bunit tire AngleSharp 1.4.0, vulnerable (GHSA-pgww-w46g-26qg). -->
-    <PackageVersion Include="AngleSharp" Version="1.8.0" />
+    <PackageVersion Include="AngleSharp" Version="1.8.1" />
     <!--
       Pinned directly for the same reason as AngleSharp above: Nuke.Common 10.1.0 (the latest
       published version — a bump does not help) pulls System.Security.Cryptography.Xml 9.0.0
@@ -15,7 +15,7 @@
     -->
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.12" />
     <!-- UI Framework packages -->
-    <PackageVersion Include="MudBlazor" Version="9.9.0" />
+    <PackageVersion Include="MudBlazor" Version="9.10.0" />
     <!--
       Fluent UI Blazor v5 is still an RC (#260). v4 loses support in November 2026 and v5 renamed
       most of the input surface, so the adapter targets v5 directly rather than being born
@@ -24,7 +24,7 @@
     -->
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="5.0.0-rc.5-26219.1" />
     <!-- Testing packages -->
-    <PackageVersion Include="bunit" Version="2.10.3" />
+    <PackageVersion Include="bunit" Version="2.11.3" />
     <PackageVersion Include="FakeItEasy" Version="9.0.1" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
@@ -32,7 +32,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageVersion>
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <!-- Development tools -->
     <PackageVersion Include="Nuke.Common" Version="10.1.0" />
     <PackageVersion Include="Octokit" Version="14.0.0" />
