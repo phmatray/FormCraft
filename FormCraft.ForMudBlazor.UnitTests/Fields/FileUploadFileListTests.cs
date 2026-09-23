@@ -59,6 +59,11 @@ public class FileUploadFileListTests : FocusAssertingTestBase
         });
 
         component.FindAll(".mud-chip-close-button").Count.ShouldBe(2);
+
+        // Spec's "the formatted size is still shown per file, if approach A is taken" — only
+        // FormCraft's own chip text can satisfy this now that MudBlazor's is suppressed.
+        component.Markup.ShouldContain("a.png (1024 Bytes)");
+        component.Markup.ShouldContain("b.png (1024 Bytes)");
     }
 
     [Fact]
