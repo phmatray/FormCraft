@@ -58,6 +58,20 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **Clearing a multiple-file upload notifies once, with an empty list — not `null` (#319).** The
+  component bound `Files` two-way (`@bind-Files="CurrentValue"`), which made MudBlazor a second
+  writer: `ClearAsync()` set the field's own empty list, then `MudFileUpload.ClearAsync()`'s own
+  `FilesChanged(null)` echoed straight back through the binding and overwrote it with `null` — so the
+  field notified *twice* and ended up holding `null`. It now binds `Files`/`FilesChanged` one-way with
+  an explicit handler that normalises that `null` echo to an empty list, mirroring the single-file
+  component. This applies to a standalone multiple-file field and to one rendered inside
+  `.WithItemForm(...)` alike, since both go through the same component (#203).
+
+  **If your code null-checks after clearing a multiple-file field, that check now sees an empty
+  list instead of `null`.** A pattern like `if (model.Files is null) { ... }` no longer runs after a
+  clear — check `Files.Count == 0` (or `!Files.Any()`) instead. The model's declared type is
+  unaffected either way; this only changes what a *clear* leaves behind.
+
 - **The multiple-file upload no longer lists every selected file twice (#338).** `MudFileUpload` renders its own built-in file list *in addition to* the `CustomContent` drop zone FormCraft supplies for its own chips — the two are independent, so each selected file appeared once as FormCraft's chip and once again as MudBlazor's, each with its own close button. Only FormCraft's routed through `RemoveFile`, and therefore through #318's focus-restore; MudBlazor's own ran its own internal removal instead.
 
   MudBlazor's duplicate is now suppressed at the source, via `MudFileUpload<T>.SelectedTemplate` — any non-null template (even an empty one) replaces its default chip list, while `CustomContent` is untouched. A bare `.mud-chip-close-button` is unambiguous again as a result. The single-file component duplicated too, but asymmetrically: its own chip never carried a close button at all, so removing MudBlazor's duplicate there removes an inconsistent, unrestored-focus removal path rather than a control the field promised.

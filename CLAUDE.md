@@ -414,6 +414,14 @@ because it lives in core rather than in one of the two packages that need it.
   suppresses that list entirely while leaving `CustomContent` untouched. ⛔ Don't reach for
   `ShowPreview` here: it is FormCraft's own unrelated code-behind property (drives the drop zone's
   height), not a `MudFileUpload` parameter, and setting it does nothing to the duplicate list.
+- **A cleared multiple-file upload holds an empty list, not `null`** (#319). `MudBlazorMultipleFileUploadComponent`
+  binds `Files`/`FilesChanged` one-way, with an explicit `OnFilesChanged` handler, instead of
+  `@bind-Files` — **because** `@bind-Files` made MudBlazor a second writer of `CurrentValue`:
+  `ClearAsync()` set the field's own empty list, then `MudFileUpload.ClearAsync()`'s own
+  `FilesChanged(null)` echo landed on the two-way binding and overwrote it with `null`, so the field
+  notified *twice* and ended up holding `null` instead of empty. One-way binding plus the handler
+  normalising `null` to an empty list makes `OnFilesChanged` the only writer left, mirroring the
+  single-file component's `Files`/`OnFileChanged` shape. Pinned by `FileUploadNotificationTests`.
 - **A control that unmounts *or disables* itself on activation must move focus deliberately** —
   otherwise the element the keyboard user is standing on stops being focusable, focus falls to
   `<body>`, and the next <kbd>Tab</kbd> restarts from the top of the document (WCAG 2.1 **2.4.3

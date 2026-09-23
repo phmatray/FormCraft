@@ -24,6 +24,13 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// <see cref="FieldRenderContext{TModel}"/>, but with <c>OnValueChanged</c> wired to append to a
 /// <see cref="List{T}"/> instead of the default no-op.
 /// </para>
+/// <para>
+/// The collection-item test below is the one exception: it renders through
+/// <c>FormCraftComponent</c> with a real <c>EditContext</c> rather than this standalone harness,
+/// because its claim — an empty list lands under <c>Applications[i].Attachments</c> — is
+/// specifically about the parent <c>EditContext</c>'s nested-identifier wiring (#91), which a
+/// standalone <see cref="FieldRenderContext{TModel}"/> does not exercise.
+/// </para>
 /// </remarks>
 public class FileUploadNotificationTests : MudBlazorTestBase
 {
@@ -185,6 +192,64 @@ public class FileUploadNotificationTests : MudBlazorTestBase
         notifications.ShouldAllBe(n => n != null);
     }
 
+    [Fact]
+    public async Task Clearing_A_Multiple_File_Upload_Inside_A_Collection_Item_Notifies_Once_And_Leaves_The_Other_Row_Untouched()
+    {
+        // Arrange - item fields render through this same MudBlazorMultipleFileUploadComponent since
+        // #203 (one component, one code path, regardless of placement), so Task 2's fix must hold
+        // here too. Rendered through FormCraftComponent (a real EditContext) rather than the
+        // standalone FieldRenderContext harness the rest of this file uses: "writes an empty list
+        // under Items[i].Field" is specifically about the parent EditContext's nested-identifier
+        // wiring (#91). Two rows so clearing one proves it does not also touch the other.
+        var model = new ApplicationModel
+        {
+            Applications =
+            {
+                new ApplicationRecord { Attachments = new List<IBrowserFile> { new StubBrowserFile() } },
+                new ApplicationRecord { Attachments = new List<IBrowserFile> { new StubBrowserFile() } },
+            },
+        };
+        var config = FormBuilder<ApplicationModel>
+            .Create()
+            .AddCollectionField(x => x.Applications, collection => collection
+                .WithLabel("Applications")
+                .WithItemForm(item => item
+                    .AddField(x => x.Attachments, field => field.WithLabel("Attachments"))))
+            .Build();
+
+        EditContext? editContext = null;
+        var component = this.RenderItemForm(model, config,
+            parameters => parameters.Add(p => p.OnEditContextCreated, ctx => editContext = ctx));
+
+        editContext.ShouldNotBeNull();
+        var nestedField = new FieldIdentifier(model, "Applications[0].Attachments");
+        var nestedChangeCount = 0;
+        editContext!.OnFieldChanged += (_, args) =>
+        {
+            if (args.FieldIdentifier.Equals(nestedField))
+            {
+                nestedChangeCount++;
+            }
+        };
+
+        // Scoped per row rather than a flat button index, the way CollectionFocusTests/
+        // FileUploadClearFocusTests scope per-field lookups - two rows means two instances.
+        var rows = component.FindComponents<MudBlazorMultipleFileUploadComponent<ApplicationRecord>>();
+        rows.Count.ShouldBe(2);
+
+        // Act - clear ONLY the first row
+        var buttons = rows[0].FindAll(".mud-toolbar button");
+        buttons.Count.ShouldBe(2);
+        await component.InvokeAsync(() => buttons[1].Click());
+
+        // Assert - row 0's model list is a non-null empty list (not null), row 1 is untouched, and
+        // the nested identifier for row 0's field changed exactly once.
+        model.Applications[0].Attachments.ShouldNotBeNull();
+        model.Applications[0].Attachments.ShouldBeEmpty();
+        model.Applications[1].Attachments.Count.ShouldBe(1);
+        nestedChangeCount.ShouldBe(1);
+    }
+
     private IRenderedComponent<MudBlazorMultipleFileUploadComponent<TestModel>> RenderStandaloneMultipleUpload(
         TestModel model,
         List<object?> notifications)
@@ -271,6 +336,22 @@ public class FileUploadNotificationTests : MudBlazorTestBase
     private sealed class NonNullableTestModel
     {
         public IReadOnlyList<IBrowserFile> Uploads { get; set; } = new List<IBrowserFile>();
+    }
+
+    /// <summary>
+    /// Root model for the collection-item path - no shared fixture declares a file-upload item form,
+    /// so this stays local rather than growing <c>FormCraft.TestSupport.CollectionItemFixture</c> for
+    /// one consumer (see that fixture's own remarks on why models there stay narrow).
+    /// </summary>
+    private sealed class ApplicationModel
+    {
+        public List<ApplicationRecord> Applications { get; set; } = new();
+    }
+
+    /// <summary>Item for the collection-item path - one multiple-file field, nothing else.</summary>
+    private sealed class ApplicationRecord
+    {
+        public IReadOnlyList<IBrowserFile> Attachments { get; set; } = new List<IBrowserFile>();
     }
 
     private sealed class StubBrowserFile : IBrowserFile
