@@ -1,3 +1,4 @@
+using FormCraft.ForMudBlazor.UnitTests.TestSupport;
 using Microsoft.Extensions.Logging;
 using static FormCraft.TestSupport.CollectionItemFixture;
 
@@ -492,59 +493,5 @@ public class ShrinkLabelDiagnosticsTests : MudBlazorTestBase
         public string Name { get; set; } = string.Empty;
         public int CityId { get; set; }
         public DateTime? When { get; set; }
-    }
-
-    /// <summary>
-    /// Minimal ILoggerProvider that records warning-level messages so tests can assert on
-    /// what a developer would actually see in their console.
-    /// </summary>
-    private sealed class CapturingLoggerProvider : ILoggerProvider
-    {
-        private readonly List<string> _warnings = [];
-
-        public IReadOnlyList<string> Warnings
-        {
-            get
-            {
-                lock (_warnings)
-                {
-                    return _warnings.ToList();
-                }
-            }
-        }
-
-        public ILogger CreateLogger(string categoryName) => new CapturingLogger(this);
-
-        public void Dispose()
-        {
-        }
-
-        private void Record(string message)
-        {
-            lock (_warnings)
-            {
-                _warnings.Add(message);
-            }
-        }
-
-        private sealed class CapturingLogger(CapturingLoggerProvider provider) : ILogger
-        {
-            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-
-            public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Warning;
-
-            public void Log<TState>(
-                LogLevel logLevel,
-                EventId eventId,
-                TState state,
-                Exception? exception,
-                Func<TState, Exception?, string> formatter)
-            {
-                if (logLevel >= LogLevel.Warning)
-                {
-                    provider.Record(formatter(state, exception));
-                }
-            }
-        }
     }
 }
