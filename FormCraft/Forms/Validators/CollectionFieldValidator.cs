@@ -146,12 +146,50 @@ public class CollectionFieldValidator<TModel, TItem>
 
         foreach (var itemError in itemErrors)
         {
-            var field = _configuration.ItemFormConfiguration?.Fields
-                .FirstOrDefault(f => f.FieldName == itemError.FieldName);
-            errors.Add($"{_configuration.Label ?? _configuration.FieldName} [{itemError.ItemIndex + 1}] - {field?.Label ?? itemError.FieldName}: {itemError.Message}");
+            errors.Add(FormatItemMessage(itemError));
         }
 
         return errors;
+    }
+
+    /// <summary>
+    /// Formats one item error into the flat, human-formatted line a <c>ValidationSummary</c> shows
+    /// for the collection's own field identifier (e.g. <c>"Items [1] - Product: Product name is
+    /// required"</c>) - the same line <see cref="BuildMessages"/> produces for it.
+    /// </summary>
+    /// <remarks>
+    /// Public so <c>DynamicFormValidator</c> can reproduce this exact formatting when a single-cell
+    /// edit needs to replace just that cell's own line(s) in the flat set, without re-running every
+    /// other row's validators to rebuild the whole set (#329, #342).
+    /// </remarks>
+    /// <param name="itemError">One structured per-item error from a validation pass.</param>
+    /// <returns>The formatted flat message line for this error.</returns>
+    public string FormatItemMessage(CollectionItemError itemError)
+        => $"{FormatItemLabel(itemError.ItemIndex, itemError.FieldName)}: {itemError.Message}";
+
+    /// <summary>
+    /// The prefix every flat message for one item field shares, with no trailing error text -
+    /// enough to find and remove that field's own line(s) from the flat set without matching a
+    /// different field's line.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ Built from the item field's <b>label</b>, not its field name: two different item fields
+    /// that happen to share a <c>Label</c> collide on this prefix, and a caller removing "by prefix"
+    /// would then remove the wrong field's line too. Two configurations declared for the <i>same</i>
+    /// property collide correctly instead - both share this one prefix and both get re-added by the
+    /// caller, matching what a full pass already produces for them.
+    /// </remarks>
+    /// <param name="itemIndex">Index of the item row.</param>
+    /// <param name="fieldName">Name of the item field.</param>
+    /// <returns>The formatted line's prefix, up to and including <c>": "</c>.</returns>
+    public string FormatItemMessagePrefix(int itemIndex, string fieldName)
+        => $"{FormatItemLabel(itemIndex, fieldName)}: ";
+
+    private string FormatItemLabel(int itemIndex, string fieldName)
+    {
+        var field = _configuration.ItemFormConfiguration?.Fields
+            .FirstOrDefault(f => f.FieldName == fieldName);
+        return $"{_configuration.Label ?? _configuration.FieldName} [{itemIndex + 1}] - {field?.Label ?? fieldName}";
     }
 
     /// <summary>
