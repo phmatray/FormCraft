@@ -59,9 +59,9 @@ jobs:
       # See ci.yml's copy of this step for the full rationale (#225, #231). Two things matter here:
       # `if: always()` — without it a failed `Run: Pack` skips this step and the only record of which
       # tests failed dies with the runner — and `test-results`, which since #231 is a directory the
-      # build genuinely fills. It did not used to be: MTP ignored the VSTest results-directory/logger
-      # properties Build.cs set (warning MTP0001), which is why this step, the oldest of the three,
-      # had never once produced a non-empty artifact.
+      # build genuinely fills. It did not used to be: under the old VSTest bridge MTP ignored the
+      # results-directory/logger properties Build.cs set (warning MTP0001), which is why this step,
+      # the oldest of the three, had never once produced a non-empty artifact.
       - name: 'Publish: test-results'
         if: always()
         uses: actions/upload-artifact@v7

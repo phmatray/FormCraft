@@ -57,11 +57,10 @@ public class TestReportingTests
         ["junit"] = "--report-junit",
         ["nunit"] = "--report-nunit",
         ["ctrf"] = "--report-ctrf",
-        // Not a reporter. `dotnet test`'s MSBuild integration writes one per-assembly `.log` — the
-        // artifact #225 exists to preserve — into whatever --results-directory names, which is what
-        // moved them out of <project>/bin/<cfg>/<tfm>/TestResults/. Distinct from MTP's --diagnostic
-        // log, which is opt-in and named log_<timestamp>.diag.
-        ["log"] = "--results-directory",
+        // No "log" entry any more (#371). The per-assembly .log was written by the VSTest bridge
+        // `dotnet test` used under Microsoft.Testing.Platform 1.x; the SDK's native MTP mode writes
+        // none, so --results-directory no longer backs a .log and a promised *.log must read as
+        // unbacked. (MTP's opt-in --diagnostic log is log_<timestamp>.diag, a different file.)
     };
 
     /// <summary>
@@ -155,10 +154,9 @@ public class TestReportingTests
     /// reporters, as opposed to merely having some backing option.
     /// </summary>
     /// <remarks>
-    /// <c>log</c> is the whole point of the distinction: it is backed by <c>--results-directory</c>
-    /// but written by <c>dotnet test</c>'s MSBuild integration rather than by a reporter, so it fails
-    /// for entirely different reasons. #276 guards the reporter-backed kinds and deliberately leaves
-    /// it out — reading "backed by an option" as "backed by a reporter" would quietly drag it in.
+    /// The distinction was drawn for the VSTest bridge's per-assembly <c>.log</c>, which was backed
+    /// by <c>--results-directory</c> rather than by a reporter (#276). Native MTP mode writes no such
+    /// file (#371), but the check stays: "backed by an option" is still not "backed by a reporter".
     /// </remarks>
     private static bool IsReporterBacked(string extension) =>
         ReporterForExtension.TryGetValue(extension, out var option)
@@ -466,12 +464,14 @@ public class TestReportingTests
     }
 
     [Fact]
-    public void BuildScript_Should_Not_Set_The_VSTest_Properties_That_Mtp_Ignores()
+    public void BuildScript_Should_Not_Use_DotNetTests_VSTest_Logger_Or_Results_Settings()
     {
-        // Both of these reach dotnet test as VSTest-only MSBuild properties. Under
-        // Microsoft.Testing.Platform they are not merely ineffective, they are announced as
-        // ignored (MTP0001) on every single run — warning noise in a repo whose entire build runs
-        // under TreatWarningsAsErrors, which is exactly how readers get trained past warnings.
+        // Under the old VSTest bridge both reached `dotnet test` as VSTest-only MSBuild properties
+        // that MTP ignored with MTP0001 (#231). In the SDK's native MTP mode (#371) `--logger` is
+        // no longer ignored but fatal: measured, `dotnet test <csproj> --logger trx` runs zero
+        // tests and exits 5. SetResultsDirectory would now work, but only as a second spelling of
+        // the `--results-directory` the build already forwards through ResultsDirectoryFor — two
+        // routes to one path is how they drift apart. The reports go through the `--` arguments.
         var build = WorkflowSource.BuildScript;
 
         build.ShouldNotContain("SetResultsDirectory");
@@ -481,9 +481,8 @@ public class TestReportingTests
     [Fact]
     public void BuildScript_Should_Emit_Reports_Through_The_Testing_Platform()
     {
-        // The native equivalents, which the runner does honour. --results-directory carries the
-        // most weight of the three: it is what puts the reports *and* the per-assembly diagnostic
-        // log under test-results/, which is the single path all three workflows upload.
+        // The native equivalents, which the runner does honour. --results-directory is what puts
+        // the trx and html reports under test-results/, the single path all three workflows upload.
         var build = WorkflowSource.BuildScript;
 
         Enables(build, "--results-directory").ShouldBeTrue();
@@ -694,8 +693,8 @@ public class TestReportingTests
             .ToList();
 
         // The only two shapes allowed to compose the path directly: ResultsDirectoryFor's own
-        // definition (the single source), and the two .Produces promises — which describe the
-        // shape of the directory on disk rather than resolve a path at runtime, so they are not the
+        // definition (the single source), and the .Produces promise — which describes the
+        // shape of the directory on disk rather than resolving a path at runtime, so it is not the
         // "derivation" this test is about (see Test_Target_Should_Promise_Its_Artifacts_Recursively).
         // Matched by SHAPE, with identifiers wildcarded, rather than pinned to today's parameter
         // names (verification-gap finding, #339): renaming ResultsDirectoryFor's parameter or the
@@ -705,7 +704,6 @@ public class TestReportingTests
         [
             @"^TestResultsDirectory / \w+\.Name$",
             @"^TestResultsDirectory / ""\*\*"" / \w+$",
-            @"^TestResultsDirectory / ""\*\*/\*\.log""$",
         ];
 
         var stray = compositions

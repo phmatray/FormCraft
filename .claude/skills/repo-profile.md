@@ -15,22 +15,23 @@
 ## Build & test
 - **Build:** `dotnet build -c Release`
 - **Full test:** `dotnet test -c Release`
-- **Single-suite filter (per-task, fast):** **available — but never via `dotnet test --filter`.**
-  The test projects are Microsoft.Testing.Platform hosts (`OutputType=Exe` +
-  `UseMicrosoftTestingPlatformRunner=true`), so xunit.v3's runner exposes real filter options on
-  them. Both forms below run a strict subset. ⚠️ **They report *failure* differently — read the
-  path-specific rules below before writing a verification loop.** Recorded on macOS arm64,
-  `dotnet --version` = `10.0.302`, xunit.v3 runner `3.2.2` (#277). Re-stamp from `dotnet --version`,
+- **Single-suite filter (per-task, fast):** **available — use `-- --filter-class`.**
+  The test projects are Microsoft.Testing.Platform (MTP) hosts (`OutputType=Exe` +
+  `UseMicrosoftTestingPlatformRunner=true`) on xunit.v3 4.x / MTP 2.x, and `global.json` opts
+  `dotnet test` in to the SDK's **native MTP mode** (`"test": { "runner": "Microsoft.Testing.Platform" }`,
+  #371). MTP 2.x dropped the VSTest bridge, so without that opt-in `dotnet test` fails outright on
+  SDK 10.0.4xx (`Testing with VSTest target is no longer supported …`). Recorded on macOS arm64,
+  `dotnet --version` = `10.0.401`, xunit.v3 `4.0.1` (#371). Re-stamp from `dotnet --version`,
   **not** from `global.json`: `rollForward: latestFeature` lets the real SDK drift above the pin, so
   the pinned string can never tell you the measurement went stale.
-  - **Preferred** (builds first; the SDK forwards everything after `--` to the host).
+  - **Preferred** (builds first; everything after `--` is forwarded to the host).
     ⚠️ **Always name the `.csproj`** — see the solution-level trap below:
     ```bash
     dotnet test FormCraft.UnitTests/FormCraft.UnitTests.csproj -c Release \
       -- --filter-class FormCraft.UnitTests.Ci.GitignoreTests
     ```
-    → `Passed! - Failed: 0, Passed: 6, Skipped: 0, Total: 6 … - FormCraft.UnitTests.dll`, exit `0`,
-    ~10s including the build.
+    → `Test run summary: Passed!` then `  total: 6`, exit `0`. Native mode also accepts the flags
+    without `--` (`dotnet test --project <csproj> -c Release --filter-class …` → the same 6).
   - **Fastest** (runs the built host directly — **it does not build**, so `dotnet build -c Release`
     must precede it or you are silently testing stale code). Path is relative to the repo root, and
     is `…\FormCraft.UnitTests.exe` on Windows (not measured here — recorded on macOS):
@@ -38,16 +39,13 @@
     FormCraft.UnitTests/bin/Release/net10.0/FormCraft.UnitTests \
       --filter-class FormCraft.UnitTests.Ci.GitignoreTests
     ```
-    → `Test run summary: Passed! - …/FormCraft.UnitTests.dll (net10.0|arm64)` on one line, then
-    `  total: 6` / `  failed: 0` / `  succeeded: 6` / `  skipped: 0` / `  duration: 191ms` on the
-    next five. **The verdict and the count are on different lines** — one `grep` gets you one of
-    them, never both.
-    Not project-specific — every test project has its own host:
-    ```bash
-    FormCraft.ForMudBlazor.UnitTests/bin/Release/net10.0/FormCraft.ForMudBlazor.UnitTests \
-      --filter-class FormCraft.ForMudBlazor.UnitTests.Fields.AriaRequiredTests
-    ```
-    → `Passed!` with `total: 34` (of 464).
+    → `Test run summary: Passed! - …/FormCraft.UnitTests.dll (net10.0|arm64)`, then `  total: 6`,
+    exit `0`. Not project-specific — every test project has its own host under
+    `<project>/bin/Release/net10.0/<project>`.
+  - **The summary shape is the same on every path**: a `Test run summary: <verdict>` line, then
+    `total:` / `failed:` / `succeeded:` / `skipped:` / `duration:` on their own lines (plus `error: N`
+    when an assembly errored). **The verdict and the count are on different lines** — one `grep` gets
+    you one of them, never both.
   - **Flags** (`--help` on the host lists them all): `--filter-class`, `--filter-method`,
     `--filter-namespace`, `--filter-trait`, `--filter-uid`, `--filter-query`, plus a
     `--filter-not-*` counterpart for class/method/namespace/trait. `*` wildcards work at either end
@@ -56,49 +54,41 @@
     combined with `--filter-query`** — the runner's own help says so.
     - ⚠️ **`--filter-method` wants the fully-qualified name** (`<namespace>.<class>.<method>`, as
       its `--help` states) — a bare method name matches nothing and reports that as
-      `Zero tests ran` (exit `8`), which is easy to skim past as success. A wildcard
-      (`--filter-method '*Clearing_A_Standalone*'`) is the ergonomic escape.
+      `Zero tests ran` (exit `8`). A wildcard (`--filter-method '*Clearing_A_Standalone*'`) is the
+      ergonomic escape.
     - ⚠️ **`--filter-trait` is dead weight here:** no test in this repo carries a `[Trait]`, so
-      `--filter-trait 'Category=Builder'` returns `Zero tests ran`. Filter by class or namespace
-      instead. (`CLAUDE.md` used to advertise `dotnet test --filter "Category=Builder"`, wrong twice
-      over — inert option, non-existent trait. Corrected in #299, which also added
-      `FormCraft.UnitTests/Ci/ClaudeMdTestCommandsTests` to stop it coming back.)
-  - ⛔ **`dotnet test --filter …` really is inert** — the true half of the advice this bullet
-    replaced. It is a VSTest option forwarded as an MSBuild property that MTP ignores, warning
-    `MTP0001: VSTest-specific properties are set but will be ignored … VSTestTestCaseFilter` while
-    **the whole suite runs anyway** (`Total: 808`). Never report such a run as filtered.
-  - ⚠️ **How a filtered run lies — and it lies differently per path.** Require a real
-    `Passed!`/`Failed!` verdict **and** a plausible count **and** the assembly name; do not trust
-    `$?` through a pipe, and never conclude from the mere absence of `Failed!`.
-    - **Direct host, wrong flag** → `Unknown option '--filter'` plus the full `--help`, **no
-      summary line at all**, so `grep 'Failed!'` matches nothing and reads as green. Direct exit is
-      `5`, but the habitual `| tail` / `| grep` replaces `$?` with the pipe's `0` — the pipe, not
-      the binary, manufactures the false pass.
-    - **Direct host, filter matches nothing** → `Test run summary: Zero tests ran`, `total: 0`,
-      exit `8`. It *does* announce itself; treat `Zero tests ran` as a hard stop, not noise.
-    - **Preferred form, wrong flag** → the diagnostic never reaches stdout. You get only
-      `… : error run failed: Tests failed: '<path>/TestResults/<assembly>_net10.0_arm64.log'` and
-      exit `1` — wording that blames the tests for what is an argument error. The real message is
-      in that log file; go read it before debugging any source.
-    - **Preferred form, filter matches nothing** → `Failed! - Failed: 0, Passed: 0, Skipped: 0,
-      Total: 0` and exit `1`. **No `Zero tests ran` on this path** — an empty filter is
-      indistinguishable at a glance from a real regression, so check `Total: 0` before you go
-      hunting for a broken test.
+      `--filter-trait 'Category=Builder'` returns `Zero tests ran` (exit `8`). Filter by class or
+      namespace instead.
+  - **The VSTest spellings, re-measured under native mode (#371)** — the old "silently ignored with
+    `MTP0001`" behaviour is gone, but not uniformly:
+    - `dotnet test <csproj> --filter "FullyQualifiedName~Gitignore"` **now filters** (6 tests, exit
+      `0`). It works; `-- --filter-class` stays the documented form because it is the same flag on
+      both paths.
+    - `--collect "XPlat Code Coverage"` and `--logger trx` now **fail loudly**: `Zero tests ran`,
+      exit `5`. There is still no coverage wiring (no MTP coverage extension is referenced).
+    - ⛔ **The MSBuild-property spelling is still silently inert — and now without even a warning.**
+      `-p:VSTestTestCaseFilter=FullyQualifiedName~Gitignore` ran the whole project (`total: 914`),
+      exit `0`, no `MTP0001`. Never report such a run as filtered.
+  - **How a run that ran nothing announces itself.** Native mode makes the two paths agree: every
+    such run prints `Zero tests ran` and exits non-zero. Read the exit code **unpiped** — `| tail` /
+    `| grep` replaces `$?` with the pipe's `0`.
+    - **Filter matches nothing** → `Zero tests ran`, `total: 0`, exit **`8`** (both paths).
+    - **Mistyped flag** (`--filter-clas`) → exit **`5`**. Through `dotnet test` you get
+      `Zero tests ran`, `error: 1` and **no** `Unknown option` text — the exit code is the only thing
+      separating an argument error (5) from an empty filter (8). The direct host prints
+      `Unknown option '--filter-clas'` plus the full `--help` and **no summary line at all**, so
+      `grep 'Failed!'` still reads it as green there.
   - ⚠️ **Scope the passthrough to a `.csproj`.** Run solution-wide,
     `dotnet test -c Release -- --filter-class FormCraft.UnitTests.Ci.GitignoreTests` applies the
-    filter to **all three** assemblies: `Passed! … Total: 6` for `FormCraft.UnitTests.dll` and
-    `Failed! … Total: 0` for the other two, **exit 1**. A loop that greps for `Passed!` finds one
-    and reports green on a command that failed — this single form defeats the rule directly above,
-    which is why the example names its project.
+    filter to **all three** assemblies: the aggregate reads `Test run summary: Failed!`, `total: 6`,
+    `error: 2`, and the two other assemblies each report `Zero tests ran` — **exit `8`**.
   - **Scope:** this is *within-task* iteration only. It does **not** replace the *CI gates* below —
-    `./build.cmd Test` stays the pre-merge gate and still runs everything: **~1,550 tests** across
-    the three projects, ~30s including `Compile`. Bare `dotnet test -c Release` runs the same three
-    suites in ~11s warm. (Approximate on purpose — the precise `808 + 464 + 68 = 1340` recorded here
-    by #290 was stale within a day, which is the whole failure mode this section is about.)
-    ⚠️ **Neither prints an aggregate** — you get one `Passed!` line *per assembly*,
-    in nondeterministic order, so a check that reads the first one accepts one project's total as the
-    whole suite. Confirm all three assemblies reported, or trust the process exit code for the full run
-    (unpiped). Filter to iterate; run one of these before you claim done.
+    `./build.cmd Test` stays the pre-merge gate and still runs everything: **~1,700 tests** across
+    the three projects. Bare `dotnet test -c Release` runs the same three suites and prints **one
+    aggregate** `Test run summary` block naming all three assemblies, then the combined counts
+    (measured: `total: 1685`, `succeeded: 1684`, `skipped: 1`, exit `0`). (Approximate on purpose —
+    the exact total drifts with every merge.) Filter to iterate; run one of these before you claim
+    done.
 - **Format/lint apply:** `dotnet format FormCraft.sln` (or `whitespace` / `style` to scope it)
 - **Format/lint verify (the gate):** `./build.sh Format` — a Nuke target wrapping
   `dotnet format FormCraft.sln --verify-no-changes`, run by `ci.yml` **before** `Test` (#301).
@@ -118,7 +108,7 @@
   cannot reach `dev` unnoticed. `grep -rl '<<<<<<< TODO' --include='*.cs' .` is still useful as a
   quick diagnostic right after an apply run, but the test is what actually enforces this.
 - **Prerequisites / caveats:**
-  - `global.json` pins SDK `10.0.302` with `rollForward: latestFeature`.
+  - `global.json` pins SDK `10.0.401` with `rollForward: latestFeature`, and opts `dotnet test` in to native MTP mode (#371).
   - Multi-target `net8.0;net10.0` — a build error can be TFM-specific; read which TFM the error names.
     The **test** projects are single-target `net10.0`, so each has exactly one host binary under
     `bin/<cfg>/net10.0/` — no per-TFM ambiguity when picking the path above.
@@ -239,9 +229,9 @@
 ## Environment gotchas
 - **Default branch is `dev`.** The lifecycle skills' examples say `main`; substitute `dev` everywhere
   (`--base dev`, `git merge origin/dev`).
-- **`dotnet test --filter` is inert here (`MTP0001`) — but per-suite filtering is not:** use
-  `dotnet test <csproj> -c Release -- --filter-class <FQN>`. A filtered run has several ways of
-  looking green while having run nothing, and they differ between the two invocation paths — read
+- **Filter per suite with `dotnet test <csproj> -c Release -- --filter-class <FQN>`.** The VSTest
+  spellings behave inconsistently under native MTP mode (`--filter` works, `--collect` fails,
+  `-p:VSTest…` is silently inert), and a filtered run can still have run nothing — read
   *Build & test* before writing any check against one. (Kept as a pointer on purpose: the details
   live in exactly one place so a re-measure cannot update one copy and leave the other lying.)
 - Use `git -C <path>` rather than `cd <path> && …` — a `cd` in a compound command gets reset between

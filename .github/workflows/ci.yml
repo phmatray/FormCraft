@@ -28,60 +28,40 @@ jobs:
         env:
           DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
-      # Microsoft.Testing.Platform prints only a summary line to stdout and writes every per-assertion
-      # detail — failing test names, Shouldly messages, stack traces — to a per-assembly `.log`.
-      # Without this upload a red run here is undiagnosable remotely: `gh run view --log` yields a
-      # count and a path to a file that died with the runner. That cost was paid for real during
-      # #200. (#225)
+      # Why upload at all (#225): under the VSTest bridge Microsoft.Testing.Platform 1.x used, a red
+      # run printed only a count and a path to a per-assembly `.log` holding every failing test name,
+      # Shouldly message and stack trace — a file that died with the runner. That cost was paid for
+      # real during #200. Since #371 `dotnet test` runs in the SDK's native MTP mode (global.json's
+      # "test" runner), which prints that detail straight into the job log and writes no `.log` at
+      # all — measured on a deliberately failing test. So `gh run view <run-id> --log-failed` is now
+      # the first place to look; the reports uploaded here are the structured copy of the same result.
       #
       # `if: always()` is the entire point — the failure path is the only one worth preserving, and it
       # is exactly the path a bare step skips.
       #
       # One path, and as of #231 it is a real one. Build.cs used to ask for `test-results/` through
-      # DotNetTest's VSTest surface, which `dotnet test` forwards as VSTestResultsDirectory /
-      # VSTestLogger and Microsoft.Testing.Platform ignores outright (warning MTP0001) — so the
+      # DotNetTest's VSTest surface, which `dotnet test` forwarded as VSTestResultsDirectory /
+      # VSTestLogger and Microsoft.Testing.Platform ignored outright (warning MTP0001) — so the
       # directory was never created, no trx or html was ever written, and this step leaned on a
       # `**/TestResults/*.log` glob pointing into the projects' bin directories instead. Build.cs now
-      # passes MTP's own `--results-directory`, which puts the trx and html reports AND that
-      # per-assembly log under `test-results/`. The old glob is deliberately gone rather than kept as
-      # a fallback: every workflow that tests reaches Nuke's Test target, so it could now only ever
-      # match nothing — the declared-but-inert shape #231 was filed about.
+      # passes MTP's own `--results-directory`, which puts the trx and html reports under
+      # `test-results/<project>/` (one directory per test project since #256). The old glob is
+      # deliberately gone rather than kept as a fallback: every workflow that tests reaches Nuke's
+      # Test target, so it could now only ever match nothing — the declared-but-inert shape #231 was
+      # filed about.
       #
       # `if-no-files-found: ignore` covers the one legitimate miss: a run that fails in Compile,
       # before any test executes and therefore before `test-results/` exists.
       #
-      # Reading it. Every clause below was measured against a deliberately reddened run and against a
-      # real downloaded artifact (#231) — the naive form of this command silently prints nothing,
-      # which is indistinguishable from "the suite passed".
-      #
-      #  - The log is UTF-16LE, one file per test assembly, each starting with a BOM.
-      #  - It carries ANSI colour escapes ON CI and not locally: MTP colourises the status word, so a
-      #    failure line arrives as ESC[31mfailed ESC[m<test>. Measured on a downloaded artifact,
-      #    which is the only copy this recipe is ever pointed at. Hence the escape strip.
-      #  - The BOM has to be stripped explicitly, because grep implementations disagree about it:
-      #    BSD grep drops one at the START of the stream, GNU grep drops none. A failing assembly's
-      #    log can open with its `failed <test>` line, so an unstripped BOM makes `^failed ` miss the
-      #    first failure — on Linux always, and on macOS as soon as more than one file is piped in.
-      #  - `-A30`, not `-A5`: Shouldly's difference table alone runs past twenty lines, so a smaller
-      #    window cuts off the `at ...` stack frames — the part naming the offending line.
-      #  - `*/*.log`, not `*.log`: since #256 each test project writes into its own
-      #    test-results/<project>/ subdirectory, so the logs sit one level deeper than they used to.
-      #    A flat glob matches nothing here and therefore prints nothing — which is indistinguishable
-      #    from a suite that passed, the same false all-clear this recipe's other clauses exist to
-      #    prevent. The upside of the extra level: `== $f` now opens each block with the project
-      #    directory, so the output says which suite it is reading before it says what failed.
+      # Reading it. Each *.trx carries every failure as outcome="Failed" under its fully-qualified
+      # testName, with the Shouldly message and stack trace in its <Output>; the *.html is the same
+      # report rendered for a browser.
       #
       #   gh run download <run-id> -n test-results -D /tmp/tr
-      #   for f in /tmp/tr/*/*.log; do
-      #     echo "== $f"
-      #     iconv -f UTF-16LE -t UTF-8 "$f" \
-      #       | sed $'s/\\xef\\xbb\\xbf//g; s/\\x1b\\[[0-9;]*m//g' \
-      #       | grep -A30 '^failed '
-      #   done
+      #   grep -o 'testName="[^"]*"[^>]*outcome="Failed"' /tmp/tr/*/*.trx
       #
-      # That prints each failing test with its Shouldly detail and stack trace. The same run's *.trx
-      # carries each failure as outcome="Failed" under its fully-qualified testName, and the *.html
-      # is the same report rendered for a browser.
+      # `*/*.trx`, not `*.trx`: each test project writes into its own subdirectory, so a flat glob
+      # matches nothing and prints nothing — indistinguishable from a suite that passed.
       - name: 'Publish: test-results'
         if: always()
         uses: actions/upload-artifact@v7

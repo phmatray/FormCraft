@@ -64,10 +64,11 @@ class Build : NukeBuild
     /// artifact with every build, test and workflow still green (#276). Adding a reporter here now
     /// guards it by construction.
     ///
-    /// *.log is promised alongside these and deliberately NOT listed here. It is written by
-    /// `dotnet test`'s MSBuild integration via --results-directory, not by an MTP reporter, so it
-    /// fails for entirely different reasons; folding it in would make one guard reason about two
-    /// mechanisms at once. Its own guard, if it earns one, belongs in its own change.
+    /// There is no *.log here any more, and none is promised (#371). The per-assembly .log was written
+    /// by the VSTest bridge `dotnet test` used under Microsoft.Testing.Platform 1.x; the SDK's native
+    /// MTP mode (global.json's "test" runner) has no bridge and writes no .log. Failure detail —
+    /// test names, Shouldly messages, stack traces — now reaches the console, and so the CI job log,
+    /// directly, and the trx carries it too.
     /// </summary>
     static readonly string[] ReporterBackedReports = ["*.trx", "*.html"];
 
@@ -170,27 +171,25 @@ class Build : NukeBuild
         // drift — which is the whole failure mode #276 was filed about. Adding a reporter to
         // ReporterBackedReports promises it AND guards it in one edit.
         .Produces(ReporterBackedReports.Select(report => (string)(TestResultsDirectory / "**" / report)).ToArray())
-        // Promised but deliberately unguarded — see ReporterBackedReports for why the .log is a
-        // different mechanism rather than the same oversight this target just closed.
-        .Produces(TestResultsDirectory / "**/*.log")
         .Executes(() =>
         {
-            // Both test projects run on Microsoft.Testing.Platform (UseMicrosoftTestingPlatformRunner),
-            // which ignores DotNetTest's VSTest surface. This target used to call
-            // .SetResultsDirectory()/.SetLoggers(); `dotnet test` forwards those as the MSBuild
-            // properties VSTestResultsDirectory/VSTestLogger, and MTP drops both with warning
-            // MTP0001. So the target produced nothing at all while its .Produces(...) lines claimed
-            // otherwise — and `*.xml` named a file neither runner has ever written (#231).
+            // The test projects run on Microsoft.Testing.Platform (UseMicrosoftTestingPlatformRunner),
+            // and `dotnet test` runs them in the SDK's native MTP mode (global.json, #371). This target
+            // used to call .SetResultsDirectory()/.SetLoggers(); under the old VSTest bridge
+            // `dotnet test` forwarded those as the MSBuild properties VSTestResultsDirectory/
+            // VSTestLogger, and MTP dropped both with warning MTP0001. So the target produced nothing
+            // at all while its .Produces(...) lines claimed otherwise — and `*.xml` named a file
+            // neither runner has ever written (#231).
             //
             // The options below are MTP's own and are honoured. Everything after `--` is forwarded
             // verbatim to each test application, which is where xunit.v3's reporters live; they ship
             // with the runner, so none of this needs an extra package reference.
             //
-            // --results-directory carries the most weight of the three: besides the reports, it
-            // relocates MTP's per-assembly diagnostic log — the artifact #225 added, carrying the
-            // failing test names and Shouldly detail that never reach stdout — out of
-            // <project>/bin/<cfg>/<tfm>/TestResults/ and into test-results/. That is why all three
-            // workflows can now upload one directory and get both.
+            // --results-directory puts the trx and html reports under test-results/, the one
+            // directory all three workflows upload. Failure detail — test names, Shouldly messages,
+            // stack traces — is printed to the console by the native MTP mode, so the CI job log
+            // carries it; the trx carries it too. (Under the bridge it went only to a per-assembly
+            // .log, which #225 uploaded; native mode writes no such file.)
             //
             // One invocation PER TEST PROJECT, each into test-results/<project>/ (#256). A single
             // solution-wide `dotnet test` sent both assemblies' reports to one directory under the
