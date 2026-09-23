@@ -697,30 +697,36 @@ public class TestReportingTests
         // definition (the single source), and the two .Produces promises — which describe the
         // shape of the directory on disk rather than resolve a path at runtime, so they are not the
         // "derivation" this test is about (see Test_Target_Should_Promise_Its_Artifacts_Recursively).
-        string[] allowed =
+        // Matched by SHAPE, with identifiers wildcarded, rather than pinned to today's parameter
+        // names (verification-gap finding, #339): renaming ResultsDirectoryFor's parameter or the
+        // .Produces lambda's own is a refactor this test has no business reddening on — only the
+        // string literals are pinned, since ".Produces" describes a glob, not a variable.
+        string[] allowedShapes =
         [
-            "TestResultsDirectory / project.Name",
-            "TestResultsDirectory / \"**\" / report",
-            "TestResultsDirectory / \"**/*.log\"",
+            @"^TestResultsDirectory / \w+\.Name$",
+            @"^TestResultsDirectory / ""\*\*"" / \w+$",
+            @"^TestResultsDirectory / ""\*\*/\*\.log""$",
         ];
 
-        var stray = compositions.Where(c => !allowed.Contains(c, StringComparer.Ordinal)).ToList();
+        var stray = compositions
+            .Where(c => !allowedShapes.Any(shape => Regex.IsMatch(c, shape)))
+            .ToList();
 
         // Shouldly prints the collection on failure, so this names the offending composition.
         stray.ShouldBeEmpty(
             "a project's results directory is composed somewhere other than ResultsDirectoryFor or "
             + "the .Produces promises — route it through ResultsDirectoryFor instead (#339)");
 
-        // `stray` alone dedups by CONTENT, not by count: a second, hand-rolled
+        // `stray` alone dedups by SHAPE, not by count: a second, hand-rolled
         // `TestResultsDirectory / project.Name` planted anywhere else `project` is in scope reads as
-        // an "allowed" string too, so it would slip past the check above unflagged — exactly the
-        // fourth-derivation regression this test exists to catch, just spelled identically to one of
-        // the three legitimate ones instead of differently (code-review finding, #339). Each allowed
-        // shape is expected exactly once, so the total count is asserted too.
+        // an "allowed" shape too, so it would slip past the check above unflagged — exactly the
+        // fourth-derivation regression this test exists to catch, just spelled identically in shape
+        // to one of the three legitimate ones instead of differently (code-review finding, #339).
+        // Each allowed shape is expected exactly once, so the total count is asserted too.
         compositions.Count.ShouldBe(
-            allowed.Length,
+            allowedShapes.Length,
             $"found {compositions.Count} TestResultsDirectory composition(s), expected exactly "
-            + $"{allowed.Length} (one per allowed shape) — compositions: {string.Join(" | ", compositions)}");
+            + $"{allowedShapes.Length} (one per allowed shape) — compositions: {string.Join(" | ", compositions)}");
     }
 
     [Fact]
