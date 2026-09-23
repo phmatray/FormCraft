@@ -15,16 +15,38 @@ namespace FormCraft.UnitTests.Ci;
 public class TrustedPublishingWorkflowTests
 {
     /// <summary>
-    /// A single step of a workflow, so an assertion about its <c>if:</c> cannot be satisfied by the
-    /// same expression sitting on some other step.
+    /// One job's slice of <paramref name="workflowFile" /> — the scope every claim in this class is
+    /// held against (#332), the same shape #255 gave <c>TestReportingTests</c>. A file-wide scope
+    /// could not tell which job a matched step belonged to, and #302 made an ambiguous match loud
+    /// rather than silent — so two jobs each gaining a step with the same <c>id:</c> or <c>name:</c>,
+    /// both perfectly legal, would have reddened this suite on a valid workflow. Scoping to the
+    /// owning job removes both failure modes at once.
+    /// </summary>
+    private static string JobOf(string workflowFile, string jobName)
+    {
+        var jobs = WorkflowSource.JobsOf(workflowFile);
+
+        jobs.TryGetValue(jobName, out var text).ShouldBeTrue(
+            $"{workflowFile} has no job '{jobName}' — found: {string.Join(", ", jobs.Keys.Order(StringComparer.Ordinal))}");
+
+        return text!;
+    }
+
+    /// <summary>
+    /// A single step of a workflow job, so an assertion about its <c>if:</c> cannot be satisfied by
+    /// the same expression sitting on some other step — in this job or, since #332, in any other job
+    /// of the same file.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Reads the workflow <b>comment-stripped</b> (#302). The scan runs from the step's own list item
-    /// to the next one, so an unstripped slice carries whatever prose sits between the step and its
-    /// successor — and the login step is surrounded by far more prose than wiring. That is not a
-    /// cosmetic difference: every claim in this file is a <c>ShouldContain</c>/<c>ShouldMatch</c> over
-    /// the whole slice, which cannot tell wiring from a comment, and
+    /// Reads the job's slice <b>comment-stripped</b> (#302), via <see cref="JobOf" />: <see
+    /// cref="WorkflowSource.JobsOf" /> strips before it splits, so the slice must not be run through
+    /// <see cref="WorkflowSource.Stripped" /> a second time on top of it. The scan runs from the
+    /// step's own list item to the next one, so an unstripped slice carries whatever prose sits between
+    /// the step and its successor — and the login step is surrounded by far more prose than wiring.
+    /// That is not a cosmetic difference: every claim in this file is a
+    /// <c>ShouldContain</c>/<c>ShouldMatch</c> over the whole slice, which cannot tell wiring from a
+    /// comment, and
     /// <see cref="ReleaseWorkflow_Should_Gate_The_Login_On_A_Created_Release" /> was satisfied by the
     /// #221 comment block naming <c>release_created</c> — measured: with the step's <c>if:</c> deleted,
     /// and again with it re-pointed at an unrelated condition, that test passed both times.
@@ -62,9 +84,16 @@ public class TrustedPublishingWorkflowTests
     /// turns red immediately, which is the point of having it — but the reason it exists is worth reading
     /// before overriding it.
     /// </para>
+    /// <para>
+    /// ⛔ The <paramref name="workflowFile" />-only overload this replaced is gone on purpose (#332).
+    /// Every claim here is scoped to the job that owns the step via <see cref="JobOf" />, so it cannot
+    /// be answered by another job's text and cannot be reddened by another job's legal duplicate id or
+    /// name — the gap #255 already closed for the sibling suite, and that #302 made loud rather than
+    /// merely wrong.
+    /// </para>
     /// </remarks>
-    private static string StepWithId(string workflowFile, string stepId) =>
-        WorkflowSource.StepWithId(WorkflowSource.Stripped(workflowFile), stepId, workflowFile);
+    private static string StepWithId(string workflowFile, string jobName, string stepId) =>
+        WorkflowSource.StepWithId(JobOf(workflowFile, jobName), stepId, $"{workflowFile} / {jobName}");
 
     /// <summary>
     /// The <c>if:</c> expression of a single step, so a claim about what a step is *gated on* cannot
@@ -72,14 +101,28 @@ public class TrustedPublishingWorkflowTests
     /// turns entirely on that distinction: the login step legitimately *reads* <c>NUGET_USER</c>,
     /// and only *gating* on it is the defect.
     /// </summary>
-    private static string StepCondition(string workflowFile, string stepId)
+    private static string StepCondition(string workflowFile, string jobName, string stepId)
     {
-        var condition = StepWithId(workflowFile, stepId)
+        var condition = StepWithId(workflowFile, jobName, stepId)
             .Split('\n')
             .FirstOrDefault(l => l.TrimStart().StartsWith("if:", StringComparison.Ordinal));
 
-        condition.ShouldNotBeNull($"the `{stepId}` step of {workflowFile} no longer has an `if:` condition");
+        condition.ShouldNotBeNull(
+            $"the `{stepId}` step of {workflowFile} / {jobName} no longer has an `if:` condition");
         return condition;
+    }
+
+    [Fact]
+    public void ReleaseWorkflow_Step_Lookup_Should_Be_Scoped_To_The_Owning_Job()
+    {
+        // release-please.yml is a two-job workflow, and these guards are about the publishing job. A
+        // file-wide scan cannot tell the two apart: it would answer a claim about `nupkg` with a step
+        // from `release-please`, and — since #302 made an ambiguous match loud — a legal duplicate id or
+        // name across the two jobs would redden the suite on a correct workflow (#332).
+        StepWithId("release-please.yml", "nupkg", "login").ShouldContain("NuGet/login@");
+
+        // The `release` step belongs to the other job, so it must be absent from this scope.
+        WorkflowSource.TryStepWithId(JobOf("release-please.yml", "nupkg"), "release").ShouldBeNull();
     }
 
     [Fact]
@@ -92,7 +135,7 @@ public class TrustedPublishingWorkflowTests
         // through the StepCondition-based sibling; see the StepWithId remark above — this was a hole in
         // one test, not an unguarded release path.) Asserted on the slice this suite actually reads, so
         // it pins the property that makes every claim in this file about wiring rather than about prose.
-        var lines = StepWithId("release-please.yml", "login").Split('\n');
+        var lines = StepWithId("release-please.yml", "nupkg", "login").Split('\n');
 
         lines.ShouldAllBe(l => !l.TrimStart().StartsWith("#", StringComparison.Ordinal));
 
@@ -114,7 +157,7 @@ public class TrustedPublishingWorkflowTests
     [Fact]
     public void ReleaseWorkflow_Should_Exchange_The_OidcToken_For_A_ShortLived_Key()
     {
-        var step = StepWithId("release-please.yml", "login");
+        var step = StepWithId("release-please.yml", "nupkg", "login");
 
         // Pinned by digest, never by a moving tag — asserted as a shape rather than as one literal
         // SHA, so a legitimate Renovate digest bump does not turn this suite red for a reason that
@@ -133,7 +176,7 @@ public class TrustedPublishingWorkflowTests
         // unrelated step would leave a real nuget.org key minted on runs that publish nothing, and a
         // whole-slice ShouldContain cannot tell the gate from any other mention of the token — a
         // `with:` input reading `release_created` would satisfy it with the step ungated.
-        StepCondition("release-please.yml", "login").ShouldContain("release_created");
+        StepCondition("release-please.yml", "nupkg", "login").ShouldContain("release_created");
     }
 
     [Fact]
@@ -148,7 +191,7 @@ public class TrustedPublishingWorkflowTests
         // repo exercises a handful of times a year. So the secret must fail the job, not skip it.
         //
         // Asserted on the `if:` alone: `with: user: ${{ env.NUGET_USER }}` is the legitimate read.
-        var condition = StepCondition("release-please.yml", "login");
+        var condition = StepCondition("release-please.yml", "nupkg", "login");
 
         condition.ShouldContain("release_created");
         condition.ShouldNotContain("NUGET_USER");
