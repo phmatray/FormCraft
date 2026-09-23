@@ -113,8 +113,6 @@ public partial class FormCraftComponent<TModel>
 
     private EditContext? _editContext;
     private DynamicFormValidator<TModel>? _validator;
-    private string? _csrfToken;
-    private string? _securityError;
     private IGroupedFormConfiguration<TModel>? GroupedConfiguration => Configuration as IGroupedFormConfiguration<TModel>;
     private ICollectionFormConfiguration<TModel>? CollectionConfiguration => Configuration as ICollectionFormConfiguration<TModel>;
 
@@ -128,7 +126,7 @@ public partial class FormCraftComponent<TModel>
                 await OnEditContextCreated.InvokeAsync(_editContext);
             }
         }
-        await InitializeSecurityAsync();
+        await SecurityEnforcer.InitializeAsync(Configuration, SecurityContextId);
         await base.OnInitializedAsync();
     }
 
@@ -145,150 +143,20 @@ public partial class FormCraftComponent<TModel>
     }
 
     /// <summary>
-    /// Identifier used for rate limiting and audit log entries:
-    /// <see cref="SecurityContextId"/> when provided, otherwise the model type name.
+    /// This form's security pipeline (rate limiting, CSRF, audit logging, encryption), shared with
+    /// the Fluent UI adapter from core since #321. Only the banner that shows its
+    /// <see cref="FormSecurityEnforcer{TModel}.Error"/> is this adapter's own.
     /// </summary>
-    private string EffectiveSecurityContextId =>
-        string.IsNullOrWhiteSpace(SecurityContextId) ? typeof(TModel).Name : SecurityContextId;
-
-    private async Task InitializeSecurityAsync()
-    {
-        if (Configuration?.Security?.IsCsrfProtectionEnabled != true)
-        {
-            return;
-        }
-
-        var csrfTokenService = ServiceProvider.GetService<ICsrfTokenService>();
-        if (csrfTokenService == null)
-        {
-            _securityError = "CSRF protection is enabled for this form, but no ICsrfTokenService is registered. Call AddFormCraft() (or register a custom ICsrfTokenService) to enable submissions.";
-            LogSecurityError("CSRF protection is enabled on form '{FormId}' but no ICsrfTokenService is registered in DI.", EffectiveSecurityContextId);
-            return;
-        }
-
-        _csrfToken = await csrfTokenService.GenerateTokenAsync();
-    }
-
-    /// <summary>
-    /// Enforces the security settings configured via <c>WithSecurity()</c> before a
-    /// submission is processed. Returns false (and sets a user-visible error) when the
-    /// submission must be blocked.
-    /// </summary>
-    private async Task<bool> EnforceSecurityAsync()
-    {
-        _securityError = null;
-        var security = Configuration?.Security;
-        if (security == null)
-        {
-            return true;
-        }
-
-        // Rate limiting runs first so blocked submissions never reach validation.
-        if (security.RateLimit is { } rateLimit)
-        {
-            var rateLimitService = ServiceProvider.GetService<IRateLimitService>();
-            if (rateLimitService == null)
-            {
-                _securityError = "Rate limiting is enabled for this form, but no IRateLimitService is registered. Call AddFormCraft() (or register a custom IRateLimitService) to enable submissions.";
-                LogSecurityError("Rate limiting is enabled on form '{FormId}' but no IRateLimitService is registered in DI.", EffectiveSecurityContextId);
-                return false;
-            }
-
-            var rateLimitResult = await rateLimitService.CheckRateLimitAsync(
-                EffectiveSecurityContextId, rateLimit.MaxAttempts, rateLimit.TimeWindow);
-
-            if (!rateLimitResult.IsAllowed)
-            {
-                _securityError = rateLimitResult.RetryAfter is { } retryAfter && retryAfter > TimeSpan.Zero
-                    ? $"Too many submissions. Please try again in {Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds))} seconds."
-                    : "Too many submissions. Please try again later.";
-                await LogSubmissionAuditEventAsync(AuditEventTypes.FormRejected, AuditEventTypes.RateLimitExceeded);
-                return false;
-            }
-
-            await rateLimitService.RecordAttemptAsync(EffectiveSecurityContextId);
-        }
-
-        if (security.IsCsrfProtectionEnabled)
-        {
-            var csrfTokenService = ServiceProvider.GetService<ICsrfTokenService>();
-            if (csrfTokenService == null || _csrfToken == null)
-            {
-                _securityError ??= "This form could not be submitted because its security token is missing. Please reload the page and try again.";
-                LogSecurityError("CSRF validation could not run on form '{FormId}': service or token missing.", EffectiveSecurityContextId);
-                await LogSubmissionAuditEventAsync(AuditEventTypes.FormRejected, AuditEventTypes.CsrfValidationFailed);
-                return false;
-            }
-
-            if (!await csrfTokenService.ValidateTokenAsync(_csrfToken))
-            {
-                _securityError = "Your session could not be verified. Please reload the page and try again.";
-                await LogSubmissionAuditEventAsync(AuditEventTypes.FormRejected, AuditEventTypes.CsrfValidationFailed);
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Writes a submission-related audit entry via the optional <see cref="IAuditLogService"/>,
-    /// redacting fields listed in ExcludedFields as well as fields marked for encryption.
-    /// </summary>
-    private async Task LogSubmissionAuditEventAsync(string eventType, string? reason = null)
-    {
-        var security = Configuration?.Security;
-        if (security is not { IsAuditLoggingEnabled: true })
-        {
-            return;
-        }
-
-        if (security.AuditLog is { LogSubmissions: false })
-        {
-            return;
-        }
-
-        var auditLogService = ServiceProvider.GetService<IAuditLogService>();
-        if (auditLogService == null)
-        {
-            return;
-        }
-
-        var entry = new AuditLogEntry
-        {
-            EventType = eventType,
-            FormId = EffectiveSecurityContextId,
-        };
-
-        if (reason != null)
-        {
-            entry.AdditionalData["Reason"] = reason;
-        }
-
-        var excludedFields = security.AuditLog?.ExcludedFields;
-        foreach (var field in Configuration!.Fields)
-        {
-            if (excludedFields?.Contains(field.FieldName) == true ||
-                security.EncryptedFields.Contains(field.FieldName))
-            {
-                entry.AdditionalData[field.FieldName] = "[REDACTED]";
-                continue;
-            }
-
-            var property = typeof(TModel).GetProperty(field.FieldName);
-            entry.AdditionalData[field.FieldName] = property?.GetValue(Model)?.ToString();
-        }
-
-        await auditLogService.LogAsync(entry);
-    }
-
-    private void LogSecurityError(string message, params object?[] args)
-    {
-        var logger = ServiceProvider.GetService<ILogger<FormCraftComponent<TModel>>>();
-#pragma warning disable CA2254 // Template is a constant supplied by the callers above
-        logger?.LogError(message, args);
-#pragma warning restore CA2254
-    }
+    /// <remarks>
+    /// Created on first use rather than in <see cref="OnInitializedAsync"/>: the markup reads its
+    /// error, and a render can land before initialisation finishes (it awaits
+    /// <see cref="OnEditContextCreated"/> first). The logger is this component's own, so security
+    /// misconfigurations keep reporting under the component's log category.
+    /// </remarks>
+    private FormSecurityEnforcer<TModel> SecurityEnforcer =>
+        field ??= new FormSecurityEnforcer<TModel>(
+            ServiceProvider,
+            ServiceProvider.GetService<ILogger<FormCraftComponent<TModel>>>());
 
     /// <summary>
     /// Returns the values of the fields configured for encryption via
@@ -299,14 +167,8 @@ public partial class FormCraftComponent<TModel>
     /// <exception cref="InvalidOperationException">
     /// Thrown when no <see cref="IEncryptionService"/> is registered (call <c>AddFormCraft()</c>).
     /// </exception>
-    public IReadOnlyDictionary<string, string?> GetEncryptedFieldValues()
-    {
-        var encryptionService = ServiceProvider.GetService<IEncryptionService>()
-            ?? throw new InvalidOperationException(
-                "No IEncryptionService is registered. Call AddFormCraft() (or register a custom IEncryptionService) before using GetEncryptedFieldValues().");
-
-        return encryptionService.EncryptConfiguredFields(Model, Configuration?.Security);
-    }
+    public IReadOnlyDictionary<string, string?> GetEncryptedFieldValues() =>
+        SecurityEnforcer.EncryptConfiguredFields(Model, Configuration?.Security);
 
     public bool Validate()
     {
@@ -491,7 +353,7 @@ public partial class FormCraftComponent<TModel>
     {
         // Enforce WithSecurity() settings (rate limiting, CSRF) before validation so
         // blocked submissions never reach the application's submit handler.
-        if (!await EnforceSecurityAsync())
+        if (!await SecurityEnforcer.EnforceAsync(Configuration, Model, SecurityContextId))
         {
             StateHasChanged();
             return;
@@ -506,7 +368,7 @@ public partial class FormCraftComponent<TModel>
 
         if (isValid && OnValidSubmit.HasDelegate)
         {
-            await LogSubmissionAuditEventAsync(AuditEventTypes.FormSubmitted);
+            await SecurityEnforcer.LogSubmittedAsync(Configuration, Model, SecurityContextId);
             await OnValidSubmit.InvokeAsync(Model);
         }
     }

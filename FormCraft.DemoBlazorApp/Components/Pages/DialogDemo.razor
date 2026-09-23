@@ -8,7 +8,8 @@
     Title="Dialog Integration"
     Icon="@Icons.Material.Filled.OpenInNew"
     Description="Use FormCraft forms inside MudBlazor dialogs for consistent form experiences in modal contexts. Create, edit, and interact with forms in dialog windows."
-    FormDemoIcon="@Icons.Material.Filled.Window">
+    FormDemoIcon="@Icons.Material.Filled.Window"
+    WideForm="true">
     <FormDemoContent>
         <MudGrid>
             <!-- Simple Dialog Example -->
@@ -58,18 +59,11 @@
             </MudItem>
         </MudGrid>
 
-        <!-- Additional Content Cards -->
-        <MudGrid Class="mt-4">
-            <MudItem xs="12">
-                <WhenToUseCard Text="@DialogDemo.Documentation.WhenToUse" />
-            </MudItem>
-            <MudItem xs="12">
-                <CommonPitfallsCard Pitfalls="@DialogDemo.Documentation.CommonPitfalls" />
-            </MudItem>
-            <MudItem xs="12">
-                <RelatedDemosCard DemoIds="@DialogDemo.Documentation.RelatedDemoIds" />
-            </MudItem>
-        </MudGrid>
+        <DemoNotes>
+            <WhenToUseCard Text="@DialogDemo.Documentation.WhenToUse" />
+            <CommonPitfallsCard Pitfalls="@DialogDemo.Documentation.CommonPitfalls" />
+            <RelatedDemosCard DemoIds="@DialogDemo.Documentation.RelatedDemoIds" />
+        </DemoNotes>
     </FormDemoContent>
     
     <CodeExampleContent>

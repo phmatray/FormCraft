@@ -34,6 +34,13 @@ public partial class DemoPageLayout
     [Parameter, EditorRequired]
     public RenderFragment GuidelinesContent { get; set; } = null!;
 
+    /// <summary>
+    /// For forms too wide for the stage's side column (tabs, steppers): the form takes the full width
+    /// above its source instead of sitting beside it.
+    /// </summary>
+    [Parameter]
+    public bool WideForm { get; set; }
+
     [Parameter]
     public string? DemoId { get; set; }
 

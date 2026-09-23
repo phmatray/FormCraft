@@ -5,7 +5,8 @@
     Title="Tabbed Form"
     Icon="@Icons.Material.Filled.Tab"
     Description="This demonstrates how to create tabbed forms using MudTabs, where each tab contains different form fields and allows free navigation between sections."
-    FormDemoIcon="@Icons.Material.Filled.Assignment">
+    FormDemoIcon="@Icons.Material.Filled.Assignment"
+    WideForm="true">
     <FormDemoContent>
         <MudPaper Elevation="1" Class="pa-6">
             <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
@@ -232,39 +233,43 @@
             }
         </MudPaper>
         
-        <MudPaper Elevation="1" Class="pa-6 mt-4">
-            <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
-                <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2" />
-                Features Demonstrated
-            </MudText>
-            <MudList T="string" Dense="true">
-                <MudListItem T="string" Icon="@Icons.Material.Filled.Tab">
-                    Tabbed form navigation with MudTabs
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.SwapHoriz">
-                    Free navigation between tabs without validation blocking
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.Storage">
-                    Data persistence across tabs with shared model
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.NotificationImportant">
-                    Visual indicators for incomplete sections
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
-                    Final validation before submission
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.Lightbulb">
-                    Helpful tooltips for each section
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.Analytics">
-                    Progress tracking with visual indicators
-                </MudListItem>
-            </MudList>
-        </MudPaper>
+        <SectionContent SectionName="demo-aside">
+            <MudPaper Elevation="1" Class="pa-6 mt-4">
+                <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2" />
+                    Features Demonstrated
+                </MudText>
+                <MudList T="string" Dense="true">
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Tab">
+                        Tabbed form navigation with MudTabs
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.SwapHoriz">
+                        Free navigation between tabs without validation blocking
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Storage">
+                        Data persistence across tabs with shared model
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.NotificationImportant">
+                        Visual indicators for incomplete sections
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                        Final validation before submission
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Lightbulb">
+                        Helpful tooltips for each section
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Analytics">
+                        Progress tracking with visual indicators
+                    </MudListItem>
+                </MudList>
+            </MudPaper>
+        </SectionContent>
 
-        <WhenToUseCard Text="@TabbedForm.Documentation.WhenToUse" />
-        <CommonPitfallsCard Pitfalls="@TabbedForm.Documentation.CommonPitfalls" />
-        <RelatedDemosCard DemoIds="@TabbedForm.Documentation.RelatedDemoIds" />
+        <DemoNotes>
+            <WhenToUseCard Text="@TabbedForm.Documentation.WhenToUse" />
+            <CommonPitfallsCard Pitfalls="@TabbedForm.Documentation.CommonPitfalls" />
+            <RelatedDemosCard DemoIds="@TabbedForm.Documentation.RelatedDemoIds" />
+        </DemoNotes>
 
     </FormDemoContent>
     

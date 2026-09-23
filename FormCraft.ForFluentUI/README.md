@@ -57,8 +57,9 @@ nearest one rather than ignored. For an exact shadow, style the group's `WithCss
 ## Security
 
 `.WithSecurity(...)` is **enforced** — rate limiting, CSRF protection, audit logging and field
-encryption all behave as they do in the MudBlazor adapter (#278). A blocked submission never reaches
-your `OnValidSubmit` handler, and the reason is shown in a `FluentMessageBar`.
+encryption behave exactly as they do in the MudBlazor adapter, because both adapters call the same
+`FormSecurityEnforcer<TModel>` in core (#321). A blocked submission never reaches your `OnValidSubmit`
+handler, and the reason is shown in a `FluentMessageBar`.
 
 ```csharp
 var config = FormBuilder<ContactModel>.Create()

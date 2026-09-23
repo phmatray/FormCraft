@@ -56,6 +56,12 @@
 }
 
 
+/* Wide forms (tabs, steppers): the form above, full width, its source below. */
+.fc-stage--wide { grid-template-columns: minmax(0, 1fr); }
+.fc-stage--wide .fc-stage__form { order: -1; margin-right: 0; border-radius: 28px; padding: 28px; }
+.fc-stage--wide .fc-stage__code { position: static; }
+.fc-stage--wide .fc-stage__code .fc-editor { max-height: none; }
+
 /* The light panel the form renders on: MudBlazor's own palette, as in a visitor's app. */
 .fc-formpanel {
     background: #F7F7FB;
@@ -67,6 +73,17 @@
     max-width: 100%;
     overflow: hidden;
 }
+
+/* The panel is already the card. A page that wraps its whole form in a MudPaper loses that frame,
+   and cards nested deeper become bordered sections instead of floating cards on a card. */
+.fc-formpanel > .mud-paper:first-child { background: transparent; box-shadow: none; padding: 0 !important; }
+.fc-formpanel .mud-paper:not(.mud-alert):not(.fc-formpanel > .mud-paper:first-child),
+.fc-formpanel .mud-card { box-shadow: none !important; border: 1px solid #E3E4EF; }
+
+/* FormCraft.ForMudBlazor hides the upload's native <input type="file"> with an `opacity-0` class
+   that MudBlazor 9 does not define, so the browser's "Choose file" control showed through above
+   every drop zone. The adapter needs its own fix; until then the demo supplies the rule. */
+.fc-formpanel input[type="file"].opacity-0 { opacity: 0; }
 
 /* Bounded, so wide content (MudTabs' tab bar) scrolls inside itself instead of widening the page. */
 .fc-formpanel .mud-tabs, .fc-formpanel .mud-tabs-tabbar { max-width: 100%; }

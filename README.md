@@ -558,6 +558,8 @@ var formConfig = FormBuilder<SecureForm>.Create()
 `OnValidSubmit` fires. It checks the rate limit before validation, keyed by the `SecurityContextId`
 parameter (set it to a user, session or IP). It writes `FormSubmitted` / `FormRejected` audit entries with
 encrypted and excluded fields redacted. A blocked submission shows an alert and never reaches your handler.
+Both UI adapters run this through one shared `FormSecurityEnforcer<TModel>` in core, so they enforce
+identically; only the alert component differs.
 
 Encryption stays an application concern. Call `encryptionService.EncryptConfiguredFields(model, config.Security)`
 before persisting. The default `IEncryptionService` is AES-256 with a random IV per operation; configure a
