@@ -4,12 +4,32 @@ using Microsoft.AspNetCore.Components;
 namespace FormCraft;
 
 /// <summary>
+/// Implemented by an <see cref="IFieldConfiguration{TModel, TValue}"/> that can report its actual
+/// field type without going through <see cref="IFieldConfiguration{TModel, TValue}.ValueExpression"/>.
+/// </summary>
+/// <remarks>
+/// This lets <see cref="FieldRendererService"/> identify <see cref="FieldConfigurationWrapper{TModel, TValue}"/>
+/// by what it implements — a real, generic-erasure-safe type test — rather than by testing whether its
+/// type name contains the substring "FieldConfigurationWrapper" (#314). Dispatch is a plain interface
+/// call, not <c>Type.GetMethod</c> + <c>MethodInfo.Invoke</c>: the wrapper's own <c>TValue</c> is
+/// erased at the caller (which only knows <c>IFieldConfiguration&lt;TModel, object&gt;</c>), so a
+/// non-generic interface is the only way to reach <see cref="GetActualFieldType"/> without reflection.
+/// </remarks>
+internal interface IActualFieldTypeSource
+{
+    /// <summary>
+    /// Gets the actual runtime type of the field value.
+    /// </summary>
+    Type GetActualFieldType();
+}
+
+/// <summary>
 /// Internal wrapper class that handles type conversion from strongly-typed field configurations to object-based configurations.
 /// This allows the form builder to store different field types in a single collection while maintaining type safety.
 /// </summary>
 /// <typeparam name="TModel">The model type that the form binds to.</typeparam>
 /// <typeparam name="TValue">The actual type of the field value.</typeparam>
-public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TModel, object>
+public class FieldConfigurationWrapper<TModel, TValue> : IFieldConfiguration<TModel, object>, IActualFieldTypeSource
 {
 
     /// <summary>
