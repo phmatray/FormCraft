@@ -72,4 +72,35 @@ public static class FieldValueGetterCache<TModel>
     /// <returns>A delegate reading the field's value from a model instance.</returns>
     public static Func<TModel, object> GetOrCompile(IFieldConfiguration<TModel, object> field)
         => Cache.GetValue(field, static configuration => configuration.ValueExpression.Compile());
+
+    /// <summary>
+    /// Invokes the field's compiled value getter against <paramref name="model"/>, returning
+    /// <see langword="false"/> instead of throwing when the read fails.
+    /// </summary>
+    /// <remarks>
+    /// The most common failure is a null intermediate in a nested <c>ValueExpression</c> path (e.g.
+    /// <c>x =&gt; x.Nested.Value</c> when <c>Nested</c> is <see langword="null"/>) — nothing stops a
+    /// caller from binding a field this way, and before this method existed the three callers that did
+    /// not already guard their own read (#330 guards the two adapters' custom-template reads) let that
+    /// exception escape straight through rendering or validation (#397). Catches <see cref="Exception"/>,
+    /// not a narrower type, since the read invokes an arbitrary compiled expression that can fail for
+    /// any reason a delegate call can.
+    /// </remarks>
+    /// <param name="field">The field configuration whose value expression to read.</param>
+    /// <param name="model">The model instance to read the value from.</param>
+    /// <param name="value">The read value on success; <see langword="null"/> when the read fails.</param>
+    /// <returns><see langword="true"/> if the value was read successfully; otherwise <see langword="false"/>.</returns>
+    public static bool TryGetValue(IFieldConfiguration<TModel, object> field, TModel model, out object? value)
+    {
+        try
+        {
+            value = GetOrCompile(field)(model);
+            return true;
+        }
+        catch (Exception)
+        {
+            value = null;
+            return false;
+        }
+    }
 }
