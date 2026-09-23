@@ -17,14 +17,14 @@
                 @if (Configuration.CanAdd && !HasReachedMax)
                 {
                     @* FluentButton (the pinned v5 RC) exposes no FocusAsync()/ElementReference of its
-                       own, so the wrapping span - not the button - is the focus target (#337). *@
-                    <span @ref="AddTarget" tabindex="-1">
-                        <FluentButton Appearance="ButtonAppearance.Outline"
-                                      OnClick="@AddItem"
-                                      data-testid="formcraft-collection-add">
-                            @Configuration.AddButtonText
-                        </FluentButton>
-                    </span>
+                       own, so focus is restored through its Id and a small JS module instead of a
+                       wrapping span (#383, see FocusRestore remarks). *@
+                    <FluentButton Appearance="ButtonAppearance.Outline"
+                                  Id="@AddTargetId"
+                                  OnClick="@AddItem"
+                                  data-testid="formcraft-collection-add">
+                        @Configuration.AddButtonText
+                    </FluentButton>
                 }
             </FluentStack>
         </div>
@@ -55,38 +55,35 @@
                             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4">
                                 @if (Configuration.CanReorder)
                                 {
-                                    <span @ref="_moveUpTargets[index]" tabindex="-1">
-                                        <FluentButton Appearance="ButtonAppearance.Subtle"
-                                                      Disabled="@(index == 0)"
-                                                      OnClick="@(() => MoveItemUp(index))"
-                                                      aria-label="Move up"
-                                                      data-testid="formcraft-collection-move-up">
-                                            &#8593;
-                                        </FluentButton>
-                                    </span>
-                                    <span @ref="_moveDownTargets[index]" tabindex="-1">
-                                        <FluentButton Appearance="ButtonAppearance.Subtle"
-                                                      Disabled="@(index == Items.Count - 1)"
-                                                      OnClick="@(() => MoveItemDown(index))"
-                                                      aria-label="Move down"
-                                                      data-testid="formcraft-collection-move-down">
-                                            &#8595;
-                                        </FluentButton>
-                                    </span>
+                                    <FluentButton Appearance="ButtonAppearance.Subtle"
+                                                  Disabled="@(index == 0)"
+                                                  Id="@MoveUpTargetIdAt(index)"
+                                                  OnClick="@(() => MoveItemUp(index))"
+                                                  aria-label="Move up"
+                                                  data-testid="formcraft-collection-move-up">
+                                        &#8593;
+                                    </FluentButton>
+                                    <FluentButton Appearance="ButtonAppearance.Subtle"
+                                                  Disabled="@(index == Items.Count - 1)"
+                                                  Id="@MoveDownTargetIdAt(index)"
+                                                  OnClick="@(() => MoveItemDown(index))"
+                                                  aria-label="Move down"
+                                                  data-testid="formcraft-collection-move-down">
+                                        &#8595;
+                                    </FluentButton>
                                 }
                             @if (Configuration.CanRemove && !HasReachedMin)
                             {
-                                @* Captured per index so a removal can focus the control that takes
-                                   the vacated slot - the row loop is keyless, so Blazor reuses the
-                                   element already at each position (#337). *@
-                                <span @ref="_deleteTargets[index]" tabindex="-1">
-                                    <FluentButton Appearance="ButtonAppearance.Subtle"
-                                                  OnClick="@(() => RemoveItem(index))"
-                                                  aria-label="Remove item"
-                                                  data-testid="formcraft-collection-remove">
-                                        Remove
-                                    </FluentButton>
-                                </span>
+                                @* The id is deterministic per index (#383), so a removal can focus
+                                   the control that takes the vacated slot - the row loop is keyless,
+                                   so Blazor reuses the element already at each position. *@
+                                <FluentButton Appearance="ButtonAppearance.Subtle"
+                                              Id="@DeleteTargetIdAt(index)"
+                                              OnClick="@(() => RemoveItem(index))"
+                                              aria-label="Remove item"
+                                              data-testid="formcraft-collection-remove">
+                                    Remove
+                                </FluentButton>
                             }
                             </FluentStack>
                         </FluentStack>

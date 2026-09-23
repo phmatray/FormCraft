@@ -5,30 +5,43 @@ namespace FormCraft.ForFluentUI.UnitTests.TestSupport;
 /// <summary>
 /// Base for suites that assert where keyboard focus went (#337), mirroring
 /// <c>FormCraft.ForMudBlazor.UnitTests.TestSupport.FocusAssertingTestBase</c> (#281, #318) for this
-/// adapter's different focus mechanism.
+/// adapter's focus mechanisms.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Why this technique differs from MudBlazor's.</b> The MudBlazor base learns a button's bUnit
-/// element id by calling its public <c>FocusAsync()</c> and reading the id back off the recorded
-/// interop invocation, because <c>MudBaseButton</c>'s own <see cref="ElementReference"/> is a private
-/// field. Fluent UI Blazor's <c>FluentButton</c> (the pinned v5 RC) has no focus API and no
-/// <see cref="ElementReference"/> at all — confirmed by decompiling the installed assembly — so the
-/// Fluent collection field targets a plain wrapping element instead (see
-/// <c>FormCraft.ForFluentUI.FocusRestore</c>). Those wrapper references are held in <c>internal</c>
-/// fields on <c>FluentUICollectionFieldComponent&lt;TModel, TItem&gt;</c>, reachable from this test
-/// project through the adapter's <c>InternalsVisibleTo</c> — so a test can read the exact
-/// <see cref="ElementReference"/> the component would itself focus, with no "focus it first to learn
-/// its id" indirection needed.
+/// <b>Two mechanisms, because Fluent has no single button-focus API (#337, #383).</b> Fluent UI
+/// Blazor's <c>FluentButton</c> (the pinned v5 RC) has no focus API and no
+/// <see cref="ElementReference"/> at all — confirmed by decompiling the installed assembly — so this
+/// adapter's collection field uses two different routes depending on the target:
 /// </para>
+/// <list type="bullet">
+///   <item><description>
+///     The collection header and per-row header <b>fallbacks</b> are plain, non-interactive
+///     <c>&lt;div&gt;</c> wrappers carrying their own <c>@ref</c> (unchanged since #337): see
+///     <see cref="FocusCount"/> / <see cref="LastFocusedElementId"/>, which read the same
+///     <see cref="ElementReference.FocusAsync()"/> interop MudBlazor's buttons use.
+///   </description></item>
+///   <item><description>
+///     The four <c>FluentButton</c> controls themselves (Add, Remove, Move up, Move down) are
+///     focused by DOM id through a small JS module (<c>collectionFocus.js</c>) since #383 — a
+///     throwaway bUnit probe (Task 1 Step 1) found <c>FluentButton</c> renders as a native custom
+///     element (<c>&lt;fluent-button&gt;</c>) with no static CSS class list, ruling out reproducing
+///     it with a bare <c>&lt;button&gt;</c>, but confirming its <c>Id</c> parameter renders straight
+///     through to the element's <c>id</c> attribute. See <see cref="FocusByIdCount"/> /
+///     <see cref="LastFocusedElementIdViaModule"/>, and
+///     <c>FluentUICollectionFieldComponent&lt;TModel, TItem&gt;</c>'s <c>internal</c>
+///     <c>*TargetId</c> members (reachable from this test project through the adapter's
+///     <c>InternalsVisibleTo</c>) for the exact id each control would be focused by.
+///   </description></item>
+/// </list>
 /// <para>
-/// <b>Measured against bUnit 2.9.0 / Fluent UI Blazor 5.0.0-rc.5-26219.1</b>, via a throwaway probe
-/// (Task 2, #337, deleted once these facts were confirmed):
+/// <b>Measured against bUnit 2.9.0 / Fluent UI Blazor 5.0.0-rc.5-26219.1</b>, via throwaway probes
+/// (#337 Task 2, #383 Task 1 Step 1, both deleted once their findings were confirmed):
 /// </para>
 /// <list type="bullet">
 ///   <item><description>
 ///     A plain HTML element's captured <see cref="ElementReference"/> (<c>@ref</c> on a
-///     <c>&lt;span&gt;</c>, not a component) renders <c>blazor:elementreference</c> into bUnit's
+///     <c>&lt;div&gt;</c>, not a component) renders <c>blazor:elementreference</c> into bUnit's
 ///     markup <b>empty</b> — the same as MudBlazor's buttons. DOM inspection cannot name a target
 ///     here either; the internal-field route above is what makes it possible instead.
 ///   </description></item>
@@ -38,6 +51,13 @@ namespace FormCraft.ForFluentUI.UnitTests.TestSupport;
 ///     with the <b>same <see cref="ElementReference.Id"/></b> as the one that was focused — so
 ///     comparing <see cref="LastFocusedElementId"/> against an internal field's <c>.Id</c> directly is
 ///     a sound before/after comparison, exactly as MudBlazor's learned id is.
+///   </description></item>
+///   <item><description>
+///     Invoking a method on an <c>IJSObjectReference</c> returned by bUnit's Loose-mode "import"
+///     auto-mock records that invocation into the same <c>JSInterop.Invocations</c> list as any other
+///     call, with <c>Identifier</c> set to the invoked JS function name (<c>"focusById"</c>) and
+///     <c>Arguments[0]</c> the plain <see cref="string"/> id passed to it — no module-specific
+///     plumbing needed to observe it.
 ///   </description></item>
 /// </list>
 /// <para>
@@ -52,6 +72,9 @@ public abstract class FocusAssertingTestBase : FluentUITestBase
     /// </summary>
     protected const string FocusIdentifier = "Blazor._internal.domWrapper.focus";
 
+    /// <summary>The JS function <c>collectionFocus.js</c> exports (#383).</summary>
+    protected const string FocusByIdIdentifier = "focusById";
+
     /// <summary>How many focus requests have been recorded so far.</summary>
     protected int FocusCount() => JSInterop.Invocations.Count(i => i.Identifier == FocusIdentifier);
 
@@ -61,6 +84,16 @@ public abstract class FocusAssertingTestBase : FluentUITestBase
             .Last(i => i.Identifier == FocusIdentifier)
             .Arguments[0]!)
         .Id;
+
+    /// <summary>
+    /// How many <c>focusById</c> requests have been recorded so far (#383) — the mechanism the
+    /// collection field's four <c>FluentButton</c> controls use, distinct from <see cref="FocusCount"/>.
+    /// </summary>
+    protected int FocusByIdCount() => JSInterop.Invocations.Count(i => i.Identifier == FocusByIdIdentifier);
+
+    /// <summary>The DOM id argument of the most recent <c>focusById</c> request (#383).</summary>
+    protected string LastFocusedElementIdViaModule() =>
+        (string)JSInterop.Invocations.Last(i => i.Identifier == FocusByIdIdentifier).Arguments[0]!;
 
     /// <summary>
     /// Makes the focus interop throw the way a real browser does when the target has left the DOM.
