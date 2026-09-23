@@ -352,17 +352,11 @@ public partial class FormCraftComponent<TModel> where TModel : new()
             // A custom template takes precedence over every registered renderer.
             if (field.CustomTemplate != null && _editContext != null)
             {
-                var property = typeof(TModel).GetProperty(field.FieldName);
-                if (property == null)
-                {
-                    return;
-                }
-
                 var templateContext = new FieldContext<TModel, object>(
                     Model,
                     field,
                     _editContext,
-                    () => property.GetValue(Model)!,
+                    () => FieldValueGetterCache<TModel>.GetOrCompile(field)(Model),
                     newValue => _ = UpdateFieldValue(field.FieldName, newValue),
                     EventCallback.Factory.Create<object>(this, newValue => UpdateFieldValue(field.FieldName, newValue)));
 
