@@ -514,7 +514,7 @@ services.AddFormCraft(options => {
 });
 
 // 3. Or use inline
-.WithCustomRenderer(new ColorPickerRenderer())
+.WithCustomRenderer<ColorPickerRenderer>()
 ```
 
 #### Creating Reusable Field Configurations

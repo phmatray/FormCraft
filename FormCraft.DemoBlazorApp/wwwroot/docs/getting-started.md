@@ -186,10 +186,10 @@ Create reactive forms where fields depend on each other:
 Create custom field types for specialized inputs:
 
 ```csharp
-// Type arguments: model, value, renderer
+// TRenderer is checked against the field's value type
 .AddField(x => x.Color, field => field
     .WithLabel("Favorite Color")
-    .WithCustomRenderer<ContactModel, string, ColorPickerRenderer>())
+    .WithCustomRenderer<ColorPickerRenderer>())
 ```
 
 ## Next Steps

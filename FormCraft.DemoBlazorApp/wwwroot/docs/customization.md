@@ -25,9 +25,9 @@ public class ColorPickerRenderer : CustomFieldRendererBase<string>
     }
 }
 
-// Attach it to a field (type arguments: model, value, renderer)
+// Attach it to a field (TRenderer is checked against the field's value type)
 .AddField(x => x.Color, field => field
-    .WithCustomRenderer<MyModel, string, ColorPickerRenderer>())
+    .WithCustomRenderer<ColorPickerRenderer>())
 ```
 
 To replace rendering for a whole field *type*, implement the `IFieldRenderer` interface:
