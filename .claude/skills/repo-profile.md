@@ -108,7 +108,7 @@
   cannot reach `dev` unnoticed. `grep -rl '<<<<<<< TODO' --include='*.cs' .` is still useful as a
   quick diagnostic right after an apply run, but the test is what actually enforces this.
 - **Prerequisites / caveats:**
-  - `global.json` pins SDK `10.0.302` with `rollForward: latestFeature`.
+  - `global.json` pins SDK `10.0.401` with `rollForward: latestFeature`, and opts `dotnet test` in to native MTP mode (#371).
   - Multi-target `net8.0;net10.0` — a build error can be TFM-specific; read which TFM the error names.
     The **test** projects are single-target `net10.0`, so each has exactly one host binary under
     `bin/<cfg>/net10.0/` — no per-TFM ambiguity when picking the path above.
