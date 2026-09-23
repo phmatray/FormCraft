@@ -1,383 +1,252 @@
 /* ==========================================================================
-   FormCraft — home page
+   Home
    ========================================================================== */
 
-.fc-page { max-width: 1240px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2.5rem); }
+.fc-section { padding-top: clamp(96px, 12vw, 160px); }
+.fc-note-small { font-size: 13.5px; color: var(--fc-muted); margin-top: 16px; max-width: 80ch; }
+.fc-note-small code, .fc-sub code { color: var(--fc-tk-ty); }
 
-.fc-band { padding-block: var(--fc-band); }
+/* --- Hero ----------------------------------------------------------------- */
+.fc-hero { padding-top: clamp(40px, 6vw, 72px); }
+.fc-hero__top { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 24px clamp(28px, 4vw, 64px); align-items: center; }
+.fc-hero__side { display: grid; gap: 20px; }
+.fc-hero__actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
-.fc-band--tint {
-    background: var(--fc-violet-wash);
-    border-block: 1px solid var(--fc-rule);
-}
+.fc-install { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-family: var(--fc-mono); font-size: 13.5px; color: var(--fc-text-2); overflow-wrap: anywhere; }
+.fc-install b { color: var(--fc-muted); font-weight: 400; }
+.fc-install button { background: none; border: 0; color: var(--fc-muted); cursor: pointer; padding: 6px; border-radius: 6px; display: grid; }
+.fc-install button:hover { color: var(--fc-text); background: var(--fc-bg-3); }
 
-/* --------------------------------------------------------------------------
-   Hero
-   -------------------------------------------------------------------------- */
-
-.fc-hero { padding-top: clamp(2.5rem, 5vw, 4.5rem); padding-bottom: 0; }
-
-.fc-hero__intro { margin-bottom: clamp(2rem, 4vw, 3rem); }
-
-/* 26ch lets each clause hold its own line at the largest size, so the headline
-   reads as two statements rather than four ragged fragments. */
-.fc-hero__title {
-    font-family: var(--fc-font-display);
-    font-weight: 800;
-    font-size: var(--fc-size-display);
-    letter-spacing: -0.035em;
-    line-height: 0.98;
-    color: var(--fc-ink);
-    margin: 0.75rem 0 1.25rem;
-    max-width: 26ch;
-}
-
-/* The second clause is the payoff, so it carries the platform colour. */
-.fc-hero__title em {
-    font-style: normal;
-    color: var(--fc-violet);
-    display: block;
-}
-
-.fc-hero__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-top: 1.75rem;
-}
-
-/* Install line: the first thing an evaluating developer copies. */
-.fc-install {
+.fc-shell .fc-license {
     display: inline-flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-top: 1.5rem;
-    padding: 0.5rem 0.5rem 0.5rem 0.9rem;
-    background: var(--fc-surface);
-    border: 1px solid var(--fc-rule);
-    border-radius: var(--fc-radius);
-    font-family: var(--fc-font-mono);
-    font-size: 0.82rem;
-    color: var(--fc-ink);
-    max-width: 100%;
-    overflow-x: auto;
-}
-
-.fc-install__prompt { color: var(--fc-muted); user-select: none; }
-
-.fc-install button { flex-shrink: 0; }
-
-/* --------------------------------------------------------------------------
-   The binding — the one thing this page is remembered by
-   -------------------------------------------------------------------------- */
-
-.fc-binding {
-    display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-    gap: 0;
-    border: 1px solid var(--fc-rule);
-    border-radius: var(--fc-radius-lg);
-    overflow: hidden;
-    background: var(--fc-surface);
-    box-shadow: 0 18px 44px -24px rgba(22, 20, 31, 0.28);
-}
-
-.fc-binding__panel { display: flex; flex-direction: column; min-width: 0; }
-
-.fc-binding__panel--render { border-left: 1px solid var(--fc-rule); }
-
-.fc-binding__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.8rem 1.1rem;
-    border-bottom: 1px solid var(--fc-rule);
-    min-height: 46px;
-}
-
-/* Code panel keeps its dark ground in both themes: code is an artifact, and it
-   should look the same here as it does in an editor. */
-.fc-binding__panel:first-child { background: var(--fc-code-bg); }
-.fc-binding__panel:first-child .fc-binding__head { border-bottom-color: rgba(255, 255, 255, 0.09); }
-.fc-binding__panel:first-child .fc-eyebrow { color: var(--fc-code-dim); }
-
-.fc-code {
-    padding: 1.1rem 0;
-    font-family: var(--fc-font-mono);
-    font-size: 0.83rem;
-    line-height: 1.85;
-    color: var(--fc-code-fg);
-    overflow-x: auto;
-    flex: 1;
-}
-
-.fc-code-line {
-    padding: 0 1.1rem;
-    white-space: pre;
-    border-left: 3px solid transparent;
-    transition: background-color 0.18s ease, border-color 0.18s ease;
-}
-
-.fc-code-line--field { cursor: default; }
-
-.fc-code-indent { color: transparent; }
-
-.t-key  { color: var(--fc-code-key); }
-.t-type { color: var(--fc-code-type); }
-.t-call { color: var(--fc-code-call); }
-.t-str  { color: var(--fc-code-str); }
-.t-prop { color: var(--fc-code-fg); }
-
-/* The tie. Green here means exactly one thing: this line and that control are
-   the same field. The identical mark appears on both sides at once. */
-.fc-code-line.is-bound {
-    background: rgba(52, 211, 153, 0.1);
-    border-left-color: var(--fc-bind);
-}
-
-.fc-binding__render {
-    padding: 1.25rem 1.1rem;
-    flex: 1;
-    background: var(--fc-surface);
-}
-
-/* Light up the control belonging to the hovered line. FormCraft renders each
-   field as a direct child of the form, in chain order, so position is the tie. */
-.fc-binding__render form > div {
-    border-left: 3px solid transparent;
-    padding-left: 0.6rem;
-    margin-left: -0.9rem;
-    border-radius: 2px;
-    transition: background-color 0.18s ease, border-color 0.18s ease;
-}
-
-.fc-binding[data-active-index="1"] .fc-binding__render form > div:nth-of-type(1),
-.fc-binding[data-active-index="2"] .fc-binding__render form > div:nth-of-type(2),
-.fc-binding[data-active-index="3"] .fc-binding__render form > div:nth-of-type(3),
-.fc-binding[data-active-index="4"] .fc-binding__render form > div:nth-of-type(4),
-.fc-binding[data-active-index="5"] .fc-binding__render form > div:nth-of-type(5) {
-    background: var(--fc-bind-wash);
-    border-left-color: var(--fc-bind);
-}
-
-/* The one orchestrated moment: a new line and its new control flash together. */
-@keyframes fcBindFlash {
-    0%, 100% { background-color: transparent; }
-    30%      { background-color: rgba(52, 211, 153, 0.22); }
-}
-
-.fc-code-line.is-new { animation: fcBindFlash 0.9s ease-out; }
-
-/* Toggles */
-.fc-binding__toggles {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.85rem 1.1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.09);
-}
-
-.fc-binding__toggles-label {
-    font-family: var(--fc-font-mono);
-    font-size: 0.68rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--fc-code-dim);
-    margin-right: 0.35rem;
-}
-
-.fc-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.3rem 0.6rem;
+    gap: 10px;
+    width: fit-content;
+    padding: 8px 14px 8px 12px;
+    border: 1px solid var(--fc-line-2);
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: transparent;
-    color: var(--fc-code-dim);
-    font-family: var(--fc-font-body);
-    font-size: 0.78rem;
-    cursor: pointer;
-    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
-}
-
-.fc-chip:hover { color: #FFF; border-color: rgba(255, 255, 255, 0.4); }
-
-.fc-chip.is-on {
-    color: var(--fc-bind);
-    border-color: color-mix(in srgb, var(--fc-bind) 55%, transparent);
-    background: rgba(52, 211, 153, 0.1);
-}
-
-.fc-chip__mark { font-family: var(--fc-font-mono); font-weight: 600; }
-
-.fc-valid-tag {
-    font-family: var(--fc-font-mono);
-    font-size: 0.66rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--fc-bind);
-    padding: 0.15rem 0.45rem;
-    border: 1px solid color-mix(in srgb, var(--fc-bind) 40%, transparent);
-    border-radius: 4px;
-}
-
-@media (max-width: 900px) {
-    .fc-binding { grid-template-columns: minmax(0, 1fr); }
-    .fc-binding__panel--render { border-left: none; border-top: 1px solid var(--fc-rule); }
-}
-
-/* --------------------------------------------------------------------------
-   Spec strip — verified package facts, not a gradient of round numbers
-   -------------------------------------------------------------------------- */
-
-.fc-spec {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 2.25rem;
-    padding: 1.1rem 0 0;
-    margin-top: 1.5rem;
-    border-top: 1px solid var(--fc-rule);
-    font-family: var(--fc-font-mono);
-    font-size: 0.78rem;
-    color: var(--fc-muted);
-}
-
-.fc-spec__item { display: flex; align-items: baseline; gap: 0.5rem; }
-
-.fc-spec__value { color: var(--fc-ink); font-weight: 500; }
-
-/* --------------------------------------------------------------------------
-   Capability list — replaces six identical cards with a scannable table
-   -------------------------------------------------------------------------- */
-
-.fc-section-head { max-width: 60ch; margin-bottom: clamp(1.75rem, 3vw, 2.75rem); }
-
-.fc-section-head .fc-lede { margin-top: 0.75rem; }
-
-.fc-caps {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 0;
-    border-top: 1px solid var(--fc-rule);
-}
-
-.fc-cap {
-    display: block;
-    padding: 1.5rem 1.5rem 1.5rem 0;
-    border-bottom: 1px solid var(--fc-rule);
+    color: var(--fc-text-2);
     text-decoration: none;
-    color: inherit;
-    position: relative;
-    transition: background-color 0.18s ease;
+    font-size: 14px;
+    transition: border-color .2s, background .2s;
 }
 
-.fc-cap:hover { background: var(--fc-violet-wash); }
+.fc-shell .fc-license:hover { border-color: var(--fc-violet-2); background: var(--fc-bg-2); }
+.fc-license svg { color: var(--fc-violet-2); }
+.fc-license b { color: var(--fc-text); font-weight: 700; }
 
-.fc-cap:hover .fc-cap__title { color: var(--fc-violet); }
-
-.fc-cap__api {
-    font-family: var(--fc-font-mono);
-    font-size: 0.75rem;
-    color: var(--fc-violet);
-    display: block;
-    margin-bottom: 0.5rem;
-}
-
-.fc-cap__title {
-    font-family: var(--fc-font-body);
-    font-size: 1.02rem;
-    font-weight: 600;
-    color: var(--fc-ink);
-    margin: 0 0 0.35rem;
-    line-height: 1.3;
-    transition: color 0.18s ease;
-}
-
-.fc-cap__body {
-    font-size: 0.875rem;
-    color: var(--fc-muted);
-    line-height: 1.55;
-    margin: 0;
-    max-width: 40ch;
-}
-
-/* Rules on every cell, not just the container's edge, so the columns read as a
-   table of capabilities rather than a set of floating paragraphs. */
-@media (min-width: 700px) {
-    .fc-cap { padding-left: 1.5rem; border-left: 1px solid var(--fc-rule); }
-}
-
-/* --------------------------------------------------------------------------
-   Quick start — numbered, because installing really is a sequence
-   -------------------------------------------------------------------------- */
-
-.fc-steps { display: grid; gap: 1px; background: var(--fc-rule); border: 1px solid var(--fc-rule); border-radius: var(--fc-radius-lg); overflow: hidden; }
-
-.fc-step {
+/* --- Hero stage ----------------------------------------------------------- */
+.fc-hero-stage {
     display: grid;
-    grid-template-columns: 3.5rem minmax(0, 1fr);
-    gap: 0 1rem;
-    padding: 1.5rem;
-    background: var(--fc-surface);
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: clamp(20px, 2.4vw, 32px);
     align-items: start;
+    margin-top: clamp(36px, 5vw, 56px);
 }
 
-.fc-step__num {
-    font-family: var(--fc-font-mono);
-    font-size: 0.8rem;
-    color: var(--fc-violet);
-    padding-top: 0.15rem;
+.fc-hero-editor .fc-code { height: clamp(320px, 52vh, 460px); overflow-y: auto; scrollbar-width: thin; }
+
+.fc-result {
+    overflow-wrap: anywhere;
+    margin-top: 16px;
+    font-family: var(--fc-mono);
+    font-size: 12px;
+    line-height: 1.6;
+    color: #1B1D2E;
+    background: #EAF8F1;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
 }
 
-.fc-step__title {
-    font-family: var(--fc-font-body);
-    font-weight: 600;
-    font-size: 1rem;
-    margin: 0 0 0.75rem;
-    color: var(--fc-ink);
+.fc-result svg { color: #16804F; margin-top: 1px; }
+.fc-result.is-err { background: #FDEDEA; }
+.fc-result.is-err svg { color: #C0301A; }
+
+.fc-hero-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.fc-ctl {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .14);
+    color: #fff;
+    border: 0;
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
 }
 
-.fc-step pre {
-    margin: 0;
-    padding: 0.85rem 1rem;
-    background: var(--fc-code-bg);
-    color: var(--fc-code-fg);
-    border-radius: var(--fc-radius);
-    font-family: var(--fc-font-mono);
-    font-size: 0.8rem;
-    line-height: 1.7;
-    overflow-x: auto;
+.fc-ctl:hover { background: rgba(255, 255, 255, .22); }
+.fc-ctl svg { width: 15px; height: 15px; }
+
+@keyframes fc-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes fc-field-in { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } }
+
+/* Phase rail: the sequence the hero plays, named. Numbers are not needed: the order is the text. */
+.fc-phases { list-style: none; padding: 0; margin: clamp(56px, 7vw, 88px) 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.fc-phase { border-top: 2px solid var(--fc-line); padding-top: 14px; transition: border-color .4s var(--fc-ease); }
+.fc-phase b { display: block; font-family: var(--fc-display); font-weight: 600; font-size: 16px; letter-spacing: -.02em; color: var(--fc-muted); transition: color .4s; }
+.fc-phase span { font-size: 14px; color: var(--fc-muted); }
+.fc-phase code { font-size: .9em; }
+.fc-phase.is-on { border-top-color: var(--fc-yellow); }
+.fc-phase.is-on b { color: var(--fc-text); }
+.fc-phase.is-done { border-top-color: var(--fc-violet-2); }
+.fc-phase.is-done b { color: var(--fc-text-2); }
+
+/* --- Compression ---------------------------------------------------------- */
+.fc-compress { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(20px, 3vw, 40px); margin-top: 48px; align-items: stretch; }
+.fc-listing { border: 1px solid var(--fc-line); border-radius: 18px; background: var(--fc-panel); overflow: hidden; display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+.fc-listing__head { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 18px 20px 14px; border-bottom: 1px solid var(--fc-line); }
+.fc-listing__head span:first-child { color: var(--fc-text-2); font-size: 14px; }
+.fc-listing__count { font-family: var(--fc-display); font-weight: 700; font-size: clamp(2rem, 3.6vw, 3.2rem); letter-spacing: -.05em; line-height: 1; }
+.fc-listing--hand .fc-listing__count { color: var(--fc-coral); }
+.fc-listing--fc .fc-listing__count { color: var(--fc-mint); }
+.fc-listing--hand .fc-code { font-size: 9.5px; line-height: 1.5; opacity: .75; padding: 14px 0; }
+.fc-listing--hand .fc-code .cl::before { width: 2.8em; padding-right: 1em; }
+.fc-listing--hand .fc-code .cl { padding-left: calc(3.8em + (var(--ind, 0) + 4) * 1ch); text-indent: calc(-3.8em - (var(--ind, 0) + 4) * 1ch); }
+.fc-listing--fc .fc-code { font-size: clamp(12px, 1.1vw, 14px); }
+
+/* --- Gallery -------------------------------------------------------------- */
+.fc-gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 48px; }
+
+.fc-shell .fc-tile {
+    position: relative;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    min-height: 300px;
+    min-width: 0;
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--fc-bg-2);
+    border: 1px solid var(--fc-line);
+    text-decoration: none;
+    color: var(--fc-text);
+    transition: transform .5s var(--fc-ease), border-color .3s;
 }
 
-@media (max-width: 600px) {
-    .fc-step { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
-}
+.fc-shell .fc-tile:hover, .fc-shell .fc-tile:focus-visible { transform: translateY(-4px); border-color: var(--fc-line-2); }
+.fc-tile--a { grid-column: span 2; grid-row: span 2; }
+.fc-tile--g { grid-column: span 2; }
+.fc-tile__stage { position: relative; padding: 26px; display: grid; place-items: center; background: var(--tone, var(--fc-violet-slab)); overflow: hidden; }
+.fc-tile__meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; }
+.fc-tile__meta b { display: flex; align-items: center; gap: 8px; font-family: var(--fc-display); font-weight: 600; font-size: 16.5px; letter-spacing: -.02em; }
+.fc-tile__meta code { font-size: 12px; color: var(--fc-violet-ink); background: var(--fc-bg-3); padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
 
-/* --------------------------------------------------------------------------
-   Closing call to action
-   -------------------------------------------------------------------------- */
+/* Preview cards mimic MudBlazor's outlined fields: static pictures of the real demos. */
+.fc-mini { width: 100%; max-width: 360px; background: #F7F7FB; color: #1B1D2E; border-radius: 14px; padding: 16px; box-shadow: 0 24px 50px -24px rgba(0, 0, 0, .6); font-size: 13px; display: grid; gap: 12px; }
+.fc-mini--wide { max-width: 520px; }
+.fc-tile--a .fc-mini { max-width: 440px; padding: 22px; font-size: 14px; }
+.fc-mf { position: relative; }
+.fc-mf__box { display: flex; align-items: center; height: 42px; border: 1px solid #C5C7D8; border-radius: 6px; background: #fff; padding: 10px 14px 0; font-size: 14px; color: #1B1D2E; }
+.fc-tile--a .fc-mf__box { height: 48px; font-size: 15px; }
+.fc-mf__box--dots { letter-spacing: .2em; }
+.fc-mf__label { position: absolute; left: 14px; top: 4px; font-size: 10.5px; font-weight: 500; color: #5C6080; }
+.fc-mf.is-flash .fc-mf__box { animation: fc-flash 1s var(--fc-ease); }
+@keyframes fc-flash { 0% { box-shadow: 0 0 0 3px rgba(255, 209, 102, .9); border-color: #D9A21A; } 100% { box-shadow: none; } }
+.fc-total { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid #DADBE8; padding-top: 12px; }
+.fc-total span { color: #5C6080; font-size: 13px; }
+.fc-total b { font-family: var(--fc-display); font-size: 28px; letter-spacing: -.04em; color: var(--fc-violet); }
+
+.fc-steps { display: flex; align-items: center; gap: 8px; }
+.fc-steps__s { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #4F5372; white-space: nowrap; }
+.fc-steps__s i { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: #E3E4EF; color: #4F5372; font-style: normal; font-weight: 600; font-size: 12px; transition: background .4s var(--fc-ease), color .4s; }
+.fc-steps__s em { font-style: normal; }
+.fc-steps__s:not(.is-on) em { display: none; }
+.fc-steps__s.is-on i { background: var(--fc-violet); color: #fff; }
+.fc-steps__s.is-on { color: #1B1D2E; font-weight: 600; }
+.fc-steps__bar { flex: 1; height: 2px; background: #E3E4EF; position: relative; min-width: 12px; }
+.fc-steps__bar::after { content: ''; position: absolute; inset: 0; background: var(--fc-violet); transform: scaleX(var(--p, 0)); transform-origin: left; transition: transform .6s var(--fc-ease); }
+
+.fc-drop { border: 1.5px dashed #A9ACC6; border-radius: 10px; padding: 16px; display: grid; place-items: center; gap: 4px; color: #5C6080; text-align: center; }
+.fc-drop svg { width: 26px; height: 26px; color: var(--fc-violet); }
+.fc-drop b { color: var(--fc-violet); }
+.fc-fchip { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; background: #fff; border: 1px solid #DADBE8; border-radius: 10px; }
+.fc-fchip svg { width: 18px; height: 18px; color: #D9391F; }
+.fc-fchip small { color: #5C6080; font-family: var(--fc-mono); font-size: 11px; }
+.fc-prog { grid-column: 1 / -1; height: 4px; background: #E3E4EF; border-radius: 2px; overflow: hidden; }
+.fc-prog i { display: block; height: 100%; background: #1E9E68; transform-origin: left; transition: transform 1.4s var(--fc-ease); }
+
+.fc-meter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.fc-meter i { height: 5px; border-radius: 3px; background: #E3E4EF; transition: background .35s; }
+.fc-meter[data-s="1"] i:nth-child(-n+1) { background: #D9391F; }
+.fc-meter[data-s="2"] i:nth-child(-n+2) { background: #E28C1A; }
+.fc-meter[data-s="3"] i:nth-child(-n+3) { background: #C5B41C; }
+.fc-meter[data-s="4"] i:nth-child(-n+4) { background: #1E9E68; }
+.fc-meter-l { display: flex; justify-content: space-between; font-size: 12px; color: #5C6080; margin-top: -6px; }
+
+.fc-mtable { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.fc-mtable th { text-align: left; font-weight: 600; color: #5C6080; font-size: 11px; padding: 6px 8px; border-bottom: 1px solid #DADBE8; }
+.fc-mtable td { padding: 8px; border-bottom: 1px solid #ECEDF4; }
+.fc-mtable td:last-child, .fc-mtable th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.fc-mtable tr.is-new td { animation: fc-rowin .6s var(--fc-ease); }
+@keyframes fc-rowin { from { opacity: 0; transform: translateY(-6px); background: #FFF6DB; } }
+.fc-addrow { display: inline-flex; align-items: center; gap: 6px; color: var(--fc-violet); font-weight: 600; font-size: 12.5px; }
+.fc-addrow svg { width: 14px; height: 14px; }
+
+.fc-secrow { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.fc-secrow svg { width: 15px; height: 15px; color: #1E9E68; }
+.fc-cipher { font-family: var(--fc-mono); font-size: 11px; color: #5C6080; word-break: break-all; margin-top: -4px; }
+.fc-grp { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.fc-grp h4 { margin: 0 0 8px; font-size: 11.5px; color: #5C6080; font-weight: 600; }
+
+/* --- Every demo, by level ------------------------------------------------- */
+.fc-all { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; margin-top: 56px; }
+.fc-all h3 { font-family: var(--fc-display); font-weight: 600; font-size: 15px; letter-spacing: -.02em; margin: 0 0 8px; display: flex; gap: 10px; align-items: center; }
+.fc-all h3 small { font-family: var(--fc-body); font-weight: 500; color: var(--fc-muted); font-size: 13px; }
+.fc-all ul { list-style: none; margin: 0; padding: 0; }
+.fc-shell .fc-all a { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--fc-line); color: var(--fc-text-2); text-decoration: none; font-size: 15px; }
+.fc-shell .fc-all a:hover { color: var(--fc-text); }
+.fc-all a > span:first-child { display: flex; align-items: center; gap: 8px; }
+.fc-all__min { color: var(--fc-muted); font-size: 12.5px; }
+
+/* --- Getting started ------------------------------------------------------ */
+.fc-start { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 48px; }
+.fc-start__step { border: 1px solid var(--fc-line); background: var(--fc-panel); border-radius: 18px; padding: 20px; min-width: 0; }
+.fc-start__step h3 { margin: 0 0 14px; font-size: 16px; font-weight: 600; display: flex; gap: 12px; align-items: center; }
+.fc-start__step h3 > span { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--fc-bg-3); color: var(--fc-yellow); font-family: var(--fc-mono); font-size: 13px; }
+.fc-start__step h3 .fc-copy { margin-left: auto; border: 1px solid var(--fc-line); }
+.fc-start__step .fc-code { padding: 12px 0; font-size: 12.5px; background: var(--fc-bg-2); border-radius: 10px; }
+.fc-start__step .fc-code .cl { padding-right: 14px; padding-left: calc(14px + (var(--ind, 0) + 4) * 1ch); }
 
 .fc-cta {
-    background: var(--fc-violet-deep);
-    border-radius: var(--fc-radius-lg);
-    padding: clamp(2.25rem, 5vw, 3.5rem);
-    color: #F5F4F8;
+    margin-top: clamp(96px, 12vw, 160px);
+    background: var(--fc-violet-slab);
+    border-radius: 28px;
+    padding: clamp(40px, 6vw, 72px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 32px;
+    align-items: end;
 }
 
-.fc-cta__title {
-    font-family: var(--fc-font-display);
-    font-weight: 800;
-    font-size: clamp(1.75rem, 3.4vw, 2.6rem);
-    letter-spacing: -0.028em;
-    line-height: 1.05;
-    margin: 0 0 0.85rem;
-    color: #FFF;
-    max-width: 20ch;
+.fc-cta .fc-h2 { color: #fff; max-width: 16ch; }
+.fc-cta p { color: var(--fc-on-violet-2); margin: 16px 0 0; max-width: 48ch; font-size: 1.1rem; }
+.fc-shell .fc-cta p a { color: #fff; font-weight: 600; }
+.fc-shell .fc-cta .fc-btn--primary { background: #fff; color: var(--fc-violet-onwhite); box-shadow: none; }
+.fc-shell .fc-cta .fc-btn--primary:hover { background: var(--fc-on-violet-2); }
+
+/* --- Responsive ----------------------------------------------------------- */
+@media (max-width: 1180px) { .fc-start { grid-template-columns: minmax(0, 1fr); } }
+
+@media (max-width: 1000px) {
+    .fc-hero__top, .fc-hero-stage, .fc-compress { grid-template-columns: minmax(0, 1fr); }
+    .fc-hero-right { margin: 0 calc(var(--fc-gut) * -1); border-radius: 0; padding: 24px var(--fc-gut); }
+    .fc-gallery { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .fc-tile--a, .fc-tile--g { grid-column: span 2; grid-row: auto; }
+    .fc-all { grid-template-columns: minmax(0, 1fr); }
 }
 
-.fc-cta__body { color: #C3BEDA; max-width: 52ch; margin: 0 0 1.75rem; line-height: 1.6; }
-
-.fc-cta__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+@media (max-width: 680px) {
+    .fc-phases { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .fc-gallery { grid-template-columns: minmax(0, 1fr); }
+    .fc-tile--a, .fc-tile--g { grid-column: auto; }
+    .fc-cta { grid-template-columns: minmax(0, 1fr); }
+    .fc-listing--hand .fc-code { max-height: 360px; overflow: hidden; }
+}

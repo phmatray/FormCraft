@@ -28,7 +28,8 @@
                                 <MudText Typo="Typo.body1" Class="mb-4">
                                     Please provide your personal information to get started with the onboarding process.
                                 </MudText>
-                                <FormCraftComponent @ref="_personalFormComponent"
+                                <FormCraftComponent
+                                    @ref="_personalFormComponent"
                                     TModel="EmployeeModel"
                                     Model="@_model"
                                     Configuration="@_personalInfoConfig"
@@ -41,7 +42,8 @@
                                 <MudAlert Severity="Severity.Info" Class="mb-4">
                                     Welcome, @_model.FirstName! Now let's gather your contact information.
                                 </MudAlert>
-                                <FormCraftComponent @ref="_contactFormComponent"
+                                <FormCraftComponent
+                                    @ref="_contactFormComponent"
                                     TModel="EmployeeModel"
                                     Model="@_model"
                                     Configuration="@_contactConfig"
@@ -54,7 +56,8 @@
                                 <MudText Typo="Typo.body1" Class="mb-4">
                                     Tell us about your professional background and preferences.
                                 </MudText>
-                                <FormCraftComponent @ref="_professionalFormComponent"
+                                <FormCraftComponent
+                                    @ref="_professionalFormComponent"
                                     TModel="EmployeeModel"
                                     Model="@_model"
                                     Configuration="@_professionalConfig"

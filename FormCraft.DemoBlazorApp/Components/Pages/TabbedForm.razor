@@ -21,12 +21,11 @@
             }
             else
             {
-                <MudTabs 
-                    @bind-ActivePanelIndex="_activeTabIndex" 
-                    Elevation="2" 
-                    Rounded="true" 
-                    ApplyEffectsToContainer="true" 
-                    >
+                <MudTabs
+                    @bind-ActivePanelIndex="_activeTabIndex"
+                    Elevation="2"
+                    Rounded="true"
+                    ApplyEffectsToContainer="true">
                     <MudTabPanel
                         PanelClass="pa-4"
                         Text="Personal Info"
@@ -101,8 +100,10 @@
                                 <MudCardContent>
                                     <div class="d-flex justify-space-between align-center mb-3">
                                         <MudText Typo="Typo.h6">Completion Summary</MudText>
-                                        <MudChip T="string" Color="@(IsFormComplete() ? Color.Success : Color.Warning)" 
-                                                 Icon="@(IsFormComplete() ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Warning)">
+                                        <MudChip
+                                            T="string"
+                                            Color="@(IsFormComplete() ? Color.Success : Color.Warning)"
+                                            Icon="@(IsFormComplete() ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Warning)">
                                             @GetProgressText()
                                         </MudChip>
                                     </div>
@@ -217,11 +218,12 @@
                         
                         @if (_activeTabIndex == 3)
                         {
-                            <MudButton 
+                            <MudButton
                                 Variant="Variant.Filled"
                                 Color="Color.Primary"
                                 OnClick="@SubmitForm"
-                                StartIcon="@Icons.Material.Filled.Check" Disabled="@(!IsFormComplete())">
+                                StartIcon="@Icons.Material.Filled.Check"
+                                Disabled="@(!IsFormComplete())">
                                 Submit
                             </MudButton>
                         }

@@ -1,29 +1,22 @@
 @namespace FormCraft.DemoBlazorApp.Components.Shared.Navigation
 @inject IDemoRegistry DemoRegistry
 
-@if (_items.Count > 0)
+@if (_currentDemo is not null)
 {
     <nav class="fc-crumbs" aria-label="Breadcrumb">
-        <MudBreadcrumbs Items="_items" Class="pa-0">
-            <ItemTemplate Context="item">
-                @if (string.IsNullOrEmpty(item.Href))
-                {
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@item.Text</MudText>
-                }
-                else
-                {
-                    <MudLink Href="@item.Href" Typo="Typo.body2">@item.Text</MudLink>
-                }
-            </ItemTemplate>
-        </MudBreadcrumbs>
+        <ol>
+            <li><a href="">Overview</a></li>
+            <li><a href="simplified">Demos</a></li>
+            <li aria-current="page">@_currentDemo.Title</li>
+        </ol>
 
-        @if (_currentDemo is not null && !string.IsNullOrEmpty(_currentDemo.Level))
+        @if (!string.IsNullOrEmpty(_currentDemo.Level))
         {
             <span class="fc-crumbs__meta">
                 <LevelMeter Level="@_currentDemo.Level" />
                 @if (_currentDemo.EstimatedMinutes > 0)
                 {
-                    <span class="fc-crumbs__time">@_currentDemo.EstimatedMinutes min read</span>
+                    <span>@_currentDemo.EstimatedMinutes min</span>
                 }
             </span>
         }
