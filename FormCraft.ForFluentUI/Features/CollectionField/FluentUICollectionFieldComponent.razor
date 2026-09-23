@@ -14,7 +14,7 @@
                          HorizontalAlignment="HorizontalAlignment.SpaceBetween"
                          VerticalAlignment="VerticalAlignment.Center">
                 <FluentLabel Weight="LabelWeight.Semibold">@(Configuration.Label ?? Configuration.FieldName)</FluentLabel>
-                @if (Configuration.CanAdd && !HasReachedMax)
+                @if (ShouldRenderAdd)
                 {
                     @* FluentButton (the pinned v5 RC) exposes no FocusAsync()/ElementReference of its
                        own, so focus is restored through its Id and a small JS module instead of a

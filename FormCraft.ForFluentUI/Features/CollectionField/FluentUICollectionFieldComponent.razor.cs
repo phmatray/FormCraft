@@ -53,9 +53,20 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
     private IJSRuntime JS { get; set; } = default!;
 
     /// <summary>
-    /// Lazily-imported handle to <c>collectionFocus.js</c>, cached for the component's lifetime.
+    /// Lazily-started import of <c>collectionFocus.js</c>, cached for the component's lifetime.
     /// </summary>
-    private IJSObjectReference? _focusModule;
+    /// <remarks>
+    /// The <b>Task</b> is cached, not the awaited <see cref="IJSObjectReference"/> (#383). Caching the
+    /// value instead (<c>_focusModule ??= await JS.InvokeAsync&lt;...&gt;(...)</c>) has a real
+    /// re-entrancy gap: Blazor does not await <c>OnAfterRenderAsync</c> before allowing another
+    /// render, so two focus-triggering actions in quick succession can both observe the field as
+    /// still <see langword="null"/> and both start their own <c>import</c>, leaking the first
+    /// <see cref="IJSObjectReference"/> (never disposed) and racing which one wins the field.
+    /// Caching the <see cref="Task{TResult}"/> itself closes the gap: the assignment happens
+    /// synchronously on the first call, so every call — including one that arrives before the import
+    /// resolves — awaits the same task.
+    /// </remarks>
+    private Task<IJSObjectReference>? _focusModuleTask;
 
     /// <summary>
     /// A per-instance prefix for the DOM ids this component assigns to its four <c>FluentButton</c>
@@ -80,12 +91,19 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
     internal ElementReference HeaderTarget;
 
     /// <summary>
+    /// Whether the <b>Add</b> control renders at all — the single source of truth the markup's own
+    /// <c>@if</c> and <see cref="AddTargetId"/> both read (#383), so the two can never drift the way a
+    /// duplicated condition could.
+    /// </summary>
+    private bool ShouldRenderAdd => Configuration.CanAdd && !HasReachedMax;
+
+    /// <summary>
     /// The id of the rendered <b>Add</b> control, when one is rendered — the second focus target in
     /// the removal chain (#337, mirrors <c>FormCraft.ForMudBlazor</c>'s <c>_addButton</c>). Computed
     /// live rather than captured via <c>@ref</c>: <c>FluentButton</c> exposes no
     /// <see cref="ElementReference"/> of its own to capture (#383, see <c>FocusRestore</c> remarks).
     /// </summary>
-    internal string? AddTargetId => Configuration.CanAdd && !HasReachedMax ? $"{_idPrefix}-add" : null;
+    internal string? AddTargetId => ShouldRenderAdd ? $"{_idPrefix}-add" : null;
 
     /// <summary>
     /// The index a row was just removed from, pending the focus move on the next completed render.
@@ -164,14 +182,14 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
             await module.InvokeVoidAsync("focusById", id);
         });
 
-    private async ValueTask<IJSObjectReference> GetFocusModuleAsync() =>
-        _focusModule ??= await JS.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/FormCraft.ForFluentUI/js/collectionFocus.js");
+    private Task<IJSObjectReference> GetFocusModuleAsync() =>
+        _focusModuleTask ??= JS.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/FormCraft.ForFluentUI/js/collectionFocus.js").AsTask();
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if (_focusModule is null)
+        if (_focusModuleTask is null)
         {
             return;
         }
@@ -179,8 +197,14 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
         // The swallow-safe catch list lives once in FocusRestore, not re-hand-rolled here - a
         // teardown can raise more than JSDisconnectedException (e.g. ObjectDisposedException,
         // OperationCanceledException), and this is exactly the failure class CLAUDE.md's
-        // FocusRestore remarks warn against re-copying per call site.
-        await FocusRestore.FocusSafelyAsync(() => _focusModule.DisposeAsync());
+        // FocusRestore remarks warn against re-copying per call site. Awaiting the cached task
+        // (rather than checking for a resolved value) also disposes an import that was still
+        // in flight when teardown started, instead of leaking it.
+        await FocusRestore.FocusSafelyAsync(async () =>
+        {
+            var module = await _focusModuleTask;
+            await module.DisposeAsync();
+        });
     }
 
     private async Task AddItem()

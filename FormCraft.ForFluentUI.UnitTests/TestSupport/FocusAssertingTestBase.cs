@@ -107,4 +107,15 @@ public abstract class FocusAssertingTestBase : FluentUITestBase
         JSInterop
             .SetupVoid(FocusIdentifier, _ => true)
             .SetException(new JSException("Unable to focus an invalid element."));
+
+    /// <summary>
+    /// Makes the collection field's <c>focusById</c> JS call throw, mirroring
+    /// <see cref="FailTheFocusInterop"/> for the mechanism #383 added. Without this, Loose-mode
+    /// JSInterop lets every <c>import</c>/<c>focusById</c> call auto-succeed, so no test exercises
+    /// <see cref="FormCraft.ForFluentUI.FocusRestore"/>'s catch block for this route at all.
+    /// </summary>
+    protected void FailTheFocusByIdInterop() =>
+        JSInterop
+            .SetupVoid(FocusByIdIdentifier, _ => true)
+            .SetException(new JSException("Unable to focus an invalid element."));
 }

@@ -254,6 +254,22 @@ public class CollectionFocusTests : FocusAssertingTestBase
     }
 
     [Fact]
+    public async Task A_Failing_Focus_By_Id_Call_Should_Not_Break_A_Row_Removal()
+    {
+        // Arrange - FluentUITestBase runs JSInterop in Loose mode, where focusById always
+        // succeeds. Without forcing it to fail, nothing exercises FocusRestore's catch block for
+        // this route (#383) - the same gap CLAUDE.md documents for the ElementReference mechanism.
+        FailTheFocusByIdInterop();
+        var (component, _) = RenderCollection(3, collection => collection.AllowAdd().AllowRemove());
+
+        // Act & Assert - the removal itself must still succeed even though the focus call it
+        // triggers throws
+        await Should.NotThrowAsync(() =>
+            component.InvokeAsync(() => component.FindAll(DeleteSelector)[1].Click()));
+        component.FindAll(DeleteSelector).Count.ShouldBe(2);
+    }
+
+    [Fact]
     public async Task Removing_A_Row_In_The_Second_Collection_Should_Not_Move_Focus_Into_The_First()
     {
         // Arrange - two collection fields on one form. Every id here is per-component and per-index;
