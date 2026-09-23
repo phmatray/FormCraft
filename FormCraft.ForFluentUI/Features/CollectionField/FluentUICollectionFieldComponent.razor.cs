@@ -176,14 +176,11 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
             return;
         }
 
-        try
-        {
-            await _focusModule.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // The circuit is already gone; there is nothing left to release.
-        }
+        // The swallow-safe catch list lives once in FocusRestore, not re-hand-rolled here - a
+        // teardown can raise more than JSDisconnectedException (e.g. ObjectDisposedException,
+        // OperationCanceledException), and this is exactly the failure class CLAUDE.md's
+        // FocusRestore remarks warn against re-copying per call site.
+        await FocusRestore.FocusSafelyAsync(() => _focusModule.DisposeAsync());
     }
 
     private async Task AddItem()
