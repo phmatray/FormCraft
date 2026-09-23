@@ -1056,6 +1056,15 @@ Built-in example renderers:
 - **ColorPickerRenderer** - Visual color selection with hex input
 - **RatingRenderer** - Star-based rating control using MudBlazor
 
+> A component that caches anything derived from its field's configuration (a bound attribute, a
+> resolved display value, a selection list) **must** reload it in `OnFieldConfigurationChanged()`,
+> reassigning every such value on every call — including back to its default — rather than reading
+> it once in `OnInitialized`. Getting this wrong is silent: the component keeps rendering the
+> *previous* field's settings after a swap, with no exception and no log line. `FieldConfigurationParityTests`
+> in each adapter's test project enforces this mechanically: every field-type component either has a
+> row proving it honours the hook, or is named as a reviewed exemption for genuinely caching nothing
+> — a component with neither fails the build (#349).
+
 ## 📊 Performance
 
 FormCraft is designed for optimal performance:

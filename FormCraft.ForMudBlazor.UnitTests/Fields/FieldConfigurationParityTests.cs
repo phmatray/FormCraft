@@ -296,6 +296,89 @@ public class FieldConfigurationParityTests : MudBlazorTestBase
     }
 
     // -----------------------------------------------------------------------------------------
+    // Task 4 — the completeness guard: a component with neither a row above nor an exemption
+    // below fails the build (#349).
+    // -----------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Every field-type component with a row above. Kept as the single source of truth the guard
+    /// reads, so the suite and the guard cannot drift apart the way #308's hand-maintained coverage
+    /// did.
+    /// </summary>
+    private static readonly IReadOnlySet<Type> CoveredComponents = new HashSet<Type>
+    {
+        typeof(MudBlazorTextFieldComponent<>),
+        typeof(MudBlazorNumericFieldComponent<,>),
+        typeof(MudBlazorNullableNumericFieldComponent<,>),
+        typeof(MudBlazorBooleanFieldComponent<>),
+        typeof(MudBlazorSelectFieldComponent<,>),
+        typeof(MudBlazorMultiSelectFieldComponent<,>),
+        typeof(MudBlazorAutocompleteFieldComponent<,>),
+        typeof(MudBlazorDateOnlyFieldComponent<>),
+        typeof(MudBlazorDateTimeFieldComponent<>),
+        typeof(MudBlazorTimeOnlyFieldComponent<>),
+        typeof(MudBlazorLookupFieldComponent<,>),
+        typeof(MudBlazorLovFieldComponent<,,>),
+        typeof(MudBlazorFileUploadFieldComponent<>),
+        typeof(MudBlazorMultipleFileUploadComponent<>),
+    };
+
+    /// <summary>
+    /// Field-type components that genuinely cache nothing derived from the field's configuration,
+    /// so there is nothing for <c>OnFieldConfigurationChanged</c> to get wrong. Each entry names
+    /// what makes that true — an omission here is indistinguishable from "we forgot", which is the
+    /// whole failure mode #349 exists to close.
+    /// </summary>
+    private static readonly IReadOnlySet<Type> ExemptComponents = new HashSet<Type>
+    {
+        // ColorPicker reads no attribute at all - only seeds a default VALUE (not configuration)
+        // when the model's current value is empty.
+        typeof(MudBlazorColorPickerComponent<>),
+
+        // Rating's MaxValue is bound in markup as `MaxValue="@GetMaxRating()"`, a method called
+        // fresh on every render - never cached into a field the hook would need to reset.
+        typeof(MudBlazorRatingComponent<>),
+
+        // Same shape as Rating: every one of Slider's five configured values (Min/Max/Step/
+        // ShowTickMarks/ShowValueLabel) is read through a `GetXxx()` method called directly from
+        // markup, recomputed on every render regardless of the hook.
+        typeof(MudBlazorSliderComponent<>),
+    };
+
+    [Fact]
+    public void Every_Field_Component_Should_Have_A_Parity_Row_Or_An_Explicit_Exemption()
+    {
+        var universe = FieldComponentCoverageGuard.FieldComponentTypes(
+            typeof(MudBlazorTextFieldComponent<>).Assembly);
+
+        var gaps = FieldComponentCoverageGuard.FindGaps(universe, CoveredComponents, ExemptComponents);
+
+        gaps.ShouldBeEmpty(
+            "These field components have neither a parity row in FieldConfigurationParityTests nor "
+            + "an explicit exemption. Add a row proving they honour OnFieldConfigurationChanged, or "
+            + "add them to ExemptComponents with a reason:\n  "
+            + string.Join("\n  ", gaps.Select(g => g.ToString())));
+    }
+
+    /// <summary>
+    /// The guard's own guard: withholding a real, currently-covered component must produce a gap,
+    /// so a detection path that silently stopped detecting (#308's exact failure mode, one level
+    /// up) cannot pass this suite unnoticed.
+    /// </summary>
+    [Fact]
+    public void The_Guard_Should_Flag_A_Component_Withheld_From_Coverage()
+    {
+        var universe = FieldComponentCoverageGuard.FieldComponentTypes(
+            typeof(MudBlazorTextFieldComponent<>).Assembly);
+
+        var withheld = CoveredComponents.Where(t => t != typeof(MudBlazorTextFieldComponent<>)).ToHashSet();
+
+        var gaps = FieldComponentCoverageGuard.FindGaps(universe, withheld, ExemptComponents);
+
+        gaps.ShouldContain(g => g.Component == typeof(MudBlazorTextFieldComponent<>));
+    }
+
+    // -----------------------------------------------------------------------------------------
     // Config builders and models, one pair per row.
     // -----------------------------------------------------------------------------------------
 

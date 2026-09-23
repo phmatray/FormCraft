@@ -213,6 +213,89 @@ public class FieldConfigurationParityTests : FluentUITestBase
     }
 
     // -----------------------------------------------------------------------------------------
+    // Task 4 — the completeness guard.
+    // -----------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Every field-type component with a row above. Kept as the single source of truth the guard
+    /// reads, so the suite and the guard cannot drift apart.
+    /// </summary>
+    private static readonly IReadOnlySet<Type> CoveredComponents = new HashSet<Type>
+    {
+        typeof(FluentUITextFieldComponent<>),
+        typeof(FluentUINumericFieldComponent<,>),
+        typeof(FluentUINullableNumericFieldComponent<,>),
+        typeof(FluentUIBooleanFieldComponent<>),
+        typeof(FluentUISelectFieldComponent<,>),
+        typeof(FluentUIMultiSelectFieldComponent<,>),
+        typeof(FluentUIAutocompleteFieldComponent<,>),
+        typeof(FluentUILookupFieldComponent<,>),
+        typeof(FluentUILovFieldComponent<,,>),
+    };
+
+    /// <summary>
+    /// Field-type components that genuinely cache nothing derived from the field's configuration.
+    /// Each entry names what makes that true.
+    /// </summary>
+    private static readonly IReadOnlySet<Type> ExemptComponents = new HashSet<Type>
+    {
+        // The three date components bind no Min/Max/Format to their pickers at all - confirmed by
+        // reading both the .razor markup (no such parameters are wired) and the .razor.cs (no
+        // OnFieldConfigurationChanged override, no GetAttribute call anywhere). This is the spec's
+        // own worked example of a legitimate "nothing to refresh" row.
+        typeof(FluentUIDateOnlyFieldComponent<>),
+        typeof(FluentUIDateTimeFieldComponent<>),
+        typeof(FluentUITimeOnlyFieldComponent<>),
+
+        // Both upload components expose their constraints (accepted types, max size, max count) as
+        // COMPUTED GETTERS on FluentUIFileUploadComponentBase, re-evaluating UploadConstraintResolver
+        // against Context.Field live on every access - never cached into a field the hook would need
+        // to reset. Unlike MudBlazor's upload components (covered rows there), these cannot go stale
+        // by construction.
+        typeof(FluentUIFileUploadFieldComponent<>),
+        typeof(FluentUIMultipleFileUploadComponent<>),
+
+        // ColorPicker reads no attribute at all.
+        typeof(FluentUIColorPickerComponent<>),
+
+        // Rating's MaxValue and Slider's Min/Max/Step are all `=>` computed properties, re-evaluated
+        // fresh on every render - never cached into a field.
+        typeof(FluentUIRatingComponent<>),
+        typeof(FluentUISliderComponent<>),
+    };
+
+    [Fact]
+    public void Every_Field_Component_Should_Have_A_Parity_Row_Or_An_Explicit_Exemption()
+    {
+        var universe = FieldComponentCoverageGuard.FieldComponentTypes(
+            typeof(FluentUITextFieldComponent<>).Assembly);
+
+        var gaps = FieldComponentCoverageGuard.FindGaps(universe, CoveredComponents, ExemptComponents);
+
+        gaps.ShouldBeEmpty(
+            "These field components have neither a parity row in FieldConfigurationParityTests nor "
+            + "an explicit exemption. Add a row proving they honour OnFieldConfigurationChanged, or "
+            + "add them to ExemptComponents with a reason:\n  "
+            + string.Join("\n  ", gaps.Select(g => g.ToString())));
+    }
+
+    /// <summary>
+    /// The guard's own guard: withholding a real, currently-covered component must produce a gap.
+    /// </summary>
+    [Fact]
+    public void The_Guard_Should_Flag_A_Component_Withheld_From_Coverage()
+    {
+        var universe = FieldComponentCoverageGuard.FieldComponentTypes(
+            typeof(FluentUITextFieldComponent<>).Assembly);
+
+        var withheld = CoveredComponents.Where(t => t != typeof(FluentUITextFieldComponent<>)).ToHashSet();
+
+        var gaps = FieldComponentCoverageGuard.FindGaps(universe, withheld, ExemptComponents);
+
+        gaps.ShouldContain(g => g.Component == typeof(FluentUITextFieldComponent<>));
+    }
+
+    // -----------------------------------------------------------------------------------------
     // Config builders and models, one pair per row.
     // -----------------------------------------------------------------------------------------
 
