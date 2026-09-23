@@ -58,6 +58,17 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **A `.WithCustomTemplate(...)` field no longer silently renders nothing when its name isn't a
+  direct property of the model (#330).** Both adapters' custom-template read used
+  `typeof(TModel).GetProperty(field.FieldName)` — reflection keyed on `FieldName`, which is only
+  the value expression's *last* member (e.g. `"Value"` for `x => x.Nested.Value`). For anything but
+  a direct top-level property, the lookup found nothing and the field simply disappeared, with
+  nothing logged and nothing thrown. The read now goes through the field's own value expression
+  (the same compiled getter the renderer and validators already share), so it renders whatever the
+  expression can reach. A binding that genuinely cannot be evaluated against the current model —
+  most commonly a null intermediate in a nested path — is now reported once per field instead of
+  either vanishing or crashing the render.
+
 - **Clearing a multiple-file upload notifies once, with an empty list — not `null` (#319).** The
   component bound `Files` two-way (`@bind-Files="CurrentValue"`), which made MudBlazor a second
   writer: `ClearAsync()` set the field's own empty list, then `MudFileUpload.ClearAsync()`'s own
