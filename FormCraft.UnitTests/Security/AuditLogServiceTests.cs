@@ -243,6 +243,84 @@ public class AuditLogServiceTests
         entry.NewValue.ShouldBe("987-65-4321");
     }
 
+    [Fact]
+    public async Task Should_Redact_Every_Nested_Key_Ending_In_A_Bare_Excluded_Member_Name()
+    {
+        // #417: since #406 a nested field's key is its full path ("Address.City"), so a bare
+        // "City" entry must match on the key's last segment or the value is logged in clear.
+        var logged = await LogAdditionalDataAsync(
+            ["City"],
+            new() { ["Address.City"] = "Springfield", ["Work.City"] = "Shelbyville", ["City"] = "Ogdenville" });
+
+        logged.ShouldNotContain("Springfield");
+        logged.ShouldNotContain("Shelbyville");
+        logged.ShouldNotContain("Ogdenville");
+    }
+
+    [Fact]
+    public async Task Should_Redact_Exactly_The_Nested_Key_Named_By_A_Full_Path_Exclusion()
+    {
+        var logged = await LogAdditionalDataAsync(
+            ["Address.City"],
+            new() { ["Address.City"] = "Springfield", ["Work.City"] = "Shelbyville" });
+
+        logged.ShouldNotContain("Springfield");
+        logged.ShouldContain("[REDACTED]");
+        logged.ShouldContain("Shelbyville");
+    }
+
+    [Fact]
+    public async Task Should_Not_Redact_A_Nested_Key_When_Neither_Its_Path_Nor_Its_Last_Segment_Is_Excluded()
+    {
+        var logged = await LogAdditionalDataAsync(
+            ["Zip", "Address", "ity"],
+            new() { ["Address.City"] = "Springfield" });
+
+        logged.ShouldContain("Springfield");
+        logged.ShouldNotContain("[REDACTED]");
+    }
+
+    [Fact]
+    public async Task Should_Redact_A_Bare_FieldName_When_A_Full_Path_Exclusion_Ends_In_It()
+    {
+        // FieldName is the bare last member, so it cannot tell Address.City from Work.City:
+        // a full-path exclusion ending in it must redact rather than guess (fail closed).
+        var capturingLogger = new CapturingLogger();
+        var service = new ConsoleAuditLogService(
+            capturingLogger,
+            new AuditLogConfiguration { ExcludedFields = { "Address.City" } });
+
+        await service.LogAsync(new AuditLogEntry
+        {
+            EventType = AuditEventTypes.FieldChanged,
+            FormId = "TestForm",
+            FieldName = "City",
+            OldValue = "Springfield",
+            NewValue = "Shelbyville"
+        });
+
+        var logged = capturingLogger.Messages.ShouldHaveSingleItem();
+        logged.ShouldNotContain("Springfield");
+        logged.ShouldNotContain("Shelbyville");
+    }
+
+    private static async Task<string> LogAdditionalDataAsync(string[] excludedFields, Dictionary<string, object?> additionalData)
+    {
+        var capturingLogger = new CapturingLogger();
+        var service = new ConsoleAuditLogService(
+            capturingLogger,
+            new AuditLogConfiguration { ExcludedFields = [.. excludedFields] });
+
+        await service.LogAsync(new AuditLogEntry
+        {
+            EventType = AuditEventTypes.FormSubmitted,
+            FormId = "TestForm",
+            AdditionalData = additionalData
+        });
+
+        return capturingLogger.Messages.ShouldHaveSingleItem();
+    }
+
     private sealed class CapturingLogger : ILogger<ConsoleAuditLogService>
     {
         public List<string> Messages { get; } = new();

@@ -199,7 +199,7 @@ public class FormSecurityEnforcerTests
     [Fact]
     public async Task LogSubmittedAsync_Should_Redact_A_Nested_Field_Under_Its_Full_Path_Key()
     {
-        // Redaction still matches on FieldName (last member, "City") by design, but the redacted
+        // A bare member name ("City") still redacts a nested field (#417), and the redacted
         // "[REDACTED]" write must land under the field's full-path key, same as the value write.
         var model = new TestModel { Address = new TestAddress { City = "Brussels" } };
         var config = FormBuilder<TestModel>
@@ -212,6 +212,75 @@ public class FormSecurityEnforcerTests
 
         _auditEntries.ShouldHaveSingleItem().AdditionalData["Address.City"].ShouldBe("[REDACTED]");
     }
+
+    [Fact]
+    public async Task LogSubmittedAsync_Should_Redact_Exactly_The_Nested_Field_Named_By_A_Full_Path_Exclusion()
+    {
+        // #417: an ExcludedFields entry naming the full path must redact that field, not only a
+        // bare member name — otherwise every IAuditLogService receives the value in clear.
+        var entry = await LogTwoCitiesAsync(s => s.EnableAuditLogging(audit => audit.ExcludedFields.Add("Address.City")));
+
+        entry.AdditionalData["Address.City"].ShouldBe("[REDACTED]");
+        entry.AdditionalData["Work.City"].ShouldBe("Antwerp");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task LogSubmittedAsync_Should_Redact_Every_Nested_Field_Ending_In_A_Bare_Listed_Name(bool viaEncryptedFields)
+    {
+        var config = BuildTwoCitiesConfig(s => s.EnableAuditLogging(audit =>
+        {
+            if (!viaEncryptedFields)
+            {
+                audit.ExcludedFields.Add("City");
+            }
+        }));
+        if (viaEncryptedFields)
+        {
+            config.Security!.EncryptedFields.Add("City");
+        }
+
+        await CreateEnforcer().LogSubmittedAsync(config, TwoCitiesModel(), null);
+
+        var entry = _auditEntries.ShouldHaveSingleItem();
+        entry.AdditionalData["Address.City"].ShouldBe("[REDACTED]");
+        entry.AdditionalData["Work.City"].ShouldBe("[REDACTED]");
+    }
+
+    [Fact]
+    public async Task LogSubmittedAsync_Should_Redact_A_Nested_Field_Listed_By_Full_Path_In_EncryptedFields()
+    {
+        // IFormSecurity.EncryptedFields is a public set, so a caller can list a full path there too.
+        var config = BuildTwoCitiesConfig(s => s.EnableAuditLogging());
+        config.Security!.EncryptedFields.Add("Work.City");
+
+        await CreateEnforcer().LogSubmittedAsync(config, TwoCitiesModel(), null);
+
+        var entry = _auditEntries.ShouldHaveSingleItem();
+        entry.AdditionalData["Work.City"].ShouldBe("[REDACTED]");
+        entry.AdditionalData["Address.City"].ShouldBe("Brussels");
+    }
+
+    private async Task<AuditLogEntry> LogTwoCitiesAsync(Action<SecurityBuilder<TestModel>> security)
+    {
+        await CreateEnforcer().LogSubmittedAsync(BuildTwoCitiesConfig(security), TwoCitiesModel(), null);
+        return _auditEntries.ShouldHaveSingleItem();
+    }
+
+    private static TestModel TwoCitiesModel() => new()
+    {
+        Address = new TestAddress { City = "Brussels" },
+        Work = new TestAddress { City = "Antwerp" },
+    };
+
+    private static IFormConfiguration<TestModel> BuildTwoCitiesConfig(Action<SecurityBuilder<TestModel>> security) =>
+        FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Address!.City)
+            .AddField(x => x.Work!.City)
+            .WithSecurity(security)
+            .Build();
 
     [Fact]
     public async Task A_Form_Without_Security_Should_Touch_No_Security_Service()
