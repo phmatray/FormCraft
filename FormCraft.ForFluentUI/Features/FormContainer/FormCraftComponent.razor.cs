@@ -213,8 +213,8 @@ public partial class FormCraftComponent<TModel> where TModel : new()
                     field,
                     _editContext,
                     () => GetCustomTemplateValue(field),
-                    newValue => _ = UpdateFieldValue(field.FieldName, newValue),
-                    EventCallback.Factory.Create<object>(this, newValue => UpdateFieldValue(field.FieldName, newValue)));
+                    newValue => _ = UpdateFieldValue(field, newValue),
+                    EventCallback.Factory.Create<object>(this, newValue => UpdateFieldValue(field, newValue)));
 
                 builder.AddContent(0, field.CustomTemplate(templateContext));
                 return;
@@ -225,7 +225,7 @@ public partial class FormCraftComponent<TModel> where TModel : new()
             builder.AddContent(0, FieldRendererService.RenderField(
                 Model,
                 field,
-                EventCallback.Factory.Create<object?>(this, val => UpdateFieldValue(field.FieldName, val)),
+                EventCallback.Factory.Create<object?>(this, val => UpdateFieldValue(field, val)),
                 EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName))));
         };
     }
@@ -295,30 +295,33 @@ public partial class FormCraftComponent<TModel> where TModel : new()
             ex.Message);
     }
 
-    private async Task UpdateFieldValue(string fieldName, object? value)
+    /// <summary>
+    /// Writes a new value back through the field's compiled <c>ValueExpression</c>
+    /// (<see cref="FieldValueSetterCache{TModel}"/>), instead of the per-write
+    /// <c>GetProperty</c>/<c>SetValue</c> reflection this replaced (#396). That old lookup mirrored
+    /// the read side's #330 defect: it only ever resolved a direct top-level property, so a
+    /// custom-template field bound to a nested path (e.g. <c>x =&gt; x.Nested.Value</c>) rendered
+    /// correctly after #330 but silently dropped every edit, because
+    /// <c>typeof(TModel).GetProperty("Value")</c> never found anything on <typeparamref name="TModel"/>.
+    /// </summary>
+    /// <remarks>
+    /// A binding that still cannot be written — most commonly a null intermediate reference in a
+    /// nested path — reports once per field via <see cref="WarnUnresolvedCustomTemplateField"/> and
+    /// drops the edit, instead of the exception escaping this event callback.
+    /// </remarks>
+    private async Task UpdateFieldValue(IFieldConfiguration<TModel, object> field, object? value)
     {
-        var property = typeof(TModel).GetProperty(fieldName);
-        if (property is null)
+        try
         {
+            FieldValueSetterCache<TModel>.GetOrCompile(field)(Model, value);
+        }
+        catch (Exception ex)
+        {
+            WarnUnresolvedCustomTemplateField(field, ex);
             return;
         }
 
-        var targetType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
-        var convertedValue = value;
-
-        if (value != null && value.GetType() != targetType)
-        {
-            try
-            {
-                convertedValue = Convert.ChangeType(value, targetType);
-            }
-            catch
-            {
-                // Conversion failed - hand the value over as-is and let validation report it.
-            }
-        }
-
-        property.SetValue(Model, convertedValue);
+        var fieldName = field.FieldName;
 
         // Notify the EditContext so field-level validation runs and stale errors clear as soon as
         // the user corrects the value.
@@ -326,7 +329,14 @@ public partial class FormCraftComponent<TModel> where TModel : new()
 
         if (OnFieldChanged.HasDelegate)
         {
-            await OnFieldChanged.InvokeAsync((fieldName, convertedValue));
+            // Report what actually landed on the model, not the raw pre-coercion value the caller
+            // passed in - FieldValueSetterCache converts to the target member's type before
+            // assigning, and reading it back through the same compiled getter the render path uses
+            // (FieldValueGetterCache) is simpler and more accurate than re-deriving that conversion
+            // here (it reflects the true post-write state rather than merely what conversion was
+            // attempted). Matches the old reflection-based UpdateFieldValue, which reported its own
+            // Convert.ChangeType result rather than the caller's raw value.
+            await OnFieldChanged.InvokeAsync((fieldName, FieldValueGetterCache<TModel>.GetOrCompile(field)(Model)));
         }
 
         await HandleFieldDependencyChanged(fieldName);
