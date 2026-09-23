@@ -393,6 +393,8 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Nothing to change, and nothing to notice but speed.** The cache holds the *getter*, never the value it returns, so every render and every validation pass still reads the model afresh — a field the user has just corrected is judged on its new value, not a remembered one. It is keyed by configuration instance, so two configurations over the same property never share an entry and nothing is held alive beyond the configuration it belongs to. No public API moved, and `IFieldRenderContext.CurrentValue` keeps its type, timing and meaning for custom renderers. It does assume what the fluent builder already guarantees: that a configuration's `ValueExpression` does not change identity after `Build()`.
 
+- **A committed merge-conflict marker in a `.cs` file now fails `dotnet test` instead of reaching review silently (#347).** `dotnet format` in apply mode computes a fix once per target framework, and on this repo's multi-targeted projects (`net8.0;net10.0`) a disagreement between the two can be written as a literal conflict block into the `.cs` file instead of failing — a file that then does not compile. `FormCraft.UnitTests/Ci/ConflictMarkerTests` scans every tracked `.cs` file for a conflict marker at the start of a line and fails with the offending file and line if it finds one.
+
 ## 🎉 What's New in v3.1.0
 
 v3.1.0 implements every issue that was open after v3.0 — all features, no breaking changes. [Full changelog →](https://github.com/phmatray/FormCraft/releases/tag/v3.1.0)
