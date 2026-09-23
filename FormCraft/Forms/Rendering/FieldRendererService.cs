@@ -201,12 +201,18 @@ public class FieldRendererService : IFieldRendererService
         internal static readonly ConditionalWeakTable<IFieldConfiguration<TModel, object>, Type> Cache = new();
     }
 
-    private static object GetCurrentValue<TModel>(TModel model, IFieldConfiguration<TModel, object> field)
+    private static object? GetCurrentValue<TModel>(TModel model, IFieldConfiguration<TModel, object> field)
     {
         // Shared with the validators since #312 — see FieldValueGetterCache for why the cache lives
         // there rather than on the configuration. A field that is both rendered and validated
         // therefore compiles its getter once in total, not once per path.
-        var getter = FieldValueGetterCache<TModel>.GetOrCompile(field);
-        return getter(model);
+        //
+        // TryGetValue rather than GetOrCompile(field)(model) directly (#397): a field bound to a
+        // nested expression with a null intermediate (e.g. x => x.Nested.Value where Nested is null)
+        // would otherwise throw straight out of render, taking down the whole form instead of just
+        // this field. A failed read renders as null, the same "nothing to show" a genuinely-null leaf
+        // value already produces.
+        FieldValueGetterCache<TModel>.TryGetValue(field, model, out var value);
+        return value;
     }
 }

@@ -7,7 +7,12 @@ namespace FormCraft.ForFluentUI.UnitTests.Fields;
 /// Tests that the Fluent collection field's row controls move keyboard focus deliberately when
 /// activating them removes or disables the control the user is standing on (#337), mirroring
 /// <c>FormCraft.ForMudBlazor.UnitTests.Fields.CollectionFocusTests</c> (#318) for this adapter's
-/// wrapper-element focus mechanism (see <see cref="FocusAssertingTestBase"/> remarks).
+/// focus mechanism (see <see cref="FocusAssertingTestBase"/> remarks). Since #383, the Add/Remove/
+/// Move up/Move down controls are focused by DOM id through a small JS module
+/// (<see cref="FocusAssertingTestBase.FocusByIdCount"/> /
+/// <see cref="FocusAssertingTestBase.LastFocusedElementIdViaModule"/>); the collection header and
+/// per-row header fallbacks are unaffected and still go through
+/// <see cref="FocusAssertingTestBase.FocusCount"/> / <see cref="FocusAssertingTestBase.LastFocusedElementId"/>.
 /// </summary>
 public class CollectionFocusTests : FocusAssertingTestBase
 {
@@ -22,17 +27,23 @@ public class CollectionFocusTests : FocusAssertingTestBase
         // Arrange - three rows; the user is standing on row 1's delete control
         var (component, field) = RenderCollection(3, collection => collection.AllowAdd().AllowRemove());
         component.FindAll(DeleteSelector).Count.ShouldBe(3);
-        var focusesBefore = FocusCount();
+        var focusesBefore = FocusByIdCount();
 
         // Act - remove the middle row, which unmounts the control that was activated
         await component.InvokeAsync(() => component.FindAll(DeleteSelector)[1].Click());
 
-        // Assert - two rows left, and exactly one focus request was issued
-        component.FindAll(DeleteSelector).Count.ShouldBe(2);
-        FocusCount().ShouldBe(focusesBefore + 1);
+        // Assert - two rows left, and exactly one focus-by-id request was issued
+        var survivors = component.FindAll(DeleteSelector);
+        survivors.Count.ShouldBe(2);
+        FocusByIdCount().ShouldBe(focusesBefore + 1);
 
-        // ...and it went to the delete control now occupying the vacated slot
-        LastFocusedElementId().ShouldBe(field.Instance.DeleteTargetAt(1)!.Value.Id);
+        // ...and it went to the delete control now occupying the vacated slot - a real
+        // <fluent-button>, carrying the id that was focused, with no non-interactive span wrapper
+        // around it (#383)
+        var expectedId = field.Instance.DeleteTargetIdAt(1);
+        survivors[1].GetAttribute("id").ShouldBe(expectedId);
+        LastFocusedElementIdViaModule().ShouldBe(expectedId);
+        component.FindAll("span[tabindex]").ShouldBeEmpty();
     }
 
     [Fact]
@@ -40,7 +51,7 @@ public class CollectionFocusTests : FocusAssertingTestBase
     {
         // Arrange
         var (component, field) = RenderCollection(3, collection => collection.AllowAdd().AllowRemove());
-        var focusesBefore = FocusCount();
+        var focusesBefore = FocusByIdCount();
 
         // Act - remove the last row
         await component.InvokeAsync(() => component.FindAll(DeleteSelector)[2].Click());
@@ -48,8 +59,8 @@ public class CollectionFocusTests : FocusAssertingTestBase
         // Assert - one focus request, stepping backwards onto the new last row rather than off the
         // end of the list
         component.FindAll(DeleteSelector).Count.ShouldBe(2);
-        FocusCount().ShouldBe(focusesBefore + 1);
-        LastFocusedElementId().ShouldBe(field.Instance.DeleteTargetAt(1)!.Value.Id);
+        FocusByIdCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementIdViaModule().ShouldBe(field.Instance.DeleteTargetIdAt(1));
     }
 
     [Fact]
@@ -62,16 +73,16 @@ public class CollectionFocusTests : FocusAssertingTestBase
             .AllowRemove()
             .WithMinItems(2));
 
-        var addId = field.Instance.AddTarget!.Value.Id;
-        var focusesBefore = FocusCount();
+        var addId = field.Instance.AddTargetId!;
+        var focusesBefore = FocusByIdCount();
 
         // Act
         await component.InvokeAsync(() => component.FindAll(DeleteSelector)[0].Click());
 
         // Assert - no delete control survives, so Add is the affordance that remains
         component.FindAll(DeleteSelector).ShouldBeEmpty();
-        FocusCount().ShouldBe(focusesBefore + 1);
-        LastFocusedElementId().ShouldBe(addId);
+        FocusByIdCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementIdViaModule().ShouldBe(addId);
     }
 
     [Fact]
@@ -79,6 +90,8 @@ public class CollectionFocusTests : FocusAssertingTestBase
     {
         // Arrange - MinItems 2 and no Add: after the removal there is no control left in the field at
         // all. Focus still has to go somewhere deliberate, so the collection's own header takes it.
+        // The header is a plain <div> fallback (unchanged by #383), so this still goes through the
+        // ElementReference-based mechanism.
         var (component, field) = RenderCollection(3, collection => collection
             .AllowRemove()
             .WithMinItems(2));
@@ -105,7 +118,7 @@ public class CollectionFocusTests : FocusAssertingTestBase
         // building a list into the new row's header - which carries tabindex="-1" and so is OUTSIDE
         // the tab order, costing them a Shift+Tab back to Add for every single row.
         var (component, _) = RenderCollection(1, collection => collection.AllowAdd().AllowRemove());
-        var focusesBefore = FocusCount();
+        var focusesBefore = FocusByIdCount();
 
         // Act
         await component.InvokeAsync(() => component.Find(AddSelector).Click());
@@ -113,7 +126,7 @@ public class CollectionFocusTests : FocusAssertingTestBase
         // Assert - the row was added, Add survived, and focus was left where the user put it
         component.FindAll(DeleteSelector).Count.ShouldBe(2);
         component.FindAll(AddSelector).Count.ShouldBe(1);
-        FocusCount().ShouldBe(focusesBefore);
+        FocusByIdCount().ShouldBe(focusesBefore);
     }
 
     [Fact]
@@ -130,7 +143,8 @@ public class CollectionFocusTests : FocusAssertingTestBase
 
         // Assert - Add is gone, and focus moved deliberately into the new row's header - not onto
         // any control, since the row's own fields render through IFieldRendererService and expose no
-        // reference to aim at, and landing on Delete would put Enter on "undo the add".
+        // reference to aim at, and landing on Delete would put Enter on "undo the add". The row
+        // header is a plain <div> fallback (unchanged by #383).
         component.FindAll(AddSelector).ShouldBeEmpty();
         FocusCount().ShouldBe(1);
         LastFocusedElementId().ShouldBe(field.Instance.RowHeaderTargetAt(1).Id);
@@ -143,14 +157,14 @@ public class CollectionFocusTests : FocusAssertingTestBase
         // user just pressed becomes Disabled under their finger. Browsers drop focus from a
         // newly-disabled element, so this is the same 2.4.3 failure as an unmount.
         var (component, field) = RenderCollection(3, collection => collection.AllowReorder());
-        var focusesBefore = FocusCount();
+        var focusesBefore = FocusByIdCount();
 
         // Act
         await component.InvokeAsync(() => component.FindAll(MoveUpSelector)[1].Click());
 
         // Assert - focus moved to the counterpart that is still enabled on that row
-        FocusCount().ShouldBe(focusesBefore + 1);
-        LastFocusedElementId().ShouldBe(field.Instance.MoveDownTargetAt(0).Id);
+        FocusByIdCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementIdViaModule().ShouldBe(field.Instance.MoveDownTargetIdAt(0));
     }
 
     [Fact]
@@ -158,14 +172,14 @@ public class CollectionFocusTests : FocusAssertingTestBase
     {
         // Arrange - the mirror case at the other end of the list
         var (component, field) = RenderCollection(3, collection => collection.AllowReorder());
-        var focusesBefore = FocusCount();
+        var focusesBefore = FocusByIdCount();
 
         // Act - move the middle item down, landing it last
         await component.InvokeAsync(() => component.FindAll(MoveDownSelector)[1].Click());
 
         // Assert
-        FocusCount().ShouldBe(focusesBefore + 1);
-        LastFocusedElementId().ShouldBe(field.Instance.MoveUpTargetAt(2).Id);
+        FocusByIdCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementIdViaModule().ShouldBe(field.Instance.MoveUpTargetIdAt(2));
     }
 
     [Fact]
@@ -176,14 +190,14 @@ public class CollectionFocusTests : FocusAssertingTestBase
         // Enter undoes the move instead of continuing it. Always preferring "up" passes the move-up
         // test above and fails exactly here.
         var (component, field) = RenderCollection(4, collection => collection.AllowReorder());
-        var focusesBefore = FocusCount();
+        var focusesBefore = FocusByIdCount();
 
         // Act - move the second item down; it lands at index 2, still mid-list
         await component.InvokeAsync(() => component.FindAll(MoveDownSelector)[1].Click());
 
         // Assert
-        FocusCount().ShouldBe(focusesBefore + 1);
-        LastFocusedElementId().ShouldBe(field.Instance.MoveDownTargetAt(2).Id);
+        FocusByIdCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementIdViaModule().ShouldBe(field.Instance.MoveDownTargetIdAt(2));
     }
 
     [Fact]
@@ -193,14 +207,14 @@ public class CollectionFocusTests : FocusAssertingTestBase
         // should follow the ITEM to its new row rather than sit on the index the user started at,
         // which would silently now control a different item.
         var (component, field) = RenderCollection(4, collection => collection.AllowReorder());
-        var focusesBefore = FocusCount();
+        var focusesBefore = FocusByIdCount();
 
         // Act - move the third item up; it lands at index 1, still mid-list
         await component.InvokeAsync(() => component.FindAll(MoveUpSelector)[2].Click());
 
         // Assert
-        FocusCount().ShouldBe(focusesBefore + 1);
-        LastFocusedElementId().ShouldBe(field.Instance.MoveUpTargetAt(1).Id);
+        FocusByIdCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementIdViaModule().ShouldBe(field.Instance.MoveUpTargetIdAt(1));
     }
 
     [Fact]
@@ -210,20 +224,57 @@ public class CollectionFocusTests : FocusAssertingTestBase
         // there is no state change and nothing to move focus to. Pinned so the "no enabled
         // counterpart" fallback is not mistaken for a reachable path through a move.
         var (component, _) = RenderCollection(1, collection => collection.AllowReorder());
-        var focusesBefore = FocusCount();
+        var focusesBefore = FocusByIdCount();
 
         // Act & Assert - the controls are disabled, and no focus request is issued
         component.FindAll(MoveUpSelector)[0].HasAttribute("disabled").ShouldBeTrue();
         component.FindAll(MoveDownSelector)[0].HasAttribute("disabled").ShouldBeTrue();
-        FocusCount().ShouldBe(focusesBefore);
+        FocusByIdCount().ShouldBe(focusesBefore);
+    }
+
+    [Fact]
+    public void Collection_Controls_Should_Render_As_Real_Buttons_With_No_Wrapper_Span()
+    {
+        // Arrange/Act - AC1: none of Add/Remove/Move up/Move down render inside a
+        // <span tabindex="-1"> wrapper any more (#383)
+        var (component, field) = RenderCollection(2, collection => collection
+            .AllowAdd()
+            .AllowRemove()
+            .AllowReorder());
+
+        // Assert - no wrapper survives anywhere in the field...
+        component.FindAll("span[tabindex]").ShouldBeEmpty();
+
+        // ...and each control is a real, natively-interactive custom element carrying the exact id
+        // FocusRestore would target
+        component.Find(AddSelector).GetAttribute("id").ShouldBe(field.Instance.AddTargetId);
+        component.FindAll(DeleteSelector)[0].GetAttribute("id").ShouldBe(field.Instance.DeleteTargetIdAt(0));
+        component.FindAll(MoveUpSelector)[0].GetAttribute("id").ShouldBe(field.Instance.MoveUpTargetIdAt(0));
+        component.FindAll(MoveDownSelector)[0].GetAttribute("id").ShouldBe(field.Instance.MoveDownTargetIdAt(0));
+    }
+
+    [Fact]
+    public async Task A_Failing_Focus_By_Id_Call_Should_Not_Break_A_Row_Removal()
+    {
+        // Arrange - FluentUITestBase runs JSInterop in Loose mode, where focusById always
+        // succeeds. Without forcing it to fail, nothing exercises FocusRestore's catch block for
+        // this route (#383) - the same gap CLAUDE.md documents for the ElementReference mechanism.
+        FailTheFocusByIdInterop();
+        var (component, _) = RenderCollection(3, collection => collection.AllowAdd().AllowRemove());
+
+        // Act & Assert - the removal itself must still succeed even though the focus call it
+        // triggers throws
+        await Should.NotThrowAsync(() =>
+            component.InvokeAsync(() => component.FindAll(DeleteSelector)[1].Click()));
+        component.FindAll(DeleteSelector).Count.ShouldBe(2);
     }
 
     [Fact]
     public async Task Removing_A_Row_In_The_Second_Collection_Should_Not_Move_Focus_Into_The_First()
     {
-        // Arrange - two collection fields on one form. Every reference here is per-component and
-        // per-index; a static or form-level one would pass every other test in this file and land
-        // focus in the wrong field here.
+        // Arrange - two collection fields on one form. Every id here is per-component and per-index;
+        // a shared prefix would pass every other test in this file and land focus in the wrong field
+        // here.
         var model = new TwoCollectionModel();
         for (var i = 0; i < 3; i++)
         {
@@ -238,23 +289,23 @@ public class CollectionFocusTests : FocusAssertingTestBase
         var fields = component.FindComponents<FluentUICollectionFieldComponent<TwoCollectionModel, MixedItem>>();
         fields.Count.ShouldBe(2);
 
-        var firstFieldIds = new List<string>
+        var firstFieldIds = new List<string?>
         {
-            fields[0].Instance.DeleteTargetAt(0)!.Value.Id,
-            fields[0].Instance.DeleteTargetAt(1)!.Value.Id,
-            fields[0].Instance.DeleteTargetAt(2)!.Value.Id,
+            fields[0].Instance.DeleteTargetIdAt(0),
+            fields[0].Instance.DeleteTargetIdAt(1),
+            fields[0].Instance.DeleteTargetIdAt(2),
         };
 
-        var focusesBefore = FocusCount();
+        var focusesBefore = FocusByIdCount();
 
         // Act - remove the middle row of the SECOND collection
         await component.InvokeAsync(() => fields[1].FindAll(DeleteSelector)[1].Click());
 
         // Assert - one focus request, and it landed in the second field, not the first
-        FocusCount().ShouldBe(focusesBefore + 1);
-        var focusedId = LastFocusedElementId();
+        FocusByIdCount().ShouldBe(focusesBefore + 1);
+        var focusedId = LastFocusedElementIdViaModule();
         focusedId.ShouldNotBeOneOf([.. firstFieldIds]);
-        focusedId.ShouldBe(fields[1].Instance.DeleteTargetAt(1)!.Value.Id);
+        focusedId.ShouldBe(fields[1].Instance.DeleteTargetIdAt(1));
 
         // ...and the first collection was left entirely alone
         fields[0].FindAll(DeleteSelector).Count.ShouldBe(3);
