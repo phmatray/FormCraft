@@ -309,17 +309,27 @@ public class FileUploadClearFocusTests : FocusAssertingTestBase
     }
 
     /// <summary>
-    /// FormCraft's own file chips, scoped away from MudBlazor's.
+    /// FormCraft's own file chips' close buttons.
     /// </summary>
     /// <remarks>
-    /// <c>MudFileUpload</c> renders its <b>own</b> file list (<c>.mud-file-upload-filelist</c>)
-    /// <i>in addition to</i> the <c>CustomContent</c> drop zone, so a bare
-    /// <c>.mud-chip-close-button</c> matches <b>twice</b> per file — measured, not assumed. Those
-    /// other chips are MudBlazor's and their close buttons run MudBlazor's own removal, not
-    /// <c>RemoveFile</c>, so a test that clicked one would assert nothing about this fix.
+    /// <para>
+    /// <b>Was scoped, now bare (#338).</b> Until #338, <c>MudFileUpload</c> rendered its <b>own</b>
+    /// file list (<c>.mud-file-upload-filelist</c>) <i>in addition to</i> the <c>CustomContent</c>
+    /// drop zone, so a bare <c>.mud-chip-close-button</c> matched <b>twice</b> per file — measured,
+    /// not assumed. Those other chips were MudBlazor's, and their close buttons ran MudBlazor's own
+    /// removal rather than <c>RemoveFile</c>, so a test that clicked one asserted nothing about this
+    /// fix — hence the selector was scoped to <c>.mud-file-upload-custom-content</c>, FormCraft's own
+    /// drop zone, to reach only its chips.
+    /// </para>
+    /// <para>
+    /// #338 suppressed MudBlazor's duplicate list at the source, via
+    /// <c>MudFileUpload&lt;T&gt;.SelectedTemplate</c> (a non-null template — even an empty one —
+    /// replaces MudBlazor's default chip list; see <c>FileUploadFileListTests</c>). A bare
+    /// <c>.mud-chip-close-button</c> is therefore unambiguous again: every match is FormCraft's own,
+    /// routed through <c>RemoveFile</c>, and the scoping prefix is no longer load-bearing.
+    /// </para>
     /// </remarks>
-    private const string FormCraftChipCloseSelector =
-        ".mud-file-upload-custom-content .mud-chip-close-button";
+    private const string FormCraftChipCloseSelector = ".mud-chip-close-button";
 
     /// <summary>
     /// Renders the single-file upload standalone — no cascaded <c>EditContext</c>, the render path
