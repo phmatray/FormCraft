@@ -1,14 +1,14 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace FormCraft.ForMudBlazor.UnitTests.Fields;
+namespace FormCraft.TestSupport;
 
 /// <summary>
 /// One re-declared collection-item shape, and why it was reported.
 /// </summary>
 /// <param name="Owner">The type declaring the collection.</param>
 /// <param name="Detail">A message naming what collided with what.</param>
-internal sealed record ShapeOffence(Type Owner, string Detail)
+public sealed record ShapeOffence(Type Owner, string Detail)
 {
     public override string ToString() => Detail;
 }
@@ -33,12 +33,11 @@ internal sealed record ShapeOffence(Type Owner, string Detail)
 /// — #282 had to enumerate per-suite test counts from the built dll to prove its migration had landed.
 /// </para>
 /// <para>
-/// <b>Ownership is derived, never listed.</b> A shared model is one declared at <i>namespace scope</i>;
-/// a copy is always <c>private</c> and therefore <i>nested</i> inside a test class — that is what makes
-/// it shadow. So the guard asks "is this type nested?" rather than consulting a roster of known fixture
-/// types. A hand-maintained roster would reproduce #258's exact defect one level up: add a seventh model
-/// to the fixture, forget to enrol it, and the guard reports <i>the fixture itself</i> as an offender
-/// while telling the author to "use the fixture".
+/// <b>Ownership is derived, never listed.</b> A shared model is one declared in the fixture's own
+/// assembly (<see cref="IsSharedShape"/>) — see that member for why this moved off "namespace scope
+/// vs nested" in #343. A hand-maintained roster would reproduce #258's exact defect one level up: add
+/// a seventh model to the fixture, forget to enrol it, and the guard reports <i>the fixture itself</i>
+/// as an offender while telling the author to "use the fixture".
 /// </para>
 /// <para>
 /// <b>Both halves of the shape are checked.</b> An <i>item</i> copy (<c>List&lt;MyRow&gt;</c> where
@@ -56,8 +55,13 @@ internal sealed record ShapeOffence(Type Owner, string Detail)
 /// what the <c>allowed</c> parameter on <see cref="FindOffenders"/> is for, and why it is exercised
 /// by a test rather than merely offered.
 /// </para>
+/// <para>
+/// <b>Shared across adapters since #343.</b> Originally MudBlazor-only, moved here so
+/// <c>FormCraft.ForFluentUI.UnitTests</c> can run the same check over its own assembly — test
+/// projects do not reference one another, so a cross-suite check needs a home neither one owns.
+/// </para>
 /// </remarks>
-internal static class CollectionItemShapeGuard
+public static class CollectionItemShapeGuard
 {
     /// <summary>
     /// A type's shape as a multiset of its public instance property types — order-insensitive, and
@@ -69,7 +73,7 @@ internal static class CollectionItemShapeGuard
     /// shape. Ordering is normalised so a copy cannot evade the guard by reordering its members, and
     /// inherited properties are included so a one-line base class cannot hide the shape either.
     /// </remarks>
-    internal static string ShapeSignature(Type itemType) =>
+    public static string ShapeSignature(Type itemType) =>
         string.Join(
             ", ",
             itemType
@@ -86,7 +90,7 @@ internal static class CollectionItemShapeGuard
     /// Inherited properties count: a root whose <c>List&lt;T&gt;</c> comes from a base class is still a
     /// collection root, and excluding it would let one base class disable the guard.
     /// </remarks>
-    internal static IEnumerable<Type> CollectionItemTypes(Type type) =>
+    public static IEnumerable<Type> CollectionItemTypes(Type type) =>
         type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Select(p => p.PropertyType)
             .Where(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(List<>))
@@ -112,7 +116,7 @@ internal static class CollectionItemShapeGuard
     /// enrol — which is the property the old rule had and this one keeps.
     /// </para>
     /// </remarks>
-    internal static bool IsSharedShape(Type type) => type.Assembly == typeof(CollectionItemFixture).Assembly;
+    public static bool IsSharedShape(Type type) => type.Assembly == typeof(CollectionItemFixture).Assembly;
 
     /// <summary>
     /// Every type declared in <paramref name="assembly"/> <b>and</b> in the fixture's own assembly,
@@ -144,7 +148,7 @@ internal static class CollectionItemShapeGuard
     /// </para>
     /// </remarks>
     /// <param name="assembly">The consuming test assembly to scan — pass the caller's own.</param>
-    internal static IEnumerable<Type> TestAssemblyTypes(Assembly assembly)
+    public static IEnumerable<Type> TestAssemblyTypes(Assembly assembly)
     {
         return new[] { assembly, typeof(CollectionItemFixture).Assembly }
             .Distinct()
@@ -184,7 +188,7 @@ internal static class CollectionItemShapeGuard
     /// Models that may keep a local shape despite matching, each justified where it is declared. Empty
     /// by default: an exception should be a deliberate act at the call site, not a standing grant.
     /// </param>
-    internal static IReadOnlyList<ShapeOffence> FindOffenders(
+    public static IReadOnlyList<ShapeOffence> FindOffenders(
         IEnumerable<Type> types,
         IReadOnlySet<Type>? allowed = null)
     {
