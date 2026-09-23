@@ -81,7 +81,7 @@ public class ConflictMarkerTests
         // comments do) must not trip line-start detection either.
         var content = string.Join(
             '\n',
-            "// =======",
+            "=======",
             "// A conflict marker looks like " + ConflictStart + " at the start of a line.");
 
         FindMarkers([("Synthetic.cs", content)]).ShouldBeEmpty();
