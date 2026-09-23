@@ -206,8 +206,8 @@ public partial class FormCraftComponent<TModel>
                     field,
                     _editContext,
                     () => GetCustomTemplateValue(field),
-                    newValue => _ = UpdateFieldValue(field.FieldName, newValue),
-                    EventCallback.Factory.Create<object>(this, newValue => UpdateFieldValue(field.FieldName, newValue)));
+                    newValue => _ = UpdateFieldValue(field, newValue),
+                    EventCallback.Factory.Create<object>(this, newValue => UpdateFieldValue(field, newValue)));
                 builder.AddContent(0, field.CustomTemplate(templateContext));
                 return;
             }
@@ -220,7 +220,7 @@ public partial class FormCraftComponent<TModel>
             builder.AddContent(0, FieldRendererService.RenderField(
                 Model,
                 field,
-                EventCallback.Factory.Create<object?>(this, val => UpdateFieldValue(field.FieldName, val)),
+                EventCallback.Factory.Create<object?>(this, val => UpdateFieldValue(field, val)),
                 EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName))));
         };
     }
@@ -279,43 +279,61 @@ public partial class FormCraftComponent<TModel>
     /// <summary>Logger category for the unresolved-custom-template-field diagnostic (#330).</summary>
     private const string CustomTemplateFieldDiagnosticCategory = "FormCraft.ForMudBlazor.CustomTemplateField";
 
-    private async Task UpdateFieldValue(string fieldName, object? value)
+    /// <summary>
+    /// Writes a new value back through the field's compiled <c>ValueExpression</c>
+    /// (<see cref="FieldValueSetterCache{TModel}"/>), instead of the per-write
+    /// <c>GetProperty</c>/<c>SetValue</c> reflection this replaced (#396). That old lookup mirrored
+    /// the read side's #330 defect: it only ever resolved a direct top-level property, so a
+    /// custom-template field bound to a nested path (e.g. <c>x =&gt; x.Nested.Value</c>) rendered
+    /// correctly after #330 but silently dropped every edit, because
+    /// <c>typeof(TModel).GetProperty("Value")</c> never found anything on <typeparamref name="TModel"/>.
+    /// </summary>
+    /// <remarks>
+    /// A binding that still cannot be written — most commonly a null intermediate reference in a
+    /// nested path — reports once per field via <see cref="_formDiagnosticScope"/> and drops the
+    /// edit, instead of the exception escaping this event callback.
+    /// </remarks>
+    private async Task UpdateFieldValue(IFieldConfiguration<TModel, object> field, object? value)
     {
-        var property = typeof(TModel).GetProperty(fieldName);
-        if (property != null)
+        try
         {
-            var targetType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
-            var convertedValue = value;
-
-            // Convert value to the target type if necessary
-            if (value != null && value.GetType() != targetType)
-            {
-                try
-                {
-                    convertedValue = Convert.ChangeType(value, targetType);
-                }
-                catch
-                {
-                    // If conversion fails, use the value as-is
-                }
-            }
-
-            property.SetValue(Model, convertedValue);
-
-            // Notify the EditContext so field-level validation runs and stale
-            // error messages clear as soon as the user corrects the value.
-            _editContext?.NotifyFieldChanged(_editContext.Field(fieldName));
-
-            if (OnFieldChanged.HasDelegate)
-            {
-                await OnFieldChanged.InvokeAsync((fieldName, convertedValue));
-            }
-
-            // Handle dependencies
-            await HandleFieldDependencyChanged(fieldName);
-
-            StateHasChanged();
+            FieldValueSetterCache<TModel>.GetOrCompile(field)(Model, value);
         }
+        catch (Exception ex)
+        {
+            if (_formDiagnosticScope.ShouldWarnOnce(CustomTemplateFieldDiagnosticCategory, field.ValueExpression.ToString()))
+            {
+                var displayName = string.IsNullOrWhiteSpace(field.Label) ? field.FieldName : field.Label;
+                DiagnosticLog.Warn(
+                    ServiceProvider,
+                    CustomTemplateFieldDiagnosticCategory,
+                    "Field '{Field}' has a custom template whose value could not be written back to " +
+                    "the model ({ExceptionType}: {ExceptionMessage}), so the edit is dropped instead " +
+                    "of throwing out of the change handler. Check that its binding expression is " +
+                    "reachable (e.g. no null intermediate in a nested path).",
+                    displayName,
+                    ex.GetType().Name,
+                    ex.Message);
+            }
+
+            return;
+        }
+
+        var fieldName = field.FieldName;
+
+        // Notify the EditContext so field-level validation runs and stale
+        // error messages clear as soon as the user corrects the value.
+        _editContext?.NotifyFieldChanged(_editContext.Field(fieldName));
+
+        if (OnFieldChanged.HasDelegate)
+        {
+            await OnFieldChanged.InvokeAsync((fieldName, value));
+        }
+
+        // Handle dependencies
+        await HandleFieldDependencyChanged(fieldName);
+
+        StateHasChanged();
     }
 
     private async Task HandleFieldDependencyChanged(string fieldName)

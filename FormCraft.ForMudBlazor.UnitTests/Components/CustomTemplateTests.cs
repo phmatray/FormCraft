@@ -19,9 +19,11 @@ namespace FormCraft.ForMudBlazor.UnitTests.Components;
 /// an invisible field. Left alone; out of scope for #330 and queued under #321.
 /// </item>
 /// <item>
-/// <c>UpdateFieldValue</c> (the write-back). Explicitly out of scope per the issue's Non-goals —
-/// read side only. It also cannot silently vanish the way the read could: a miss there just no-ops
-/// the write.
+/// <c>UpdateFieldValue</c> (the write-back). Was explicitly out of scope per #330's Non-goals —
+/// read side only — leaving it with the identical top-level-only lookup and the same asymmetric
+/// silent-no-op failure mode. Fixed by #396: it now writes through
+/// <see cref="FieldValueSetterCache{TModel}"/> instead, mirroring this file's read-side coverage
+/// below.
 /// </item>
 /// </list>
 /// Neither is touched by this fix.
@@ -263,6 +265,78 @@ public class CustomTemplateTests : MudBlazorTestBase
         warnings.Count.ShouldBe(2);
         warnings.ShouldContain(w => w.Contains("Field A"));
         warnings.ShouldContain(w => w.Contains("Field B"));
+    }
+
+    [Fact]
+    public async Task WithCustomTemplate_ValueChanged_Should_Update_A_Nested_Property()
+    {
+        // Arrange - the write-back counterpart to Should_Render_When_Bound_To_A_Nested_Property
+        // (#396). Before this fix the write silently no-op'd: typeof(TModel).GetProperty("Value")
+        // never resolves against NestedPropertyModel, only against NestedValue.
+        var model = new NestedPropertyModel { Nested = new NestedValue { Value = "deep" } };
+        IFieldContext<NestedPropertyModel, string>? captured = null;
+        var config = FormBuilder<NestedPropertyModel>
+            .Create()
+            .AddField(x => x.Nested!.Value, field => field
+                .WithLabel("Nested value")
+                .WithCustomTemplate(context =>
+                {
+                    captured = context;
+                    return builder => builder.AddContent(0, "template");
+                }))
+            .Build();
+
+        var component = Render<FormCraftComponent<NestedPropertyModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        captured.ShouldNotBeNull();
+
+        // Act
+        await component.InvokeAsync(() => captured!.ValueChanged.InvokeAsync("shallow"));
+
+        // Assert
+        model.Nested.ShouldNotBeNull();
+        model.Nested!.Value.ShouldBe("shallow");
+    }
+
+    [Fact]
+    public async Task WithCustomTemplate_ValueChanged_Should_Not_Throw_And_Should_Warn_Once_When_The_Bound_Path_Is_Unreachable()
+    {
+        // Arrange - Nested is null, so the write throws the same NullReferenceException the read
+        // side already throws (#330). UpdateFieldValue must catch it, report it through the same
+        // per-field latch, and never let it escape this event callback (#396). The initial render
+        // already reads (and fails to read) the value, so the latch is consumed before ValueChanged
+        // ever fires - the write must not add a second warning for the same binding.
+        var logs = new CapturingLoggerProvider();
+        Services.AddLogging(builder => builder.AddProvider(logs));
+
+        var model = new NestedPropertyModel { Nested = null };
+        IFieldContext<NestedPropertyModel, string>? captured = null;
+        var config = FormBuilder<NestedPropertyModel>
+            .Create()
+            .AddField(x => x.Nested!.Value, field => field
+                .WithLabel("Nested value")
+                .WithCustomTemplate(context =>
+                {
+                    captured = context;
+                    return builder => builder.AddContent(0, "template");
+                }))
+            .Build();
+
+        var component = Render<FormCraftComponent<NestedPropertyModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        captured.ShouldNotBeNull();
+
+        // Act - must not throw.
+        await component.InvokeAsync(() => captured!.ValueChanged.InvokeAsync("unreachable"));
+
+        // Assert - exactly one warning total for this binding (the read already warned once).
+        var warnings = logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("Nested value");
     }
 
     private class TestModel
