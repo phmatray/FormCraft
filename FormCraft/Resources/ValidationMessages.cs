@@ -15,11 +15,14 @@ namespace FormCraft;
 /// </remarks>
 internal static class ValidationMessages
 {
-    // NOT "FormCraft.Resources.ValidationMessages" — the SDK's default EmbeddedResource manifest
-    // naming for this project does not prefix the containing folder, so the file embeds as
-    // "FormCraft.ValidationMessages.resources". Proven at runtime (a MissingManifestResourceException
-    // names the real embedded resource) rather than assumed; ValidationMessagesLocalizationTests
-    // pins it via the same ResourceManager base name.
+    // NOT "FormCraft.Resources.ValidationMessages". MSBuild's CreateCSharpManifestResourceName task
+    // applies its UseDependentUponConvention rule: ValidationMessages.resx sits beside a same-named
+    // ValidationMessages.cs, so the manifest name is derived from THIS class's namespace + name
+    // rather than the folder path (confirmed via `dotnet build -v:diag`: "Resource file
+    // '...ValidationMessages.resx' depends on 'ValidationMessages.cs'"). Renaming or relocating
+    // either file independently of the other changes the manifest name. Proven at runtime, not
+    // assumed — a MissingManifestResourceException first named the real embedded resource — and
+    // pinned by ValidationMessagesLocalizationTests via the same ResourceManager base name.
     private static readonly ResourceManager Resources =
         new("FormCraft.ValidationMessages", typeof(ValidationMessages).Assembly);
 
