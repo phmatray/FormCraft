@@ -340,8 +340,10 @@ public class FieldConfigurationRefreshTests : MudBlazorTestBase
     /// never had that problem: <c>Min</c>/<c>Max</c>/<c>Step</c> are already real
     /// <c>TValue?</c> parameters, reassigned unconditionally in <c>OnFieldConfigurationChanged()</c>
     /// (<c>Min = GetAttribute&lt;TValue?&gt;("Min")</c>, no <c>??</c> keeping the old value), and the
-    /// razor projects a dropped <c>null</c> to <c>GetTypeMinValue()</c> rather than passing it
-    /// through. This pins that the two adapters agree rather than fixing a defect.
+    /// razor projects a dropped <c>null</c> to <c>NumericTypeDefaults&lt;TValue&gt;.Min</c> rather
+    /// than passing it through (#389 moved this off a per-component <c>GetTypeMinValue()</c> onto
+    /// the shared resolver both adapters now read). This pins that the two adapters agree rather
+    /// than fixing a defect.
     /// </remarks>
     [Fact]
     public void NumericField_Should_Render_Unbounded_When_The_New_Configuration_Drops_Min()
