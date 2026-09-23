@@ -1,4 +1,3 @@
-using FormCraft.DemoBlazorApp.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
@@ -9,18 +8,11 @@ public partial class MainLayout : IAsyncDisposable
 {
     private readonly MudTheme _theme = FormCraftTheme.Build();
 
-    private bool _drawerOpen = true;
-    private bool _isDarkMode;
     private bool _paletteOpen;
     private string _version = "loading...";
     private DotNetObjectReference<MainLayout>? _selfRef;
 
-    private static readonly string[] _levels =
-    [
-        Services.DemoRegistry.Levels.Beginner,
-        Services.DemoRegistry.Levels.Intermediate,
-        Services.DemoRegistry.Levels.Advanced
-    ];
+    private enum Section { Home, Demos, Docs, Api }
 
     protected override async Task OnInitializedAsync()
     {
@@ -33,6 +25,28 @@ public partial class MainLayout : IAsyncDisposable
             _version = "latest";
         }
     }
+
+    /// <summary>
+    /// The top-level section the current route belongs to. The layout re-renders with every
+    /// navigation (its <see cref="LayoutComponentBase.Body"/> changes), so reading the URI here is
+    /// enough — no LocationChanged subscription to keep and dispose.
+    /// </summary>
+    private Section Current
+    {
+        get
+        {
+            var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0].Trim('/');
+            return path switch
+            {
+                "" or "home" => Section.Home,
+                "docs/api-reference" => Section.Api,
+                _ when path.StartsWith("docs", StringComparison.Ordinal) => Section.Docs,
+                _ => Section.Demos
+            };
+        }
+    }
+
+    private string? ActiveFor(Section section) => Current == section ? "active" : null;
 
     private bool _isApple;
 
@@ -56,34 +70,14 @@ public partial class MainLayout : IAsyncDisposable
 
         try
         {
-            // index.html already resolved this before first paint; read the same
-            // value back so the C# side agrees with what is on screen.
-            _isDarkMode = await JS.InvokeAsync<bool>("formcraftTheme.resolve");
-            await JS.InvokeVoidAsync("formcraftTheme.apply", _isDarkMode);
-
             _selfRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("formcraftShortcuts.register", _selfRef);
-
-            // Deliberately its own try, not the enclosing one. This probe is cosmetic — it picks a
-            // label — whereas the theme work above has already put fc-dark on <body>. Sharing a catch
-            // would let a missing helper (a cached older app.js) skip the StateHasChanged() below,
-            // leaving MudThemeProvider light against a dark body: a half-themed page, which is worse
-            // than the documented "starts in light mode" fallback.
-            try
-            {
-                _isApple = await JS.InvokeAsync<bool>("formcraftShortcuts.isApple");
-            }
-            catch (JSException)
-            {
-                // Keep the Ctrl K default.
-            }
-
+            _isApple = await JS.InvokeAsync<bool>("formcraftShortcuts.isApple");
             StateHasChanged();
         }
         catch (JSException)
         {
-            // Scripts blocked or unavailable: the site still works, it just starts
-            // in light mode and the palette opens from the toolbar button only.
+            // Scripts blocked or unavailable: the palette still opens from the toolbar button.
         }
     }
 
@@ -96,34 +90,7 @@ public partial class MainLayout : IAsyncDisposable
         return Task.CompletedTask;
     }
 
-    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
-
     private void OpenPaletteFromToolbar() => _paletteOpen = true;
-
-    private async Task ToggleTheme()
-    {
-        _isDarkMode = !_isDarkMode;
-
-        try
-        {
-            await JS.InvokeVoidAsync("formcraftTheme.persist", _isDarkMode);
-            await JS.InvokeVoidAsync("formcraftTheme.apply", _isDarkMode);
-        }
-        catch (JSException)
-        {
-            // The theme still switches for this session; it just will not be remembered.
-        }
-    }
-
-    private void NavigateToHome() => Navigation.NavigateTo("home");
-
-    private static string GetLevelSubtitle(string level) => level switch
-    {
-        Services.DemoRegistry.Levels.Beginner => "Start here",
-        Services.DemoRegistry.Levels.Intermediate => "Build better forms",
-        Services.DemoRegistry.Levels.Advanced => "Go deeper",
-        _ => ""
-    };
 
     public async ValueTask DisposeAsync()
     {

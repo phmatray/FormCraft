@@ -442,7 +442,8 @@ public partial class TabbedForm
             // Use MudTabs with FormCraftComponent in each tab
             <MudTabs @bind-ActivePanelIndex="_activeTabIndex">
                 <MudTabPanel Text="Personal Info" Icon="@Icons.Material.Filled.Person">
-                    <FormCraftComponent @ref="_personalFormComponent"
+                    <FormCraftComponent
+                        @ref="_personalFormComponent"
                         TModel="EmployeeModel"
                         Model="@_model"
                         Configuration="@_personalInfoConfig"
@@ -450,7 +451,8 @@ public partial class TabbedForm
                 </MudTabPanel>
 
                 <MudTabPanel Text="Contact Details" Icon="@Icons.Material.Filled.ContactMail">
-                    <FormCraftComponent @ref="_contactFormComponent"
+                    <FormCraftComponent
+                        @ref="_contactFormComponent"
                         TModel="EmployeeModel"
                         Model="@_model"
                         Configuration="@_contactConfig"

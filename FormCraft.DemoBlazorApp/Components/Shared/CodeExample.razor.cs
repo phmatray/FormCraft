@@ -21,56 +21,27 @@ public partial class CodeExample
     public bool ShowLineNumbers { get; set; } = true;
 
     private ElementReference _element;
-    private bool _copied;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!string.IsNullOrEmpty(Code))
+        if (string.IsNullOrEmpty(Code))
         {
-            try
-            {
-                await JsRuntime.InvokeVoidAsync("Prism.highlightAllUnder", _element);
-            }
-            catch (Exception)
-            {
-                // Ignore JavaScript interop errors during prerendering
-            }
+            return;
         }
-    }
 
-    private async Task CopyToClipboard()
-    {
         try
         {
-            await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", Code);
-
-            // The interop above is an await of its own, and it completes before any delay token
-            // exists — so the component can already be gone by the time we get here.
-            if (IsDisposed)
-            {
-                return;
-            }
-
-            _copied = true;
-            StateHasChanged();
-
-            if (!await DelayAsync(2000))
-            {
-                return;
-            }
-
-            _copied = false;
-            StateHasChanged();
+            // Idempotent: only a <code> the highlighter has not processed yet is touched, and @key
+            // hands it a fresh one whenever Code changes.
+            await JsRuntime.InvokeVoidAsync("formcraftCode.highlightUnder", _element);
         }
-        // Kept deliberately broad. This is the same fallback #285 restored in Home.CopyInstall, and
-        // the failure modes are the ones that do NOT derive from JSException: JSDisconnectedException,
-        // InvalidOperationException ("interop calls cannot be issued at this time") and
-        // TaskCanceledException on the interop timeout. Copying to the clipboard is a convenience —
-        // no failure of it should reach the visitor, who can still select the text.
-        catch (Exception)
+        catch (JSException)
         {
-            // Clipboard API unavailable, or the call could not be issued. Leave _copied as it is:
-            // if the write never happened there is no "copied" state to clear.
+            // Scripts unavailable: the code still shows, just uncoloured.
+        }
+        catch (InvalidOperationException)
+        {
+            // Interop not available yet (prerender) or already torn down.
         }
     }
 
@@ -85,25 +56,4 @@ public partial class CodeExample
         "XML" => "XML",
         _ => Language.ToUpperInvariant()
     };
-
-    private string GetPreClasses()
-    {
-        var classes = $"language-{Language}";
-        if (ShowLineNumbers)
-        {
-            classes += " line-numbers";
-        }
-        return classes;
-    }
-
-    private string GetLineNumbersHtml()
-    {
-        if (string.IsNullOrEmpty(Code))
-        {
-            return "";
-        }
-
-        var lineCount = Code.Split('\n').Length;
-        return string.Concat(Enumerable.Repeat("<span></span>", lineCount));
-    }
 }

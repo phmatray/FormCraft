@@ -582,11 +582,12 @@ public class UserRegistration
 
 <h3>User Registration</h3>
 
-<FormCraftComponent TModel="UserRegistration" 
-                   Model="@model" 
-                   Configuration="@formConfig"
-                   OnValidSubmit="@HandleSubmit"
-                   ShowSubmitButton="true" />
+<FormCraftComponent
+    TModel="UserRegistration"
+    Model="@model"
+    Configuration="@formConfig"
+    OnValidSubmit="@HandleSubmit"
+    ShowSubmitButton="true" />
 
 @code {
     private UserRegistration model = new();
@@ -949,11 +950,12 @@ Both MudBlazor presentation properties are configurable per field, with a form-l
 
 ```csharp
 // Form-level defaults for every field
-<FormCraftComponent TModel="UserModel"
-                    Model="@model"
-                    Configuration="@formConfig"
-                    DefaultVariant="Variant.Text"
-                    DefaultShrinkLabel="false" />
+<FormCraftComponent
+    TModel="UserModel"
+    Model="@model"
+    Configuration="@formConfig"
+    DefaultVariant="Variant.Text"
+    DefaultShrinkLabel="false" />
 ```
 
 ```csharp

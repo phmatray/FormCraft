@@ -6,17 +6,18 @@
     <div class="fc-palette" @onclick:stopPropagation="true" role="dialog" aria-modal="true" aria-label="Search demos and documentation">
         <div class="fc-palette__search">
             <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="fc-palette__search-icon" />
-            <input @ref="_input"
-                   class="fc-palette__input"
-                   type="text"
-                   placeholder="Search demos and documentation"
-                   aria-label="Search demos and documentation"
-                   aria-controls="fc-palette-results"
-                   aria-activedescendant="@ActiveOptionId"
-                   autocomplete="off"
-                   value="@_query"
-                   @oninput="OnQueryChanged"
-                   @onkeydown="OnKeyDown" />
+            <input
+                @ref="_input"
+                class="fc-palette__input"
+                type="text"
+                placeholder="Search demos and documentation"
+                aria-label="Search demos and documentation"
+                aria-controls="fc-palette-results"
+                aria-activedescendant="@ActiveOptionId"
+                autocomplete="off"
+                value="@_query"
+                @oninput="OnQueryChanged"
+                @onkeydown="OnKeyDown" />
             <kbd class="fc-kbd">esc</kbd>
         </div>
 
@@ -44,13 +45,14 @@
                             do: the bool overload renders aria-selected="" when true and drops it when
                             false, so role="option" never announces as selected either way.
                         *@
-                        <button type="button"
-                                class="fc-palette__row @(selected ? "is-selected" : "")"
-                                id="@OptionId(demo)"
-                                role="option"
-                                aria-selected="@(selected ? "true" : "false")"
-                                @onclick="@(() => Go(demo))"
-                                @onmouseenter="@(() => _selectedIndex = index)">
+                        <button
+                            type="button"
+                            class="fc-palette__row @(selected ? "is-selected" : "")"
+                            id="@OptionId(demo)"
+                            role="option"
+                            aria-selected="@(selected ? "true" : "false")"
+                            @onclick="@(() => Go(demo))"
+                            @onmouseenter="@(() => _selectedIndex = index)">
                             <MudIcon Icon="@demo.Icon" Size="Size.Small" Class="fc-palette__row-icon" />
                             <span class="fc-palette__row-body">
                                 <span class="fc-palette__row-title">@demo.Title</span>
