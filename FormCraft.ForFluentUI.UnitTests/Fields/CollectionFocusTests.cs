@@ -218,6 +218,74 @@ public class CollectionFocusTests : FocusAssertingTestBase
         FocusCount().ShouldBe(focusesBefore);
     }
 
+    [Fact]
+    public async Task Removing_A_Row_In_The_Second_Collection_Should_Not_Move_Focus_Into_The_First()
+    {
+        // Arrange - two collection fields on one form. Every reference here is per-component and
+        // per-index; a static or form-level one would pass every other test in this file and land
+        // focus in the wrong field here.
+        var model = new TwoCollectionModel();
+        for (var i = 0; i < 3; i++)
+        {
+            model.First.Add(new MixedItem());
+            model.Second.Add(new MixedItem());
+        }
+
+        var component = Render<FormCraftComponent<TwoCollectionModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, TwoCollectionForm()));
+
+        var fields = component.FindComponents<FluentUICollectionFieldComponent<TwoCollectionModel, MixedItem>>();
+        fields.Count.ShouldBe(2);
+
+        var firstFieldIds = new List<string>
+        {
+            fields[0].Instance.DeleteTargetAt(0)!.Value.Id,
+            fields[0].Instance.DeleteTargetAt(1)!.Value.Id,
+            fields[0].Instance.DeleteTargetAt(2)!.Value.Id,
+        };
+
+        var focusesBefore = FocusCount();
+
+        // Act - remove the middle row of the SECOND collection
+        await component.InvokeAsync(() => fields[1].FindAll(DeleteSelector)[1].Click());
+
+        // Assert - one focus request, and it landed in the second field, not the first
+        FocusCount().ShouldBe(focusesBefore + 1);
+        var focusedId = LastFocusedElementId();
+        focusedId.ShouldNotBeOneOf([.. firstFieldIds]);
+        focusedId.ShouldBe(fields[1].Instance.DeleteTargetAt(1)!.Value.Id);
+
+        // ...and the first collection was left entirely alone
+        fields[0].FindAll(DeleteSelector).Count.ShouldBe(3);
+    }
+
+    /// <summary>
+    /// Two collections over one model, local to this suite - mirrors
+    /// <c>FormCraft.ForMudBlazor.UnitTests.Fields.CollectionFocusTests</c>'s own local shape rather
+    /// than <see cref="CollectionItemFixture.TwoCollectionModel"/>, which has no
+    /// <c>configureCollection</c> hook to enable <c>AllowRemove()</c>.
+    /// </summary>
+    private static IFormConfiguration<TwoCollectionModel> TwoCollectionForm() =>
+        FormBuilder<TwoCollectionModel>
+            .Create()
+            .AddCollectionField(x => x.First, collection => collection
+                .WithLabel("First")
+                .AllowRemove()
+                .WithItemForm(item => item.AddField(x => x.Name, field => field.WithLabel("Name"))))
+            .AddCollectionField(x => x.Second, collection => collection
+                .WithLabel("Second")
+                .AllowRemove()
+                .WithItemForm(item => item.AddField(x => x.Name, field => field.WithLabel("Name"))))
+            .Build();
+
+    private sealed class TwoCollectionModel
+    {
+        public List<MixedItem> First { get; set; } = new();
+
+        public List<MixedItem> Second { get; set; } = new();
+    }
+
     private (IRenderedComponent<FormCraftComponent<MixedItemModel>> Component,
         IRenderedComponent<FluentUICollectionFieldComponent<MixedItemModel, MixedItem>> Field) RenderCollection(
         int rows,
