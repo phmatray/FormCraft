@@ -131,6 +131,26 @@ public class DynamicFormValidatorTests : BunitContext
     }
 
     [Fact]
+    public async Task ValidateModelAsync_Should_Not_Throw_For_A_Nested_Binding_With_A_Null_Intermediate()
+    {
+        // Arrange - an ordinary field (no custom template) bound to a nested expression whose
+        // intermediate is null. Before #397 FieldValueGetterCache<TModel>.GetOrCompile(field)(model)
+        // was invoked with no guard here, so this threw an unhandled NullReferenceException straight
+        // through the whole validation pass instead of just treating the field's value as null.
+        var model = new TestModel { Nested = null };
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Nested!.Value, field => field.WithLabel("Nested value"))
+            .Build();
+
+        var validator = RenderValidator(editContext, config);
+
+        // Act & Assert
+        var isValid = await validator.Instance.ValidateModelAsync();
+        isValid.ShouldBeTrue();
+    }
+
+    [Fact]
     public void OnInitialized_Should_Throw_Without_A_Cascading_EditContext()
     {
         // Arrange - the component is only meaningful inside an EditForm, and says so.
@@ -158,5 +178,12 @@ public class DynamicFormValidatorTests : BunitContext
         public string Name { get; set; } = string.Empty;
 
         public string Email { get; set; } = string.Empty;
+
+        public NestedModel? Nested { get; set; }
+    }
+
+    public class NestedModel
+    {
+        public string Value { get; set; } = string.Empty;
     }
 }

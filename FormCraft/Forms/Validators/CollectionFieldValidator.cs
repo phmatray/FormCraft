@@ -147,11 +147,17 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
                 continue;
             }
 
-            var value = FieldValueGetterCache<TItem>.GetOrCompile(field)(item);
+            // TryGetValue rather than GetOrCompile(field)(item) directly (#397): a nested binding with
+            // a null intermediate would otherwise throw out of this cell's validation instead of just
+            // validating null, the same treatment a genuinely-null leaf value already gets.
+            FieldValueGetterCache<TItem>.TryGetValue(field, item, out var value);
 
             foreach (var validator in field.Validators)
             {
-                var result = await validator.ValidateAsync(item, value, services);
+                // A failed read (TryGetValue above) is treated as null, which validators already
+                // handle as a legitimate value — the null-forgiving operator matches the interface's
+                // non-nullable `object value` parameter, not a claim that value can never be null.
+                var result = await validator.ValidateAsync(item, value!, services);
                 if (!result.IsValid)
                 {
                     errors.Add(new CollectionItemError(itemIndex, field.FieldName, result.ErrorMessage!));
@@ -297,11 +303,14 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
             for (var f = 0; f < fields.Count; f++)
             {
                 var field = fields[f];
-                var value = getters[f](item);
+                var value = TryInvoke(getters[f], item);
 
                 foreach (var validator in field.Validators)
                 {
-                    var result = await validator.ValidateAsync(item, value, services);
+                    // Null-forgiving to match the interface's non-nullable `object value` — TryInvoke
+                    // above already turned a failed read into null, which validators already treat
+                    // as a legitimate value.
+                    var result = await validator.ValidateAsync(item, value!, services);
                     if (!result.IsValid)
                     {
                         errors.Add(new CollectionItemError(i, field.FieldName, result.ErrorMessage!));
@@ -311,5 +320,27 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
         }
 
         return errors;
+    }
+
+    /// <summary>
+    /// Invokes a getter already resolved via <see cref="FieldValueGetterCache{TModel}.GetOrCompile"/>,
+    /// returning <see langword="null"/> instead of throwing when the read fails (#397) — most commonly
+    /// a null intermediate in a nested binding.
+    /// </summary>
+    /// <remarks>
+    /// Does not call <see cref="FieldValueGetterCache{TModel}.TryGetValue"/> itself: that overload
+    /// re-resolves the getter from the field configuration on every call, which would undo the
+    /// resolve-once hoisting above (5 cache lookups instead of 250 for a 50-row × 5-field form).
+    /// </remarks>
+    private static object? TryInvoke(Func<TItem, object> getter, TItem item)
+    {
+        try
+        {
+            return getter(item);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 }

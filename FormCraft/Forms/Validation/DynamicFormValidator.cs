@@ -103,12 +103,18 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                 continue;
             }
 
-            var getter = FieldValueGetterCache<TModel>.GetOrCompile(field);
-            var value = getter(model);
+            // TryGetValue rather than GetOrCompile(field)(model) directly (#397): a nested binding
+            // with a null intermediate would otherwise throw out of the whole validation pass instead
+            // of just failing this field's own validators against null, the same treatment a
+            // genuinely-null leaf value already gets.
+            FieldValueGetterCache<TModel>.TryGetValue(field, model, out var value);
 
             foreach (var validator in field.Validators)
             {
-                var result = await validator.ValidateAsync(model, value, ServiceProvider);
+                // A failed read (TryGetValue above) is treated as null, which validators already
+                // handle as a legitimate value — the null-forgiving operator matches the interface's
+                // non-nullable `object value` parameter, not a claim that value can never be null.
+                var result = await validator.ValidateAsync(model, value!, ServiceProvider);
                 if (!result.IsValid)
                 {
                     _messageStore.Add(_editContext.Field(field.FieldName), result.ErrorMessage!);
