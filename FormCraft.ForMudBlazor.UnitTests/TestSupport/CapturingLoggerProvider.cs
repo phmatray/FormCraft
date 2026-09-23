@@ -30,26 +30,6 @@ internal sealed class CapturingLoggerProvider : ILoggerProvider
         }
     }
 
-    /// <summary>
-    /// The same warnings, each paired with the logger category it was emitted under (#284).
-    /// </summary>
-    /// <remarks>
-    /// The category is how a caller tells one diagnostic from another —
-    /// <c>FormCraft.Diagnostics.FormDiagnosticLog.Warn</c> takes it as a parameter, so "was this
-    /// logged under the category it was given" is a claim only this can check. Every existing suite
-    /// asserts on <see cref="Warnings"/> and is unaffected.
-    /// </remarks>
-    public IReadOnlyList<(string Category, string Message)> Entries
-    {
-        get
-        {
-            lock (_entries)
-            {
-                return _entries.ToList();
-            }
-        }
-    }
-
     public ILogger CreateLogger(string categoryName) => new CapturingLogger(categoryName, _entries);
 
     public void Dispose()
