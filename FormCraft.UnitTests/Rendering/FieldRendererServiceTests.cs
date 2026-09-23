@@ -490,6 +490,95 @@ public class FieldRendererServiceTests
         detectedTypes[1].ShouldBe(typeof(string));
     }
 
+    [Fact]
+    public void RenderField_Should_Resolve_The_Real_Wrapper_Type_Even_When_The_Bound_Member_Is_A_Field_Not_A_Property()
+    {
+        // Arrange — FieldConfiguration<TModel, TValue> accepts a public FIELD, not just a property,
+        // as long as the expression body is a direct MemberExpression, and FieldConfigurationWrapper
+        // wraps it exactly like any other configuration. The expression-body FALLBACK branch in
+        // FieldRendererService only pattern-matches `Member: PropertyInfo`, so it cannot resolve a
+        // FieldInfo-backed member on its own — only the IActualFieldTypeSource dispatch (which reads
+        // typeof(TValue) directly off the generic parameter, never the expression) gets this right.
+        // This pins that a real FieldConfigurationWrapper actually goes through that dispatch, rather
+        // than merely producing an answer the fallback happens to agree with (as it would for an
+        // ordinary property) — so a future change that dropped the interface from the wrapper would
+        // fail this test instead of passing by coincidence.
+        var model = new ModelWithPublicField { Count = 7 };
+        var fieldConfig = new FieldConfiguration<ModelWithPublicField, int>(x => x.Count);
+        var wrapper = new FieldConfigurationWrapper<ModelWithPublicField, int>(fieldConfig);
+        Type? detectedType = null;
+
+        var mockRenderer = A.Fake<IFieldRenderer>();
+        A.CallTo(() => mockRenderer.CanRender(A<Type>._, A<IFieldConfiguration<object, object>>._))
+            .ReturnsLazily((Type type, IFieldConfiguration<object, object> _) =>
+            {
+                detectedType = type;
+                return true;
+            });
+        A.CallTo(() => mockRenderer.Render(A<IFieldRenderContext<ModelWithPublicField>>._))
+            .Returns(builder => builder.AddContent(0, "Test"));
+
+        var service = new FieldRendererService(new[] { mockRenderer }, _serviceProvider);
+        var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
+        var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
+
+        // Act
+        service.RenderField(model, wrapper, onValueChanged, onDependencyChanged);
+
+        // Assert
+        detectedType.ShouldBe(typeof(int));
+    }
+
+    [Fact]
+    public void RenderField_Should_Not_Share_A_Cache_Entry_Between_Two_Different_Configurations()
+    {
+        // Arrange — two distinct non-wrapper configuration instances, one bound to a string
+        // property and one to an int property, both exercising the cached expression-body
+        // resolution path. If the per-configuration cache were keyed by anything coarser than
+        // instance identity — a process-wide table, or a key derived from FieldName or TModel alone
+        // — resolving the second would answer with the first's cached type instead of its own.
+        var model = new TestModel { Name = "Test", Value = 42 };
+        var stringParameter = Expression.Parameter(typeof(TestModel), "x");
+        var stringExpression = Expression.Lambda<Func<TestModel, object>>(
+            Expression.Convert(Expression.Property(stringParameter, nameof(TestModel.Name)), typeof(object)),
+            stringParameter);
+        var intParameter = Expression.Parameter(typeof(TestModel), "x");
+        var intExpression = Expression.Lambda<Func<TestModel, object>>(
+            Expression.Convert(Expression.Property(intParameter, nameof(TestModel.Value)), typeof(object)),
+            intParameter);
+
+        var stringField = new FieldConfigurationWrapperLookalike<TestModel>("Name", stringExpression);
+        var intField = new FieldConfigurationWrapperLookalike<TestModel>("Value", intExpression);
+        var detectedTypes = new List<Type>();
+
+        var mockRenderer = A.Fake<IFieldRenderer>();
+        A.CallTo(() => mockRenderer.CanRender(A<Type>._, A<IFieldConfiguration<object, object>>._))
+            .ReturnsLazily((Type type, IFieldConfiguration<object, object> _) =>
+            {
+                detectedTypes.Add(type);
+                return true;
+            });
+        A.CallTo(() => mockRenderer.Render(A<IFieldRenderContext<TestModel>>._))
+            .Returns(builder => builder.AddContent(0, "Test"));
+
+        var service = new FieldRendererService(new[] { mockRenderer }, _serviceProvider);
+        var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
+        var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
+
+        // Act — resolve both configurations, in both orders, re-resolving the first again last
+        service.RenderField(model, stringField, onValueChanged, onDependencyChanged);
+        service.RenderField(model, intField, onValueChanged, onDependencyChanged);
+        service.RenderField(model, stringField, onValueChanged, onDependencyChanged);
+
+        // Assert — each configuration always resolves to its own type, never the other's
+        detectedTypes.ShouldBe(new[] { typeof(string), typeof(int), typeof(string) });
+    }
+
+    private class ModelWithPublicField
+    {
+        public int Count;
+    }
+
     public enum TestEnum
     {
         Active,
