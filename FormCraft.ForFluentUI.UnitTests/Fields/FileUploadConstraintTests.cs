@@ -68,11 +68,14 @@ public class FileUploadConstraintTests : FluentUITestBase
             .Add(c => c.Model, new UploadModel())
             .Add(c => c.Configuration, config));
 
-        // Assert
+        // Assert - both the configured values (not just each other, which two independent wrongs
+        // could also satisfy) and parity between the two components.
         var inputs = component.FindComponents<FluentInputFile>();
         inputs.Count.ShouldBe(2);
-        inputs[0].Instance.Accept.ShouldBe(inputs[1].Instance.Accept);
-        inputs[0].Instance.MaximumFileSize.ShouldBe(inputs[1].Instance.MaximumFileSize);
+        inputs[0].Instance.Accept.ShouldBe(".pdf");
+        inputs[0].Instance.MaximumFileSize.ShouldBe(2 * 1024 * 1024L);
+        inputs[1].Instance.Accept.ShouldBe(".pdf");
+        inputs[1].Instance.MaximumFileSize.ShouldBe(2 * 1024 * 1024L);
     }
 
     /// <summary>Model with single- and multiple-file fields.</summary>

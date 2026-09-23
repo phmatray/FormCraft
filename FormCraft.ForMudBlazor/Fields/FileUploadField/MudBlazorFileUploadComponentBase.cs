@@ -6,7 +6,8 @@ namespace FormCraft.ForMudBlazor;
 
 /// <summary>
 /// Shared base for the single- and multiple-file upload components, holding the required-marking
-/// rule the two have to apply identically (#262).
+/// rule the two have to apply identically (#262), and the constraint resolution both consume so
+/// they cannot each pick their own reading of <c>FileUploadConfiguration</c> (#340).
 /// </summary>
 /// <remarks>
 /// <para>

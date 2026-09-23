@@ -60,6 +60,8 @@ public static class UploadConstraintResolver
             return configuration.MaxFiles;
         }
 
+        // ponytail: reuses the size reader and narrows to int; a raw MaxFiles attribute bigger than
+        // int.MaxValue truncates rather than throwing, but a real file count never approaches that.
         var size = GetRawSize(attributes, rawKeys);
         return size.HasValue ? (int)size.Value : null;
     }

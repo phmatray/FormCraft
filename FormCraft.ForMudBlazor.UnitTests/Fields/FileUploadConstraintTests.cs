@@ -87,6 +87,33 @@ public class FileUploadConstraintTests : MudBlazorTestBase
         component.Instance.MaxFiles.ShouldBe(10);
     }
 
+    [Fact]
+    public void Single_File_Upload_Should_Resolve_Configured_ShowPreview_And_EnableDragDrop()
+    {
+        // Arrange - the rest of FileUploadConfiguration this component never read either (only
+        // Accept/MaxFileSize were pinned above); ShowPreview/EnableDragDrop went through the same
+        // unread raw-key path.
+        var model = new TestModel();
+        var component = RenderStandaloneSingleUpload(model, f => f
+            .AsFileUpload(showPreview: false, enableDragDrop: false));
+
+        // Assert
+        component.Instance.ShowPreview.ShouldBeFalse();
+        component.Instance.EnableDragDrop.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Single_File_Upload_Should_Fall_Back_To_The_Raw_Accept_Key_When_No_Configuration_Was_Written()
+    {
+        // Arrange - a hand-written .WithAttribute("Accept", ...) call, with no .AsFileUpload at all;
+        // the fallback half of the resolver, not the FileUploadConfiguration half.
+        var model = new TestModel();
+        var component = RenderStandaloneSingleUpload(model, f => f.WithAttribute("Accept", ".png"));
+
+        // Assert
+        component.Instance.Accept.ShouldBe(".png");
+    }
+
     private IRenderedComponent<MudBlazorFileUploadFieldComponent<TestModel>> RenderStandaloneSingleUpload(
         TestModel model,
         Action<FieldBuilder<TestModel, IBrowserFile?>> configure)
