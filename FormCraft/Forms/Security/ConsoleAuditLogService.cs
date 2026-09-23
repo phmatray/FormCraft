@@ -65,8 +65,8 @@ public class ConsoleAuditLogService : IAuditLogService
             return entry;
         }
 
-        var isFieldExcluded = entry.FieldName != null && excludedFields.Contains(entry.FieldName);
-        var hasExcludedAdditionalData = entry.AdditionalData.Keys.Any(excludedFields.Contains);
+        var isFieldExcluded = AuditLogConfiguration.Matches(excludedFields, entry.FieldName);
+        var hasExcludedAdditionalData = entry.AdditionalData.Keys.Any(key => AuditLogConfiguration.Matches(excludedFields, key));
         if (!isFieldExcluded && !hasExcludedAdditionalData)
         {
             return entry;
@@ -86,7 +86,7 @@ public class ConsoleAuditLogService : IAuditLogService
             NewValue = isFieldExcluded && entry.NewValue != null ? RedactedValue : entry.NewValue,
             AdditionalData = entry.AdditionalData.ToDictionary(
                 kvp => kvp.Key,
-                kvp => excludedFields.Contains(kvp.Key) ? RedactedValue : kvp.Value)
+                kvp => AuditLogConfiguration.Matches(excludedFields, kvp.Key) ? RedactedValue : kvp.Value)
         };
     }
 }
