@@ -173,8 +173,9 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
     /// Runs one validation pass over a collection field and returns both message shapes.
     /// </summary>
     /// <remarks>
-    /// Replaces the pair of calls this method used to make. <c>ValidateAllAsync</c> is non-generic in
-    /// its return type precisely so it can be invoked reflectively here without knowing the item type.
+    /// Replaces the pair of calls this method used to make. <see cref="CollectionValidationResult" /> is
+    /// non-generic precisely so <c>GetInvoker</c> can return it through <see cref="ICollectionValidator" />
+    /// without knowing the item type — a typed interface call now, not a reflective invoke (#344).
     /// </remarks>
     private Task<CollectionValidationResult> ValidateCollectionAsync(TModel model, ICollectionFieldConfigurationBase collectionField)
         => GetInvoker(collectionField).ValidateAllAsync(model!, ServiceProvider);
