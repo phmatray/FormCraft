@@ -3,25 +3,25 @@ using System.Text.RegularExpressions;
 namespace FormCraft.UnitTests.Ci;
 
 /// <summary>
-/// Guards <c>CLAUDE.md</c> against VSTest-era test invocations (#299). The test projects run on
-/// Microsoft.Testing.Platform (<c>OutputType=Exe</c> + <c>UseMicrosoftTestingPlatformRunner=true</c>),
-/// which <b>ignores</b> VSTest options: <c>--filter</c> arrives as the MSBuild property
-/// <c>VSTestTestCaseFilter</c> and <c>--collect:</c> as <c>VSTestCollect</c>, both discarded with a
-/// single <c>MTP0001</c> build warning.
+/// Guards <c>CLAUDE.md</c> against VSTest-era test invocations that do not work (#299, #371). The
+/// test projects run on Microsoft.Testing.Platform (<c>OutputType=Exe</c> +
+/// <c>UseMicrosoftTestingPlatformRunner=true</c>), and <c>dotnet test</c> runs them in the SDK's
+/// native MTP mode (<c>global.json</c>, #371).
 /// </summary>
 /// <remarks>
 /// <para>
-/// The failure is <b>silent and green</b>, which is why it needs a guard rather than a reader. A
-/// filtered run executes the <i>entire</i> suite and still prints <c>Passed!</c> with exit <c>0</c>;
-/// a <c>--collect:"XPlat Code Coverage"</c> run writes <b>no coverage file at all</b> and also exits
-/// <c>0</c>. Nothing in either outcome looks like a mistake, so the stale instruction survives every
-/// casual read — it did survive, in the file auto-loaded into every session, until #277 measured it.
+/// <b>What is still broken, re-measured under native mode (#371).</b> The MSBuild-property form
+/// (<c>-p:VSTestTestCaseFilter=…</c>) is <b>silent and green</b>: the whole project runs
+/// (<c>total: 914</c>), exit <c>0</c>, and — unlike under the old VSTest bridge, which at least warned
+/// <c>MTP0001</c> — nothing is printed about it. That is why it needs a guard rather than a reader.
+/// <c>--collect "XPlat Code Coverage"</c> now fails loudly (<c>Zero tests ran</c>, exit <c>5</c>);
+/// still worth keeping out of the always-loaded briefing, since there is no coverage extension for it
+/// to reach.
 /// </para>
 /// <para>
-/// <b>Both spellings are covered.</b> The flag form (<c>--filter</c>, <c>--collect</c>) and the
-/// MSBuild-property form (<c>-p:VSTestTestCaseFilter=…</c>) are equally inert — the property form was
-/// measured for #299 and produced <c>MTP0001</c> with all 158 tests of the target project running.
-/// <see cref="TestReportingTests.BuildScript_Should_Not_Use_DotNetTests_VSTest_Logger_Or_Results_Settings" />
+/// <b>What is no longer guarded.</b> A bare <c>dotnet test --filter "…"</c> was inert under the
+/// bridge (#299) and now really filters (measured: 6 tests for <c>FullyQualifiedName~Gitignore</c>),
+/// so it has left the pattern. <see cref="TestReportingTests.BuildScript_Should_Not_Use_DotNetTests_VSTest_Logger_Or_Results_Settings" />
 /// pins the same class of mistake in <c>build/Build.cs</c>; this class covers the documentation.
 /// </para>
 /// <para>
@@ -62,13 +62,12 @@ public class ClaudeMdTestCommandsTests
         RegexOptions.Compiled);
 
     /// <summary>
-    /// A VSTest option Microsoft.Testing.Platform silently discards, in either spelling.
-    /// <c>(?![-\w])</c> is load-bearing: it lets the working <c>--filter-class</c> /
-    /// <c>--filter-method</c> / <c>--filter-namespace</c> through while still catching a bare
-    /// <c>--filter</c> followed by a space, a quote, or the end of the line.
+    /// A VSTest option that does not work under native MTP mode: <c>--collect</c> (fails, exit 5) or
+    /// any <c>-p:VSTest…</c> MSBuild property (silently ignored). Bare <c>--filter</c> is absent on
+    /// purpose — it filters now (#371).
     /// </summary>
-    private static readonly Regex InertVsTestOption = new(
-        @"--(?:filter(?![-\w])|collect)|[-/]p:VSTest\w+",
+    private static readonly Regex BrokenVsTestOption = new(
+        @"--collect\b|[-/]p:VSTest\w+",
         RegexOptions.Compiled);
 
     private static string ClaudeMdPath => Path.Combine(WorkflowSource.RepoRoot, ClaudeMd);
@@ -114,16 +113,16 @@ public class ClaudeMdTestCommandsTests
     }
 
     [Fact]
-    public void ClaudeMd_Should_Not_Teach_Test_Commands_That_The_Runner_Ignores()
+    public void ClaudeMd_Should_Not_Teach_VSTest_Options_That_Do_Not_Work()
     {
         string[] offenders = TestCommands()
-            .Where(command => InertVsTestOption.IsMatch(command))
+            .Where(command => BrokenVsTestOption.IsMatch(command))
             .ToArray();
 
         offenders.ShouldBeEmpty(
-            $"CLAUDE.md documents {offenders.Length} test command(s) using VSTest options that "
-            + "Microsoft.Testing.Platform ignores (MTP0001) — the whole suite runs, or no coverage file "
-            + "is written, and either way the command exits 0. Use `dotnet test <csproj> -c Release "
+            $"CLAUDE.md documents {offenders.Length} test command(s) using VSTest options that do not "
+            + "work under native MTP mode — a -p:VSTest… property is silently ignored (the whole suite "
+            + "runs, exit 0) and --collect fails with exit 5. Use `dotnet test <csproj> -c Release "
             + "-- --filter-class <FQN>` instead; see .claude/skills/repo-profile.md (Build & test). "
             + $"Offending command(s): {string.Join(" | ", offenders)}");
     }
