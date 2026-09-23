@@ -153,6 +153,215 @@ public class ValidationMessagesLocalizationTests
         });
     }
 
+    // The tests below close gaps a verification-gap review found in the original three tasks:
+    // several default messages (RequiredSelect, RequiredAtLeastOne, InvalidPhone, AmountPositive,
+    // PercentageRange, SpecialCharacterRequired, and the MinLength/MaxLength family) were wired to
+    // ValidationMessages but never had their actual TEXT asserted anywhere — only validator *count*
+    // was. A wrong key, or two swapped resx values, would have shipped undetected.
+
+    [Fact]
+    public void AddDropdownField_Required_Message_Is_French_Under_FrFr_Culture()
+    {
+        WithCulture("fr-FR", () =>
+        {
+            var config = FormBuilder<TestModel>.Create()
+                .AddDropdownField(x => x.Country, "Pays", ("FR", "France"))
+                .Build();
+
+            var field = config.Fields
+                .OfType<FieldConfigurationWrapper<TestModel, string>>()
+                .First(f => f.FieldName == "Country");
+            var validator = field.TypedConfiguration.Validators
+                .OfType<RequiredValidator<TestModel, string>>()
+                .ShouldHaveSingleItem();
+
+            validator.ErrorMessage.ShouldBe("Veuillez sélectionner Pays");
+        });
+    }
+
+    [Fact]
+    public void AddMultipleFileUploadField_Required_Message_Is_French_Under_FrFr_Culture()
+    {
+        WithCulture("fr-FR", () =>
+        {
+            var config = FormBuilder<TestModel>.Create()
+                .AddMultipleFileUploadField(x => x.Documents, "Documents", required: true)
+                .Build();
+
+            var field = config.Fields
+                .OfType<FieldConfigurationWrapper<TestModel, IReadOnlyList<IBrowserFile>>>()
+                .First(f => f.FieldName == "Documents");
+            var validator = field.TypedConfiguration.Validators
+                .OfType<RequiredValidator<TestModel, IReadOnlyList<IBrowserFile>>>()
+                .ShouldHaveSingleItem();
+
+            validator.ErrorMessage.ShouldBe("Au moins un(e) documents est requis(e)");
+        });
+    }
+
+    [Fact]
+    public async Task AddPhoneField_Invalid_Message_Is_French_Under_FrFr_Culture()
+    {
+        await WithCultureAsync("fr-FR", async () =>
+        {
+            var services = A.Fake<IServiceProvider>();
+            var config = FormBuilder<TestModel>.Create()
+                .AddPhoneField(x => x.Phone)
+                .Build();
+
+            var field = config.Fields
+                .OfType<FieldConfigurationWrapper<TestModel, string>>()
+                .First(f => f.FieldName == "Phone");
+            var validator = field.TypedConfiguration.Validators.ShouldHaveSingleItem();
+
+            var result = await validator.ValidateAsync(new TestModel(), "abc", services);
+            result.IsValid.ShouldBeFalse();
+            result.ErrorMessage.ShouldBe("Veuillez saisir un numéro de téléphone valide");
+        });
+    }
+
+    [Fact]
+    public async Task AddCurrencyField_AmountPositive_Message_Is_French_Under_FrFr_Culture()
+    {
+        await WithCultureAsync("fr-FR", async () =>
+        {
+            var services = A.Fake<IServiceProvider>();
+            var config = FormBuilder<TestModel>.Create()
+                .AddCurrencyField(x => x.Amount, "Montant", required: false)
+                .Build();
+
+            var field = config.Fields
+                .OfType<FieldConfigurationWrapper<TestModel, decimal>>()
+                .First(f => f.FieldName == "Amount");
+            var validator = field.TypedConfiguration.Validators.ShouldHaveSingleItem();
+
+            var result = await validator.ValidateAsync(new TestModel(), -1m, services);
+            result.IsValid.ShouldBeFalse();
+            result.ErrorMessage.ShouldBe("Le montant doit être positif");
+        });
+    }
+
+    [Fact]
+    public async Task AddPercentageField_PercentageRange_Message_Is_French_Under_FrFr_Culture()
+    {
+        await WithCultureAsync("fr-FR", async () =>
+        {
+            var services = A.Fake<IServiceProvider>();
+            var config = FormBuilder<TestModel>.Create()
+                .AddPercentageField(x => x.Rate, "Taux", required: false)
+                .Build();
+
+            var field = config.Fields
+                .OfType<FieldConfigurationWrapper<TestModel, decimal>>()
+                .First(f => f.FieldName == "Rate");
+            var validator = field.TypedConfiguration.Validators.ShouldHaveSingleItem();
+
+            var result = await validator.ValidateAsync(new TestModel(), 150m, services);
+            result.IsValid.ShouldBeFalse();
+            result.ErrorMessage.ShouldBe("Le pourcentage doit être compris entre 0 et 100");
+        });
+    }
+
+    [Fact]
+    public async Task AddPasswordField_SpecialCharacterRequired_Message_Is_French_Under_FrFr_Culture()
+    {
+        await WithCultureAsync("fr-FR", async () =>
+        {
+            var services = A.Fake<IServiceProvider>();
+            var config = FormBuilder<TestModel>.Create()
+                .AddPasswordField(x => x.Password)
+                .Build();
+
+            var field = config.Fields
+                .OfType<FieldConfigurationWrapper<TestModel, string>>()
+                .First(f => f.FieldName == "Password");
+            // Validators, in order: Required, MinLength(8), SpecialCharacterRequired.
+            var validator = field.TypedConfiguration.Validators[2];
+
+            // 8 chars, satisfies MinLength — isolates the special-character validator.
+            var result = await validator.ValidateAsync(new TestModel(), "abcdefgh", services);
+            result.IsValid.ShouldBeFalse();
+            result.ErrorMessage.ShouldBe("Doit contenir au moins un caractère spécial");
+        });
+    }
+
+    [Fact]
+    public async Task AddRequiredTextField_Length_Messages_Are_French_Under_FrFr_Culture()
+    {
+        await WithCultureAsync("fr-FR", async () =>
+        {
+            var services = A.Fake<IServiceProvider>();
+            var config = FormBuilder<TestModel>.Create()
+                .AddRequiredTextField(x => x.Bio, "Bio", minLength: 3, maxLength: 5)
+                .Build();
+
+            var field = config.Fields
+                .OfType<FieldConfigurationWrapper<TestModel, string>>()
+                .First(f => f.FieldName == "Bio");
+            // Validators, in order: Required, MinLength(3), MaxLength(5).
+            var validators = field.TypedConfiguration.Validators;
+
+            var tooShort = await validators[1].ValidateAsync(new TestModel(), "ab", services);
+            tooShort.IsValid.ShouldBeFalse();
+            tooShort.ErrorMessage.ShouldBe("Doit comporter au moins 3 caractères");
+
+            var tooLong = await validators[2].ValidateAsync(new TestModel(), "abcdef", services);
+            tooLong.IsValid.ShouldBeFalse();
+            tooLong.ErrorMessage.ShouldBe("Ne doit pas dépasser 5 caractères");
+        });
+    }
+
+    [Fact]
+    public async Task WithMinLength_WithMaxLength_Default_Messages_Are_English_Under_EnUs_Culture()
+    {
+        // English, not French: MinLengthLong/MaxLengthLong translate identically to MinLength/
+        // MaxLength in French ("long" adds nothing idiomatic), so only the neutral English text —
+        // which keeps the "long" suffix — can tell the two key families apart.
+        await WithCultureAsync("en-US", async () =>
+        {
+            var services = A.Fake<IServiceProvider>();
+            var config = FormBuilder<TestModel>.Create()
+                .AddField(x => x.Bio, field => field.WithMinLength(3).WithMaxLength(5))
+                .Build();
+
+            var field = config.Fields
+                .OfType<FieldConfigurationWrapper<TestModel, string>>()
+                .First(f => f.FieldName == "Bio");
+            var validators = field.TypedConfiguration.Validators;
+            validators.Count.ShouldBe(2);
+
+            var tooShort = await validators[0].ValidateAsync(new TestModel(), "ab", services);
+            tooShort.ErrorMessage.ShouldBe("Must be at least 3 characters long");
+
+            var tooLong = await validators[1].ValidateAsync(new TestModel(), "abcdef", services);
+            tooLong.ErrorMessage.ShouldBe("Must be no more than 5 characters long");
+        });
+    }
+
+    [Fact]
+    public async Task AddFieldsFromAttributes_MinLength_MaxLength_Messages_Are_French_Under_FrFr_Culture()
+    {
+        await WithCultureAsync("fr-FR", async () =>
+        {
+            var services = A.Fake<IServiceProvider>();
+            var config = FormBuilder<AttributeLengthTestModel>.Create()
+                .AddFieldsFromAttributes()
+                .Build();
+
+            var field = config.Fields
+                .OfType<FieldConfigurationWrapper<AttributeLengthTestModel, string>>()
+                .First(f => f.FieldName == "Bio");
+            var validators = field.TypedConfiguration.Validators;
+            validators.Count.ShouldBe(2);
+
+            var tooShort = await validators[0].ValidateAsync(new AttributeLengthTestModel(), "ab", services);
+            tooShort.ErrorMessage.ShouldBe("Doit comporter au moins 3 caractères");
+
+            var tooLong = await validators[1].ValidateAsync(new AttributeLengthTestModel(), "abcdef", services);
+            tooLong.ErrorMessage.ShouldBe("Ne doit pas dépasser 5 caractères");
+        });
+    }
+
     [Fact]
     public void Every_Neutral_Resource_Key_Has_A_Non_Empty_French_Value()
     {
@@ -225,6 +434,13 @@ public class ValidationMessagesLocalizationTests
     {
         public int Age { get; set; }
         public string Email { get; set; } = "";
+        public string Country { get; set; } = "";
+        public IReadOnlyList<IBrowserFile> Documents { get; set; } = new List<IBrowserFile>();
+        public string Phone { get; set; } = "";
+        public decimal Amount { get; set; }
+        public decimal Rate { get; set; }
+        public string Password { get; set; } = "";
+        public string Bio { get; set; } = "";
     }
 
     public class AttributeTestModel
@@ -232,6 +448,14 @@ public class ValidationMessagesLocalizationTests
         [Required]
         [TextField("Nom")]
         public string Name { get; set; } = "";
+    }
+
+    public class AttributeLengthTestModel
+    {
+        [TextField("Bio")]
+        [MinLength(3)]
+        [MaxLength(5)]
+        public string Bio { get; set; } = "";
     }
 
     public class CollectionTestModel
