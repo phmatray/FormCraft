@@ -511,23 +511,22 @@ public class MyTests : MudBlazorTestBase  // Inherits from BunitContext
 // 1. Create renderer class
 public class ColorPickerRenderer : CustomFieldRendererBase<string>
 {
-    protected override RenderFragment RenderField(IFieldRenderContext<string> context)
+    public override RenderFragment Render(IFieldRenderContext context)
     {
         return builder => {
             builder.OpenComponent<MudColorPicker>(0);
-            builder.AddAttribute(1, "Value", context.Value);
-            builder.AddAttribute(2, "ValueChanged", context.ValueChanged);
+            builder.AddAttribute(1, "Value", GetValue(context));
+            builder.AddAttribute(2, "ValueChanged", EventCallback.Factory.Create<string>(this, v => SetValue(context, v)));
             builder.CloseComponent();
         };
     }
 }
 
-// 2. Register globally in DI
-services.AddFormCraft(options => {
-    options.RegisterRenderer(new ColorPickerRenderer());
-});
+// 2. Register it in DI if it needs constructor-injected dependencies
+// (FieldRendererService resolves CustomRendererType via IServiceProvider.GetService)
+services.AddScoped<ColorPickerRenderer>();
 
-// 3. Or use inline
+// 3. Attach it to a field
 .WithCustomRenderer<ColorPickerRenderer>()
 ```
 
