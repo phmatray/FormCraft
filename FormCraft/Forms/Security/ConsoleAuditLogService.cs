@@ -65,7 +65,11 @@ public class ConsoleAuditLogService : IAuditLogService
             return entry;
         }
 
-        var isFieldExcluded = AuditLogConfiguration.Matches(excludedFields, entry.FieldName);
+        // FieldName is a bare last member, so a full-path entry ending in it ("Address.City" for
+        // "City") also redacts: it cannot tell which nested field it came from (#417, fail closed).
+        var isFieldExcluded = AuditLogConfiguration.Matches(excludedFields, entry.FieldName) ||
+            (entry.FieldName != null &&
+             excludedFields.Any(e => e.EndsWith("." + entry.FieldName, StringComparison.Ordinal)));
         var hasExcludedAdditionalData = entry.AdditionalData.Keys.Any(key => AuditLogConfiguration.Matches(excludedFields, key));
         if (!isFieldExcluded && !hasExcludedAdditionalData)
         {

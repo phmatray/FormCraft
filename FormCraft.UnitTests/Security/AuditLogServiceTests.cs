@@ -280,6 +280,30 @@ public class AuditLogServiceTests
         logged.ShouldNotContain("[REDACTED]");
     }
 
+    [Fact]
+    public async Task Should_Redact_A_Bare_FieldName_When_A_Full_Path_Exclusion_Ends_In_It()
+    {
+        // FieldName is the bare last member, so it cannot tell Address.City from Work.City:
+        // a full-path exclusion ending in it must redact rather than guess (fail closed).
+        var capturingLogger = new CapturingLogger();
+        var service = new ConsoleAuditLogService(
+            capturingLogger,
+            new AuditLogConfiguration { ExcludedFields = { "Address.City" } });
+
+        await service.LogAsync(new AuditLogEntry
+        {
+            EventType = AuditEventTypes.FieldChanged,
+            FormId = "TestForm",
+            FieldName = "City",
+            OldValue = "Springfield",
+            NewValue = "Shelbyville"
+        });
+
+        var logged = capturingLogger.Messages.ShouldHaveSingleItem();
+        logged.ShouldNotContain("Springfield");
+        logged.ShouldNotContain("Shelbyville");
+    }
+
     private static async Task<string> LogAdditionalDataAsync(string[] excludedFields, Dictionary<string, object?> additionalData)
     {
         var capturingLogger = new CapturingLogger();

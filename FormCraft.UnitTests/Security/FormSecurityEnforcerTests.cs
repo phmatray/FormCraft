@@ -224,6 +224,30 @@ public class FormSecurityEnforcerTests
         entry.AdditionalData["Work.City"].ShouldBe("Antwerp");
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task LogSubmittedAsync_Should_Redact_Every_Nested_Field_Ending_In_A_Bare_Listed_Name(bool viaEncryptedFields)
+    {
+        var config = BuildTwoCitiesConfig(s => s.EnableAuditLogging(audit =>
+        {
+            if (!viaEncryptedFields)
+            {
+                audit.ExcludedFields.Add("City");
+            }
+        }));
+        if (viaEncryptedFields)
+        {
+            config.Security!.EncryptedFields.Add("City");
+        }
+
+        await CreateEnforcer().LogSubmittedAsync(config, TwoCitiesModel(), null);
+
+        var entry = _auditEntries.ShouldHaveSingleItem();
+        entry.AdditionalData["Address.City"].ShouldBe("[REDACTED]");
+        entry.AdditionalData["Work.City"].ShouldBe("[REDACTED]");
+    }
+
     [Fact]
     public async Task LogSubmittedAsync_Should_Redact_A_Nested_Field_Listed_By_Full_Path_In_EncryptedFields()
     {
