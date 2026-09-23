@@ -665,8 +665,11 @@ public class TestReportingTests
         // hand instead of calling `ResultsDirectoryFor` like the run and the guard above already
         // do — a comment claiming "one home for the path" that the code did not actually hold.
         // Pinned here so a future edit cannot quietly reintroduce the hand-rolled composition.
+        // The list's own identifier is wildcarded, per this method's own policy stated above
+        // (spec-review finding, #339): a hardcoded `failed.Select` would redden on the same
+        // rename this test already promises not to mind.
         build.ShouldMatch(
-            @"failed\.Select\(\s*\w+\s*=>\s*\$""\{[\w.]*Name\}[\s\S]{0,80}?ResultsDirectoryFor\(\w+\)",
+            @"\w+\.Select\(\s*\w+\s*=>\s*\$""\{[\w.]*Name\}[\s\S]{0,80}?ResultsDirectoryFor\(\w+\)",
             "the \"did not complete\" summary does not get its directory from ResultsDirectoryFor");
     }
 
