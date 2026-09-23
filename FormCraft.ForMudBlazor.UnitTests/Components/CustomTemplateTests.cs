@@ -305,9 +305,10 @@ public class CustomTemplateTests : MudBlazorTestBase
     {
         // Arrange - Nested is null, so the write throws the same NullReferenceException the read
         // side already throws (#330). UpdateFieldValue must catch it, report it through the same
-        // per-field latch, and never let it escape this event callback (#396). The initial render
-        // already reads (and fails to read) the value, so the latch is consumed before ValueChanged
-        // ever fires - the write must not add a second warning for the same binding.
+        // per-field latch, and never let it escape this event callback (#396). The template body
+        // reads context.Value, so the initial render already reads (and fails to read) the value -
+        // that consumes the latch before ValueChanged ever fires, and the write must not add a
+        // second warning for the same binding.
         var logs = new CapturingLoggerProvider();
         Services.AddLogging(builder => builder.AddProvider(logs));
 
@@ -320,7 +321,7 @@ public class CustomTemplateTests : MudBlazorTestBase
                 .WithCustomTemplate(context =>
                 {
                     captured = context;
-                    return builder => builder.AddContent(0, "template");
+                    return builder => builder.AddContent(0, $"Custom: {context.Value}");
                 }))
             .Build();
 
@@ -330,10 +331,14 @@ public class CustomTemplateTests : MudBlazorTestBase
 
         captured.ShouldNotBeNull();
 
+        // The read already fired (and warned) during the render above.
+        logs.Warnings.Count.ShouldBe(1);
+
         // Act - must not throw.
         await component.InvokeAsync(() => captured!.ValueChanged.InvokeAsync("unreachable"));
 
-        // Assert - exactly one warning total for this binding (the read already warned once).
+        // Assert - still exactly one warning total for this binding: the write's own failure hits
+        // the same latch slot the read already consumed, so it logs nothing new.
         var warnings = logs.Warnings;
         warnings.Count.ShouldBe(1);
         warnings[0].ShouldContain("Nested value");

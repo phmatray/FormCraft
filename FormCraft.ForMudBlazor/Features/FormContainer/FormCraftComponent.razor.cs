@@ -328,7 +328,14 @@ public partial class FormCraftComponent<TModel>
 
         if (OnFieldChanged.HasDelegate)
         {
-            await OnFieldChanged.InvokeAsync((fieldName, value));
+            // Report what actually landed on the model, not the raw pre-coercion value the caller
+            // passed in - FieldValueSetterCache converts to the target member's type before
+            // assigning, and reading it back through the same compiled getter the render path uses
+            // (FieldValueGetterCache) is simpler and more accurate than re-deriving that conversion
+            // here (it reflects the true post-write state rather than merely what conversion was
+            // attempted). Matches the old reflection-based UpdateFieldValue, which reported its own
+            // Convert.ChangeType result rather than the caller's raw value.
+            await OnFieldChanged.InvokeAsync((fieldName, FieldValueGetterCache<TModel>.GetOrCompile(field)(Model)));
         }
 
         // Handle dependencies
