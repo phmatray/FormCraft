@@ -648,14 +648,26 @@ public class TestReportingTests
         // The list's own identifier is wildcarded along with the lambda parameter, per the policy
         // stated two blocks above: renaming `failed` — arguably an improvement, since its comment
         // says it cannot tell a red suite from a crashed host — is a refactor this has no business
-        // reddening on. What is required is that a negated membership test on the project's name
-        // still stands between the project set and the glob.
+        // reddening on. What is required is that a negated membership test on the project itself
+        // still stands between the project set and the glob. #339 moved `failed` from
+        // `List<string>` to `List<Project>` so the failure summary could share `ResultsDirectoryFor`
+        // with this guard instead of hand-rolling the same path a third time, so the membership test
+        // is no longer anchored on `.Name` — asserting `.Name` here would reject the fix this issue
+        // asks for.
         var build = WorkflowSource.BuildScript;
 
         build.ShouldMatch(
-            @"\.Where\(\s*\w+\s*=>\s*!\w+\.Contains\(\w+\.Name\)\)[\s\S]{0,400}?ReporterBackedReports",
+            @"\.Where\(\s*\w+\s*=>\s*!\w+\.Contains\(\w+\)\)[\s\S]{0,400}?ReporterBackedReports",
             "the report guard no longer excludes projects that did not complete, so a crashed suite "
             + "is reported twice — once as failed, once as a reporter regression that never happened");
+
+        // #339: the "did not complete" summary used to compose `TestResultsDirectory / name` by
+        // hand instead of calling `ResultsDirectoryFor` like the run and the guard above already
+        // do — a comment claiming "one home for the path" that the code did not actually hold.
+        // Pinned here so a future edit cannot quietly reintroduce the hand-rolled composition.
+        build.ShouldMatch(
+            @"failed\.Select\(\s*\w+\s*=>\s*\$""\{[\w.]*Name\}[\s\S]{0,80}?ResultsDirectoryFor\(\w+\)",
+            "the \"did not complete\" summary does not get its directory from ResultsDirectoryFor");
     }
 
     [Fact]
