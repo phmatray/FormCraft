@@ -92,20 +92,24 @@ class Build : NukeBuild
             // build output under .claude/worktrees/, where this repo keeps other agents' full
             // checkouts. Staying inside solution projects is what bounds the blast radius.
             //
-            // ⚠️ _build is in FormCraft.sln, so this deletes build/bin and build/obj — the output
-            // the running Nuke process itself was launched from (build.sh/ps1 do
-            // `dotnet run --project build/_build.csproj --no-build`). On macOS/Linux the unlink
-            // succeeds and `Clean` exits 0 (measured). On Windows a loaded image is locked by the
-            // OS, so this may throw instead; CI is ubuntu-only and would not catch it. Sweeping
-            // every project is #275's explicit decision — its spec rules the _build sweep "correct
-            // and harmless" — so it is kept rather than quietly narrowed, and the Windows exposure
-            // is tracked as a follow-up on the PR instead.
+            // Except the build project itself (#310): _build is in FormCraft.sln, and build.sh/ps1
+            // launch this very process with `dotnet run --project build/_build.csproj --no-build`,
+            // so without the exclusion this deletes build/bin and build/obj while they are still the
+            // running Nuke process's own output. POSIX tolerates unlinking an open file — measured,
+            // `./build.sh Clean` exited 0 either way — but a loaded PE image is locked on Windows,
+            // and even on POSIX a chained `Clean Compile` could throw resolving a not-yet-loaded
+            // Nuke/Serilog type, plus every next `./build.sh` paid a full restore of the build
+            // project for output nobody asked to have cleaned. BuildProjectDirectory is the property
+            // Nuke already exposes for "the directory this build is running from", so the exclusion
+            // states the reason rather than a project name and survives a rename of _build. #288's
+            // own guard anticipated exactly this predicate and permits `.Where(`.
             //
             // Materialised before deleting: SelectMany is lazy, so without ToList each project's
             // glob would run after earlier projects had already been deleted. Harmless on today's
             // flat layout, wrong the moment one project directory nests inside another.
             Solution.AllProjects
                 .Select(project => project.Directory)
+                .Where(directory => directory != BuildProjectDirectory)
                 .SelectMany(directory => directory.GlobDirectories("**/bin", "**/obj"))
                 .ToList()
                 .ForEach(directory => directory.DeleteDirectory());
