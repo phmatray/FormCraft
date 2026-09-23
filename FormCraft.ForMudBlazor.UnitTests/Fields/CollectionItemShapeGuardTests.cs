@@ -266,9 +266,13 @@ public class CollectionItemShapeGuardTests
     [Fact]
     public void IsSharedShape_Should_Separate_Namespace_Scope_From_Nested()
     {
-        // Arrange & Act - the ownership rule, and the reason there is no hand-maintained roster of
-        // fixture types: a copy is `private`, which in C# means nested, which is what lets it shadow.
-        // A roster would misreport the fixture itself the day a seventh model joined it.
+        // Arrange & Act - these three happen to agree under both the current rule (declared in the
+        // fixture's own assembly, #343) and the retired one (namespace scope vs nested), because
+        // OrderItem/TwoCollectionModel live in the fixture's assembly AND are namespace-scope, while
+        // SingleStringA is both nested AND declared outside it. The case that tells the two rules
+        // apart - namespace-scope but NOT in the fixture's assembly - is
+        // IsSharedShape_Should_Require_Declaration_In_The_Fixture_Assembly_Not_Just_Namespace_Scope
+        // below; that one only passes under the current rule.
         CollectionItemShapeGuard.IsSharedShape(typeof(OrderItem)).ShouldBeTrue();
         CollectionItemShapeGuard.IsSharedShape(typeof(TwoCollectionModel)).ShouldBeTrue();
         CollectionItemShapeGuard.IsSharedShape(typeof(SingleStringA)).ShouldBeFalse();

@@ -28,4 +28,20 @@ public class CollectionItemShapeGuardTests
             + "genuinely warranted, pass it to FindOffenders' allowlist with the reason:\n  "
             + string.Join("\n  ", offenders.Select(o => o.Detail)));
     }
+
+    [Fact]
+    public void TestAssemblyTypes_Should_Scan_This_Assembly_As_Well_As_The_Fixtures()
+    {
+        // Arrange & Act - the fact above asserts an EMPTY offender list, which passes just as
+        // happily when this assembly was never actually scanned (e.g. a `typeof(...).Assembly`
+        // typo naming the guard's own assembly instead of this test class's - a plausible slip
+        // given how similar the two names are). Pin that the union really does reach both sides,
+        // so a mistyped call site fails loudly here instead of passing silently above.
+        var types = CollectionItemShapeGuard.TestAssemblyTypes(typeof(CollectionItemShapeGuardTests).Assembly)
+            .ToList();
+
+        // Assert
+        types.ShouldContain(typeof(CollectionItemShapeGuardTests), "this assembly's own types must be in the universe");
+        types.ShouldContain(typeof(OrderModel), "the fixture's shared types must be in the universe too");
+    }
 }

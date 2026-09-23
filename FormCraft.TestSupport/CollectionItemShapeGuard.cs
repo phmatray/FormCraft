@@ -115,6 +115,12 @@ public static class CollectionItemShapeGuard
     /// model added to the fixture tomorrow is shared by construction — nothing to remember, nothing to
     /// enrol — which is the property the old rule had and this one keeps.
     /// </para>
+    /// <para>
+    /// ⚠️ The trade: this treats <b>every</b> type declared in <c>FormCraft.TestSupport</c> as shared,
+    /// not just the fixture's own models. That is fine today — the project holds nothing else — but it
+    /// means the invariant "this project only ever declares fixture shapes" is enforced by convention,
+    /// not by this method. An unrelated helper type added here later would silently read as shared too.
+    /// </para>
     /// </remarks>
     public static bool IsSharedShape(Type type) => type.Assembly == typeof(CollectionItemFixture).Assembly;
 
