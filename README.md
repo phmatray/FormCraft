@@ -58,6 +58,17 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **`RenderField` no longer resolves a field's actual type by reflection on every render (#314).**
+  Identifying `FieldConfigurationWrapper<TModel, TValue>` used to test whether a type's *name*
+  contained the substring `"FieldConfigurationWrapper"`, then reach its `GetActualFieldType()`
+  method through `Type.GetMethod` + `MethodInfo.Invoke` — redundant work on a path collection items
+  multiply by row, and a substring test a renamed or look-alike type could silently defeat. The
+  wrapper now identifies itself through an internal marker interface (a plain, non-reflective
+  dispatch), and the resolved type is cached per field configuration instance, alongside the
+  compiled value getter #269/#312 already cache the same way. No behaviour change: every existing
+  field type still resolves to the same renderer, including for collection item rows that share one
+  configuration instance across all of them.
+
 - **The multiple-file upload no longer lists every selected file twice (#338).** `MudFileUpload` renders its own built-in file list *in addition to* the `CustomContent` drop zone FormCraft supplies for its own chips — the two are independent, so each selected file appeared once as FormCraft's chip and once again as MudBlazor's, each with its own close button. Only FormCraft's routed through `RemoveFile`, and therefore through #318's focus-restore; MudBlazor's own ran its own internal removal instead.
 
   MudBlazor's duplicate is now suppressed at the source, via `MudFileUpload<T>.SelectedTemplate` — any non-null template (even an empty one) replaces its default chip list, while `CustomContent` is untouched. A bare `.mud-chip-close-button` is unambiguous again as a result. The single-file component duplicated too, but asymmetrically: its own chip never carried a close button at all, so removing MudBlazor's duplicate there removes an inconsistent, unrestored-focus removal path rather than a control the field promised.
