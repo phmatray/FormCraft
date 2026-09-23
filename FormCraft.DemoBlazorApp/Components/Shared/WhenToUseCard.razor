@@ -2,15 +2,10 @@
 
 @if (!string.IsNullOrWhiteSpace(Text))
 {
-    <MudCard Elevation="1" Class="mt-3">
-        <MudCardContent>
-            <MudText Typo="Typo.h6" Class="mb-2 d-flex align-center">
-                <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Class="me-2" Color="Color.Info" />
-                When to Use
-            </MudText>
-            <MudText Typo="Typo.body2">@Text</MudText>
-        </MudCardContent>
-    </MudCard>
+    <section class="fc-note fc-note--when" aria-labelledby="when-to-use">
+        <h2 class="fc-note__title" id="when-to-use">When to use it</h2>
+        <p class="fc-pull">@Text</p>
+    </section>
 }
 
 @code {

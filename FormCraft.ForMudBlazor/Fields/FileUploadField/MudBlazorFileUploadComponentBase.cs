@@ -6,7 +6,8 @@ namespace FormCraft.ForMudBlazor;
 
 /// <summary>
 /// Shared base for the single- and multiple-file upload components, holding the required-marking
-/// rule the two have to apply identically (#262).
+/// rule the two have to apply identically (#262), and the constraint resolution both consume so
+/// they cannot each pick their own reading of <c>FileUploadConfiguration</c> (#340).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -39,6 +40,14 @@ public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldCo
     /// </summary>
     protected bool NativeRequiredValue =>
         NativeRequired.Resolve(Context.Field.AdditionalAttributes, IsRequired);
+
+    /// <summary>
+    /// The <see cref="FileUploadConfiguration"/> <c>.AsFileUpload</c>/<c>.AsMultipleFileUpload</c>
+    /// write, resolved once here so both upload components read constraints through the same path
+    /// (#340) instead of each picking its own keys.
+    /// </summary>
+    protected FileUploadConfiguration? UploadConfiguration =>
+        UploadConstraintResolver.GetConfiguration(Context.Field.AdditionalAttributes);
 
     /// <summary>
     /// Whether the component renders its own <c>&lt;MudText&gt;</c> label at all.

@@ -1,37 +1,92 @@
 @namespace FormCraft.DemoBlazorApp.Components.Shared
 @using FormCraft.DemoBlazorApp.Components.Shared.Navigation
+@inject IDemoRegistry DemoRegistry
+@inject NavigationManager Navigation
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
-    @if (ShowBreadcrumb && !string.IsNullOrEmpty(DemoId))
-    {
-        <DemoBreadcrumb DemoId="@DemoId" />
-    }
-
-    <DemoPageHeader Title="@Title" Icon="@Icon" Description="@Description" />
-
-    <MudPaper Elevation="2" Class="pa-0">
-        <MudTabs Elevation="0" Rounded="false">
-            <MudTabPanel PanelClass="pa-6" Text="Form Demo" Icon="@FormDemoIcon">
-                @FormDemoContent
-            </MudTabPanel>
-
-            <MudTabPanel PanelClass="pa-6" Text="Code Example" Icon="@Icons.Material.Filled.Code">
-                @CodeExampleContent
-            </MudTabPanel>
-
-            <MudTabPanel PanelClass="pa-6" Text="Guidelines" Icon="@Icons.Material.Filled.Lightbulb">
-                @GuidelinesContent
-            </MudTabPanel>
-
-            @if (AdditionalTabs != null)
+@*
+    Every demo page: its source beside the live form, never behind a tab.
+    FormDemoSection routes its side panel and notes into the two SectionOutlets below, so the
+    form keeps a light panel of its own and the notes read on the dark stage.
+*@
+<div class="fc-wrap fc-demo">
+    <nav class="fc-side fc-demo__side" aria-label="Demos">
+        <select class="fc-select fc-side__select" aria-label="Go to a demo" @onchange="GoToDemo">
+            @foreach (var level in Levels)
             {
-                @AdditionalTabs
+                <optgroup label="@DemoRegistry.GetLevelInfo(level).Name">
+                    @foreach (var demo in DemoRegistry.GetDemosByLevel(level))
+                    {
+                        <option value="@demo.Id" selected="@(demo.Id == DemoId)">@demo.Title</option>
+                    }
+                </optgroup>
             }
-        </MudTabs>
-    </MudPaper>
+        </select>
 
-    @if (ShowPrevNextNav && !string.IsNullOrEmpty(DemoId))
-    {
-        <DemoPrevNextNavigation DemoId="@DemoId" />
-    }
-</MudContainer>
+        <div class="fc-side__nav">
+            @for (var l = 0; l < Levels.Length; l++)
+            {
+                var level = Levels[l];
+                var demos = DemoRegistry.GetDemosByLevel(level);
+                <div class="fc-side__group">
+                    <p class="fc-side__label">
+                        <span class="fc-lv" aria-hidden="true">
+                            @for (var d = 0; d < 3; d++)
+                            {
+                                <i class="@(d <= l ? "is-on" : null)"></i>
+                            }
+                        </span>
+                        @DemoRegistry.GetLevelInfo(level).Name
+                    </p>
+                    @foreach (var demo in demos)
+                    {
+                        <NavLink href="@demo.Id" Match="NavLinkMatch.All">
+                            @demo.Title
+                            @if (demo.IsLevelEntryPoint && l == 0)
+                            {
+                                <span class="fc-badge-start">Start</span>
+                            }
+                        </NavLink>
+                    }
+                </div>
+            }
+        </div>
+    </nav>
+
+    <article class="fc-demo__main">
+        @if (ShowBreadcrumb && !string.IsNullOrEmpty(DemoId))
+        {
+            <DemoBreadcrumb DemoId="@DemoId" />
+        }
+
+        <DemoPageHeader Title="@Title" Icon="@Icon" Description="@Description" />
+
+        <div class="fc-stage">
+            <div class="fc-stage__code">
+                @CodeExampleContent
+            </div>
+
+            <div class="fc-stage__form">
+                <div class="fc-formpanel">
+                    @FormDemoContent
+                </div>
+                <div class="fc-stage__aside">
+                    <SectionOutlet SectionName="demo-aside" />
+                </div>
+            </div>
+        </div>
+
+        <div class="fc-notes fc-mud-dark">
+            <SectionOutlet SectionName="demo-notes" />
+        </div>
+
+        <section class="fc-dsec" aria-labelledby="demo-api">
+            <h2 class="fc-h2" id="demo-api">The API in this demo</h2>
+            @GuidelinesContent
+        </section>
+
+        @if (ShowPrevNextNav && !string.IsNullOrEmpty(DemoId))
+        {
+            <DemoPrevNextNavigation DemoId="@DemoId" />
+        }
+    </article>
+</div>

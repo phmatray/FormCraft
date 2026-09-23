@@ -1,13 +1,10 @@
 @page "/not-found"
 @layout MainLayout
 
-<PageTitle>Not found</PageTitle>
+<PageTitle>Page not found · FormCraft</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex align-center justify-center" Style="height: 80vh;">
-    <div class="text-center">
-        <MudIcon Icon="@Icons.Material.Filled.Warning" Style="font-size: 5rem;" Color="Color.Warning" />
-        <MudText Typo="Typo.h3" Class="mt-4">Page Not Found</MudText>
-        <MudText Typo="Typo.body1" Class="mt-2 mb-4">Sorry, the page you're looking for doesn't exist.</MudText>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/">Go to Home</MudButton>
-    </div>
-</MudContainer>
+<section class="fc-wrap fc-notfound">
+    <h1 class="fc-h1">This page does not exist.</h1>
+    <p class="fc-lede">The link may be out of date, or the demo may have moved. Search with <kbd class="fc-kbd">Ctrl K</kbd>, or start from the overview.</p>
+    <a class="fc-btn fc-btn--primary" href="">Back to the overview</a>
+</section>

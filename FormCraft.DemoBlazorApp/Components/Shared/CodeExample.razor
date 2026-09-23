@@ -1,29 +1,23 @@
 @inherits DemoComponentBase
 @inject IJSRuntime JsRuntime
 
-<div @ref="_element">
-    <MudCard Elevation="2" Class="@($"mt-4 {Class}")">
-        <MudCardContent>
-            <div class="d-flex justify-space-between align-center mb-2">
-                <MudText Typo="Typo.h6" Class="d-flex align-items-center">
-                    <MudIcon Icon="@Icons.Material.Filled.Code" Class="me-2 text-info" />
-                    @Title
-                </MudText>
-                <div class="d-flex align-center gap-2">
-                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@GetLanguageLabel()</MudChip>
-                    <MudTooltip Text="@(_copied ? "Copied!" : "Copy to clipboard")">
-                        <MudIconButton
-                            Icon="@(_copied ? Icons.Material.Filled.Check : Icons.Material.Filled.ContentCopy)"
-                            Color="@(_copied ? Color.Success : Color.Default)"
-                            Size="Size.Small"
-                            OnClick="CopyToClipboard" />
-                    </MudTooltip>
-                </div>
-            </div>
-            <MudPaper Class="pa-0" Elevation="1" Style="overflow: hidden;">
-                <pre class="@GetPreClasses()" style="margin: 0;"><code class="language-@Language">@Code</code>@if (ShowLineNumbers)
-{<span class="line-numbers-rows">@((MarkupString)GetLineNumbersHtml())</span>}</pre>
-            </MudPaper>
-        </MudCardContent>
-    </MudCard>
+<div class="fc-editor @Class" data-code-host @ref="_element">
+    <div class="fc-editor__tabs">
+        <span class="fc-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="fc-tab is-on">
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4L1.5 8 5 12M11 4l3.5 4-3.5 4" /></svg>
+            @Title
+        </span>
+        <button type="button" class="fc-copy" data-copy-code aria-label="Copy code">
+            <svg class="fc-i" viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="2" /><path d="M15.5 8.5v-3a1 1 0 0 0-1-1h-9a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3" /></svg>
+        </button>
+    </div>
+    @* Keyed on the code: js/code.js rewrites this element's content into lines, so a change must
+       replace the element rather than patch a text node Blazor no longer owns. *@
+    <pre class="fc-code @(ShowLineNumbers ? null : "fc-code--plain")"><code @key="Code" class="language-@Language">@Code</code></pre>
+    <div class="fc-editor__status">
+        <span class="fc-live is-done"><i></i><span>Runs as shown</span></span>
+        <span class="fc-sp"></span>
+        <span>@GetLanguageLabel()</span>
+    </div>
 </div>

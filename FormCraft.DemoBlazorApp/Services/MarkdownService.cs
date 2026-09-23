@@ -3,15 +3,16 @@ using Markdig;
 namespace FormCraft.DemoBlazorApp.Services;
 
 /// <summary>
-/// Provides services for processing Markdown content and integrating with syntax highlighting.
+/// Loads the Markdown documents under <c>wwwroot/docs</c> and renders them to HTML.
 /// </summary>
 public interface IMarkdownService
 {
     /// <summary>
-    /// Converts Markdown text to HTML with syntax highlighting support.
+    /// Converts Markdown text to HTML. Fenced code keeps Markdig's <c>language-*</c> class, which
+    /// <c>wwwroot/js/code.js</c> reads to highlight it.
     /// </summary>
     /// <param name="markdown">The Markdown content to convert.</param>
-    /// <returns>HTML content with Prism.js classes applied for syntax highlighting.</returns>
+    /// <returns>The HTML for the document.</returns>
     string ToHtml(string markdown);
 
     /// <summary>
@@ -43,33 +44,7 @@ public class MarkdownService : IMarkdownService
     }
 
     /// <inheritdoc />
-    public string ToHtml(string markdown)
-    {
-        var html = Markdown.ToHtml(markdown, _pipeline);
-
-        // Post-process to add Prism.js classes
-        html = AddPrismClasses(html);
-
-        return html;
-    }
-
-    private string AddPrismClasses(string html)
-    {
-        // Replace code blocks with Prism.js classes
-        html = html.Replace("<code class=\"language-csharp\"", "<code class=\"language-csharp line-numbers\"");
-        html = html.Replace("<code class=\"language-cs\"", "<code class=\"language-csharp line-numbers\"");
-        html = html.Replace("<code class=\"language-razor\"", "<code class=\"language-razor line-numbers\"");
-        html = html.Replace("<code class=\"language-html\"", "<code class=\"language-markup line-numbers\"");
-        html = html.Replace("<code class=\"language-xml\"", "<code class=\"language-markup line-numbers\"");
-        html = html.Replace("<code class=\"language-json\"", "<code class=\"language-json line-numbers\"");
-        html = html.Replace("<code class=\"language-javascript\"", "<code class=\"language-javascript line-numbers\"");
-        html = html.Replace("<code class=\"language-js\"", "<code class=\"language-javascript line-numbers\"");
-
-        // Add Prism class to pre elements
-        html = html.Replace("<pre><code class=\"language-", "<pre class=\"line-numbers\"><code class=\"language-");
-
-        return html;
-    }
+    public string ToHtml(string markdown) => Markdown.ToHtml(markdown, _pipeline);
 
     /// <inheritdoc />
     public async Task<string> LoadDocumentAsync(string fileName)

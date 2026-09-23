@@ -41,17 +41,27 @@ namespace FormCraft;
 /// <para>
 /// <b>This is the only cache of a compiled value getter — deliberately.</b> #269 introduced an
 /// equivalent one private to <see cref="FieldRendererService" />; #312 retired it in favour of this
-/// one rather than leave two mechanisms for one concept. (Reading a value by reflection is a
-/// separate matter: the adapters' custom-template paths still use
-/// <c>GetProperty</c>/<c>GetValue</c> and do not come through here.) Because both paths key off the same configuration instance, a field
-/// that is rendered <i>and</i> validated now compiles its getter once in total, not once per path.
+/// one rather than leave two mechanisms for one concept. Both adapters' custom-template paths route
+/// through here too since #330 — before that they read the value with per-render
+/// <c>GetProperty</c>/<c>GetValue</c> reflection keyed on <c>FieldName</c>, which is only the
+/// expression's last member (e.g. <c>"Value"</c> for <c>x =&gt; x.Nested.Value</c>) and so silently
+/// failed to resolve — and therefore rendered nothing — for any binding but a direct top-level
+/// property. Because every path keys off the same configuration instance, a field that is rendered
+/// <i>and</i> validated now compiles its getter once in total, not once per path.
 /// The alternative considered and rejected was widening
 /// <see cref="IFieldConfiguration{TModel, TValue}" /> with a compiled-getter member: it would let each
 /// configuration own its memo, but it is a public API change binding on every external implementer,
 /// for no behaviour a per-instance key does not already provide.
 /// </para>
+/// <para>
+/// <b>Public rather than internal</b> — like <see cref="AdapterRegistration"/> and
+/// <see cref="NativeRequired"/>, this is core machinery a first-party adapter assembly needs to call
+/// (#330), and this package has no <c>InternalsVisibleTo</c> to either adapter. It stays out of
+/// <see cref="IFieldConfiguration{TModel, TValue}" /> itself for the same reason noted above; being
+/// public here is a smaller commitment than widening that interface.
+/// </para>
 /// </remarks>
-internal static class FieldValueGetterCache<TModel>
+public static class FieldValueGetterCache<TModel>
 {
     private static readonly ConditionalWeakTable<IFieldConfiguration<TModel, object>, Func<TModel, object>> Cache = new();
 
@@ -60,6 +70,6 @@ internal static class FieldValueGetterCache<TModel>
     /// </summary>
     /// <param name="field">The field configuration whose value expression to compile.</param>
     /// <returns>A delegate reading the field's value from a model instance.</returns>
-    internal static Func<TModel, object> GetOrCompile(IFieldConfiguration<TModel, object> field)
+    public static Func<TModel, object> GetOrCompile(IFieldConfiguration<TModel, object> field)
         => Cache.GetValue(field, static configuration => configuration.ValueExpression.Compile());
 }

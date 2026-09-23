@@ -26,10 +26,11 @@ builder.Services.AddFluentUIComponents();
 Then render a form exactly as you would with any other FormCraft adapter:
 
 ```razor
-<FormCraftComponent TModel="ContactModel"
-                    Model="@_model"
-                    Configuration="@_configuration"
-                    OnValidSubmit="@HandleSubmit" />
+<FormCraftComponent
+    TModel="ContactModel"
+    Model="@_model"
+    Configuration="@_configuration"
+    OnValidSubmit="@HandleSubmit" />
 ```
 
 ## Supported field types
@@ -123,10 +124,11 @@ inside the MudBlazor demo whatever it injects.
 
 ## Not yet covered
 
-Nothing outstanding against the MudBlazor adapter's feature set. The collection field's keyboard
-focus restore (#337) now matches MudBlazor's; the file upload field's Clear/chip-close controls have
-not been audited for the same WCAG 2.1 2.4.3 gap MudBlazor's had before #318 and are tracked
-separately.
+The collection field's keyboard focus restore (#337) now matches MudBlazor's. As of #385, the file
+upload field has been audited and found to render no Clear button or per-file chip-close control,
+so the WCAG 2.1 2.4.3 focus-restore gap MudBlazor's had before #318 does not currently exist there;
+a future removal control is a separate feature candidate that must wire focus through
+`FormCraft.ForFluentUI.FocusRestore` from the start.
 
 See the follow-ups on [#260](https://github.com/phmatray/FormCraft/issues/260).
 

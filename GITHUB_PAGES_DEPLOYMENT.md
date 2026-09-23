@@ -4,7 +4,7 @@
 
 - **Live URL**: https://phmatray.github.io/FormCraft/
 - **Content**: Interactive Blazor WebAssembly demo application with full documentation
-- **Auto-deployment**: Triggered on every push to main branch
+- **Auto-deployment**: Triggered on every push to `dev`, the default branch
 
 ## Features Available on the Website
 
@@ -50,10 +50,11 @@ The following files have been updated to include the new website:
 
 ## Maintenance
 
-The website automatically updates when changes are pushed to the main branch. The deployment workflow:
+The website updates on every push to `dev`. The deployment workflow (`.github/workflows/deploy-docs.yml`):
 1. Builds the Blazor WebAssembly application
 2. Updates base href for GitHub Pages
-3. Deploys to the gh-pages branch
-4. GitHub Pages serves the content
+3. Uploads the site as a Pages artifact and deploys it to the `github-pages` environment
+
+The `github-pages` environment's deployment-branch policy must allow `dev`, or the deploy job is refused.
 
 No manual intervention is required for updates.

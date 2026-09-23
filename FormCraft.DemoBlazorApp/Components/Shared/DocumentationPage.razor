@@ -1,71 +1,100 @@
 @inherits DemoComponentBase
 @inject IMarkdownService MarkdownService
 @inject IJSRuntime JsRuntime
+@inject NavigationManager Navigation
 
-<PageTitle>@Title - Dynamic Form Blazor</PageTitle>
+<PageTitle>@Title · FormCraft docs</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
-    <MudGrid>
-        <MudItem xs="12" lg="9">
-            <MudCard Elevation="2">
-                <MudCardContent>
-                    @if (_isLoading)
-                    {
-                        <SkeletonLoader Type="SkeletonLoader.SkeletonType.Text" />
-                    }
-                    else
-                    {
-                        <div class="markdown-content">
-                            @((MarkupString)_htmlContent)
-                        </div>
-                    }
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-        
-        <MudItem xs="12" lg="3">
-            <MudCard Elevation="1">
-                <MudCardHeader>
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">Table of Contents</MudText>
-                    </CardHeaderContent>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudNavMenu>
-                        @foreach (var tocSection in _tableOfContents)
+<div class="fc-wrap fc-docs @(IsApi ? "fc-docs--api" : null)">
+    <nav class="fc-side" aria-label="@(IsApi ? "API reference" : "Documentation")">
+        @if (IsApi)
+        {
+            <div class="fc-filter">
+                <svg class="fc-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></svg>
+                <input type="search" placeholder="Filter methods" aria-label="Filter methods" autocomplete="off" @ref="_filter" />
+            </div>
+        }
+
+        <select class="fc-select fc-side__select" aria-label="Go to a page" @onchange="GoToDoc">
+            @foreach (var (id, title) in Pages.SelectMany(g => g.Pages))
+            {
+                <option value="@id" selected="@(id == DocumentName)">@title</option>
+            }
+        </select>
+
+        @if (IsApi)
+        {
+            @* Filled from the document's own headings by js/code.js once it renders. *@
+            <div class="fc-side__nav fc-side--api" @ref="_apiNav"></div>
+        }
+        else
+        {
+            <div class="fc-side__nav">
+                @foreach (var (group, pages) in Pages)
+                {
+                    <div class="fc-side__group">
+                        <p class="fc-side__label">@group</p>
+                        @foreach (var (id, title) in pages)
                         {
-                            <MudNavLink OnClick="@(() => ScrollToSection(tocSection.Id))">
-                                @tocSection.Title
-                            </MudNavLink>
+                            <NavLink href="@($"docs/{id}")" Match="NavLinkMatch.All">@title</NavLink>
                         }
-                    </MudNavMenu>
-                </MudCardContent>
-            </MudCard>
-            
-            <MudCard Elevation="1" Class="mt-4">
-                <MudCardContent>
-                    <MudText Typo="Typo.h6" GutterBottom="true">Quick Links</MudText>
-                    <MudStack Spacing="2">
-                        <MudButton
-                            Variant="Variant.Outlined" 
-                            Color="Color.Primary" 
-                            StartIcon="@Icons.Material.Filled.PlayArrow"
-                            Href="/fluent"
-                            FullWidth="true">
-                            Try Live Demo
-                        </MudButton>
-                        <MudButton
-                            Variant="Variant.Outlined" 
-                            Color="Color.Secondary" 
-                            StartIcon="@Icons.Custom.Brands.GitHub"
-                            Href="https://github.com"
-                            Target="_blank"
-                            FullWidth="true">
-                            View Source
-                        </MudButton>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-    </MudGrid>
-</MudContainer>
+                    </div>
+                }
+            </div>
+        }
+    </nav>
+
+    <div class="fc-docs__main">
+        @if (IsApi)
+        {
+            <header class="fc-apiref__head">
+                <h1 class="fc-h1">API reference</h1>
+                <p class="fc-lede">Every builder method, grouped by what it does. Filter by name, or jump to a method from the list.</p>
+            </header>
+        }
+
+        @if (_isLoading)
+        {
+            <SkeletonLoader Type="SkeletonLoader.SkeletonType.Text" />
+        }
+        else
+        {
+            <article class="fc-article" @key="DocumentName" @ref="_article">
+                @((MarkupString)_htmlContent)
+            </article>
+        }
+
+        @if (IsApi)
+        {
+            <p class="fc-empty" hidden @ref="_empty">No method matches <b></b>. Try a shorter name, such as <code>Required</code>.</p>
+        }
+
+        <nav class="fc-pn" aria-label="Previous and next page">
+            @if (Previous is { } prev)
+            {
+                <a href="@($"docs/{prev.Id}")"><small>Previous</small><b>@prev.Title</b></a>
+            }
+            else
+            {
+                <span></span>
+            }
+            @if (Next is { } next)
+            {
+                <a href="@($"docs/{next.Id}")"><small>Next</small><b>@next.Title</b></a>
+            }
+        </nav>
+
+        <div class="fc-docfoot">
+            <a href="@($"https://github.com/phmatray/FormCraft/edit/dev/FormCraft.DemoBlazorApp/wwwroot/docs/{DocumentName}.md")" target="_blank" rel="noopener">Edit this page on GitHub</a>
+            <a href="https://github.com/phmatray/FormCraft/issues" target="_blank" rel="noopener">Report a problem with this page</a>
+        </div>
+    </div>
+
+    @if (!IsApi)
+    {
+        <nav class="fc-toc" aria-label="On this page">
+            <b>On this page</b>
+            <div @ref="_toc"></div>
+        </nav>
+    }
+</div>

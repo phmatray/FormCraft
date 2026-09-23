@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace FormCraft.DemoBlazorApp.Components.Pages;
@@ -5,6 +6,134 @@ namespace FormCraft.DemoBlazorApp.Components.Pages;
 public partial class Home : IDisposable
 {
     private const string InstallCommand = "dotnet add package FormCraft.ForMudBlazor";
+
+    private static readonly string[] Levels =
+    [
+        Services.DemoRegistry.Levels.Beginner,
+        Services.DemoRegistry.Levels.Intermediate,
+        Services.DemoRegistry.Levels.Advanced
+    ];
+
+    /// <summary>The comparison's left side: the hero's form, written by hand as an EditForm.</summary>
+    private const string HandSource =
+        """
+        <EditForm Model="_contact" OnValidSubmit="Send" novalidate>
+            <DataAnnotationsValidator />
+
+            <MudTextField
+                @bind-Value="_contact.Name"
+                For="@(() => _contact.Name)"
+                Label="Name"
+                Variant="Variant.Outlined"
+                UserAttributes="@AriaRequired" />
+
+            <MudTextField
+                @bind-Value="_contact.Email"
+                For="@(() => _contact.Email)"
+                Label="Email"
+                InputType="InputType.Email"
+                Variant="Variant.Outlined"
+                UserAttributes="@AriaRequired" />
+
+            <MudSelect
+                T="string"
+                @bind-Value="_contact.Topic"
+                For="@(() => _contact.Topic)"
+                Label="Topic"
+                Variant="Variant.Outlined">
+                @foreach (var topic in Topics)
+                {
+                    <MudSelectItem Value="@topic.Value">
+                        @topic.Label
+                    </MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudCheckBox
+                T="bool"
+                @bind-Value="_contact.Consent"
+                Label="Reply by email" />
+
+            <MudButton
+                ButtonType="ButtonType.Submit"
+                Variant="Variant.Filled"
+                Color="Color.Primary">
+                Send
+            </MudButton>
+        </EditForm>
+
+        @code {
+            private readonly Contact _contact = new();
+
+            private static readonly Dictionary<string, object> AriaRequired =
+                new() { ["aria-required"] = "true" };
+
+            private void Send() => Console.WriteLine(_contact);
+        }
+        """;
+
+    /// <summary>The comparison's right side: what FormCraft needs for the same form.</summary>
+    private const string FormCraftSource =
+        """
+        <FormCraftComponent
+            TModel="Contact"
+            Model="@_contact"
+            Configuration="@_config"
+            OnValidSubmit="@Send" />
+
+        @code {
+            private readonly IFormConfiguration<Contact> _config =
+                FormBuilder<Contact>.Create()
+                    .AddField(x => x.Name, f => f
+                        .WithLabel("Name")
+                        .Required())
+                    .AddField(x => x.Email, f => f
+                        .WithLabel("Email")
+                        .Required()
+                        .WithEmailValidation())
+                    .AddField(x => x.Topic, f => f
+                        .WithLabel("Topic")
+                        .WithSelectOptions(Topics))
+                    .AddField(x => x.Consent, f => f
+                        .WithLabel("Reply by email"))
+                    .Build();
+        }
+        """;
+
+    /// <summary>The three setup steps. Registration mirrors this app's own Program.cs.</summary>
+    private static readonly (int Step, string Title, string Source, string Language)[] Steps =
+    [
+        (1, "Install", InstallCommand, "shell"),
+        (2, "Register", "builder.Services.AddMudServices();\nbuilder.Services.AddFormCraft();\nbuilder.Services.AddFormCraftMudBlazor();", "csharp"),
+        (3, "Render", "<FormCraftComponent\n    TModel=\"Contact\"\n    Model=\"@_contact\"\n    Configuration=\"@_config\" />", "razor")
+    ];
+
+    private static int LineCountOf(string source) => source.Split('\n').Length;
+
+    private int DemoCount => Levels.Sum(level => DemoRegistry.GetDemosByLevel(level).Count);
+
+    private ElementReference _root;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("formcraftCode.highlightUnder", _root);
+        }
+        catch (JSException)
+        {
+            // Listings still read without colour.
+        }
+        catch (InvalidOperationException)
+        {
+            // Interop not available yet, or already torn down.
+        }
+    }
 
     private bool _copiedInstall;
 

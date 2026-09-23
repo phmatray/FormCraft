@@ -1,192 +1,223 @@
 @page "/"
 @page "/home"
 @inject IJSRuntime JS
+@inject IDemoRegistry DemoRegistry
 
-<PageTitle>FormCraft — dynamic forms for Blazor</PageTitle>
+<PageTitle>FormCraft: forms in a few lines of C#</PageTitle>
 
-@* ----------------------------------------------------------------------------
-   Hero. The thesis is the transform, so the transform is the hero: a builder
-   chain and the form it produced, tied together.
-   ---------------------------------------------------------------------------- *@
-<section class="fc-page fc-band fc-hero">
-    <div class="fc-hero__intro">
-        <span class="fc-eyebrow">FormBuilder&lt;T&gt;</span>
-        <h1 class="fc-hero__title">
-            Describe the form in C#.
-            <em>FormCraft renders it.</em>
-        </h1>
-        <p class="fc-lede">
-            One typed builder chain produces the fields, the validation and the MudBlazor markup.
-            Add a line, get a control — hover either side below to see the pairing.
-        </p>
-
-        <div class="fc-hero__actions">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="simplified">
-                Browse the demos
-            </MudButton>
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" Href="docs/getting-started">
-                Read the docs
-            </MudButton>
-        </div>
-
-        <div class="fc-install">
-            <span class="fc-install__prompt">$</span>
-            <span>dotnet add package FormCraft.ForMudBlazor</span>
-            <MudTooltip Text="@(_copiedInstall ? "Copied" : "Copy")">
-                <MudIconButton Icon="@(_copiedInstall ? Icons.Material.Filled.Check : Icons.Material.Filled.ContentCopy)"
-                               Color="@(_copiedInstall ? Color.Success : Color.Default)"
-                               Size="Size.Small"
-                               aria-label="Copy the install command"
-                               OnClick="CopyInstall" />
-            </MudTooltip>
+<div @ref="_root">
+<section class="fc-wrap fc-hero" aria-labelledby="hero-title">
+    <div class="fc-hero__top">
+        <h1 class="fc-h1" id="hero-title">Forms in a few lines of <span class="fc-accent">C#</span>.</h1>
+        <div class="fc-hero__side">
+            <p class="fc-lede">
+                Describe each field once with <code>FormBuilder&lt;T&gt;</code>. FormCraft renders the MudBlazor
+                controls, validates on the server and announces required fields to screen readers.
+            </p>
+            <div class="fc-hero__actions">
+                <a class="fc-btn fc-btn--primary" href="simplified">
+                    Explore @DemoCount live demos
+                    <svg class="fc-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                </a>
+            </div>
+            <div class="fc-install">
+                <b>$</b>
+                <span>@InstallCommand</span>
+                <button type="button" aria-label="@(_copiedInstall ? "Copied" : "Copy the install command")" @onclick="CopyInstall">
+                    @if (_copiedInstall)
+                    {
+                        <svg class="fc-i" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--fc-mint)"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                    }
+                    else
+                    {
+                        <svg class="fc-i" viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="2" /><path d="M15.5 8.5v-3a1 1 0 0 0-1-1h-9a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3" /></svg>
+                    }
+                </button>
+            </div>
+            <a class="fc-license" href="https://github.com/phmatray/FormCraft/blob/dev/LICENSE" target="_blank" rel="noopener">
+                <svg class="fc-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M7 21h10M5 7h14M5 7l-3 7a3.5 3.5 0 0 0 6 0zM19 7l-3 7a3.5 3.5 0 0 0 6 0z" /></svg>
+                <b>MIT licensed</b><span>Open source, free for commercial use</span>
+            </a>
         </div>
     </div>
 
     <BindingHero />
-
-    @* Facts an evaluating developer actually checks, in the same mono as every
-       other API-shaped label on the site. The test figure is a lower bound on
-       purpose: an exact count goes stale the next time anyone adds a test.
-       Measured at 1,134 passing on this branch (dotnet test). *@
-    <dl class="fc-spec">
-        <div class="fc-spec__item"><dt>targets</dt><dd class="fc-spec__value">net8.0 · net10.0</dd></div>
-        <div class="fc-spec__item"><dt>tests</dt><dd class="fc-spec__value">1,100+</dd></div>
-        <div class="fc-spec__item"><dt>licence</dt><dd class="fc-spec__value">MIT</dd></div>
-        <div class="fc-spec__item"><dt>ui</dt><dd class="fc-spec__value">MudBlazor 9</dd></div>
-    </dl>
 </section>
 
-@* ----------------------------------------------------------------------------
-   Capabilities. Each entry names the API that does the job and links to the demo
-   that proves it, so the section is a route into the site rather than a poster.
-   ---------------------------------------------------------------------------- *@
-<section class="fc-page fc-band">
-    <header class="fc-section-head">
-        <span class="fc-eyebrow">What it covers</span>
-        <h2 class="fc-section-title">Everything a real form needs, typed.</h2>
-        <p class="fc-lede">
-            Each of these is one call on the builder. Follow any of them into a working demo.
-        </p>
-    </header>
-
-    <div class="fc-caps">
-        <a class="fc-cap" href="fluent-validation-demo">
-            <code class="fc-cap__api">.Required() · .WithValidator()</code>
-            <h3 class="fc-cap__title">Validation on the server, not the browser</h3>
-            <p class="fc-cap__body">
-                Built-in rules, custom validators and FluentValidation, all running against your model.
-            </p>
-        </a>
-
-        <a class="fc-cap" href="complex-dependencies">
-            <code class="fc-cap__api">.DependsOn()</code>
-            <h3 class="fc-cap__title">Fields that answer to other fields</h3>
-            <p class="fc-cap__body">
-                Show, hide or recalculate a field when the values it depends on change.
-            </p>
-        </a>
-
-        <a class="fc-cap" href="field-groups">
-            <code class="fc-cap__api">.AddFieldGroup()</code>
-            <h3 class="fc-cap__title">Groups, columns and cards</h3>
-            <p class="fc-cap__body">
-                Arrange fields into labelled sections with their own column counts and layout.
-            </p>
-        </a>
-
-        <a class="fc-cap" href="custom-renderers">
-            <code class="fc-cap__api">.WithCustomRenderer()</code>
-            <h3 class="fc-cap__title">Your own controls</h3>
-            <p class="fc-cap__body">
-                Swap in any Blazor component for a field type the library does not ship.
-            </p>
-        </a>
-
-        <a class="fc-cap" href="attribute-based-forms">
-            <code class="fc-cap__api">.AddFieldsFromAttributes()</code>
-            <h3 class="fc-cap__title">Forms straight from the model</h3>
-            <p class="fc-cap__body">
-                Annotate properties and let the builder derive the fields for you.
-            </p>
-        </a>
-
-        <a class="fc-cap" href="security-demo">
-            <code class="fc-cap__api">.WithSecurity()</code>
-            <h3 class="fc-cap__title">Encryption, CSRF and rate limits</h3>
-            <p class="fc-cap__body">
-                Encrypt named fields, issue CSRF tokens and throttle submissions from the same chain.
-            </p>
-        </a>
-    </div>
-</section>
-
-@* ----------------------------------------------------------------------------
-   Quick start. Numbered because this genuinely is a sequence — the numbers carry
-   order the reader needs, which is the only reason to use them.
-   ---------------------------------------------------------------------------- *@
-<section class="fc-band fc-band--tint">
-    <div class="fc-page">
-        <header class="fc-section-head">
-            <span class="fc-eyebrow">Quick start</span>
-            <h2 class="fc-section-title">Three steps to a working form.</h2>
-        </header>
-
-        <ol class="fc-steps">
-            <li class="fc-step">
-                <span class="fc-step__num">01</span>
-                <div>
-                    <h3 class="fc-step__title">Install the package</h3>
-                    <pre>dotnet add package FormCraft.ForMudBlazor</pre>
-                </div>
-            </li>
-
-            <li class="fc-step">
-                <span class="fc-step__num">02</span>
-                <div>
-                    <h3 class="fc-step__title">Register the services</h3>
-                    <pre>builder.Services.AddMudServices();
-builder.Services.AddFormCraftForMudBlazor();</pre>
-                </div>
-            </li>
-
-            <li class="fc-step">
-                <span class="fc-step__num">03</span>
-                <div>
-                    <h3 class="fc-step__title">Build a form and render it</h3>
-                    <pre>var config = FormBuilder&lt;Contact&gt;.Create()
-    .AddRequiredTextField(x =&gt; x.Name, "Name")
-    .AddEmailField(x =&gt; x.Email)
-    .Build();
-
-&lt;FormCraftComponent TModel="Contact"
-                    Model="@@model"
-                    Configuration="@@config" /&gt;</pre>
-                </div>
-            </li>
-        </ol>
-    </div>
-</section>
-
-@* ---------------------------------------------------------------------------- *@
-<section class="fc-page fc-band">
-    <div class="fc-cta">
-        <h2 class="fc-cta__title">Start with the beginner track.</h2>
-        <p class="fc-cta__body">
-            Twenty demos, ordered from a five-line contact form to master-detail collections,
-            security and custom renderers. Each one ships its source alongside it.
-        </p>
-        <div class="fc-cta__actions">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="simplified">
-                Open the first demo
-            </MudButton>
-            <MudButton Variant="Variant.Outlined"
-                       Color="Color.Inherit"
-                       Size="Size.Large"
-                       Style="color: #F5F4F8; border-color: rgba(255,255,255,.35);"
-                       Href="https://github.com/phmatray/FormCraft"
-                       Target="_blank">
-                View the source
-            </MudButton>
+<section class="fc-wrap fc-section" aria-labelledby="s-compress">
+    <h2 class="fc-h2" id="s-compress">The same four fields. <span class="fc-accent--mint">A fraction of the code.</span></h2>
+    <p class="fc-sub">On the left, the form above written by hand as a MudBlazor <code>EditForm</code>. On the right, everything FormCraft needs to render it.</p>
+    <div class="fc-compress">
+        <div class="fc-listing fc-listing--hand">
+            <div class="fc-listing__head"><span>EditForm, by hand</span><span class="fc-listing__count fc-num">@LineCountOf(HandSource) lines</span></div>
+            <pre class="fc-code" tabindex="0" aria-label="Hand-written Razor listing"><code class="language-razor">@HandSource</code></pre>
+        </div>
+        <div class="fc-listing fc-listing--fc">
+            <div class="fc-listing__head"><span>FormBuilder, with FormCraft</span><span class="fc-listing__count fc-num">@LineCountOf(FormCraftSource) lines</span></div>
+            <pre class="fc-code"><code class="language-razor">@FormCraftSource</code></pre>
         </div>
     </div>
+    <p class="fc-note-small">
+        Line counts are of the listings as shown. The hand-written version is our own illustration, and it also needs
+        <code>[Required]</code> and <code>[EmailAddress]</code> on the model. The <code>Contact</code> class itself is left out of both.
+    </p>
 </section>
+
+<section class="fc-wrap fc-section" aria-labelledby="s-gallery">
+    <h2 class="fc-h2" id="s-gallery">@DemoCount forms, <span class="fc-accent">running live</span>.</h2>
+    <p class="fc-sub">Every demo is a working form with its source beside it. Hover a preview to see it move.</p>
+
+    <div class="fc-gallery">
+        <a class="fc-tile fc-tile--a" href="complex-dependencies" data-loop="deps" style="--tone: var(--fc-violet-slab)">
+            <div class="fc-tile__stage">
+                <div class="fc-mini" aria-hidden="true">
+                    <div class="fc-mf" data-k="cat"><span class="fc-mf__label">Category</span><span class="fc-mf__box" data-v>Electronics</span></div>
+                    <div class="fc-mf" data-k="prod"><span class="fc-mf__label">Product · depends on Category</span><span class="fc-mf__box" data-v>Laptop · $999.99</span></div>
+                    <div class="fc-mf" data-k="qty"><span class="fc-mf__label">Quantity · depends on Product</span><span class="fc-mf__box" data-v>2</span></div>
+                    <div class="fc-total"><span>Total</span><b class="fc-num" data-total>$1,999.98</b></div>
+                </div>
+            </div>
+            <div class="fc-tile__meta"><b><LevelDots Filled="3" />Complex dependencies</b><code>.DependsOn()</code></div>
+        </a>
+
+        <a class="fc-tile" href="stepper-form" data-loop="steps" style="--tone: #15635A">
+            <div class="fc-tile__stage">
+                <div class="fc-mini" aria-hidden="true">
+                    <div class="fc-steps">
+                        <span class="fc-steps__s is-on"><i>1</i><em>Account</em></span><span class="fc-steps__bar"></span>
+                        <span class="fc-steps__s"><i>2</i><em>Profile</em></span><span class="fc-steps__bar"></span>
+                        <span class="fc-steps__s"><i>3</i><em>Review</em></span>
+                    </div>
+                    <div class="fc-mf"><span class="fc-mf__label">Email</span><span class="fc-mf__box">ada@analytical.io</span></div>
+                </div>
+            </div>
+            <div class="fc-tile__meta"><b><LevelDots Filled="2" />Stepper form</b><code>Steps</code></div>
+        </a>
+
+        <a class="fc-tile" href="file-upload" data-loop="upload" style="--tone: #8A2F55">
+            <div class="fc-tile__stage">
+                <div class="fc-mini" aria-hidden="true">
+                    <div class="fc-drop">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg>
+                        <span>Drop files or <b>browse</b></span>
+                    </div>
+                    <div class="fc-fchip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7z" /><path d="M14 3v4h4" /></svg>
+                        <span>invoice-0923.pdf</span><small>248 KB</small>
+                        <span class="fc-prog"><i></i></span>
+                    </div>
+                </div>
+            </div>
+            <div class="fc-tile__meta"><b><LevelDots Filled="2" />File upload</b><code>AddFileUploadField</code></div>
+        </a>
+
+        <a class="fc-tile" href="password-demo" data-loop="password" style="--tone: #7A4A12">
+            <div class="fc-tile__stage">
+                <div class="fc-mini" aria-hidden="true">
+                    <div class="fc-mf"><span class="fc-mf__label">Password</span><span class="fc-mf__box fc-mf__box--dots" data-v>••••••••••••</span></div>
+                    <div class="fc-meter" data-s="4"><i></i><i></i><i></i><i></i></div>
+                    <div class="fc-meter-l"><span>Strength</span><b data-l>Strong</b></div>
+                </div>
+            </div>
+            <div class="fc-tile__meta"><b><LevelDots Filled="1" />Password fields</b><code>AsPassword</code></div>
+        </a>
+
+        <a class="fc-tile" href="security-demo" style="--tone: #23305E">
+            <div class="fc-tile__stage">
+                <div class="fc-mini" aria-hidden="true">
+                    <div class="fc-mf"><span class="fc-mf__label">Social security number</span><span class="fc-mf__box">•••-••-4821</span></div>
+                    <div class="fc-cipher">stored as enc:AES256:Q2x9Vf0r…</div>
+                    <div class="fc-secrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>CSRF token verified</div>
+                    <div class="fc-secrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>5 submissions per minute</div>
+                </div>
+            </div>
+            <div class="fc-tile__meta"><b><LevelDots Filled="3" />Security</b><code>.WithSecurity()</code></div>
+        </a>
+
+        <a class="fc-tile" href="field-groups" style="--tone: #2B5A8C">
+            <div class="fc-tile__stage">
+                <div class="fc-mini" aria-hidden="true">
+                    <div class="fc-grp">
+                        <div><h4>Contact</h4><div class="fc-mf"><span class="fc-mf__label">First name</span><span class="fc-mf__box">Ada</span></div></div>
+                        <div><h4>Address</h4><div class="fc-mf"><span class="fc-mf__label">City</span><span class="fc-mf__box">London</span></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="fc-tile__meta"><b><LevelDots Filled="1" />Field groups</b><code>.AddFieldGroup()</code></div>
+        </a>
+
+        <a class="fc-tile fc-tile--g" href="master-detail" data-loop="rows" style="--tone: #3B2A7A">
+            <div class="fc-tile__stage">
+                <div class="fc-mini fc-mini--wide" aria-hidden="true">
+                    <table class="fc-mtable">
+                        <thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead>
+                        <tbody><tr><td>Mechanical keyboard</td><td>2</td><td>$98.00</td></tr><tr><td>USB-C dock</td><td>1</td><td>$149.00</td></tr></tbody>
+                    </table>
+                    <span class="fc-addrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>Add line</span>
+                </div>
+            </div>
+            <div class="fc-tile__meta"><b><LevelDots Filled="3" />Master-detail</b><code>AddCollectionField</code></div>
+        </a>
+    </div>
+
+    <div class="fc-all">
+        @for (var l = 0; l < Levels.Length; l++)
+        {
+            var level = Levels[l];
+            var demos = DemoRegistry.GetDemosByLevel(level);
+            <div>
+                <h3><LevelDots Filled="@(l + 1)" />@DemoRegistry.GetLevelInfo(level).Name <small>@demos.Count demos</small></h3>
+                <ul>
+                    @foreach (var demo in demos)
+                    {
+                        <li>
+                            <a href="@demo.Id">
+                                <span>
+                                    @demo.Title
+                                    @if (demo.IsLevelEntryPoint && l == 0)
+                                    {
+                                        <span class="fc-badge-start">Start here</span>
+                                    }
+                                </span>
+                                <span class="fc-all__min fc-num">@demo.EstimatedMinutes min</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="fc-wrap fc-section" id="start" aria-labelledby="s-start">
+    <h2 class="fc-h2" id="s-start">Running in <span class="fc-accent--mint">three steps</span>.</h2>
+    <div class="fc-start">
+        @foreach (var (step, title, source, lang) in Steps)
+        {
+            <div class="fc-start__step" data-code-host>
+                <h3>
+                    <span>@step</span>@title
+                    <button type="button" class="fc-copy" data-copy-code aria-label="@($"Copy step {step}")">
+                        <svg class="fc-i" viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="2" /><path d="M15.5 8.5v-3a1 1 0 0 0-1-1h-9a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3" /></svg>
+                    </button>
+                </h3>
+                <pre class="fc-code fc-code--plain"><code class="language-@lang">@source</code></pre>
+            </div>
+        }
+    </div>
+
+    <div class="fc-cta">
+        <div>
+            <h2 class="fc-h2">Start with a five-field form.</h2>
+            <p>
+                The demos run from a contact form to master-detail collections. Each one is live, with its source beside it.
+                FormCraft is open source under the <a href="https://github.com/phmatray/FormCraft/blob/dev/LICENSE" target="_blank" rel="noopener">MIT licence</a>.
+            </p>
+        </div>
+        <a class="fc-btn fc-btn--primary" href="simplified">
+            Open the first demo
+            <svg class="fc-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </a>
+    </div>
+</section>
+</div>

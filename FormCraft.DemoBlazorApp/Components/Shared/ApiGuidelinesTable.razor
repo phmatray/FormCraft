@@ -1,28 +1,26 @@
 @namespace FormCraft.DemoBlazorApp.Components.Shared
+@inject IJSRuntime JsRuntime
 
-<GuidelinesTable
-    Title="@Title" 
-    Columns="@_columns" 
-    Items="@Items" 
-    TItem="GuidelineItem">
-    <RowTemplate Context="item">
-        <td>@item.Feature</td>
-        <td>@item.Usage</td>
-        <td>
-            @if (item.IsCode && !string.IsNullOrEmpty(item.Example))
+@* Two cards a row: the method, what it does, and a one-line example, highlighted like the stage. *@
+<div class="fc-apis" @ref="_element">
+    @foreach (var item in Items)
+    {
+        <div class="fc-api">
+            <b>@item.Feature</b>
+            <span>@item.Usage</span>
+            @if (!string.IsNullOrEmpty(item.Example))
             {
-                <code>@((MarkupString)item.Example)</code>
+                @if (item.IsCode)
+                {
+                    <pre class="fc-code fc-code--plain fc-api__ex"><code class="language-@(item.Example.TrimStart().StartsWith('<') ? "razor" : "csharp")">@item.Example</code></pre>
+                }
+                else
+                {
+                    <span class="fc-api__note">@item.Example</span>
+                }
             }
-            else
-            {
-                @item.Example
-            }
-        </td>
-    </RowTemplate>
-    <AdditionalContent>
-        @if (AdditionalContent != null)
-        {
-            @AdditionalContent
-        }
-    </AdditionalContent>
-</GuidelinesTable>
+        </div>
+    }
+</div>
+
+@AdditionalContent
