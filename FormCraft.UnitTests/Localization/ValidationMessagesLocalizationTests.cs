@@ -113,6 +113,47 @@ public class ValidationMessagesLocalizationTests
     }
 
     [Fact]
+    public void RequiredValidator_Default_Message_Is_French_Under_FrFr_Culture()
+    {
+        WithCulture("fr-FR", () =>
+        {
+            var validator = new RequiredValidator<TestModel, string>();
+
+            validator.ErrorMessage.ShouldBe("Ce champ est obligatoire.");
+        });
+    }
+
+    [Fact]
+    public void RequiredValidator_Explicit_Message_Still_Wins_Under_FrFr_Culture()
+    {
+        WithCulture("fr-FR", () =>
+        {
+            var validator = new RequiredValidator<TestModel, string>("Custom");
+
+            validator.ErrorMessage.ShouldBe("Custom");
+        });
+    }
+
+    [Fact]
+    public async Task CollectionFieldValidator_MinItems_Message_Is_French_Under_FrFr_Culture()
+    {
+        await WithCultureAsync("fr-FR", async () =>
+        {
+            var services = A.Fake<IServiceProvider>();
+            var config = new CollectionFieldConfiguration<CollectionTestModel, CollectionItemTestModel>(x => x.Items)
+            {
+                MinItems = 1
+            };
+            var validator = new CollectionFieldValidator<CollectionTestModel, CollectionItemTestModel>(config);
+
+            var errors = await validator.ValidateAsync(new CollectionTestModel(), services);
+
+            errors.ShouldHaveSingleItem();
+            errors[0].ShouldBe("Items nécessite au moins 1 élément(s).");
+        });
+    }
+
+    [Fact]
     public void Every_Neutral_Resource_Key_Has_A_Non_Empty_French_Value()
     {
         // Base name is "FormCraft.ValidationMessages", not "FormCraft.Resources.ValidationMessages"
@@ -190,6 +231,16 @@ public class ValidationMessagesLocalizationTests
     {
         [Required]
         [TextField("Nom")]
+        public string Name { get; set; } = "";
+    }
+
+    public class CollectionTestModel
+    {
+        public List<CollectionItemTestModel> Items { get; set; } = new();
+    }
+
+    public class CollectionItemTestModel
+    {
         public string Name { get; set; } = "";
     }
 }

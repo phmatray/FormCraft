@@ -58,6 +58,17 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **Default validation messages are localizable (#354).** Every built-in message — `Required()`'s
+  default, `WithMinLength`/`WithMaxLength`/`WithRange`, the numeric and attribute-driven builder
+  extensions, `WithEmailValidation`, and the collection field's item-count errors — now comes from
+  `FormCraft/Resources/ValidationMessages.resx` instead of a hardcoded English string, looked up
+  under `CultureInfo.CurrentUICulture`. **French ships** as a satellite (`ValidationMessages.fr.resx`).
+  Resolution happens when the form configuration is **built**, not per-request, so an app that
+  serves more than one language should build its `FormBuilder<TModel>` configuration per
+  circuit/request rather than caching it statically. To contribute another language, add
+  `FormCraft/Resources/ValidationMessages.<culture>.resx` with the same keys as the neutral resource
+  — the same way FluentValidation's own `LanguageManager` is extended. English wording is unchanged.
+
 - **Required fields are announced to screen readers again — and no longer carry the HTML5 `required` attribute (#263).** FormCraft's convention has always been that `Required()` adds validation, not browser constraint validation; forms render `novalidate` and messages come from your validators. #199 had to bend that: MudBlazor derived the HTML5 `required` attribute **and** `aria-required` from a single `Required` flag and wrote both *after* splatting caller attributes, so the accessibility annotation could not be had without the attribute. Announcing the field won, and the HTML5 attribute came along.
 
   [MudBlazor#13613](https://github.com/MudBlazor/MudBlazor/pull/13613) — contributed from this repo and released in **MudBlazor 9.9.0** — moved those ARIA writes above the splat so a caller can override them, while leaving `required` bound to the parameter. FormCraft now passes `aria-required="true"` through `UserAttributes` and leaves `Required` alone. A required field is still announced, on every field type that can carry it, and the `required` attribute is gone. **The MudBlazor pin is therefore raised to 9.9.0 and must not go below it.**
