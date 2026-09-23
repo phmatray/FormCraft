@@ -86,7 +86,16 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
         // calling the accessor itself - a property that materialises a new list per access (e.g.
         // `=> _set.ToList()`) would otherwise have its count measured against a different snapshot
         // than the one actually validated (#344).
-        var items = _configuration.CollectionAccessor(model);
+        //
+        // TryInvoke rather than a direct call (#408): a collection bound through a nested path with a
+        // null intermediate (e.g. `x => x.Details.Items` where `Details` is null) would otherwise throw
+        // straight out of validation, the same failure #397 fixed for individual field getters.
+        // CollectionAccessor is `Func<TModel, List<TItem>>`, which converts to TryInvoke's
+        // `Func<TModel, object>` by ordinary delegate covariance (List<TItem> is a reference type), so
+        // no new helper is needed. A failed read comes back as null, which BuildMessages and the item
+        // traversal below already treat as zero items.
+        FieldValueGetterCache<TModel>.TryInvoke(_configuration.CollectionAccessor, model, out var itemsValue);
+        var items = itemsValue as List<TItem>;
         var itemErrors = await ValidateItemsAsync(items, services);
         return new CollectionValidationResult(BuildMessages(items, itemErrors), itemErrors);
     }
@@ -120,9 +129,13 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
         IServiceProvider services)
     {
         var errors = new List<CollectionItemError>();
-        var items = _configuration.CollectionAccessor(model);
 
-        if (items == null || _configuration.ItemFormConfiguration == null)
+        // TryInvoke, not a direct call (#408): a nested collection binding with a null intermediate
+        // would otherwise throw here instead of falling through to the null check below, the same
+        // out-of-range-shaped "no errors" result an unreadable collection should produce.
+        FieldValueGetterCache<TModel>.TryInvoke(_configuration.CollectionAccessor, model, out var itemsValue);
+
+        if (itemsValue is not List<TItem> items || _configuration.ItemFormConfiguration == null)
         {
             return errors;
         }
@@ -260,16 +273,21 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
     /// <param name="services">The service provider for dependency injection.</param>
     /// <returns>A list of structured per-item validation errors. Empty if validation passed.</returns>
     /// <remarks>
-    /// <c>async</c> deliberately, though the body is one call: a non-async wrapper would evaluate
-    /// <c>_configuration.CollectionAccessor(model)</c> as a plain argument, and an exception from a
-    /// misbehaving accessor would then escape synchronously from this method call instead of
-    /// completing the returned <see cref="Task" /> as faulted - a caller that awaits elsewhere in a
+    /// <c>async</c> deliberately: a non-async wrapper evaluating the accessor as a plain argument would
+    /// let an exception from a misbehaving accessor escape synchronously from this method call instead
+    /// of completing the returned <see cref="Task" /> as faulted - a caller that awaits elsewhere in a
     /// <c>try</c>/<c>catch</c> (or collects the task for <see cref="Task.WhenAll(Task[])" />) would
     /// see it differently than before. Marking this <c>async</c> keeps that guarantee external
-    /// callers already had (#344).
+    /// callers already had (#344). The accessor read itself is now guarded by
+    /// <see cref="FieldValueGetterCache{TModel}.TryInvoke" /> (#408) - a null intermediate in a nested
+    /// binding no longer throws at all - but <c>async</c> stays as a defence for any other misbehaving
+    /// accessor.
     /// </remarks>
     public async Task<List<CollectionItemError>> ValidateItemsAsync(TModel model, IServiceProvider services)
-        => await ValidateItemsAsync(_configuration.CollectionAccessor(model), services);
+    {
+        FieldValueGetterCache<TModel>.TryInvoke(_configuration.CollectionAccessor, model, out var itemsValue);
+        return await ValidateItemsAsync(itemsValue as List<TItem>, services);
+    }
 
     /// <summary>
     /// The item traversal itself, given an already-resolved collection. <see cref="ValidateAllAsync"/>
