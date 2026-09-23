@@ -135,14 +135,22 @@ public class FieldRendererService : IFieldRendererService
     }
 
     /// <summary>
-    /// Resolves a field configuration's actual value type. A <see cref="FieldConfigurationWrapper{TModel, TValue}"/>
+    /// Returns a field configuration's actual value type, resolving it at most once per configuration
+    /// instance (#314) — the same per-instance-cache technique <see cref="FieldValueGetterCache{TModel}"/>
+    /// (#269, #312) uses for the compiled value getter.
+    /// </summary>
+    private static Type GetActualFieldType<TModel>(IFieldConfiguration<TModel, object> field)
+        => FieldTypeCache<TModel>.Cache.GetValue(field, static configuration => ResolveActualFieldType(configuration));
+
+    /// <summary>
+    /// Computes a field configuration's actual value type. A <see cref="FieldConfigurationWrapper{TModel, TValue}"/>
     /// answers directly through <see cref="IActualFieldTypeSource"/> — a plain interface dispatch, not
     /// the reflective <c>GetMethod</c> + <c>MethodInfo.Invoke</c> this replaced (#314) — identifying the
     /// wrapper by what it implements rather than by a substring of its type name. Any other
     /// <see cref="IFieldConfiguration{TModel, TValue}"/> implementation falls back to reading its
     /// <see cref="IFieldConfiguration{TModel, TValue}.ValueExpression"/> body.
     /// </summary>
-    private static Type GetActualFieldType<TModel>(IFieldConfiguration<TModel, object> field)
+    private static Type ResolveActualFieldType<TModel>(IFieldConfiguration<TModel, object> field)
     {
         if (field is IActualFieldTypeSource typeSource)
         {
@@ -164,6 +172,33 @@ public class FieldRendererService : IFieldRendererService
             } => unaryPropertyInfo.PropertyType,
             _ => expressionBody.Type
         };
+    }
+
+    /// <summary>
+    /// Caches each field configuration's resolved actual type, keyed by configuration <b>instance</b> —
+    /// so two configurations over the same property never share an entry, and an entry lives no longer
+    /// than the configuration it describes (#314).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Deliberately separate from <see cref="FieldValueGetterCache{TModel}"/>: that cache lives in
+    /// <c>Forms/Core</c> because both this renderer and the validators (#312) read it, whereas the
+    /// resolved field type is read only from <see cref="RenderField{TModel}"/>, so keeping this table
+    /// local avoids widening a cache the validators have no use for.
+    /// </para>
+    /// <para>
+    /// <b>What is deliberately NOT cached here.</b> The <see cref="MinimalFieldConfiguration"/>
+    /// projection built in <see cref="RenderField{TModel}"/>, and the renderer selected from it, both
+    /// read <i>mutable</i> configuration properties — <c>IsRequired</c>, <c>IsVisible</c>,
+    /// <c>IsDisabled</c>, <c>IsReadOnly</c>, <c>Label</c>, <c>Placeholder</c>, <c>InputType</c>,
+    /// <c>CssClass</c>, <c>Order</c> — that can legitimately change between renders. Memoizing either
+    /// would pin a stale renderer choice. Only the resolved field <b>type</b> is a pure function of the
+    /// configuration instance, which is what makes it — and only it — safe to cache this way.
+    /// </para>
+    /// </remarks>
+    private static class FieldTypeCache<TModel>
+    {
+        internal static readonly ConditionalWeakTable<IFieldConfiguration<TModel, object>, Type> Cache = new();
     }
 
     private static object GetCurrentValue<TModel>(TModel model, IFieldConfiguration<TModel, object> field)
