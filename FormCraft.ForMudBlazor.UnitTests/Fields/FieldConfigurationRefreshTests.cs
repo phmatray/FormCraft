@@ -182,15 +182,17 @@ public class FieldConfigurationRefreshTests : MudBlazorTestBase
     /// </summary>
     /// <remarks>
     /// Recorded because it is the half that already worked, and knowing which half is which is the
-    /// point of the exercise. The item loop is a plain <c>@for</c> and there was no <c>@key</c>
-    /// anywhere in the repository, so Blazor matches item components by <b>position</b> — but the
-    /// displayed <i>value</i> survives that anyway, because <c>FieldComponentBase.ShouldReloadValue()</c>
-    /// reloads from the model whenever the two diverge. The field <i>configuration</i> is likewise
-    /// safe here, for a different reason: one configuration object is shared by every row, so a row
-    /// shift never hands a component a different field.
+    /// point of the exercise. Before #334 the item loop was a plain <c>@for</c> with no <c>@key</c>
+    /// at all, so Blazor matched item components by <b>position</b> — but the displayed <i>value</i>
+    /// survived that anyway, because <c>FieldComponentBase.ShouldReloadValue()</c> reloads from the
+    /// model whenever the two diverge. The field <i>configuration</i> is likewise safe here, for a
+    /// different reason: one configuration object is shared by every row, so a row shift never hands
+    /// a component a different field.
     /// <para>
-    /// What positional matching does break is component <b>identity</b> — see
-    /// <see cref="Rows_Whose_Items_Compare_Equal_Should_Render_Without_A_Duplicate_Key_Error"/>.
+    /// What positional matching used to break is component <b>identity</b> — fixed by #334, and
+    /// pinned separately by <c>CollectionRowIdentityTests</c> — see
+    /// <see cref="Rows_Whose_Items_Compare_Equal_Should_Render_Without_A_Duplicate_Key_Error"/> for
+    /// the constraint that keeps the fix from reintroducing #308's duplicate-key crash.
     /// </para>
     /// </remarks>
     [Fact]
@@ -226,7 +228,8 @@ public class FieldConfigurationRefreshTests : MudBlazorTestBase
     }
 
     /// <summary>
-    /// Rows whose items compare equal render without throwing — the collection loop stays unkeyed.
+    /// Rows whose items compare equal render without throwing — the constraint #334's fix has to
+    /// hold under, not just the loop's former unkeyed state.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -235,7 +238,9 @@ public class FieldConfigurationRefreshTests : MudBlazorTestBase
     /// surviving component at its neighbour's data. But Blazor matches keys by <c>Equals</c>, not by
     /// reference, and the item type is constrained only to <c>new()</c> — so for a <c>record</c>, a
     /// <c>struct</c>, or any class overriding <c>Equals</c>, two rows holding equal content are a
-    /// <i>duplicate key</i> and <c>RenderTreeDiffBuilder</c> throws.
+    /// <i>duplicate key</i> and <c>RenderTreeDiffBuilder</c> throws. #334 keys the loop instead on a
+    /// fresh per-item token (see <c>CollectionFieldComponent.RowKey</c>), which never compares the
+    /// item at all — this test is what keeps that property honest.
     /// </para>
     /// <para>
     /// <c>AddItem()</c> adds <c>new TItem()</c>, so on a record-typed item form clicking "Add item"

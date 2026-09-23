@@ -1,12 +1,15 @@
 using FormCraft.ForFluentUI.UnitTests.TestSupport;
+using Microsoft.JSInterop;
 
 namespace FormCraft.ForFluentUI.UnitTests.Fields;
 
 /// <summary>
-/// Tests for the Fluent-typed focus wrapper (#337), mirroring
-/// <c>FormCraft.ForMudBlazor.UnitTests.Fields.FocusRestoreTests</c> for this adapter's
-/// <see cref="ElementReference"/>-only mechanism (see <see cref="FocusAssertingTestBase"/> remarks
-/// for why Fluent has no button-typed overload to test).
+/// Tests for the Fluent-typed focus wrapper (#337, #383), mirroring
+/// <c>FormCraft.ForMudBlazor.UnitTests.Fields.FocusRestoreTests</c> for this adapter's two
+/// mechanisms (see <see cref="FocusAssertingTestBase"/> remarks): the <see cref="ElementReference"/>
+/// overload for the collection field's plain <c>&lt;div&gt;</c> fallbacks, and the
+/// <see cref="Func{ValueTask}"/> overload the four <c>FluentButton</c> controls focus through since
+/// no button-typed overload exists for Fluent to test directly.
 /// </summary>
 public class FocusRestoreTests : FocusAssertingTestBase
 {
@@ -50,5 +53,37 @@ public class FocusRestoreTests : FocusAssertingTestBase
         // Act & Assert
         await Should.NotThrowAsync(() =>
             component.InvokeAsync(() => FocusRestore.FocusSafelyAsync(component.Instance.Target)));
+    }
+
+    [Fact]
+    public async Task FocusSafelyAsync_Func_Should_Invoke_The_Delegate()
+    {
+        // Arrange - the route the collection field's four FluentButton controls use (#383): there is
+        // no ElementReference to give them, so this overload forwards an arbitrary async delegate
+        // (in production, a JS module call keyed off the control's id) instead.
+        var invoked = false;
+        Func<ValueTask> focus = () =>
+        {
+            invoked = true;
+            return ValueTask.CompletedTask;
+        };
+
+        // Act
+        await FocusRestore.FocusSafelyAsync(focus);
+
+        // Assert
+        invoked.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task FocusSafelyAsync_Func_Should_Swallow_A_Failing_Focus_Call()
+    {
+        // Arrange - the same JSException wording Blazor's own domWrapper.focus raises for an element
+        // that has left the DOM; the delegate overload must swallow it exactly like the
+        // ElementReference one does.
+        Func<ValueTask> throwing = () => throw new JSException("Unable to focus an invalid element.");
+
+        // Act & Assert
+        await Should.NotThrowAsync(() => FocusRestore.FocusSafelyAsync(throwing));
     }
 }

@@ -462,11 +462,17 @@ because it lives in core rather than in one of the two packages that need it.
   delete control at once. Element references (`@ref` on plain HTML) *are* re-captured each render —
   the two behave differently, which is why the row header fallback is an `ElementReference` in
   MudBlazor's `CollectionFieldComponent`. **The Fluent UI adapter's `FluentUICollectionFieldComponent`
-  sidesteps this hazard entirely**: `FluentButton` (the pinned v5 RC) exposes no focus API and no
-  public `ElementReference` of its own — confirmed by decompiling the installed assembly, it neither
-  declares `FocusAsync()` nor implements `IFluentComponentElementBase` — so *every* Fluent focus
-  target, not just the header, is a plain wrapping `<span>`/`<div>` with its own `@ref`, re-captured
-  every render like any other element reference. There is no component-typed target to go stale.
+  sidesteps this hazard differently for its two kinds of target**: `FluentButton` (the pinned v5 RC)
+  exposes no focus API and no public `ElementReference` of its own — confirmed by decompiling the
+  installed assembly, it neither declares `FocusAsync()` nor implements `IFluentComponentElementBase`
+  — so its collection **header and per-row header fallbacks** stay plain wrapping `<div>`s with their
+  own `@ref`, re-captured every render like any other element reference (no component-typed target to
+  go stale there); its four **`FluentButton` controls** (Add, Remove, Move up, Move down) are focused
+  by a deterministically-computed DOM `id` through a small JS module instead (#383) — a throwaway
+  bUnit probe found `FluentButton` renders as a native custom element (`<fluent-button>`) with no
+  static CSS class list, so there is nothing for Blazor's own `ElementReference` machinery to capture
+  on it at all; its `Id` parameter renders straight through to the element's `id` attribute, which
+  `document.getElementById` reaches directly, no longer through a wrapping `<span>`.
 - **Move focus from `OnAfterRenderAsync`, not from the handler.** The row you are aiming at may not
   exist, or may not be at that index, until the next render batch is applied — reading the captures
   inside the handler hands back the pre-action state. Set a pending-index field, act on it after the
@@ -480,17 +486,24 @@ because it lives in core rather than in one of the two packages that need it.
   `blazor:elementReference` **empty**, so to say *which* button was focused, learn its id through the
   public API: call `FocusAsync()` on the candidate and read the id back off the recording (the id
   survives the clear re-render). ⛔ Don't reflect into MudBlazor's private field; it breaks on any
-  patch release. **Fluent has no such button-level API to call in the first place** (see above), but
-  its focus targets are plain `ElementReference` fields the component owns directly, so the Fluent
-  suite skips the "focus it to learn its id" indirection: those fields are `internal`, reachable from
-  the test project through `FormCraft.ForFluentUI.csproj`'s `InternalsVisibleTo`, and a test compares
-  `LastFocusedElementId()` straight against the field's own `.Id`. MudBlazor's helpers live once on
+  patch release. **Fluent has no such button-level API to call in the first place** (see above), and
+  since #383 it asserts its two kinds of focus target differently too. The header/row-header
+  `ElementReference` fields are `internal`, reachable from the test project through
+  `FormCraft.ForFluentUI.csproj`'s `InternalsVisibleTo`, so a test skips the "focus it to learn its
+  id" indirection and compares `LastFocusedElementId()` straight against the field's own `.Id`. The
+  four `FluentButton` controls are focused by DOM id through a JS module instead: invoking a method on
+  the `IJSObjectReference` bUnit's Loose-mode `"import"` auto-mock returns records into the same
+  `JSInterop.Invocations` list under the module's own function name (`"focusById"`), so a test
+  compares `LastFocusedElementIdViaModule()` against the component's own `internal *TargetId`
+  accessor. MudBlazor's helpers live once on
   `FormCraft.ForMudBlazor.UnitTests.TestSupport.FocusAssertingTestBase` — `FocusCount()`,
   `LastFocusedElementId()`, `LearnElementIdAsync(...)` (takes `MudBaseButton`, so it covers
   `MudIconButton` too) and `FailTheFocusInterop()`; Fluent's own
-  `FormCraft.ForFluentUI.UnitTests.TestSupport.FocusAssertingTestBase` carries the same first three
-  members minus `LearnElementIdAsync`, for the reason above. See `FileUploadClearFocusTests`,
-  `CollectionFocusTests` and `FocusRestoreTests` in **each** adapter's test project.
+  `FormCraft.ForFluentUI.UnitTests.TestSupport.FocusAssertingTestBase` carries `FocusCount()`,
+  `LastFocusedElementId()` and `FailTheFocusInterop()` for the header/row-header mechanism, plus
+  `FocusByIdCount()` and `LastFocusedElementIdViaModule()` (#383) for the four-button mechanism. See
+  `FileUploadClearFocusTests`, `CollectionFocusTests` and `FocusRestoreTests` in **each** adapter's
+  test project.
 - **`Loose` JSInterop makes focus always succeed, so a "does not throw" test proves nothing** unless
   it makes the call fail — use `FailTheFocusInterop()`. Without it the catch block has zero coverage,
   which is exactly how a missing `catch (JSException)` shipped under #281. `MudBlazorTestBase` and

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.JSInterop;
 
 namespace FormCraft.ForFluentUI;
 
@@ -22,7 +23,7 @@ namespace FormCraft.ForFluentUI;
 /// test. Starting a second one in this adapter would restart that sequence from zero.
 /// </para>
 /// </remarks>
-public partial class FluentUICollectionFieldComponent<TModel, TItem>
+public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDisposable
     where TModel : new()
     where TItem : new()
 {
@@ -47,6 +48,33 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
     [CascadingParameter]
     private EditContext? EditContext { get; set; }
 
+    /// <summary>The JS runtime used to focus a <c>FluentButton</c> by id (#383). See <see cref="_idPrefix"/>.</summary>
+    [Inject]
+    private IJSRuntime JS { get; set; } = default!;
+
+    /// <summary>
+    /// Lazily-started import of <c>collectionFocus.js</c>, cached for the component's lifetime.
+    /// </summary>
+    /// <remarks>
+    /// The <b>Task</b> is cached, not the awaited <see cref="IJSObjectReference"/> (#383). Caching the
+    /// value instead (<c>_focusModule ??= await JS.InvokeAsync&lt;...&gt;(...)</c>) has a real
+    /// re-entrancy gap: Blazor does not await <c>OnAfterRenderAsync</c> before allowing another
+    /// render, so two focus-triggering actions in quick succession can both observe the field as
+    /// still <see langword="null"/> and both start their own <c>import</c>, leaking the first
+    /// <see cref="IJSObjectReference"/> (never disposed) and racing which one wins the field.
+    /// Caching the <see cref="Task{TResult}"/> itself closes the gap: the assignment happens
+    /// synchronously on the first call, so every call — including one that arrives before the import
+    /// resolves — awaits the same task.
+    /// </remarks>
+    private Task<IJSObjectReference>? _focusModuleTask;
+
+    /// <summary>
+    /// A per-instance prefix for the DOM ids this component assigns to its four <c>FluentButton</c>
+    /// controls, so two rendered instances of this component (or two rows) never collide (#383,
+    /// mirrors the reasoning behind the file-upload hint id in <c>MudBlazorFileUploadComponentBase</c>).
+    /// </summary>
+    private readonly string _idPrefix = $"formcraft-collection-{Guid.NewGuid():N}";
+
     /// <summary>
     /// The collection's header wrapper, the last-resort focus target when an action leaves the field
     /// with no control at all (#337, mirrors <c>FormCraft.ForMudBlazor</c>'s <c>_header</c>). Carries
@@ -55,41 +83,32 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
     /// <remarks>
     /// <c>internal</c> rather than a leading-underscore private field so the focus-assertion test
     /// suite can read the exact <see cref="ElementReference"/> the component would itself focus (see
-    /// <c>FormCraft.ForFluentUI.UnitTests.TestSupport.FocusAssertingTestBase</c> remarks for why
-    /// Fluent's <c>FluentButton</c> cannot be focused directly and every target here is a plain
-    /// wrapping element instead).
+    /// <c>FormCraft.ForFluentUI.UnitTests.TestSupport.FocusAssertingTestBase</c> remarks). Unlike the
+    /// four <c>FluentButton</c> controls (#383), this stays a plain <c>&lt;div&gt;</c> with its own
+    /// <see cref="ElementReference"/> — it is a deliberately non-interactive landing spot, not a
+    /// control, so it is out of this issue's scope.
     /// </remarks>
     internal ElementReference HeaderTarget;
 
     /// <summary>
-    /// The wrapper around the <b>Add</b> control, when one is rendered — the second focus target in
-    /// the removal chain (#337, mirrors <c>FormCraft.ForMudBlazor</c>'s <c>_addButton</c>).
+    /// Whether the <b>Add</b> control renders at all — the single source of truth the markup's own
+    /// <c>@if</c> and <see cref="AddTargetId"/> both read (#383), so the two can never drift the way a
+    /// duplicated condition could.
     /// </summary>
-    internal ElementReference? AddTarget;
+    private bool ShouldRenderAdd => Configuration.CanAdd && !HasReachedMax;
 
     /// <summary>
-    /// Each row's delete-control wrapper, by index — the focus targets for a removal (#337, mirrors
-    /// <c>FormCraft.ForMudBlazor</c>'s <c>_deleteButtons</c>).
+    /// The id of the rendered <b>Add</b> control, when one is rendered — the second focus target in
+    /// the removal chain (#337, mirrors <c>FormCraft.ForMudBlazor</c>'s <c>_addButton</c>). Computed
+    /// live rather than captured via <c>@ref</c>: <c>FluentButton</c> exposes no
+    /// <see cref="ElementReference"/> of its own to capture (#383, see <c>FocusRestore</c> remarks).
     /// </summary>
-    /// <remarks>
-    /// Keyed by index rather than held as a single reference because these controls are rendered per
-    /// row: a removal has to focus the control that takes the vacated slot, which is a different one
-    /// each time. Entries deliberately outlive the rows that produced them — see
-    /// <see cref="DeleteTargetAt"/> for why pruning is the wrong fix and what guards staleness
-    /// instead.
-    /// </remarks>
-    private readonly Dictionary<int, ElementReference> _deleteTargets = new();
+    internal string? AddTargetId => ShouldRenderAdd ? $"{_idPrefix}-add" : null;
 
     /// <summary>
     /// The index a row was just removed from, pending the focus move on the next completed render.
     /// </summary>
     private int? _focusAfterRemovalFrom;
-
-    /// <summary>Each row's reorder-control wrappers, by index. Same capture rules as <see cref="_deleteTargets"/>.</summary>
-    private readonly Dictionary<int, ElementReference> _moveUpTargets = new();
-
-    /// <inheritdoc cref="_moveUpTargets"/>
-    private readonly Dictionary<int, ElementReference> _moveDownTargets = new();
 
     /// <summary>
     /// Each row's header wrapper, by index — the focus target when a row has no usable control to
@@ -127,33 +146,66 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
     private bool DeleteTargetsRendered => Configuration.CanRemove && !HasReachedMin;
 
     /// <summary>
-    /// The delete-control wrapper currently rendered at <paramref name="index"/>, or
-    /// <see langword="null"/> when that row no longer exists or delete is not rendered at all.
+    /// The id of the delete control rendered at <paramref name="index"/>, or <see langword="null"/>
+    /// when that row no longer exists or delete is not rendered at all.
     /// </summary>
     /// <remarks>
-    /// ⚠️ <b>Staleness is handled by these two checks, not by pruning <see cref="_deleteTargets"/>.</b>
-    /// A <c>@ref</c> on a plain element is re-captured every render, but the dictionary entry for an
-    /// index that no longer renders a delete control would otherwise still be read as live. Entries
-    /// therefore outlive the rows they came from, and correctness comes from asking what is rendered
-    /// <i>now</i>: the index must still be within <see cref="Items"/>, and delete must still be
-    /// rendered at all (reaching <c>MinItems</c> unmounts every one of them at once).
+    /// Computed live rather than captured via <c>@ref</c> (#383, see <see cref="AddTargetId"/>):
+    /// correctness comes from asking what is rendered <i>now</i>, the same two checks the old
+    /// dictionary-staleness guard used — the index must still be within <see cref="Items"/>, and
+    /// delete must still be rendered at all (reaching <c>MinItems</c> unmounts every one of them at
+    /// once).
     /// </remarks>
-    internal ElementReference? DeleteTargetAt(int index) =>
-        DeleteTargetsRendered
-        && index >= 0
-        && index < Items.Count
-        && _deleteTargets.TryGetValue(index, out var target)
-            ? target
+    internal string? DeleteTargetIdAt(int index) =>
+        DeleteTargetsRendered && index >= 0 && index < Items.Count
+            ? $"{_idPrefix}-delete-{index}"
             : null;
 
-    /// <summary>The reorder-control wrapper at <paramref name="index"/> — test-only access, mirroring <see cref="DeleteTargetAt"/>.</summary>
-    internal ElementReference MoveUpTargetAt(int index) => _moveUpTargets[index];
+    /// <summary>The id of the Move-up control at <paramref name="index"/> — test-only access, mirroring <see cref="DeleteTargetIdAt"/>.</summary>
+    internal string MoveUpTargetIdAt(int index) => $"{_idPrefix}-move-up-{index}";
 
-    /// <inheritdoc cref="MoveUpTargetAt"/>
-    internal ElementReference MoveDownTargetAt(int index) => _moveDownTargets[index];
+    /// <inheritdoc cref="MoveUpTargetIdAt"/>
+    internal string MoveDownTargetIdAt(int index) => $"{_idPrefix}-move-down-{index}";
 
-    /// <summary>The row header wrapper at <paramref name="index"/> — test-only access, mirroring <see cref="DeleteTargetAt"/>.</summary>
+    /// <summary>The row header wrapper at <paramref name="index"/> — test-only access, mirroring <see cref="DeleteTargetIdAt"/>.</summary>
     internal ElementReference RowHeaderTargetAt(int index) => _rowHeaderTargets[index];
+
+    /// <summary>
+    /// Focuses the <c>FluentButton</c> with DOM id <paramref name="id"/> via <c>collectionFocus.js</c>
+    /// (#383, see <c>FocusRestore</c> remarks for why this cannot go through
+    /// <see cref="ElementReference"/> instead).
+    /// </summary>
+    private async Task FocusByIdAsync(string id) =>
+        await FocusRestore.FocusSafelyAsync(async () =>
+        {
+            var module = await GetFocusModuleAsync();
+            await module.InvokeVoidAsync("focusById", id);
+        });
+
+    private Task<IJSObjectReference> GetFocusModuleAsync() =>
+        _focusModuleTask ??= JS.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/FormCraft.ForFluentUI/js/collectionFocus.js").AsTask();
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        if (_focusModuleTask is null)
+        {
+            return;
+        }
+
+        // The swallow-safe catch list lives once in FocusRestore, not re-hand-rolled here - a
+        // teardown can raise more than JSDisconnectedException (e.g. ObjectDisposedException,
+        // OperationCanceledException), and this is exactly the failure class CLAUDE.md's
+        // FocusRestore remarks warn against re-copying per call site. Awaiting the cached task
+        // (rather than checking for a resolved value) also disposes an import that was still
+        // in flight when teardown started, instead of leaking it.
+        await FocusRestore.FocusSafelyAsync(async () =>
+        {
+            var module = await _focusModuleTask;
+            await module.DisposeAsync();
+        });
+    }
 
     private async Task AddItem()
     {
@@ -238,16 +290,16 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
     /// </remarks>
     private async Task FocusAfterRemovalAsync(int removedIndex)
     {
-        var survivor = DeleteTargetAt(removedIndex) ?? DeleteTargetAt(removedIndex - 1);
-        if (survivor is { } survivorTarget)
+        var survivor = DeleteTargetIdAt(removedIndex) ?? DeleteTargetIdAt(removedIndex - 1);
+        if (survivor is { } survivorId)
         {
-            await FocusRestore.FocusSafelyAsync(survivorTarget);
+            await FocusByIdAsync(survivorId);
             return;
         }
 
-        if (AddTarget is { } addTarget)
+        if (AddTargetId is { } addId)
         {
-            await FocusRestore.FocusSafelyAsync(addTarget);
+            await FocusByIdAsync(addId);
             return;
         }
 
@@ -269,10 +321,10 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
     {
         if (movedDown is { } down)
         {
-            var target = EnabledMoveTargetAt(index, down);
-            if (target is { } moveTarget)
+            var targetId = EnabledMoveTargetIdAt(index, down);
+            if (targetId is { } moveId)
             {
-                await FocusRestore.FocusSafelyAsync(moveTarget);
+                await FocusByIdAsync(moveId);
                 return;
             }
         }
@@ -284,7 +336,7 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
     }
 
     /// <summary>
-    /// A still-enabled reorder-control wrapper on the given row, preferring the direction the item
+    /// The id of a still-enabled reorder control on the given row, preferring the direction the item
     /// just travelled and falling back to its counterpart when that one has become disabled at an
     /// end (#337, mirrors <c>FormCraft.ForMudBlazor</c>'s <c>EnabledMoveButtonAt</c>).
     /// </summary>
@@ -294,7 +346,7 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
     /// preferring <b>up</b> would put that repeat keypress on "undo the move I just made" whenever
     /// the item travelled down into a mid-list slot.
     /// </remarks>
-    private ElementReference? EnabledMoveTargetAt(int index, bool movedDown)
+    private string? EnabledMoveTargetIdAt(int index, bool movedDown)
     {
         if (!Configuration.CanReorder || index < 0 || index >= Items.Count)
         {
@@ -305,16 +357,14 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
         var upEnabled = index > 0;
         var downEnabled = index < Items.Count - 1;
 
-        var travelled = movedDown ? _moveDownTargets : _moveUpTargets;
         var travelledEnabled = movedDown ? downEnabled : upEnabled;
-        if (travelledEnabled && travelled.TryGetValue(index, out var preferred))
+        if (travelledEnabled)
         {
-            return preferred;
+            return movedDown ? MoveDownTargetIdAt(index) : MoveUpTargetIdAt(index);
         }
 
-        var counterpart = movedDown ? _moveUpTargets : _moveDownTargets;
         var counterpartEnabled = movedDown ? upEnabled : downEnabled;
-        return counterpartEnabled && counterpart.TryGetValue(index, out var fallback) ? fallback : null;
+        return counterpartEnabled ? (movedDown ? MoveUpTargetIdAt(index) : MoveDownTargetIdAt(index)) : null;
     }
 
     private async Task MoveItemUp(int index)

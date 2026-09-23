@@ -11,8 +11,8 @@
                    Required="@EffectiveNativeRequired"
                    Disabled="@IsDisabled"
                    ReadOnly="@IsReadOnly"
-                   Min="@(Min ?? TypeMinValue)"
-                   Max="@(Max ?? TypeMaxValue)"
-                   Step="@(Step ?? DefaultStep)"
+                   Min="@(Min ?? NumericTypeDefaults<TValue>.Min)"
+                   Max="@(Max ?? NumericTypeDefaults<TValue>.Max)"
+                   Step="@(Step ?? NumericTypeDefaults<TValue>.Step)"
                    aria-describedby="@AriaDescribedBy"
                    @attributes="ExtraAttributes" />

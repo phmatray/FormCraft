@@ -10,7 +10,9 @@ namespace FormCraft.DemoBlazorApp.Components.Layout;
 /// <c>wwwroot/css/tokens.css</c>; MudBlazor renders the forms, and they sit on light panels so a
 /// visitor sees them the way they would look in their own app. Primary is MudBlazor's default
 /// violet (<c>#594AE2</c>), which the stage's accent (<c>--fc-violet</c>) matches. MudBlazor
-/// components that land on the dark stage read a scoped dark palette instead (<c>.fc-mud-dark</c>).
+/// cards that land on the dark stage keep this palette too, and read as light cards: a scoped dark
+/// palette was tried and dropped, because every MudBlazor variable it missed (the disabled colours
+/// among them) left text invisible.
 /// </remarks>
 public static class FormCraftTheme
 {
@@ -27,11 +29,12 @@ public static class FormCraftTheme
             Primary = "#594AE2",
             PrimaryContrastText = "#FFFFFF",
             Secondary = "#2C1866",
-            Tertiary = "#14A06B",
+            // Dark enough to carry white text and to read as text on white (both ≥ 4.5:1).
+            Tertiary = "#0F7A50",
 
-            Success = "#14A06B",
+            Success = "#0F7A50",
             Info = "#594AE2",
-            Warning = "#B4690E",
+            Warning = "#9A5A0B",
             Error = "#C0304A",
 
             Background = "#F5F4F8",
@@ -47,7 +50,8 @@ public static class FormCraftTheme
 
             TextPrimary = "#16141F",
             TextSecondary = "#6A6580",
-            TextDisabled = "#A5A0B8",
+            // MudBlazor also draws upcoming stepper steps in this colour, so it has to stay legible.
+            TextDisabled = "#6F6A86",
 
             ActionDefault = "#6A6580",
             Divider = "#E1DFEA",

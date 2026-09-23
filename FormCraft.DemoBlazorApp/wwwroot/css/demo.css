@@ -56,6 +56,12 @@
 }
 
 
+/* Wide forms (tabs, steppers): the form above, full width, its source below. */
+.fc-stage--wide { grid-template-columns: minmax(0, 1fr); }
+.fc-stage--wide .fc-stage__form { order: -1; margin-right: 0; border-radius: 28px; padding: 28px; }
+.fc-stage--wide .fc-stage__code { position: static; }
+.fc-stage--wide .fc-stage__code .fc-editor { max-height: none; }
+
 /* The light panel the form renders on: MudBlazor's own palette, as in a visitor's app. */
 .fc-formpanel {
     background: #F7F7FB;
