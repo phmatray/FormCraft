@@ -120,8 +120,17 @@ internal static class CollectionItemShapeGuard
     /// </remarks>
     internal static IEnumerable<Type> TestAssemblyTypes()
     {
-        var assembly = typeof(CollectionItemShapeGuard).Assembly;
+        // Two assemblies, not one, since #343: the models moved to FormCraft.TestSupport, and
+        // Assembly.GetTypes() only ever returns types DECLARED in the assembly it is called on, so
+        // scanning this assembly alone would no longer see them at all - emptying the "shared" side
+        // of every comparison below and silently disabling the guard rather than reporting anything.
+        return new[] { typeof(CollectionItemShapeGuard).Assembly, typeof(CollectionItemFixture).Assembly }
+            .Distinct()
+            .SelectMany(TypesOf);
+    }
 
+    private static IEnumerable<Type> TypesOf(Assembly assembly)
+    {
         Type?[] types;
         try
         {

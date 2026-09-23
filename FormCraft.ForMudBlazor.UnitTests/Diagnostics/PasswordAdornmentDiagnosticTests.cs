@@ -1,7 +1,7 @@
 using FormCraft.ForMudBlazor.UnitTests.Fields;
 using FormCraft.ForMudBlazor.UnitTests.TestSupport;
 using Microsoft.Extensions.Logging;
-using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
+using static FormCraft.TestSupport.CollectionItemFixture;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Diagnostics;
 

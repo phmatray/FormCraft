@@ -1,6 +1,6 @@
 using AngleSharp.Dom;
 using FormCraft.ForMudBlazor.UnitTests.TestSupport;
-using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
+using static FormCraft.TestSupport.CollectionItemFixture;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 

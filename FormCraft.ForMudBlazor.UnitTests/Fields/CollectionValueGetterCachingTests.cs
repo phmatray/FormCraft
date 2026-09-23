@@ -1,4 +1,4 @@
-using static FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemFixture;
+using static FormCraft.TestSupport.CollectionItemFixture;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
