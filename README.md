@@ -58,6 +58,20 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **Clearing a multiple-file upload notifies once, with an empty list — not `null` (#319).** The
+  component bound `Files` two-way (`@bind-Files="CurrentValue"`), which made MudBlazor a second
+  writer: `ClearAsync()` set the field's own empty list, then `MudFileUpload.ClearAsync()`'s own
+  `FilesChanged(null)` echoed straight back through the binding and overwrote it with `null` — so the
+  field notified *twice* and ended up holding `null`. It now binds `Files`/`FilesChanged` one-way with
+  an explicit handler that normalises that `null` echo to an empty list, mirroring the single-file
+  component. This applies to a standalone multiple-file field and to one rendered inside
+  `.WithItemForm(...)` alike, since both go through the same component (#203).
+
+  **If your code null-checks after clearing a multiple-file field, that check now sees an empty
+  list instead of `null`.** A pattern like `if (model.Files is null) { ... }` no longer runs after a
+  clear — check `Files.Count == 0` (or `!Files.Any()`) instead. The model's declared type is
+  unaffected either way; this only changes what a *clear* leaves behind.
+
 - **`RenderField` no longer resolves a field's actual type by reflection on every render (#314).**
   Identifying `FieldConfigurationWrapper<TModel, TValue>` used to test whether a type's *name*
   contained the substring `"FieldConfigurationWrapper"`, then reach its `GetActualFieldType()`
