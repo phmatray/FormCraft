@@ -26,10 +26,11 @@ builder.Services.AddFluentUIComponents();
 Then render a form exactly as you would with any other FormCraft adapter:
 
 ```razor
-<FormCraftComponent TModel="ContactModel"
-                    Model="@_model"
-                    Configuration="@_configuration"
-                    OnValidSubmit="@HandleSubmit" />
+<FormCraftComponent
+    TModel="ContactModel"
+    Model="@_model"
+    Configuration="@_configuration"
+    OnValidSubmit="@HandleSubmit" />
 ```
 
 ## Supported field types

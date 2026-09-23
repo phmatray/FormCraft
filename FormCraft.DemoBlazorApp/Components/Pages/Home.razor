@@ -33,11 +33,12 @@
             <span class="fc-install__prompt">$</span>
             <span>dotnet add package FormCraft.ForMudBlazor</span>
             <MudTooltip Text="@(_copiedInstall ? "Copied" : "Copy")">
-                <MudIconButton Icon="@(_copiedInstall ? Icons.Material.Filled.Check : Icons.Material.Filled.ContentCopy)"
-                               Color="@(_copiedInstall ? Color.Success : Color.Default)"
-                               Size="Size.Small"
-                               aria-label="Copy the install command"
-                               OnClick="CopyInstall" />
+                <MudIconButton
+                    Icon="@(_copiedInstall ? Icons.Material.Filled.Check : Icons.Material.Filled.ContentCopy)"
+                    Color="@(_copiedInstall ? Color.Success : Color.Default)"
+                    Size="Size.Small"
+                    aria-label="Copy the install command"
+                    OnClick="CopyInstall" />
             </MudTooltip>
         </div>
     </div>
@@ -179,12 +180,13 @@ builder.Services.AddFormCraftForMudBlazor();</pre>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="simplified">
                 Open the first demo
             </MudButton>
-            <MudButton Variant="Variant.Outlined"
-                       Color="Color.Inherit"
-                       Size="Size.Large"
-                       Style="color: #F5F4F8; border-color: rgba(255,255,255,.35);"
-                       Href="https://github.com/phmatray/FormCraft"
-                       Target="_blank">
+            <MudButton
+                Variant="Variant.Outlined"
+                Color="Color.Inherit"
+                Size="Size.Large"
+                Style="color: #F5F4F8; border-color: rgba(255,255,255,.35);"
+                Href="https://github.com/phmatray/FormCraft"
+                Target="_blank">
                 View the source
             </MudButton>
         </div>

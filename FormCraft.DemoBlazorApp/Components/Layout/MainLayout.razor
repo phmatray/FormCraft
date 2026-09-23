@@ -14,15 +14,17 @@
 
 <MudLayout>
     <MudAppBar Elevation="0" Dense="false" Class="fc-appbar">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu"
-                       Color="Color.Inherit"
-                       Edge="Edge.Start"
-                       aria-label="Toggle navigation"
-                       OnClick="@ToggleDrawer" />
+        <MudIconButton
+            Icon="@Icons.Material.Filled.Menu"
+            Color="Color.Inherit"
+            Edge="Edge.Start"
+            aria-label="Toggle navigation"
+            OnClick="@ToggleDrawer" />
 
-        <MudLink Class="d-flex align-center ml-2 me-2"
-                 Style="text-decoration: none; cursor: pointer;"
-                 @onclick="NavigateToHome">
+        <MudLink
+            Class="d-flex align-center ml-2 me-2"
+            Style="text-decoration: none; cursor: pointer;"
+            @onclick="NavigateToHome">
             <span class="fc-wordmark">FormCraft</span>
         </MudLink>
         <span class="fc-version">v@_version</span>
@@ -36,35 +38,39 @@
         </button>
 
         <MudTooltip Text="@(_isDarkMode ? "Switch to light theme" : "Switch to dark theme")">
-            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                           Color="Color.Inherit"
-                           aria-label="@(_isDarkMode ? "Switch to light theme" : "Switch to dark theme")"
-                           Class="ml-1"
-                           OnClick="@ToggleTheme" />
+            <MudIconButton
+                Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                Color="Color.Inherit"
+                aria-label="@(_isDarkMode ? "Switch to light theme" : "Switch to dark theme")"
+                Class="ml-1"
+                OnClick="@ToggleTheme" />
         </MudTooltip>
 
         <MudTooltip Text="FormCraft on GitHub">
-            <MudIconButton Icon="@Icons.Custom.Brands.GitHub"
-                           Color="Color.Inherit"
-                           aria-label="FormCraft on GitHub"
-                           Href="https://github.com/phmatray/FormCraft"
-                           Target="_blank" />
+            <MudIconButton
+                Icon="@Icons.Custom.Brands.GitHub"
+                Color="Color.Inherit"
+                aria-label="FormCraft on GitHub"
+                Href="https://github.com/phmatray/FormCraft"
+                Target="_blank" />
         </MudTooltip>
 
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   Href="docs/getting-started"
-                   Class="ml-2 d-none d-sm-flex">
+        <MudButton
+            Variant="Variant.Filled"
+            Color="Color.Primary"
+            Href="docs/getting-started"
+            Class="ml-2 d-none d-sm-flex">
             Get started
         </MudButton>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="@_drawerOpen"
-               ClipMode="DrawerClipMode.Always"
-               Elevation="0"
-               Breakpoint="Breakpoint.Md"
-               Variant="DrawerVariant.Responsive"
-               Class="fc-drawer">
+    <MudDrawer
+        @bind-Open="@_drawerOpen"
+        ClipMode="DrawerClipMode.Always"
+        Elevation="0"
+        Breakpoint="Breakpoint.Md"
+        Variant="DrawerVariant.Responsive"
+        Class="fc-drawer">
         <MudNavMenu>
             <MudNavLink Href="home" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
                 Overview
@@ -75,9 +81,10 @@
                 var levelInfo = DemoRegistry.GetLevelInfo(level);
                 var demos = DemoRegistry.GetDemosByLevel(level);
 
-                <MudNavGroup Title="@levelInfo.Name"
-                             Icon="@levelInfo.Icon"
-                             Expanded="@(level == Services.DemoRegistry.Levels.Beginner)">
+                <MudNavGroup
+                    Title="@levelInfo.Name"
+                    Icon="@levelInfo.Icon"
+                    Expanded="@(level == Services.DemoRegistry.Levels.Beginner)">
                     <div class="fc-drawer-heading">
                         <span class="fc-drawer-heading__sub">@GetLevelSubtitle(level)</span>
                         <span class="fc-drawer-heading__count">@demos.Count</span>
@@ -132,9 +139,10 @@
     </MudMainContent>
 
     <MudScrollToTop>
-        <MudFab Color="Color.Primary"
-                StartIcon="@Icons.Material.Filled.KeyboardArrowUp"
-                aria-label="Back to top" />
+        <MudFab
+            Color="Color.Primary"
+            StartIcon="@Icons.Material.Filled.KeyboardArrowUp"
+            aria-label="Back to top" />
     </MudScrollToTop>
 </MudLayout>
 
