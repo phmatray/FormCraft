@@ -107,7 +107,7 @@ public static class FluentFormBuilderExtensions
 
                 if (required)
                 {
-                    field.Required($"{label} is required");
+                    field.Required(ValidationMessages.Required(label));
                 }
 
                 var hasMin = min != int.MinValue;
