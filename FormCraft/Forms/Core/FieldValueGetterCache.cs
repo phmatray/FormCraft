@@ -91,10 +91,30 @@ public static class FieldValueGetterCache<TModel>
     /// <param name="value">The read value on success; <see langword="null"/> when the read fails.</param>
     /// <returns><see langword="true"/> if the value was read successfully; otherwise <see langword="false"/>.</returns>
     public static bool TryGetValue(IFieldConfiguration<TModel, object> field, TModel model, out object? value)
+        => TryInvoke(GetOrCompile(field), model, out value);
+
+    /// <summary>
+    /// Invokes an already-resolved getter — typically hoisted out of <see cref="GetOrCompile"/> once
+    /// for a whole traversal — with the same catch-and-report-<see langword="false"/> policy as
+    /// <see cref="TryGetValue"/>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="TryGetValue"/> itself is the common case (one field, one read) and calls this.
+    /// A caller that resolves the getter once and invokes it many times (e.g.
+    /// <c>CollectionFieldValidator</c>'s per-item traversal, which hoists each field's getter out of
+    /// the items × fields loop to avoid re-probing <see cref="Cache"/> on every item) calls this
+    /// directly with the already-resolved delegate, so it keeps that hoisting instead of re-resolving
+    /// the getter — and therefore re-paying the cache lookup — on every invocation. <c>internal</c>
+    /// rather than <see langword="private"/>: it exists specifically for a same-assembly caller with
+    /// its own resolved delegate, not for external callers, who have no getter to hand it without
+    /// going through <see cref="GetOrCompile"/> first — at which point <see cref="TryGetValue"/> is
+    /// the simpler call.
+    /// </remarks>
+    internal static bool TryInvoke(Func<TModel, object> getter, TModel model, out object? value)
     {
         try
         {
-            value = GetOrCompile(field)(model);
+            value = getter(model);
             return true;
         }
         catch (Exception)

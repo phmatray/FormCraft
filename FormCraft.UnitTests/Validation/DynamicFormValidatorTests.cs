@@ -140,14 +140,20 @@ public class DynamicFormValidatorTests : BunitContext
         var model = new TestModel { Nested = null };
         var editContext = new EditContext(model);
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Nested!.Value, field => field.WithLabel("Nested value"))
+            .AddField(x => x.Nested!.Value, field => field.Required("Nested value is required"))
             .Build();
 
         var validator = RenderValidator(editContext, config);
 
-        // Act & Assert
+        // Act
         var isValid = await validator.Instance.ValidateModelAsync();
-        isValid.ShouldBeTrue();
+
+        // Assert - the failed read is validated as null, not silently skipped: a Required() field
+        // still reports invalid (review finding, #397). A no-throw assertion alone would also pass a
+        // regression that skips validating a field whose read failed, since a field with no validator
+        // exercised proves nothing either way.
+        isValid.ShouldBeFalse();
+        editContext.GetValidationMessages().ShouldContain("Nested value is required");
     }
 
     [Fact]
@@ -160,17 +166,21 @@ public class DynamicFormValidatorTests : BunitContext
         var model = new TestModel { Nested = null };
         var editContext = new EditContext(model);
         var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Nested!.Value, field => field.WithLabel("Nested value"))
+            .AddField(x => x.Nested!.Value, field => field.Required("Nested value is required"))
             .Build();
 
         RenderValidator(editContext, config);
 
-        // Act & Assert - FieldName is the expression's last member ("Value"), not the dotted path
+        // Act - FieldName is the expression's last member ("Value"), not the dotted path
         // (FieldConfiguration.cs), so that is what HandleFieldChanged matches on. Validators complete
         // synchronously, so the async void handler completes synchronously too; asserting immediately
         // is deterministic (see CollectionValidationPassTests).
         Should.NotThrow(() =>
             editContext.NotifyFieldChanged(new FieldIdentifier(model, "Value")));
+
+        // Assert - the failed read is validated as null, not silently skipped (review finding, #397).
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Value"))
+            .ShouldContain("Nested value is required");
     }
 
     [Fact]

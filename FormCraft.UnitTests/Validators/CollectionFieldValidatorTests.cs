@@ -226,7 +226,7 @@ public class CollectionFieldValidatorTests
         // intermediate threw an unhandled NullReferenceException out of the whole collection pass,
         // instead of just failing that item's field against null and letting the rest validate.
         var itemForm = FormBuilder<OrderItemModel>.Create()
-            .AddField(x => x.Nested!.Value, field => field.WithLabel("Nested value"))
+            .AddField(x => x.Nested!.Value, field => field.Required("Nested value is required"))
             .AddField(x => x.ProductName, field => field.Required("Product name is required"))
             .Build();
         var config = new CollectionFieldConfiguration<OrderModel, OrderItemModel>(x => x.Items)
@@ -247,7 +247,10 @@ public class CollectionFieldValidatorTests
         // Act
         var errors = await validator.ValidateItemsAsync(model, services);
 
-        // Assert - item 1's ProductName error still surfaces even though item 0's nested read failed.
+        // Assert - item 0's failed read is validated as null, not silently skipped: its Required()
+        // nested field still reports invalid (review finding, #397). Item 1's ProductName error still
+        // surfaces even though item 0's nested read failed.
+        errors.ShouldContain(e => e.ItemIndex == 0 && e.FieldName == "Value");
         errors.ShouldContain(e => e.ItemIndex == 1 && e.FieldName == "ProductName");
     }
 
@@ -257,7 +260,7 @@ public class CollectionFieldValidatorTests
         // Arrange - the single-cell path (a field-changed notification's own validation) hits the
         // same unguarded read #397 fixes in the full-collection traversal above.
         var itemForm = FormBuilder<OrderItemModel>.Create()
-            .AddField(x => x.Nested!.Value, field => field.WithLabel("Nested value"))
+            .AddField(x => x.Nested!.Value, field => field.Required("Nested value is required"))
             .Build();
         var config = new CollectionFieldConfiguration<OrderModel, OrderItemModel>(x => x.Items)
         {
@@ -273,8 +276,10 @@ public class CollectionFieldValidatorTests
         // Act
         var errors = await validator.ValidateItemFieldAsync(model, 0, "Value", services);
 
-        // Assert
-        errors.ShouldBeEmpty();
+        // Assert - the failed read is validated as null, not silently skipped: the Required() field
+        // still reports invalid (review finding, #397). An empty-errors assertion alone would also
+        // pass a regression that skips validating a field whose read failed.
+        errors.ShouldContain(e => e.FieldName == "Value" && e.Message == "Nested value is required");
     }
 
     private CollectionFieldConfiguration<OrderModel, OrderItemModel> CreateCollectionConfig(

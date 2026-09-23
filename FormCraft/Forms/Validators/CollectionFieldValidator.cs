@@ -303,7 +303,12 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
             for (var f = 0; f < fields.Count; f++)
             {
                 var field = fields[f];
-                var value = TryInvoke(getters[f], item);
+
+                // FieldValueGetterCache<TItem>.TryInvoke, not TryGetValue: the getter is already
+                // resolved above (getters[f]), and TryGetValue would re-resolve it from the field
+                // configuration on every call, undoing the resolve-once hoisting (5 cache lookups
+                // instead of 250 for a 50-row × 5-field form).
+                FieldValueGetterCache<TItem>.TryInvoke(getters[f], item, out var value);
 
                 foreach (var validator in field.Validators)
                 {
@@ -320,27 +325,5 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
         }
 
         return errors;
-    }
-
-    /// <summary>
-    /// Invokes a getter already resolved via <see cref="FieldValueGetterCache{TModel}.GetOrCompile"/>,
-    /// returning <see langword="null"/> instead of throwing when the read fails (#397) — most commonly
-    /// a null intermediate in a nested binding.
-    /// </summary>
-    /// <remarks>
-    /// Does not call <see cref="FieldValueGetterCache{TModel}.TryGetValue"/> itself: that overload
-    /// re-resolves the getter from the field configuration on every call, which would undo the
-    /// resolve-once hoisting above (5 cache lookups instead of 250 for a 50-row × 5-field form).
-    /// </remarks>
-    private static object? TryInvoke(Func<TItem, object> getter, TItem item)
-    {
-        try
-        {
-            return getter(item);
-        }
-        catch (Exception)
-        {
-            return null;
-        }
     }
 }
