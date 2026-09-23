@@ -1,17 +1,19 @@
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
-/// Characterisation tests for issue #319 — clearing a multiple-file upload assigns an empty list via
-/// <c>CurrentValue = new List&lt;IBrowserFile&gt;()</c>, then <c>MudFileUpload.ClearAsync()</c> raises
-/// <c>FilesChanged</c> on the two-way <c>@bind-Files="CurrentValue"</c> binding, which writes that
-/// second value straight back into <c>CurrentValue</c> — so the field notifies TWICE instead of once.
+/// Notification-sequence tests for issue #319.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>These tests pin TODAY's behaviour, defect included — they are not testing the fix.</b> Task 2
-/// of #319 changes the multiple-file component so it notifies once with an empty list; when that
-/// lands, <see cref="Clearing_A_Multiple_File_Upload_Notifies_Twice_Ending_Null_Pins_Issue_319_Defect"/>
-/// must be inverted (or deleted) rather than left red.
+/// <b>The defect (fixed by Task 2 of #319).</b> The multiple-file component used to assign
+/// <c>CurrentValue = new List&lt;IBrowserFile&gt;()</c> directly in its own <c>ClearAsync</c>, then
+/// <c>MudFileUpload.ClearAsync()</c> raised <c>FilesChanged</c> on the two-way
+/// <c>@bind-Files="CurrentValue"</c> binding, which wrote a second, <c>null</c> value straight back
+/// into <c>CurrentValue</c> — so the field notified TWICE, ending on <c>null</c>, instead of once with
+/// an empty list. The component now binds <c>Files</c>/<c>FilesChanged</c> one-way, mirroring the
+/// single-file component, with an explicit <c>OnFilesChanged</c> handler that normalises MudBlazor's
+/// <c>null</c> to an empty list and suppresses the extra notification <c>ClearAsync()</c> still raises
+/// even when the field was already empty.
 /// </para>
 /// <para>
 /// The harness records every <c>OnValueChanged</c> payload <b>in order</b>, because the final value
@@ -26,7 +28,7 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 public class FileUploadNotificationTests : MudBlazorTestBase
 {
     [Fact]
-    public async Task Clearing_A_Multiple_File_Upload_Notifies_Twice_Ending_Null_Pins_Issue_319_Defect()
+    public async Task Clearing_A_Multiple_File_Upload_Notifies_Once_With_A_Non_Null_Empty_List()
     {
         // Arrange
         var notifications = new List<object?>();
@@ -38,14 +40,95 @@ public class FileUploadNotificationTests : MudBlazorTestBase
         buttons.Count.ShouldBe(2);
         await component.InvokeAsync(() => buttons[1].Click());
 
-        // Assert - TWO notifications: CurrentValue = new List<IBrowserFile>() fires the first (an
-        // empty, non-null list), then MudFileUpload.ClearAsync() raises FilesChanged on the two-way
-        // bind, which writes straight back into CurrentValue and fires a second one. Today that
-        // second value is null, so the model ends up holding null instead of an empty list.
-        notifications.Count.ShouldBe(2);
-        var firstNotification = notifications[0].ShouldBeAssignableTo<IReadOnlyList<IBrowserFile>>();
-        firstNotification!.ShouldBeEmpty();
-        notifications[1].ShouldBeNull();
+        // Assert - exactly ONE notification, carrying a non-null, empty list. MudFileUpload.ClearAsync()
+        // raises FilesChanged(null), and OnFilesChanged is now the ONLY writer of CurrentValue on this
+        // path (there is no second writer left to echo), normalising that null into an empty list.
+        // The "already empty" guard below is not exercised here — see the next test for that.
+        notifications.ShouldHaveSingleItem();
+        var value = notifications[0].ShouldBeAssignableTo<IReadOnlyList<IBrowserFile>>();
+        value!.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Clearing_An_Already_Empty_Multiple_File_Upload_Notifies_Zero_Times()
+    {
+        // Arrange - the toolbar's Clear All button does not render when the field is already empty
+        // (`@if (CurrentValue?.Any() == true)`), so this path is reached by calling MudFileUpload's
+        // own ClearAsync() directly (public API, not reflection) rather than a button click.
+        var notifications = new List<object?>();
+        var model = new TestModel { Uploads = new List<IBrowserFile>() };
+        var component = RenderStandaloneMultipleUpload(model, notifications);
+
+        // Act
+        var fileUpload = component.FindComponent<MudFileUpload<IReadOnlyList<IBrowserFile>>>();
+        await component.InvokeAsync(() => fileUpload.Instance.ClearAsync());
+
+        // Assert - MudFileUpload.ClearAsync() still raises FilesChanged(null) even though there was
+        // nothing to clear; OnFilesChanged's guard recognises the field is already empty and
+        // suppresses the would-be spurious notification.
+        notifications.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Selecting_Files_Notifies_Once_With_The_Selected_Files()
+    {
+        // Arrange - MudFileUpload itself reads the browser's file picker result and raises
+        // FilesChanged with the selection; invoked directly here (public API on the rendered
+        // component instance) rather than driving the hidden <input type="file"> through bUnit.
+        var notifications = new List<object?>();
+        var model = new TestModel();
+        var component = RenderStandaloneMultipleUpload(model, notifications);
+        var selected = new List<IBrowserFile> { new StubBrowserFile(), new StubBrowserFile() };
+
+        // Act
+        var fileUpload = component.FindComponent<MudFileUpload<IReadOnlyList<IBrowserFile>>>();
+        await component.InvokeAsync(() => fileUpload.Instance.FilesChanged.InvokeAsync(selected));
+
+        // Assert - one notification, carrying exactly the selected files
+        notifications.ShouldHaveSingleItem();
+        notifications[0].ShouldBe(selected);
+    }
+
+    [Fact]
+    public async Task Removing_The_Last_File_Notifies_Once_With_An_Empty_List_Not_Null()
+    {
+        // Arrange - RemoveFile is untouched by Task 2 (it mutates CurrentValue directly and never
+        // goes through OnFilesChanged/ClearAsync), so this pins that it stays unaffected.
+        var notifications = new List<object?>();
+        var model = new TestModel { Uploads = new List<IBrowserFile> { new StubBrowserFile() } };
+        var component = RenderStandaloneMultipleUpload(model, notifications);
+
+        // Act
+        var closeButtons = component.FindAll(".mud-chip-close-button");
+        closeButtons.Count.ShouldBe(1);
+        await component.InvokeAsync(() => closeButtons[0].Click());
+
+        // Assert
+        notifications.ShouldHaveSingleItem();
+        var value = notifications[0].ShouldBeAssignableTo<IReadOnlyList<IBrowserFile>>();
+        value!.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Removing_One_Of_Two_Files_Notifies_Once_With_The_Remaining_File()
+    {
+        // Arrange - the "once per removal" half of RemoveFile's contract: with a file still left,
+        // removing one must not also trip the (unrelated) OnFilesChanged/ClearAsync path.
+        var notifications = new List<object?>();
+        var keep = new StubBrowserFile();
+        var model = new TestModel { Uploads = new List<IBrowserFile> { new StubBrowserFile(), keep } };
+        var component = RenderStandaloneMultipleUpload(model, notifications);
+
+        // Act - remove the first of two files
+        var closeButtons = component.FindAll(".mud-chip-close-button");
+        closeButtons.Count.ShouldBe(2);
+        await component.InvokeAsync(() => closeButtons[0].Click());
+
+        // Assert
+        notifications.ShouldHaveSingleItem();
+        var value = notifications[0].ShouldBeAssignableTo<IReadOnlyList<IBrowserFile>>();
+        value!.Count.ShouldBe(1);
+        value.ShouldContain(keep);
     }
 
     [Fact]
@@ -70,6 +153,36 @@ public class FileUploadNotificationTests : MudBlazorTestBase
         // representation of "no file", unlike the multiple-file field's empty list).
         notifications.ShouldHaveSingleItem();
         notifications[0].ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task A_Non_Nullable_Uploads_Property_Is_Never_Notified_Null_On_Any_Path()
+    {
+        // Arrange - FormCraft's own "no files" representation for this field is an empty list, not
+        // null, so a model declaring a non-nullable IReadOnlyList<IBrowserFile> property must never
+        // see a null notification on any path that can touch CurrentValue.
+        var notifications = new List<object?>();
+        var model = new NonNullableTestModel { Uploads = new List<IBrowserFile> { new StubBrowserFile() } };
+        var component = RenderStandaloneMultipleUploadNonNullable(model, notifications);
+
+        // Act 1 - clear
+        var buttons = component.FindAll(".mud-toolbar button");
+        buttons.Count.ShouldBe(2);
+        await component.InvokeAsync(() => buttons[1].Click());
+
+        // Act 2 - select
+        var fileUpload = component.FindComponent<MudFileUpload<IReadOnlyList<IBrowserFile>>>();
+        var selected = new List<IBrowserFile> { new StubBrowserFile() };
+        await component.InvokeAsync(() => fileUpload.Instance.FilesChanged.InvokeAsync(selected));
+
+        // Act 3 - remove the (only, just-selected) file
+        var closeButtons = component.FindAll(".mud-chip-close-button");
+        closeButtons.Count.ShouldBe(1);
+        await component.InvokeAsync(() => closeButtons[0].Click());
+
+        // Assert - three notifications (clear, select, remove-last), none of them null
+        notifications.Count.ShouldBe(3);
+        notifications.ShouldAllBe(n => n != null);
     }
 
     private IRenderedComponent<MudBlazorMultipleFileUploadComponent<TestModel>> RenderStandaloneMultipleUpload(
@@ -116,6 +229,28 @@ public class FileUploadNotificationTests : MudBlazorTestBase
             .Add(p => p.Context, context));
     }
 
+    private IRenderedComponent<MudBlazorMultipleFileUploadComponent<NonNullableTestModel>> RenderStandaloneMultipleUploadNonNullable(
+        NonNullableTestModel model,
+        List<object?> notifications)
+    {
+        var config = FormBuilder<NonNullableTestModel>
+            .Create()
+            .AddField(x => x.Uploads, f => f.WithLabel("Certificates").Required("A certificate is required"))
+            .Build();
+
+        var context = new FieldRenderContext<NonNullableTestModel>
+        {
+            Model = model,
+            Field = config.Fields.First(),
+            ActualFieldType = typeof(IReadOnlyList<IBrowserFile>),
+            CurrentValue = model.Uploads,
+            OnValueChanged = EventCallback.Factory.Create<object?>(this, v => notifications.Add(v)),
+        };
+
+        return Render<MudBlazorMultipleFileUploadComponent<NonNullableTestModel>>(parameters => parameters
+            .Add(p => p.Context, context));
+    }
+
     private sealed class TestModel
     {
         public IBrowserFile? Upload { get; set; }
@@ -127,6 +262,15 @@ public class FileUploadNotificationTests : MudBlazorTestBase
         /// render the components directly and never go through the renderer.
         /// </summary>
         public IReadOnlyList<IBrowserFile>? Uploads { get; set; }
+    }
+
+    /// <summary>
+    /// Same field, but declared non-nullable — used to pin that no path ever hands the model a
+    /// <c>null</c> it was never typed to hold.
+    /// </summary>
+    private sealed class NonNullableTestModel
+    {
+        public IReadOnlyList<IBrowserFile> Uploads { get; set; } = new List<IBrowserFile>();
     }
 
     private sealed class StubBrowserFile : IBrowserFile
