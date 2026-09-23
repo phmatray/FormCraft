@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Components;
 
 namespace FormCraft;
@@ -133,19 +134,19 @@ public class FieldRendererService : IFieldRendererService
                 renderer.ValueType.IsAssignableFrom(underlyingType));
     }
 
+    /// <summary>
+    /// Resolves a field configuration's actual value type. A <see cref="FieldConfigurationWrapper{TModel, TValue}"/>
+    /// answers directly through <see cref="IActualFieldTypeSource"/> — a plain interface dispatch, not
+    /// the reflective <c>GetMethod</c> + <c>MethodInfo.Invoke</c> this replaced (#314) — identifying the
+    /// wrapper by what it implements rather than by a substring of its type name. Any other
+    /// <see cref="IFieldConfiguration{TModel, TValue}"/> implementation falls back to reading its
+    /// <see cref="IFieldConfiguration{TModel, TValue}.ValueExpression"/> body.
+    /// </summary>
     private static Type GetActualFieldType<TModel>(IFieldConfiguration<TModel, object> field)
     {
-        var wrapperType = field.GetType();
-        if (wrapperType.IsGenericType && wrapperType.GetGenericTypeDefinition().Name.Contains("FieldConfigurationWrapper"))
+        if (field is IActualFieldTypeSource typeSource)
         {
-            var getActualFieldTypeMethod = wrapperType.GetMethod("GetActualFieldType");
-            if (getActualFieldTypeMethod != null)
-            {
-                return (Type)getActualFieldTypeMethod.Invoke(field, null)!;
-            }
-
-            var property = typeof(TModel).GetProperty(field.FieldName);
-            return property?.PropertyType ?? typeof(object);
+            return typeSource.GetActualFieldType();
         }
 
         var expressionBody = field.ValueExpression.Body;

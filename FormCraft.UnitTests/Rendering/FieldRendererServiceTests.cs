@@ -403,6 +403,93 @@ public class FieldRendererServiceTests
     }
 
 
+    [Fact]
+    public void RenderField_Should_Not_Misroute_A_NonWrapper_Type_Whose_Name_Contains_FieldConfigurationWrapper()
+    {
+        // Arrange — a generic, non-wrapper IFieldConfiguration implementation whose type name happens
+        // to contain "FieldConfigurationWrapper" as a substring. FieldName deliberately names no real
+        // property on TestModel, so the old reflection fallback (GetProperty(field.FieldName)) cannot
+        // coincidentally produce the right answer either — only routing this through the
+        // expression-body branch (reading ValueExpression directly) can.
+        var model = new TestModel { Name = "Test" };
+        var parameter = Expression.Parameter(typeof(TestModel), "x");
+        var valueExpression = Expression.Lambda<Func<TestModel, object>>(
+            Expression.Convert(Expression.Property(parameter, nameof(TestModel.Name)), typeof(object)),
+            parameter);
+        var field = new FieldConfigurationWrapperLookalike<TestModel>("NotARealProperty", valueExpression);
+        Type? detectedType = null;
+
+        var mockRenderer = A.Fake<IFieldRenderer>();
+        A.CallTo(() => mockRenderer.CanRender(A<Type>._, A<IFieldConfiguration<object, object>>._))
+            .ReturnsLazily((Type type, IFieldConfiguration<object, object> _) =>
+            {
+                detectedType = type;
+                return true;
+            });
+        A.CallTo(() => mockRenderer.Render(A<IFieldRenderContext<TestModel>>._))
+            .Returns(builder => builder.AddContent(0, "Test"));
+
+        var service = new FieldRendererService(new[] { mockRenderer }, _serviceProvider);
+        var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
+        var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
+
+        // Act
+        service.RenderField(model, field, onValueChanged, onDependencyChanged);
+
+        // Assert — a type test based on the type NAME containing "FieldConfigurationWrapper" routes
+        // this lookalike into the wrapper branch, where neither GetMethod("GetActualFieldType") (this
+        // type doesn't declare it) nor the GetProperty("NotARealProperty") fallback (no such property)
+        // can resolve anything, producing typeof(object). Identifying the wrapper by what it
+        // implements instead correctly falls back to the expression body, resolving typeof(string).
+        detectedType.ShouldBe(typeof(string));
+    }
+
+    [Fact]
+    public void RenderField_Should_Resolve_Field_Type_At_Most_Once_Per_Configuration()
+    {
+        // Arrange
+        var model = new TestModel { Name = "Test", Value = 42 };
+        var stringParameter = Expression.Parameter(typeof(TestModel), "x");
+        var stringExpression = Expression.Lambda<Func<TestModel, object>>(
+            Expression.Convert(Expression.Property(stringParameter, nameof(TestModel.Name)), typeof(object)),
+            stringParameter);
+        var intParameter = Expression.Parameter(typeof(TestModel), "x");
+        var intExpression = Expression.Lambda<Func<TestModel, object>>(
+            Expression.Convert(Expression.Property(intParameter, nameof(TestModel.Value)), typeof(object)),
+            intParameter);
+
+        var field = new FieldConfigurationWrapperLookalike<TestModel>("Name", stringExpression);
+        var detectedTypes = new List<Type>();
+
+        var mockRenderer = A.Fake<IFieldRenderer>();
+        A.CallTo(() => mockRenderer.CanRender(A<Type>._, A<IFieldConfiguration<object, object>>._))
+            .ReturnsLazily((Type type, IFieldConfiguration<object, object> _) =>
+            {
+                detectedTypes.Add(type);
+                return true;
+            });
+        A.CallTo(() => mockRenderer.Render(A<IFieldRenderContext<TestModel>>._))
+            .Returns(builder => builder.AddContent(0, "Test"));
+
+        var service = new FieldRendererService(new[] { mockRenderer }, _serviceProvider);
+        var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
+        var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
+
+        // Act — render once (the field type resolves and, once cached, should be pinned to `string`),
+        // then flip the double's own expression to one that would resolve to `int`, and render the
+        // SAME configuration instance again.
+        service.RenderField(model, field, onValueChanged, onDependencyChanged);
+        field.ValueExpression = intExpression;
+        service.RenderField(model, field, onValueChanged, onDependencyChanged);
+
+        // Assert — a re-resolve on the second render would report `int` (the double now reports a
+        // different type). Both renders instead report the type resolved on the first, proving the
+        // field's type is resolved at most once per configuration instance.
+        detectedTypes.Count.ShouldBe(2);
+        detectedTypes[0].ShouldBe(typeof(string));
+        detectedTypes[1].ShouldBe(typeof(string));
+    }
+
     public enum TestEnum
     {
         Active,
@@ -427,6 +514,44 @@ public class FieldRendererServiceTests
         public decimal Price { get; set; }
         public List<string> Tags { get; set; } = new();
         public NestedModel NestedModel { get; set; } = new();
+    }
+
+    /// <summary>
+    /// A generic <see cref="IFieldConfiguration{TModel, TValue}"/> (TValue fixed to <see cref="object"/>)
+    /// implementation whose type name contains "FieldConfigurationWrapper" as a substring but is NOT
+    /// <see cref="FieldConfigurationWrapper{TModel, TValue}"/>. Proves the wrapper test in
+    /// <see cref="FieldRendererService"/> identifies the wrapper by what it implements, not by a
+    /// substring of its type name (#314), and doubles as a mutable-<see cref="ValueExpression"/> field
+    /// for exercising the per-configuration type cache.
+    /// </summary>
+    private sealed class FieldConfigurationWrapperLookalike<TModel> : IFieldConfiguration<TModel, object>
+    {
+        public FieldConfigurationWrapperLookalike(string fieldName, Expression<Func<TModel, object>> valueExpression)
+        {
+            FieldName = fieldName;
+            ValueExpression = valueExpression;
+        }
+
+        public string FieldName { get; }
+        public Expression<Func<TModel, object>> ValueExpression { get; set; }
+        public string? Label { get; set; }
+        public string? Placeholder { get; set; }
+        public string? HelpText { get; set; }
+        public string? CssClass { get; set; }
+        public bool IsRequired { get; set; }
+        public bool IsVisible { get; set; } = true;
+        public bool IsDisabled { get; set; }
+        public bool IsReadOnly { get; set; }
+        public int Order { get; set; }
+        public Dictionary<string, object> AdditionalAttributes { get; } = new();
+        public string? InputType { get; set; }
+        public IReadOnlyList<IFieldValidator<TModel, object>> Validators { get; } = new List<IFieldValidator<TModel, object>>();
+        public void AddValidator(IFieldValidator<TModel, object> validator) { }
+        public List<IFieldDependency<TModel>> Dependencies { get; } = new();
+        public Func<TModel, bool>? VisibilityCondition { get; set; }
+        public Func<TModel, bool>? DisabledCondition { get; set; }
+        public RenderFragment<IFieldContext<TModel, object>>? CustomTemplate { get; set; }
+        public Type? CustomRendererType { get; set; }
     }
 
     private class FakeCustomRenderer : ICustomFieldRenderer<string>
