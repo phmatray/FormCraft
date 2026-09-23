@@ -122,6 +122,44 @@ public class FieldRendererServiceTests
     }
 
     [Fact]
+    public void RenderField_Should_Not_Throw_For_A_Nested_Binding_With_A_Null_Intermediate()
+    {
+        // Arrange - an ordinary field (no custom template) bound to a nested expression whose
+        // intermediate is null. Before #397, FieldRendererService.GetCurrentValue invoked
+        // FieldValueGetterCache<TModel>.GetOrCompile(field)(model) with no guard, so this threw an
+        // unhandled NullReferenceException straight through render instead of just this field
+        // rendering with no value.
+        var model = new TestModel { NestedModel = null! };
+        var field = new FieldConfiguration<TestModel, string?>(x => x.NestedModel.NestedProperty);
+        IFieldRenderContext<TestModel>? capturedContext = null;
+
+        var mockRenderer = A.Fake<IFieldRenderer>();
+        A.CallTo(() => mockRenderer.CanRender(typeof(string), A<IFieldConfiguration<object, object>>._))
+            .Returns(true);
+        A.CallTo(() => mockRenderer.Render(A<IFieldRenderContext<TestModel>>._))
+            .ReturnsLazily((IFieldRenderContext<TestModel> ctx) =>
+            {
+                capturedContext = ctx;
+                return builder => builder.AddContent(0, "Test");
+            });
+
+        var service = new FieldRendererService(new[] { mockRenderer }, _serviceProvider);
+        var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
+        var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
+
+        // Act
+        Should.NotThrow(() => service.RenderField(model,
+            new FieldConfigurationWrapper<TestModel, string?>(field),
+            onValueChanged,
+            onDependencyChanged));
+
+        // Assert - the field renders with no value, the same "nothing to show" a genuinely-null leaf
+        // value already produces.
+        capturedContext.ShouldNotBeNull();
+        capturedContext.CurrentValue.ShouldBeNull();
+    }
+
+    [Fact]
     public void RenderField_Should_Try_Multiple_Renderers_Until_Compatible_Found()
     {
         // Arrange

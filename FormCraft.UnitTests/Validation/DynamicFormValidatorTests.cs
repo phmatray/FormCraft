@@ -131,6 +131,59 @@ public class DynamicFormValidatorTests : BunitContext
     }
 
     [Fact]
+    public async Task ValidateModelAsync_Should_Not_Throw_For_A_Nested_Binding_With_A_Null_Intermediate()
+    {
+        // Arrange - an ordinary field (no custom template) bound to a nested expression whose
+        // intermediate is null. Before #397 FieldValueGetterCache<TModel>.GetOrCompile(field)(model)
+        // was invoked with no guard here, so this threw an unhandled NullReferenceException straight
+        // through the whole validation pass instead of just treating the field's value as null.
+        var model = new TestModel { Nested = null };
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Nested!.Value, field => field.Required("Nested value is required"))
+            .Build();
+
+        var validator = RenderValidator(editContext, config);
+
+        // Act
+        var isValid = await validator.Instance.ValidateModelAsync();
+
+        // Assert - the failed read is validated as null, not silently skipped: a Required() field
+        // still reports invalid (review finding, #397). A no-throw assertion alone would also pass a
+        // regression that skips validating a field whose read failed, since a field with no validator
+        // exercised proves nothing either way.
+        isValid.ShouldBeFalse();
+        editContext.GetValidationMessages().ShouldContain("Nested value is required");
+    }
+
+    [Fact]
+    public void HandleFieldChanged_Should_Not_Throw_For_A_Nested_Binding_With_A_Null_Intermediate()
+    {
+        // Arrange - the field-changed path (a single field's re-validation) reads the same cache
+        // through the same unguarded shape ValidateModelAsync used to (#397's "fixed along the way"):
+        // it was never named by the issue's three call sites, but it is the same file, the same
+        // hazard, and the same fix.
+        var model = new TestModel { Nested = null };
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Nested!.Value, field => field.Required("Nested value is required"))
+            .Build();
+
+        RenderValidator(editContext, config);
+
+        // Act - FieldName is the expression's last member ("Value"), not the dotted path
+        // (FieldConfiguration.cs), so that is what HandleFieldChanged matches on. Validators complete
+        // synchronously, so the async void handler completes synchronously too; asserting immediately
+        // is deterministic (see CollectionValidationPassTests).
+        Should.NotThrow(() =>
+            editContext.NotifyFieldChanged(new FieldIdentifier(model, "Value")));
+
+        // Assert - the failed read is validated as null, not silently skipped (review finding, #397).
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Value"))
+            .ShouldContain("Nested value is required");
+    }
+
+    [Fact]
     public void OnInitialized_Should_Throw_Without_A_Cascading_EditContext()
     {
         // Arrange - the component is only meaningful inside an EditForm, and says so.
@@ -158,5 +211,12 @@ public class DynamicFormValidatorTests : BunitContext
         public string Name { get; set; } = string.Empty;
 
         public string Email { get; set; } = string.Empty;
+
+        public NestedModel? Nested { get; set; }
+    }
+
+    public class NestedModel
+    {
+        public string Value { get; set; } = string.Empty;
     }
 }

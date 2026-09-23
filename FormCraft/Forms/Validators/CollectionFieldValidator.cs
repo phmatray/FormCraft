@@ -147,11 +147,17 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
                 continue;
             }
 
-            var value = FieldValueGetterCache<TItem>.GetOrCompile(field)(item);
+            // TryGetValue rather than GetOrCompile(field)(item) directly (#397): a nested binding with
+            // a null intermediate would otherwise throw out of this cell's validation instead of just
+            // validating null, the same treatment a genuinely-null leaf value already gets.
+            FieldValueGetterCache<TItem>.TryGetValue(field, item, out var value);
 
             foreach (var validator in field.Validators)
             {
-                var result = await validator.ValidateAsync(item, value, services);
+                // A failed read (TryGetValue above) is treated as null, which validators already
+                // handle as a legitimate value — the null-forgiving operator matches the interface's
+                // non-nullable `object value` parameter, not a claim that value can never be null.
+                var result = await validator.ValidateAsync(item, value!, services);
                 if (!result.IsValid)
                 {
                     errors.Add(new CollectionItemError(itemIndex, field.FieldName, result.ErrorMessage!));
@@ -297,11 +303,19 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
             for (var f = 0; f < fields.Count; f++)
             {
                 var field = fields[f];
-                var value = getters[f](item);
+
+                // FieldValueGetterCache<TItem>.TryInvoke, not TryGetValue: the getter is already
+                // resolved above (getters[f]), and TryGetValue would re-resolve it from the field
+                // configuration on every call, undoing the resolve-once hoisting (5 cache lookups
+                // instead of 250 for a 50-row × 5-field form).
+                FieldValueGetterCache<TItem>.TryInvoke(getters[f], item, out var value);
 
                 foreach (var validator in field.Validators)
                 {
-                    var result = await validator.ValidateAsync(item, value, services);
+                    // Null-forgiving to match the interface's non-nullable `object value` — TryInvoke
+                    // above already turned a failed read into null, which validators already treat
+                    // as a legitimate value.
+                    var result = await validator.ValidateAsync(item, value!, services);
                     if (!result.IsValid)
                     {
                         errors.Add(new CollectionItemError(i, field.FieldName, result.ErrorMessage!));
