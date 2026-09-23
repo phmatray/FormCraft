@@ -113,8 +113,10 @@
   `net8.0;net10.0`, so a fix can be applied once per TFM and land as a literal
   `<<<<<<< TODO: Unmerged change from project 'FormCraft(net10.0)'` conflict block **written into the
   `.cs` file** (measured in #301 on `FieldRendererBase.cs`; the result does not compile). Verify mode
-  never writes, so CI is unaffected. After any *apply* run:
-  `grep -rl '<<<<<<< TODO' --include='*.cs' .` and hand-resolve before committing.
+  never writes, so CI is unaffected. **The guard is `FormCraft.UnitTests/Ci/ConflictMarkerTests`**
+  (#347) — it fails `dotnet test` if a tracked `.cs` file carries a marker, so a corrupted file
+  cannot reach `dev` unnoticed. `grep -rl '<<<<<<< TODO' --include='*.cs' .` is still useful as a
+  quick diagnostic right after an apply run, but the test is what actually enforces this.
 - **Prerequisites / caveats:**
   - `global.json` pins SDK `10.0.302` with `rollForward: latestFeature`.
   - Multi-target `net8.0;net10.0` — a build error can be TFM-specific; read which TFM the error names.

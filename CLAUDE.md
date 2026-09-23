@@ -41,8 +41,10 @@ dotnet format FormCraft.sln style        # ...or the IDE* code-style rules only
   `net8.0;net10.0`, and a fix applied once per TFM can land as a literal
   `<<<<<<< TODO: Unmerged change from project 'FormCraft(net10.0)'` conflict block **written into
   the `.cs` file** — code that does not compile (measured in #301 on `FieldRendererBase.cs`).
-  Verify mode never writes, so CI is safe. After any apply run:
-  `grep -rl '<<<<<<< TODO' --include='*.cs' .` and hand-resolve before committing.
+  Verify mode never writes, so CI is safe. **The guard is `FormCraft.UnitTests/Ci/ConflictMarkerTests`**
+  (#347) — it fails `dotnet test` if a tracked `.cs` file carries a marker, so a corrupted file
+  cannot reach `dev` unnoticed. `grep -rl '<<<<<<< TODO' --include='*.cs' .` is still useful as a
+  quick diagnostic right after an apply run, but the test is what actually enforces this.
 - ⚠️ **One `dotnet format` run does not always reach a fixpoint.** Measured in #301: after formatting
   a `field`-keyword property, verify still reported three `WHITESPACE` diagnostics on it, and a
   second run cleared them. If `./build.sh Format` fails right after you formatted, run the formatter
@@ -400,6 +402,20 @@ because it lives in core rather than in one of the two packages that need it.
   components since #203 (one hint per row), two forms over one model collide the same way, and two
   nested fields can share a member name. A test using two *different* fields cannot catch this —
   different names never collide; the real case is the same field rendered twice
+- **`MudFileUpload` renders its own file list independently of `CustomContent`** — `CustomContent`
+  replaces the drop *target*, not the file list, and the two are gated by separate parameters
+  (measured by decompiling MudBlazor 9.10.0's `MudFileUpload.razor.cs`, #338). Left alone, that meant
+  a selected file appeared **twice** in the multiple-file upload — once as FormCraft's own chip under
+  `.mud-file-upload-custom-content`, once as MudBlazor's own under `.mud-file-upload-filelist` — each
+  with its own close button, and only FormCraft's routed through `RemoveFile` and therefore through
+  #318's focus-restore. The single-file component duplicated too, but asymmetrically: its own chip
+  carries no `OnClose` at all, so MudBlazor's was the *only* working close button it had. Both
+  components now set `MudFileUpload<T>.SelectedTemplate` to an empty template
+  (`MudBlazorFileUploadComponentBase.SuppressBuiltInFileList`) — any **non-null** `SelectedTemplate`
+  takes MudBlazor's `SelectedTemplate(...)` branch instead of its default chip list, so an empty one
+  suppresses that list entirely while leaving `CustomContent` untouched. ⛔ Don't reach for
+  `ShowPreview` here: it is FormCraft's own unrelated code-behind property (drives the drop zone's
+  height), not a `MudFileUpload` parameter, and setting it does nothing to the duplicate list.
 - **A control that unmounts *or disables* itself on activation must move focus deliberately** —
   otherwise the element the keyboard user is standing on stops being focusable, focus falls to
   `<body>`, and the next <kbd>Tab</kbd> restarts from the top of the document (WCAG 2.1 **2.4.3
