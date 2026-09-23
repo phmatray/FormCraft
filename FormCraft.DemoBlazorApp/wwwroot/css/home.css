@@ -135,7 +135,8 @@
 .fc-tile--a { grid-column: span 2; grid-row: span 2; }
 .fc-tile--g { grid-column: span 2; }
 .fc-tile__stage { position: relative; padding: 26px; display: grid; place-items: center; background: var(--tone, var(--fc-violet-slab)); overflow: hidden; }
-.fc-tile__meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; }
+.fc-tile__meta { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 12px; padding: 16px 20px; }
+.fc-tile__meta b { white-space: nowrap; }
 .fc-tile__meta b { display: flex; align-items: center; gap: 8px; font-family: var(--fc-display); font-weight: 600; font-size: 16.5px; letter-spacing: -.02em; }
 .fc-tile__meta code { font-size: 12px; color: var(--fc-violet-ink); background: var(--fc-bg-3); padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
 

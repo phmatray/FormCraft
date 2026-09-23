@@ -8,11 +8,6 @@ public partial class MudBlazorAutocompleteFieldComponent<TModel, TValue>
     private int _minCharacters = 1;
     private Func<TValue, string> _toStringFunc = v => v?.ToString() ?? string.Empty;
 
-    /// <summary>
-    /// Cached lookup from display string back to TValue for MudAutocomplete results.
-    /// </summary>
-    private readonly Dictionary<string, TValue> _valueLookup = new();
-
     /// <inheritdoc />
     /// <remarks>
     /// Moved off <c>OnInitialized</c> so a component instance handed a different field re-reads it
@@ -67,14 +62,6 @@ public partial class MudBlazorAutocompleteFieldComponent<TModel, TValue>
         }
 
         var optionsList = options.ToList();
-
-        // Build the display-to-value lookup and set up ToString
-        _valueLookup.Clear();
-        foreach (var option in optionsList)
-        {
-            var displayStr = _toStringFunc(option.Value);
-            _valueLookup[displayStr] = option.Value;
-        }
 
         // If no custom toString was provided, use label-based display
         var customToString = GetAttribute<Func<TValue, string>>("AutocompleteToStringFunc");

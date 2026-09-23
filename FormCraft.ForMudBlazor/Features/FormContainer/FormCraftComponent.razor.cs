@@ -1,3 +1,4 @@
+using FormCraft.Diagnostics;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.DependencyInjection;
@@ -260,7 +261,7 @@ public partial class FormCraftComponent<TModel>
             if (_formDiagnosticScope.ShouldWarnOnce(CustomTemplateFieldDiagnosticCategory, field.ValueExpression.ToString()))
             {
                 var displayName = string.IsNullOrWhiteSpace(field.Label) ? field.FieldName : field.Label;
-                DiagnosticLog.Warn(
+                FormDiagnosticLog.Warn(
                     ServiceProvider,
                     CustomTemplateFieldDiagnosticCategory,
                     "Field '{Field}' has a custom template whose value could not be read from the " +

@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -225,14 +226,15 @@ public sealed class FormSecurityEnforcer<TModel>
         var excludedFields = security.AuditLog?.ExcludedFields;
         foreach (var field in configuration.Fields)
         {
+            var key = BuildAuditKey(field);
             if (excludedFields?.Contains(field.FieldName) == true ||
                 security.EncryptedFields.Contains(field.FieldName))
             {
-                entry.AdditionalData[field.FieldName] = "[REDACTED]";
+                entry.AdditionalData[key] = "[REDACTED]";
                 continue;
             }
 
-            entry.AdditionalData[field.FieldName] = ReadFieldValue(field, model)?.ToString();
+            entry.AdditionalData[key] = ReadFieldValue(field, model)?.ToString();
         }
 
         await auditLogService.LogAsync(entry);
@@ -258,6 +260,36 @@ public sealed class FormSecurityEnforcer<TModel>
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Builds the <c>AdditionalData</c> key for a field from its full dotted member path (e.g.
+    /// <c>"Address.City"</c>) instead of <see cref="IFieldConfiguration{TModel, TValue}.FieldName"/>'s
+    /// last-member-only name, so two fields that end in the same member (<c>x =&gt; x.Home.City</c>
+    /// and <c>x =&gt; x.Work.City</c>) no longer collide on one shared key (#406).
+    /// </summary>
+    private static string BuildAuditKey(IFieldConfiguration<TModel, object> field)
+    {
+        var expression = field.ValueExpression.Body;
+        if (expression is UnaryExpression unary)
+        {
+            expression = unary.Operand;
+        }
+
+        var segments = new Stack<string>();
+        while (expression is MemberExpression member)
+        {
+            segments.Push(member.Member.Name);
+            expression = member.Expression;
+        }
+
+        // Every field built through the fluent builder already has a MemberExpression body (enforced
+        // by FieldConfiguration<TModel, TValue>'s constructor), so this branch is unreachable for
+        // those. IFormConfiguration<TModel>.Fields is a public, mutable list, though, and a
+        // hand-rolled IFieldConfiguration<TModel, TValue> (see that interface's own XML doc example)
+        // is not bound by that guard — this is its compatibility fallback, preserving the pre-#406
+        // FieldName-only key for any such implementation.
+        return segments.Count == 0 ? field.FieldName : string.Join(".", segments);
     }
 
     private void LogSecurityError(string message, params object?[] args)

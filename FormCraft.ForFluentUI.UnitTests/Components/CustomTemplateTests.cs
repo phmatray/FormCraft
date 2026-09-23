@@ -119,10 +119,15 @@ public class CustomTemplateTests : FluentUITestBase
         component.Find(".nested-template").TextContent.ShouldBe("Custom: ");
 
         // ...and the diagnostic fired exactly once, however many times the form re-renders.
-        var warnings = logs.Warnings;
-        warnings.Count.ShouldBe(1);
-        warnings[0].ShouldContain("Nested value");
-        warnings[0].ShouldContain(nameof(NullReferenceException));
+        var entries = logs.Entries;
+        entries.Count.ShouldBe(1);
+        entries[0].Message.ShouldContain("Nested value");
+        entries[0].Message.ShouldContain(nameof(NullReferenceException));
+
+        // ...under its own category, not a bare per-TModel logger type name and not MudBlazor's
+        // identically-shaped diagnostic's category — each keeps its own so muting one cannot
+        // silently silence the other (#398).
+        entries[0].Category.ShouldBe("FormCraft.ForFluentUI.CustomTemplateField");
     }
 
     [Fact]
@@ -196,33 +201,52 @@ public class CustomTemplateTests : FluentUITestBase
     }
 
     /// <summary>
-    /// Collects warning-level log messages so a diagnostic can be asserted on. This adapter has no
-    /// shared diagnostics infrastructure (unlike <c>FormCraft.ForMudBlazor</c>'s
-    /// <c>DiagnosticLog</c>/<c>CapturingLoggerProvider</c>) and this is the only test needing one, so
-    /// it stays local rather than starting a new shared TestSupport type for a single call site.
+    /// Collects warning-level log messages so a diagnostic can be asserted on. The production
+    /// warning path now goes through the shared <c>FormCraft.Diagnostics.FormDiagnosticLog</c>
+    /// (#398), but this project has no shared <c>CapturingLoggerProvider</c> test double of its
+    /// own — unlike <c>FormCraft.ForMudBlazor.UnitTests</c>'s <c>TestSupport</c> one — and this is
+    /// the only test needing one, so it stays local rather than starting a new shared TestSupport
+    /// type for a single call site.
     /// </summary>
     private sealed class CapturingLoggerProvider : ILoggerProvider
     {
-        private readonly List<string> _warnings = [];
+        private readonly List<(string Category, string Message)> _entries = [];
 
         public IReadOnlyList<string> Warnings
         {
             get
             {
-                lock (_warnings)
+                lock (_entries)
                 {
-                    return _warnings.ToList();
+                    return _entries.Select(entry => entry.Message).ToList();
                 }
             }
         }
 
-        public ILogger CreateLogger(string categoryName) => new CapturingLogger(_warnings);
+        /// <summary>
+        /// The same warnings, each paired with the logger category it was emitted under — the
+        /// category is what a developer mutes, so an assertion that the custom-template diagnostic
+        /// still logs under its own category (rather than colliding with MudBlazor's, #398) needs
+        /// this rather than <see cref="Warnings"/> alone.
+        /// </summary>
+        public IReadOnlyList<(string Category, string Message)> Entries
+        {
+            get
+            {
+                lock (_entries)
+                {
+                    return _entries.ToList();
+                }
+            }
+        }
+
+        public ILogger CreateLogger(string categoryName) => new CapturingLogger(categoryName, _entries);
 
         public void Dispose()
         {
         }
 
-        private sealed class CapturingLogger(List<string> warnings) : ILogger
+        private sealed class CapturingLogger(string category, List<(string Category, string Message)> entries) : ILogger
         {
             public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
 
@@ -240,9 +264,9 @@ public class CustomTemplateTests : FluentUITestBase
                     return;
                 }
 
-                lock (warnings)
+                lock (entries)
                 {
-                    warnings.Add(formatter(state, exception));
+                    entries.Add((category, formatter(state, exception)));
                 }
             }
         }

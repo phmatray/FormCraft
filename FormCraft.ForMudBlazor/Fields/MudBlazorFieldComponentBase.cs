@@ -1,3 +1,4 @@
+using FormCraft.Diagnostics;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
@@ -47,19 +48,24 @@ public static class FormCraftCascadingValues
 }
 
 /// <summary>
-/// The once-per-(diagnostic, field) latch shared by the two diagnostic scopes.
+/// The once-per-(diagnostic, field) latch behind <see cref="CollectionItemFieldScope"/>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// One type rather than a copy in each scope, on the same grounds as #284: the diagnostics family
-/// grows by copying its nearest neighbour, and a `HashSet` plus a key format is precisely the size of
-/// thing that gets retyped rather than reused. #304 needed a second latch, which made this the moment
-/// to have one.
+/// A type of its own, on the same grounds as #284: the diagnostics family grows by copying its
+/// nearest neighbour, and a `HashSet` plus a key format is precisely the size of thing that gets
+/// retyped rather than reused.
 /// </para>
 /// <para>
 /// ⛔ The <c>category</c> is part of the key, not decoration — a single field can legitimately trip
 /// several diagnostics (a masked multi-line password whose adornment is displaced trips two), and
 /// latching them together would report only the first and hide the rest for good (#274).
+/// </para>
+/// <para>
+/// The form-wide counterpart of this latch — <c>FormDiagnosticScope</c> — moved into
+/// <c>FormCraft.Diagnostics</c> under #398 so <c>FormCraft.ForFluentUI</c> could share it too. This
+/// one stays here: it backs <see cref="CollectionItemFieldScope"/>, which is MudBlazor's own
+/// per-collection rendering concern and outside that move's scope.
 /// </para>
 /// </remarks>
 internal sealed class DiagnosticOnceLatch
@@ -73,60 +79,6 @@ internal sealed class DiagnosticOnceLatch
     /// <param name="category">The diagnostic's logger category.</param>
     /// <param name="key">The field identity to latch on.</param>
     internal bool ShouldWarnOnce(string category, string key) => _warnedOnce.Add($"{category}|{key}");
-}
-
-/// <summary>
-/// The form-wide diagnostic latch: reports each (diagnostic, field) pair once per <b>form</b>, however
-/// many times the field's component is destroyed and re-created (#304).
-/// </summary>
-/// <remarks>
-/// <para>
-/// <b>Why a component-level flag cannot do this job.</b> Every other latch in the package lives on the
-/// component instance — <c>_shrinkLabelDiagnosticEmitted</c>, <c>_maskedValueReportingSettled</c> — and
-/// a re-mount is by definition a new instance with fresh fields. A field gated by
-/// <c>.VisibleWhen(...)</c> therefore re-reported a configuration fact that had not changed, once per
-/// toggle. This outlives the field's component because the <i>form</i> owns it.
-/// </para>
-/// <para>
-/// ⚠️ <b>It does not outlive the form.</b> The latch is a field on <see cref="FormCraftComponent{TModel}"/>,
-/// so anything that destroys the form component takes it along — including a wizard that puts a
-/// separate form in each step (which is what <c>StepperForm.razor</c> in the demo app does) if the
-/// step host unmounts inactive content. What is fixed here is re-mounting a <i>field</i> within one
-/// form; a re-mounted <i>form</i> starts over, by construction. Covered by
-/// <c>DiagnosticLatchTests.A_Field_Re_Mounted_Inside_A_Form_Should_Report_Once</c>.
-/// </para>
-/// <para>
-/// <b>How it differs from <see cref="CollectionItemFieldScope"/>.</b> That one is owned by a
-/// collection and answers "has this field reported for any <i>row</i>" — one instance per collection,
-/// keyed by the collection-qualified field name. This is owned by the form and answers "has this field
-/// reported at all". A field inside a collection consults the item scope and never reaches this;
-/// see <c>MudBlazorFieldComponentBase.ShouldReport</c>, which tries them in that order.
-/// </para>
-/// <para>
-/// <b>Scoped to one form deliberately.</b> Two forms over the same model each get their own instance,
-/// so each reports — they are separate forms, and suppressing the second one's warning because the
-/// first already spoke would hide a real diagnostic from whoever is looking at the second.
-/// </para>
-/// </remarks>
-public sealed class FormDiagnosticScope
-{
-    private readonly DiagnosticOnceLatch _latch = new();
-
-    /// <summary>
-    /// Returns <c>true</c> the first time a given (diagnostic, field) pair is presented to this form,
-    /// and <c>false</c> forever after.
-    /// </summary>
-    /// <remarks>
-    /// ⛔ This mutates: consulting it burns the latch. Call it only once the diagnostic's rule has
-    /// already said yes, or a field with nothing to report spends the one warning it was owed (#274).
-    /// </remarks>
-    /// <param name="category">
-    /// The diagnostic's logger category, e.g. <see cref="MaskedLinesDiagnostic.Category"/>.
-    /// </param>
-    /// <param name="key">
-    /// The field identity to latch on, normally <c>MudBlazorFieldComponentBase.DiagnosticFieldKey</c>.
-    /// </param>
-    public bool ShouldWarnOnce(string category, string key) => _latch.ShouldWarnOnce(category, key);
 }
 
 /// <summary>
@@ -579,7 +531,7 @@ public abstract class MudBlazorFieldComponentBase<TModel, TValue> : FieldCompone
             return;
         }
 
-        DiagnosticLog.Warn(
+        FormDiagnosticLog.Warn(
             DiagnosticServices,
             ShrinkLabelDiagnostic.Category,
             "Field '{Field}' sets ShrinkLabel=false but also has {Conflict}, which MudBlazor " +
