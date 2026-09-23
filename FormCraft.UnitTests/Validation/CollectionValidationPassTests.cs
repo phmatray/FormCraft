@@ -13,6 +13,14 @@ namespace FormCraft.UnitTests.Validation;
 /// side effects (an API call, a counter, a write) is where that becomes visible, and by then it is a
 /// bug report rather than a test failure.
 /// </para>
+/// <para>
+/// #342 header note: <c>ICollectionFieldConfigurationBase</c> exposes only the static
+/// <c>IsVisible</c> flag - there is no <c>VisibilityCondition</c> for a collection field (unlike an
+/// ordinary <c>IFieldConfiguration</c>). Both adapters' render loops already gate rendering on
+/// exactly this flag (<c>if (collectionField.IsVisible)</c> in each <c>FormCraftComponent.razor</c>),
+/// so the validation guard mirrors that one flag rather than the ordinary-field
+/// <c>IsFieldVisible</c> helper, which also checks a condition this type does not have.
+/// </para>
 /// </summary>
 public class CollectionValidationPassTests : BunitContext
 {
@@ -178,6 +186,35 @@ public class CollectionValidationPassTests : BunitContext
         // submit produces for a cell, editing that cell must produce the same ones.
         afterFullPass.ShouldBe(["FIRST", "SECOND"]);
         afterKeystroke.ShouldBe(afterFullPass);
+    }
+
+    [Fact]
+    public async Task ValidateModelAsync_Should_Not_Validate_A_Hidden_Collection()
+    {
+        // Arrange - hidden, with an empty required item field AND an unmet MinItems: both an
+        // item-count rule and a per-item validator would fire if this collection were validated.
+        var model = new OrderModel { Items = { new OrderItem { ProductName = "" } } };
+        var editContext = new EditContext(model);
+        var counter = new CountingValidator();
+        var configuration = FormBuilder<OrderModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithMinItems(2)
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field.WithLabel("Product").WithValidator(counter))))
+            .Build();
+        ((ICollectionFormConfiguration<OrderModel>)configuration).CollectionFields[0].IsVisible = false;
+        var validator = RenderValidator(editContext, configuration);
+
+        // Act
+        var isValid = await validator.Instance.ValidateModelAsync();
+
+        // Assert - a field the form does not render must not block submission or run its validators.
+        isValid.ShouldBeTrue();
+        counter.Seen.ShouldBeEmpty();
+        editContext.GetValidationMessages(editContext.Field(nameof(OrderModel.Items))).ShouldBeEmpty();
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Items[0].ProductName")).ShouldBeEmpty();
     }
 
     [Fact]

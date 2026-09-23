@@ -124,6 +124,16 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         {
             foreach (var collectionField in collectionConfig.CollectionFields)
             {
+                // Hidden collections must not block submission with invisible errors - mirrors the
+                // ordinary-field guard above (:102). ICollectionFieldConfigurationBase exposes only
+                // the static IsVisible flag (no VisibilityCondition), and both adapters' render
+                // loops gate rendering on exactly this flag, so there is nothing else to mirror
+                // (#342).
+                if (!collectionField.IsVisible)
+                {
+                    continue;
+                }
+
                 // ONE traversal produces both message shapes. Asking for them separately meant
                 // running every item field's validator twice per pass, because the flat-message call
                 // already performs the per-item walk internally (#329).
