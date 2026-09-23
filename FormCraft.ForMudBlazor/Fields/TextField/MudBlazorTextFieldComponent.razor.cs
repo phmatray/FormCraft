@@ -669,12 +669,23 @@ internal static class TextMaskMap
     {
         if (maskFactory is not null)
         {
-            // The blank rule applies to a produced mask as well as a configured pattern: a factory
-            // that returns PatternMask("") — from a settings string that bound to empty, say — would
-            // otherwise reroute an unmasked field through MudMask and drop MaxLines with it, which
-            // is the outcome the rule exists to prevent regardless of which path produced it.
+            // The blank rule is PatternMask-specific, not a general property of every IMask (#317).
+            // PatternMask's pattern is eager — set at construction — so an empty one genuinely means
+            // "no mask", and rejecting it is what stops a settings string that bound to empty from
+            // rerouting an unmasked field through MudMask and dropping MaxLines with it. The `is
+            // PatternMask` check also (correctly) catches MultiMask and DateMask: both derive from
+            // PatternMask and set Mask the same eager way, so a blank one means "no mask" for exactly
+            // the same reason and was already refused before this fix — nothing changes for them.
+            // BlockMask is the one that does NOT derive from PatternMask and computes Mask lazily
+            // (only after its first SetText), so inspecting Mask right after construction always read
+            // it as blank and silently discarded a perfectly functional mask — RegexMask likewise
+            // isn't a PatternMask, so it was never subject to this rule at all. A factory result is
+            // otherwise taken at face value: the caller constructed a mask object on purpose, and this
+            // library has no business second-guessing an IMask implementation's internal state.
             var produced = maskFactory();
-            return string.IsNullOrWhiteSpace(produced?.Mask) ? null : produced;
+            return produced is PatternMask { Mask: var pattern } && string.IsNullOrWhiteSpace(pattern)
+                ? null
+                : produced;
         }
 
         return string.IsNullOrWhiteSpace(mask)
