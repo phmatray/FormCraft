@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>FormCraft.TestSupport</RootNamespace>
+    <!-- Test-only infrastructure, shared by the adapter test suites - never shipped as a package. -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Framework-agnostic on purpose (#343): the models and item-form builders name no bUnit or
+      MudBlazor/FluentUI type, so both adapter test suites can reference this project without
+      pulling their sibling adapter's UI framework along with it.
+    -->
+    <ProjectReference Include="..\FormCraft\FormCraft.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -3,6 +3,7 @@ global using Bunit;
 global using FakeItEasy;
 global using FormCraft;
 global using FormCraft.ForMudBlazor;
+global using FormCraft.TestSupport;
 global using Microsoft.AspNetCore.Components;
 global using Microsoft.AspNetCore.Components.Forms;
 global using Microsoft.Extensions.DependencyInjection;

@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FormCraft\FormCraft.csproj" />
+    <ProjectReference Include="..\FormCraft.TestSupport\FormCraft.TestSupport.csproj" />
     <ProjectReference Include="..\FormCraft.ForFluentUI\FormCraft.ForFluentUI.csproj" />
     <!--
       Test-only reference. AddFormCraftFluentUI() refuses to register alongside the MudBlazor

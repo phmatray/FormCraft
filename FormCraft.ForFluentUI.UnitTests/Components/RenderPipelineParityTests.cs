@@ -20,6 +20,12 @@ namespace FormCraft.ForFluentUI.UnitTests.Components;
 /// shortcut #203 removed - would surface here first, before it had grown its own list of
 /// known divergences.
 /// </para>
+/// <para>
+/// Uses <see cref="OrderItem"/> (the fixture's text-path item, from <c>FormCraft.TestSupport</c>)
+/// as both the standalone model and the collection's item type, rather than a local model pair
+/// (#343) — <see cref="OrderItem"/> serves both roles equally well, since it is a single-field
+/// model to begin with.
+/// </para>
 /// </remarks>
 public class RenderPipelineParityTests : FluentUITestBase
 {
@@ -113,31 +119,31 @@ public class RenderPipelineParityTests : FluentUITestBase
     // passing test.
     // -------------------------------------------------------------------------------------------
 
-    private Presentation RenderStandalone(Action<FieldBuilder<ParityLine, string>> configure)
+    private Presentation RenderStandalone(Action<FieldBuilder<OrderItem, string>> configure)
     {
-        var config = FormBuilder<ParityLine>.Create()
-            .AddField(x => x.Product, configure)
+        var config = FormBuilder<OrderItem>.Create()
+            .AddField(x => x.ProductName, configure)
             .Build();
 
-        var component = Render<FormCraftComponent<ParityLine>>(p => p
-            .Add(c => c.Model, new ParityLine())
+        var component = Render<FormCraftComponent<OrderItem>>(p => p
+            .Add(c => c.Model, new OrderItem())
             .Add(c => c.Configuration, config));
 
         return Read(component);
     }
 
-    private Presentation RenderInCollection(Action<FieldBuilder<ParityLine, string>> configure)
+    private Presentation RenderInCollection(Action<FieldBuilder<OrderItem, string>> configure)
     {
-        var config = FormBuilder<ParityOrder>.Create()
-            .AddCollectionField(x => x.Lines, collection => collection
+        var config = FormBuilder<OrderModel>.Create()
+            .AddCollectionField(x => x.Items, collection => collection
                 .WithLabel("Lines")
                 .AllowAdd()
                 .AllowRemove()
-                .WithItemForm(item => item.AddField(x => x.Product, configure)))
+                .WithItemForm(item => item.AddField(x => x.ProductName, configure)))
             .Build();
 
-        var component = Render<FormCraftComponent<ParityOrder>>(p => p
-            .Add(c => c.Model, new ParityOrder { Lines = { new ParityLine() } })
+        var component = Render<FormCraftComponent<OrderModel>>(p => p
+            .Add(c => c.Model, new OrderModel { Items = { new OrderItem() } })
             .Add(c => c.Configuration, config));
 
         return Read(component);
@@ -166,19 +172,5 @@ public class RenderPipelineParityTests : FluentUITestBase
             rendered.Find("fluent-text-input").GetAttribute("aria-required"),
             input.Disabled,
             input.ReadOnly);
-    }
-
-    /// <summary>Parent model owning the collection placement.</summary>
-    public class ParityOrder
-    {
-        /// <summary>The collection whose item form holds the compared field.</summary>
-        public List<ParityLine> Lines { get; set; } = new();
-    }
-
-    /// <summary>Serves as both the item type and the standalone model, so the field is identical.</summary>
-    public class ParityLine
-    {
-        /// <summary>The field compared across placements.</summary>
-        public string Product { get; set; } = string.Empty;
     }
 }
