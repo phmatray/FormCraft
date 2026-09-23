@@ -1,17 +1,17 @@
-using FormCraft.ForMudBlazor.UnitTests.TestSupport;
+using FormCraft.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace FormCraft.ForMudBlazor.UnitTests.Diagnostics;
+namespace FormCraft.UnitTests.Diagnostics;
 
 /// <summary>
-/// Direct tests for <see cref="DiagnosticLog"/>, the shared diagnostic emitter (#284).
+/// Direct tests for <see cref="FormDiagnosticLog"/> (moved into core from
+/// <c>FormCraft.ForMudBlazor.DiagnosticLog</c> under #398 — see
+/// <c>FormCraft.ForMudBlazor.UnitTests.Diagnostics.DiagnosticLogTests</c> for the pre-move history).
 /// </summary>
 /// <remarks>
 /// <para>
-/// Four diagnostics used to carry a verbatim copy of the same resolve-log-swallow block, identical
-/// comment and empty <c>catch</c> included. Folding them into one emitter makes the swallow a single
-/// promise rather than four, which is worth testing directly: the guarantee is <b>"never throws"</b>,
-/// and each way it could throw is a separate arm the component suites reach only incidentally.
+/// The guarantee is <b>"never throws"</b>, and each way it could throw is a separate arm the
+/// component suites reach only incidentally, which is why this exists as a suite of its own.
 /// </para>
 /// <para>
 /// The disposed-scope arm is the one that motivated the shape. A diagnostic runs during render, so
@@ -20,20 +20,19 @@ namespace FormCraft.ForMudBlazor.UnitTests.Diagnostics;
 /// with it.
 /// </para>
 /// </remarks>
-public class DiagnosticLogTests
+public class FormDiagnosticLogTests
 {
-    private const string Category = "FormCraft.ForMudBlazor.TestDiagnostic";
+    private const string Category = "FormCraft.TestDiagnostic";
 
     [Fact]
     public void Warn_Should_Log_Under_The_Given_Category()
     {
         // Arrange - the category is what routes and mutes a diagnostic, so a caller that passes one
-        // must get it. Emitting everything under a single shared category would let a developer
-        // muting one diagnostic silence all four without noticing.
+        // must get it.
         var logs = new CapturingLoggerProvider();
 
         // Act
-        DiagnosticLog.Warn(BuildServices(logs), Category, "Field '{Field}' is misconfigured.", "Phone");
+        FormDiagnosticLog.Warn(BuildServices(logs), Category, "Field '{Field}' is misconfigured.", "Phone");
 
         // Assert
         var entries = logs.Entries;
@@ -44,12 +43,11 @@ public class DiagnosticLogTests
     [Fact]
     public void Warn_Should_Format_The_Template_With_Its_Arguments()
     {
-        // Arrange - the existing suites assert on rendered message text (ShouldContain on the field
-        // name and the offending setting), so the arguments have to reach the formatter in order.
+        // Arrange
         var logs = new CapturingLoggerProvider();
 
         // Act
-        DiagnosticLog.Warn(
+        FormDiagnosticLog.Warn(
             BuildServices(logs),
             Category,
             "Field '{Field}' holds a value that its mask '{Mask}' rejects.",
@@ -68,7 +66,7 @@ public class DiagnosticLogTests
     {
         // Arrange & Act & Assert - a component rendered outside DI has no provider at all. Nothing
         // to log to is not an error; it is the ordinary state of a field rendered in isolation.
-        Should.NotThrow(() => DiagnosticLog.Warn(null, Category, "Field '{Field}' is misconfigured.", "Phone"));
+        Should.NotThrow(() => FormDiagnosticLog.Warn(null, Category, "Field '{Field}' is misconfigured.", "Phone"));
     }
 
     [Fact]
@@ -79,7 +77,7 @@ public class DiagnosticLogTests
         var services = new ServiceCollection().BuildServiceProvider();
 
         // Act & Assert
-        Should.NotThrow(() => DiagnosticLog.Warn(services, Category, "Field '{Field}' is misconfigured.", "Phone"));
+        Should.NotThrow(() => FormDiagnosticLog.Warn(services, Category, "Field '{Field}' is misconfigured.", "Phone"));
     }
 
     [Fact]
@@ -87,7 +85,7 @@ public class DiagnosticLogTests
     {
         // Arrange & Act & Assert - the disposed-circuit case, and the reason the resolution lives
         // inside the guard. This is the arm a null-check alone would not survive.
-        Should.NotThrow(() => DiagnosticLog.Warn(
+        Should.NotThrow(() => FormDiagnosticLog.Warn(
             new ThrowingServiceProvider(),
             Category,
             "Field '{Field}' is misconfigured.",
@@ -98,21 +96,16 @@ public class DiagnosticLogTests
     public void Warn_Should_Not_Log_When_No_LoggerFactory_Is_Registered()
     {
         // Arrange - the other half of the no-factory case: it degrades silently rather than
-        // reaching for some other sink.
-        //
-        // The provider is registered as a bare ILoggerProvider — deliberately, and it is what gives
-        // this test teeth. `AddLogging` would register an ILoggerFactory and make it the positive
-        // case; leaving the provider out of the container altogether would wire `logs` to nothing,
-        // so the assertion below could not fail whatever DiagnosticLog did. Registered but
-        // factory-less, the provider is genuinely reachable and the only missing piece is the one
-        // door DiagnosticLog is allowed to use.
+        // reaching for some other sink. Registered as a bare ILoggerProvider (not via AddLogging,
+        // which would register a factory and make it the positive case) so the container is
+        // genuinely reachable and the only missing piece is the one door Warn is allowed to use.
         var logs = new CapturingLoggerProvider();
         var services = new ServiceCollection()
             .AddSingleton<ILoggerProvider>(logs)
             .BuildServiceProvider();
 
         // Act
-        DiagnosticLog.Warn(services, Category, "Field '{Field}' is misconfigured.", "Phone");
+        FormDiagnosticLog.Warn(services, Category, "Field '{Field}' is misconfigured.", "Phone");
 
         // Assert - the premise first, so a future edit that registers a factory fails loudly here
         // rather than turning the real assertion into a tautology again.

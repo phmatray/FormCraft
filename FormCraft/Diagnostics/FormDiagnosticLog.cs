@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace FormCraft.ForMudBlazor;
+namespace FormCraft.Diagnostics;
 
 /// <summary>
 /// The single implementation of "emit a FormCraft diagnostic": resolve an optional logger, write one
@@ -9,16 +9,16 @@ namespace FormCraft.ForMudBlazor;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Four diagnostics grew this block independently — <see cref="MaskedLinesDiagnostic"/> (#207),
-/// <see cref="PasswordAdornmentDiagnostic"/> (#219), <see cref="MaskedValueDiagnostic"/> (#266), and
-/// an inline copy in <c>MudBlazorFieldComponentBase</c> — each written by copying its nearest
-/// neighbour, down to the identical comment inside the empty <c>catch</c>. That is not independent
-/// convergence, it is a shape that had outgrown being retyped. #219's own doc had already called it:
-/// <i>"if a fourth appears, the shape is worth extracting."</i> A fourth appeared.
+/// Originally <c>FormCraft.ForMudBlazor.DiagnosticLog</c> (#284), after four MudBlazor diagnostics had
+/// each grown the same resolve-log-swallow block independently. Moved into core under #398 so
+/// <c>FormCraft.ForFluentUI</c> could call the same hardened implementation instead of hand-rolling a
+/// fifth copy with no guard against a torn-down circuit — the same "shared collaborator, not a copy"
+/// precedent #279 set for <c>AdapterRegistration</c>/<c>NativeRequired</c> and #321 applied to the
+/// security pipeline. Purely a move: the signature and behaviour are unchanged.
 /// </para>
 /// <para>
 /// What is left at each call site is what actually differs: the category, the message template, and
-/// its arguments. A fifth diagnostic writes those and nothing else.
+/// its arguments.
 /// </para>
 /// <para>
 /// ⛔ <b>The resolution belongs inside the guard, not above it.</b> The tempting tidy-up — resolve
@@ -26,17 +26,10 @@ namespace FormCraft.ForMudBlazor;
 /// torn-down Blazor circuit the scope is disposed and <c>GetService</c> <i>throws</i> rather than
 /// returning null, and this runs during render, so the exception would take the form down for the
 /// sake of a warning nobody asked for. Pinned by
-/// <c>DiagnosticLogTests.Warn_Should_Not_Throw_When_Resolving_The_Logger_Throws</c>.
-/// </para>
-/// <para>
-/// <b>Not used by <see cref="ShrinkLabelDiagnosticCollector"/>.</b> Its emitter looks similar but is
-/// not the same shape: it needs the resolved logger as a <i>value</i> — to mark a batch as logged
-/// even when there is nothing to log to, so a re-render does not re-walk the same set forever — and
-/// folding it in here would mean handing back the logger, which is the abstraction this exists to
-/// remove. Left alone deliberately.
+/// <c>FormDiagnosticLogTests.Warn_Should_Not_Throw_When_Resolving_The_Logger_Throws</c>.
 /// </para>
 /// </remarks>
-internal static class DiagnosticLog
+public static class FormDiagnosticLog
 {
     /// <summary>
     /// Emits one warning under <paramref name="category"/>, degrading silently when no logging stack
@@ -47,13 +40,12 @@ internal static class DiagnosticLog
     /// component rendered outside DI, which is a supported state rather than an error.
     /// </param>
     /// <param name="category">
-    /// The diagnostic's logger category, e.g. <see cref="MaskedLinesDiagnostic.Category"/>. This is
-    /// what a developer mutes, so each diagnostic keeps its own — never a shared one, or muting one
-    /// would silence the rest.
+    /// The diagnostic's logger category. This is what a developer mutes, so each diagnostic keeps its
+    /// own — never a shared one, or muting one would silence the rest.
     /// </param>
     /// <param name="template">The message template, with named placeholders.</param>
     /// <param name="args">The template's arguments, in order.</param>
-    internal static void Warn(
+    public static void Warn(
         IServiceProvider? services,
         string category,
         string template,
