@@ -35,23 +35,30 @@
             @for (var i = 0; i < Items.Count; i++)
             {
                 var index = i;
-                @* ⛔ Deliberately NOT keyed. #298 tried `@key="Items[index]"` and reverted it: Blazor
+                var key = RowKey(index);
+                @* #334: the row's ROOT element is keyed on the item's own identity — a weak token,
+                   never the item itself. #298 tried `@key="Items[index]"` and reverted it: Blazor
                    matches keys by Equals, not by reference, and TItem is constrained only to `new()`.
                    For a record or struct item type — or any class overriding Equals — two rows with
-                   equal content are a duplicate key, and RenderTreeDiffBuilder throws
-                   "More than one sibling ... has the same key value". `AddItem()` adds `new TItem()`,
-                   so on a record-typed item form clicking "Add item" twice was enough to crash the
-                   render before the user typed anything.
+                   equal content were a duplicate key, and RenderTreeDiffBuilder threw
+                   "More than one sibling ... has the same key value". `RowKey` sidesteps that
+                   entirely: a reference-type item gets a fresh, reference-compared token from
+                   ConditionalWeakTable, so two equal-by-value rows still get two different keys, and
+                   the token follows its item across an add/remove/reorder — even one this component
+                   was never told about, since `Items` IS the caller's own model list. A value-typed
+                   item — which boxes fresh on every access, so has no reference-stable identity to
+                   hand the weak table — falls back to the boxed index, which reconciles identically
+                   to today's unkeyed loop.
 
-                   Keying on the index instead is what a keyless loop already does, so it buys
-                   nothing. A correct key needs a per-row identity independent of item equality, and
-                   the obvious candidates do not survive the fact that `Items` IS the caller's model
-                   list and can be mutated from outside this component entirely. That is real work
-                   with a real design question behind it, so it is filed rather than guessed at.
-
-                   What positional matching costs is component IDENTITY, not displayed values: those
-                   already reload via FieldComponentBase.ShouldReloadValue(). *@
-                <MudCard Class="mb-3" Elevation="0" Outlined="true">
+                   The row's CHROME below (header, reorder/delete buttons) is deliberately keyed the
+                   SAME way, and the focus-restore dictionaries (_rowHeaders, _deleteButtons, etc.)
+                   are keyed by that same RowKey rather than by plain index — see their doc comments.
+                   A `@ref` on a component fires only once, at creation, so once the row's subtree can
+                   MOVE with its item instead of staying pinned to a position, an index-keyed
+                   dictionary would go stale the moment a row moved; keying the dictionaries by the
+                   identical value keeps "the button for the row now at index N" and "the button
+                   Blazor actually put there" the same lookup. *@
+                <MudCard Class="mb-3" Elevation="0" Outlined="true" @key="key">
                     <MudCardContent>
                         @* tabindex="-1" so a row can take focus without joining the tab order: it is
                            where focus goes when the acting control leaves no usable target — after
@@ -59,7 +66,7 @@
                            no reference to aim at, and landing on Delete would put Enter on "undo the
                            add"), and as the reorder fallback (#318). *@
                         <div class="d-flex justify-space-between align-center mb-2"
-                             @ref="_rowHeaders[index]"
+                             @ref="_rowHeaders[key]"
                              tabindex="-1">
                             <MudText Typo="Typo.subtitle2" Color="Color.Default">
                                 Item @(index + 1)
@@ -67,13 +74,13 @@
                             <div class="d-flex gap-1">
                                 @if (Configuration.CanReorder)
                                 {
-                                    <MudIconButton @ref="_moveUpButtons[index]"
+                                    <MudIconButton @ref="_moveUpButtons[key]"
                                                    Icon="@Icons.Material.Filled.ArrowUpward"
                                                    Size="Size.Small"
                                                    Disabled="@(index == 0)"
                                                    OnClick="@(() => MoveItemUp(index))"
                                                    aria-label="Move up" />
-                                    <MudIconButton @ref="_moveDownButtons[index]"
+                                    <MudIconButton @ref="_moveDownButtons[key]"
                                                    Icon="@Icons.Material.Filled.ArrowDownward"
                                                    Size="Size.Small"
                                                    Disabled="@(index == Items.Count - 1)"
@@ -82,10 +89,11 @@
                                 }
                                 @if (Configuration.CanRemove && !HasReachedMin)
                                 {
-                                    @* Captured per index so a removal can focus the button that
-                                       takes the vacated slot — the row loop is keyless, so Blazor
-                                       reuses the element already at each position (#318). *@
-                                    <MudIconButton @ref="_deleteButtons[index]"
+                                    @* Captured per row so a removal can focus the button that takes
+                                       the vacated slot — keyed by RowKey, which follows the row's
+                                       item across a move rather than staying pinned to a position
+                                       (#318, #334). *@
+                                    <MudIconButton @ref="_deleteButtons[key]"
                                                    Icon="@Icons.Material.Filled.Delete"
                                                    Size="Size.Small"
                                                    Color="Color.Error"
