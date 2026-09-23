@@ -60,7 +60,7 @@
 
         <DemoPageHeader Title="@Title" Icon="@Icon" Description="@Description" />
 
-        <div class="fc-stage">
+        <div class="fc-stage @(WideForm ? "fc-stage--wide" : null)">
             <div class="fc-stage__code">
                 @CodeExampleContent
             </div>
@@ -75,7 +75,8 @@
             </div>
         </div>
 
-        <div class="fc-notes fc-mud-dark">
+        @* MudBlazor cards in the notes keep their own light palette: readable by construction. *@
+        <div class="fc-notes">
             <SectionOutlet SectionName="demo-notes" />
         </div>
 

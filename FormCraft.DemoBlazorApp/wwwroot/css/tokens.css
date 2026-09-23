@@ -255,23 +255,6 @@ summary:focus-visible,
 .tk-num { color: var(--fc-tk-num); }
 .tk-com { color: var(--fc-tk-com); font-style: italic; }
 
-/* MudBlazor components that land on the dark stage (outside the light form panels) read a
-   scoped dark palette: they are the same components, just told what ground they sit on. */
-.fc-mud-dark {
-    --mud-palette-surface: var(--fc-panel);
-    --mud-palette-background: var(--fc-bg);
-    --mud-palette-background-gray: var(--fc-bg-2);
-    --mud-palette-text-primary: var(--fc-text);
-    --mud-palette-text-secondary: var(--fc-text-2);
-    --mud-palette-text-disabled: var(--fc-muted);
-    --mud-palette-action-default: var(--fc-text-2);
-    --mud-palette-lines-default: var(--fc-line);
-    --mud-palette-lines-inputs: var(--fc-line-2);
-    --mud-palette-table-lines: var(--fc-line);
-    --mud-palette-divider: var(--fc-line);
-    --mud-palette-divider-light: var(--fc-line);
-    --mud-palette-primary: var(--fc-violet-2);
-}
 
 @media (prefers-reduced-motion: reduce) {
     *,
