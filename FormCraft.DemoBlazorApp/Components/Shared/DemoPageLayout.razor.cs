@@ -5,6 +5,13 @@ namespace FormCraft.DemoBlazorApp.Components.Shared;
 
 public partial class DemoPageLayout
 {
+    private static readonly string[] Levels =
+    [
+        Services.DemoRegistry.Levels.Beginner,
+        Services.DemoRegistry.Levels.Intermediate,
+        Services.DemoRegistry.Levels.Advanced
+    ];
+
     [Parameter, EditorRequired]
     public string Title { get; set; } = "";
 
@@ -14,6 +21,7 @@ public partial class DemoPageLayout
     [Parameter, EditorRequired]
     public string Description { get; set; } = "";
 
+    /// <summary>Kept for source compatibility with the pages; the stage no longer shows an icon.</summary>
     [Parameter]
     public string FormDemoIcon { get; set; } = Icons.Material.Filled.Assignment;
 
@@ -27,24 +35,19 @@ public partial class DemoPageLayout
     public RenderFragment GuidelinesContent { get; set; } = null!;
 
     [Parameter]
-    public RenderFragment? AdditionalTabs { get; set; }
-
-    /// <summary>
-    /// The demo ID used for navigation features (breadcrumb, prev/next).
-    /// Should match the route without the leading slash (e.g., "simplified", "fluent").
-    /// </summary>
-    [Parameter]
     public string? DemoId { get; set; }
 
-    /// <summary>
-    /// Whether to show the breadcrumb navigation. Defaults to true.
-    /// </summary>
     [Parameter]
     public bool ShowBreadcrumb { get; set; } = true;
 
-    /// <summary>
-    /// Whether to show the previous/next navigation buttons. Defaults to true.
-    /// </summary>
     [Parameter]
     public bool ShowPrevNextNav { get; set; } = true;
+
+    private void GoToDemo(ChangeEventArgs e)
+    {
+        if (e.Value is string id && !string.IsNullOrEmpty(id))
+        {
+            Navigation.NavigateTo(id);
+        }
+    }
 }

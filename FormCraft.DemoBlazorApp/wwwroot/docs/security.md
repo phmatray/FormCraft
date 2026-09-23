@@ -176,11 +176,12 @@ Pass a per-user value via the `SecurityContextId` parameter so limits apply per
 user/session:
 
 ```razor
-<FormCraftComponent TModel="SecureFormModel"
-                    Model="@model"
-                    Configuration="@config"
-                    SecurityContextId="@userId"
-                    OnValidSubmit="@HandleSubmit" />
+<FormCraftComponent
+    TModel="SecureFormModel"
+    Model="@model"
+    Configuration="@config"
+    SecurityContextId="@userId"
+    OnValidSubmit="@HandleSubmit" />
 ```
 
 ### Custom Identifier
@@ -343,12 +344,13 @@ limiting, and audit logging are enforced automatically. Your submit handler only
 needs to handle persistence, encrypting marked fields in one call:
 
 ```razor
-<FormCraftComponent TModel="SecureFormModel" 
-                    Model="@model" 
-                    Configuration="@config"
-                    SecurityContextId="@userId"
-                    OnValidSubmit="@HandleSecureSubmit"
-                    ShowSubmitButton="true" />
+<FormCraftComponent
+    TModel="SecureFormModel"
+    Model="@model"
+    Configuration="@config"
+    SecurityContextId="@userId"
+    OnValidSubmit="@HandleSecureSubmit"
+    ShowSubmitButton="true" />
 
 @code {
     [Inject] private IEncryptionService EncryptionService { get; set; } = default!;

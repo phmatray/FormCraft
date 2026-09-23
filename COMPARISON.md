@@ -101,17 +101,32 @@ This document provides a factual comparison of FormCraft with other popular Blaz
 
 ```razor
 <MudForm @ref="form" @bind-IsValid="@isValid">
-    <MudTextField @bind-Value="model.FirstName" Label="First Name"
-                  Required="true" RequiredError="First name is required" />
-    <MudTextField @bind-Value="model.LastName" Label="Last Name"
-                  Required="true" RequiredError="Last name is required" />
-    <MudTextField @bind-Value="model.Email" Label="Email"
-                  InputType="InputType.Email"
-                  Required="true" RequiredError="Email is required" />
-    <MudNumericField @bind-Value="model.Age" Label="Age"
-                     Min="18" Max="120" />
-    <MudButton OnClick="HandleSubmit" Disabled="@(!isValid)"
-               Variant="Variant.Filled" Color="Color.Primary">
+    <MudTextField
+        @bind-Value="model.FirstName"
+        Label="First Name"
+        Required="true"
+        RequiredError="First name is required" />
+    <MudTextField
+        @bind-Value="model.LastName"
+        Label="Last Name"
+        Required="true"
+        RequiredError="Last name is required" />
+    <MudTextField
+        @bind-Value="model.Email"
+        Label="Email"
+        InputType="InputType.Email"
+        Required="true"
+        RequiredError="Email is required" />
+    <MudNumericField
+        @bind-Value="model.Age"
+        Label="Age"
+        Min="18"
+        Max="120" />
+    <MudButton
+        OnClick="HandleSubmit"
+        Disabled="@(!isValid)"
+        Variant="Variant.Filled"
+        Color="Color.Primary">
         Register
     </MudButton>
 </MudForm>
@@ -129,11 +144,12 @@ var formConfig = FormBuilder<UserRegistration>.Create()
 ```
 
 ```razor
-<FormCraftComponent TModel="UserRegistration"
-                   Model="@model"
-                   Configuration="@formConfig"
-                   OnValidSubmit="@HandleSubmit"
-                   ShowSubmitButton="true" />
+<FormCraftComponent
+    TModel="UserRegistration"
+    Model="@model"
+    Configuration="@formConfig"
+    OnValidSubmit="@HandleSubmit"
+    ShowSubmitButton="true" />
 ```
 
 **FormCraft Attribute-Based (approx. 5 lines of config)**

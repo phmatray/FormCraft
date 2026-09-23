@@ -1,57 +1,51 @@
 @namespace FormCraft.DemoBlazorApp.Components.Shared
 @typeparam TModel where TModel : new()
 
-<MudGrid>
-    <MudItem xs="12" lg="@(ShowSidebar ? 8 : 12)">
-        <MudPaper Elevation="1" Class="pa-6">
-            <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
-                <MudIcon Icon="@FormIcon" Class="me-2" />
-                @FormTitle
-            </MudText>
-            
-            @if (IsSubmitted)
-            {
-                <FormSuccessDisplay
-                    DataDisplayItems="@DataDisplayItems"
-                    OnReset="@OnReset" />
-            }
-            else if (Configuration == null)
-            {
-                <SkeletonLoader />
-            }
-            else
-            {
-                <FormCraftComponent
-                    TModel="TModel" 
-                    Model="@Model" 
-                    Configuration="@Configuration"
-                    OnValidSubmit="@OnValidSubmit"
-                    OnFieldChanged="@OnFieldChanged"
-                    IsSubmitting="@IsSubmitting"
-                    ShowSubmitButton="@ShowSubmitButton"
-                    SubmitButtonText="@SubmitButtonText"
-                    SubmittingText="@SubmittingText"
-                    SubmitButtonClass="@SubmitButtonClass">
-                    <BeforeForm>
-                        @BeforeFormContent
-                    </BeforeForm>
-                    <AfterForm>
-                        @AfterFormContent
-                    </AfterForm>
-                </FormCraftComponent>
-                
-                @if (AdditionalContent != null)
-                {
-                    @AdditionalContent
-                }
-            }
-        </MudPaper>
-    </MudItem>
-    
-    @if (ShowSidebar)
-    {
-        <MudItem xs="12" lg="4">
-            @SidebarContent
-        </MudItem>
-    }
-</MudGrid>
+<div class="fc-formpanel__head">
+    <b>@FormTitle</b>
+    <span class="fc-chip-rendered">rendered by FormCraft</span>
+</div>
+
+@if (IsSubmitted)
+{
+    <FormSuccessDisplay
+        DataDisplayItems="@DataDisplayItems"
+        OnReset="@OnReset" />
+}
+else if (Configuration == null)
+{
+    <SkeletonLoader />
+}
+else
+{
+    <FormCraftComponent
+        TModel="TModel"
+        Model="@Model"
+        Configuration="@Configuration"
+        OnValidSubmit="@OnValidSubmit"
+        OnFieldChanged="@OnFieldChanged"
+        IsSubmitting="@IsSubmitting"
+        ShowSubmitButton="@ShowSubmitButton"
+        SubmitButtonText="@SubmitButtonText"
+        SubmittingText="@SubmittingText"
+        SubmitButtonClass="@SubmitButtonClass">
+        <BeforeForm>
+            @BeforeFormContent
+        </BeforeForm>
+        <AfterForm>
+            @AfterFormContent
+        </AfterForm>
+    </FormCraftComponent>
+
+    @* Notes read on the dark stage below the source and the form, not inside the form's panel. *@
+    <SectionContent SectionName="demo-notes">
+        @AdditionalContent
+    </SectionContent>
+}
+
+@if (ShowSidebar && SidebarContent is not null)
+{
+    <SectionContent SectionName="demo-aside">
+        @SidebarContent
+    </SectionContent>
+}

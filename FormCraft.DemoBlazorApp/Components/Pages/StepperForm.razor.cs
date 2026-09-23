@@ -266,7 +266,8 @@ public partial class StepperForm
                 <ChildContent>
                     <MudStep Title="Personal Info">
                         <ChildContent>
-                            <FormCraftComponent @ref="_personalFormComponent"
+                            <FormCraftComponent
+                                @ref="_personalFormComponent"
                                 TModel="EmployeeModel"
                                 Model="@_model"
                                 Configuration="@_personalInfoConfig"
@@ -276,7 +277,8 @@ public partial class StepperForm
 
                     <MudStep Title="Contact Details">
                         <ChildContent>
-                            <FormCraftComponent @ref="_contactFormComponent"
+                            <FormCraftComponent
+                                @ref="_contactFormComponent"
                                 TModel="EmployeeModel"
                                 Model="@_model"
                                 Configuration="@_contactConfig"
@@ -306,7 +308,8 @@ public partial class StepperForm
             private FormCraftComponent<EmployeeModel>? _professionalFormComponent;
 
             // In Razor markup - just use @ref:
-            <FormCraftComponent @ref="_personalFormComponent"
+            <FormCraftComponent
+                @ref="_personalFormComponent"
                 TModel="EmployeeModel"
                 Model="@_model"
                 Configuration="@_personalInfoConfig"

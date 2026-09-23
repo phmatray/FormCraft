@@ -4,9 +4,11 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FormCraft - Dynamic Form Builder for Blazor</title>
+    <title>FormCraft: forms in a few lines of C#</title>
+    <meta name="description" content="FormCraft builds validated, accessible Blazor forms from a typed C# builder. MIT licensed, for MudBlazor and Fluent UI." />
+    <meta name="theme-color" content="#0A0B16" />
     <base href="/" />
-    
+
     <!-- Start Single Page Apps for GitHub Pages -->
     <script type="text/javascript">
         // Single Page Apps for GitHub Pages
@@ -21,7 +23,7 @@
         // the single page app to route accordingly.
         (function(l) {
             if (l.search[1] === '/' ) {
-                var decoded = l.search.slice(1).split('&').map(function(s) { 
+                var decoded = l.search.slice(1).split('&').map(function(s) {
                     return s.replace(/~and~/g, '&')
                 }).join('?');
                 window.history.replaceState(null, null,
@@ -36,13 +38,8 @@
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <!-- Vendor sheets first. Prism ships its light theme with the same specificity
-         as our overrides, so it has to come before them or it wins every tie and the
-         code blocks revert to black text on a cream ground. -->
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500..800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-    <link href="lib/prism/prism.min.css" rel="stylesheet" />
-
     <link href="css/tokens.css" rel="stylesheet" />
     <link href="css/shell.css" rel="stylesheet" />
     <link href="css/home.css" rel="stylesheet" />
@@ -51,74 +48,48 @@
     <link href="FormCraft.DemoBlazorApp.styles.css" rel="stylesheet" />
     <script type="importmap"></script>
 
-    <script>
-        // Resolve the theme before first paint so the loading screen and the app
-        // agree, and a returning dark-mode visitor never gets a white flash.
-        (function () {
-            try {
-                var stored = localStorage.getItem('formcraft-theme');
-                var dark = stored === null
-                    ? window.matchMedia('(prefers-color-scheme: dark)').matches
-                    : stored === 'dark';
-                if (dark) document.documentElement.classList.add('fc-boot-dark');
-            } catch (e) { /* private mode: fall through to light */ }
-        })();
-    </script>
-
     <style>
-        /* The loading screen is the first impression, so it is built from the
-           same tokens as the app: ink ground, mono wordmark, one green tie. */
+        /* The loading screen is the first impression: same ground, same face as the site. */
         #app-loading {
             position: fixed;
             inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #F5F4F8;
+            display: grid;
+            place-items: center;
+            background: #0A0B16;
             z-index: 9999;
         }
 
-        .fc-boot-dark #app-loading { background: #131120; }
-
         .loading-content {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
+            display: grid;
             gap: 18px;
+            justify-items: start;
         }
 
         .loading-text {
-            font-family: 'Bricolage Grotesque', 'Helvetica Neue', sans-serif;
+            font-family: 'Sora', 'Helvetica Neue', sans-serif;
             font-size: 40px;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            color: #16141F;
+            font-weight: 700;
+            letter-spacing: -0.045em;
+            color: #EEF0FF;
             line-height: 1;
         }
 
-        .fc-boot-dark .loading-text { color: #E9E6F2; }
-
-        /* The rule "draws" left to right: the binding being made. */
         .loading-rule {
             width: 220px;
             height: 2px;
-            background: #E1DFEA;
+            background: #262A52;
             position: relative;
             overflow: hidden;
         }
-
-        .fc-boot-dark .loading-rule { background: #2E2947; }
 
         .loading-rule::after {
             content: '';
             position: absolute;
             inset: 0;
-            background: #14A06B;
+            background: #FFD166;
             transform-origin: left center;
-            animation: drawRule 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            animation: drawRule 1.1s cubic-bezier(0.16, 1, 0.3, 1) infinite;
         }
-
-        .fc-boot-dark .loading-rule::after { background: #34D399; }
 
         @keyframes drawRule {
             0%   { transform: scaleX(0); }
@@ -128,14 +99,10 @@
         }
 
         .loading-subtext {
-            font-family: 'IBM Plex Mono', ui-monospace, monospace;
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
             font-size: 12px;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            color: #6A6580;
+            color: #8D93BE;
         }
-
-        .fc-boot-dark .loading-subtext { color: #A29CBD; }
 
         @media (prefers-reduced-motion: reduce) {
             .loading-rule::after { animation: none; transform: scaleX(1); }
@@ -149,7 +116,7 @@
             <div class="loading-content">
                 <div class="loading-text">FormCraft</div>
                 <div class="loading-rule"></div>
-                <div class="loading-subtext">Binding C# to forms</div>
+                <div class="loading-subtext">Forms in a few lines of C#</div>
             </div>
         </div>
     </div>
@@ -162,10 +129,7 @@
 
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-    <script src="lib/prism/prism.min.js"></script>
-    <script src="lib/prism/prism-csharp.min.js"></script>
-    <script src="lib/prism/prism-cshtml.min.js"></script>
-    <script src="js/docs.js"></script>
+    <script src="js/code.js"></script>
     <script src="js/app.js"></script>
 </body>
 

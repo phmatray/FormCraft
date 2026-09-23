@@ -1,8 +1,11 @@
 name: Deploy Documentation to GitHub Pages
 
+# The demo site tracks `dev`, the default branch every PR merges into. It used to deploy on pushes
+# to `main`, which no longer exists, so the site stopped updating. The github-pages environment's
+# deployment-branch policy must allow `dev` as well, or the deploy job is refused.
 on:
   push:
-    branches: [ main ]
+    branches: [ dev ]
   workflow_dispatch:
 
 permissions:
@@ -44,10 +47,6 @@ jobs:
           
       - name: Add .nojekyll file
         run: touch release/wwwroot/.nojekyll
-        
-      - name: Create CNAME if using custom domain (optional)
-        run: |
-          echo "Optional: Add your custom domain here" > release/wwwroot/CNAME || true
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5

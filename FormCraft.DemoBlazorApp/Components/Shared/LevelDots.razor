@@ -1,0 +1,13 @@
+@namespace FormCraft.DemoBlazorApp.Components.Shared
+
+@* Difficulty as three dots: the filled ones are the level reached. Decorative; the level is named beside it. *@
+<span class="fc-lv" aria-hidden="true">
+    @for (var i = 1; i <= 3; i++)
+    {
+        <i class="@(i <= Filled ? "is-on" : null)"></i>
+    }
+</span>
+
+@code {
+    [Parameter] public int Filled { get; set; }
+}
