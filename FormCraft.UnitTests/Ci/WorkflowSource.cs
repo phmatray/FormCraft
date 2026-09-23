@@ -245,9 +245,11 @@ internal static class WorkflowSource
     /// <para>
     /// ⚠️ Names are unique per <b>job</b> at best, and not even that. A caller passing a whole file as
     /// the scope can therefore see two legitimate matches from two different jobs and fail here on a
-    /// valid workflow — more easily than the id path, whose same caveat points at #198.
+    /// valid workflow — more easily than the id path, whose same caveat now reads job-scoped too (#332).
     /// <c>TestReportingTests</c> is already job-scoped via <see cref="JobsOf" /> and so unaffected;
-    /// <c>WorkflowSourceTests</c> does pass whole files, deliberately, on names that appear once.
+    /// <c>TrustedPublishingWorkflowTests</c> joined it under #332, so no in-repo caller passes a whole
+    /// file to either step scan any more. <c>WorkflowSourceTests</c> does pass whole files, deliberately,
+    /// on names that appear once.
     /// </para>
     /// </remarks>
     internal static string? TryStepNamed(string scope, string stepName, string? scopeDescription = null)
@@ -313,12 +315,12 @@ internal static class WorkflowSource
     /// </para>
     /// <para>
     /// ⚠️ Step ids are unique per <b>job</b>, not per workflow, so this is <em>not</em> a claim that
-    /// the workflow is invalid. A caller that passes a whole file as the scope — as
-    /// <c>TrustedPublishingWorkflowTests</c> does — can therefore see two legitimate matches from two
-    /// different jobs, and would fail here on a perfectly valid config. That caller wants
-    /// <see cref="JobsOf" /> scoping, which <c>TestReportingTests</c> has had since #255 and which is
-    /// tracked for this suite on #198; until then the failure is loud and explains itself, which is
-    /// the safer half of the trade for a guard on the release path.
+    /// the workflow is invalid. A caller that passed a whole file as the scope could therefore see two
+    /// legitimate matches from two different jobs, and fail here on a perfectly valid config. That is
+    /// what <see cref="JobsOf" /> scoping fixes: <c>TestReportingTests</c> has had it since #255 and
+    /// <c>TrustedPublishingWorkflowTests</c> joined it under #332 — until then, the ambiguity failure
+    /// was loud and explained itself, which was the safer half of the trade for a guard on the release
+    /// path, but was not the fix.
     /// </para>
     /// <para>
     /// The slice starts at the step's own <c>- </c> list item rather than at the <c>id:</c> line, so
