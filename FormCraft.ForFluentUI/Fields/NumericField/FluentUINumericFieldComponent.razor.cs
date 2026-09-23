@@ -71,26 +71,27 @@ public partial class FluentUINumericFieldComponent<TModel, TValue> where TValue 
     /// own per-type defaults (its constructor sets exactly these values, decompiled under #348)
     /// keeps an unbounded field genuinely unbounded instead of clamping it to <c>default(TValue)</c>.
     /// Reflection, not a hand-maintained switch, so a numeric type FormCraft adds later needs no
-    /// entry here — mirrors <c>MudBlazorNumericFieldComponent.GetTypeMinValue()</c>.
+    /// entry here — mirrors <c>MudBlazorNumericFieldComponent.GetTypeMinValue()</c>. Resolved once per
+    /// closed <c>TValue</c> into a <c>static readonly</c> field rather than recomputed on every
+    /// render: this component re-renders on every keystroke (<c>@bind-Value:after</c>), and the value
+    /// never changes for a given <c>TValue</c>.
     /// </summary>
-    private static TValue GetTypeMinValue()
-    {
-        var field = typeof(TValue).GetField("MinValue");
-        return field != null ? (TValue)field.GetValue(null)! : default;
-    }
+    private static readonly TValue TypeMinValue = ResolveTypeBound("MinValue");
 
-    /// <inheritdoc cref="GetTypeMinValue"/>
-    private static TValue GetTypeMaxValue()
-    {
-        var field = typeof(TValue).GetField("MaxValue");
-        return field != null ? (TValue)field.GetValue(null)! : default;
-    }
+    /// <inheritdoc cref="TypeMinValue"/>
+    private static readonly TValue TypeMaxValue = ResolveTypeBound("MaxValue");
 
     /// <summary>
     /// Fluent's own default step for every supported numeric type is <c>1</c> (decompiled under
     /// #348), so this reverts to that rather than to MudBlazor's smaller floating-point defaults.
     /// </summary>
-    private static TValue GetDefaultStep() => (TValue)Convert.ChangeType(1, typeof(TValue));
+    private static readonly TValue DefaultStep = (TValue)Convert.ChangeType(1, typeof(TValue));
+
+    private static TValue ResolveTypeBound(string fieldName)
+    {
+        var field = typeof(TValue).GetField(fieldName);
+        return field != null ? (TValue)field.GetValue(null)! : default;
+    }
 
     private async Task OnLocalValueChanged()
     {

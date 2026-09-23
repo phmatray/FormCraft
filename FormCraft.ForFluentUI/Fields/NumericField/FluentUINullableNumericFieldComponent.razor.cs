@@ -67,23 +67,22 @@ public partial class FluentUINullableNumericFieldComponent<TModel, TValue> where
     /// (<c>Comparer&lt;TValue?&gt;.Default.Compare</c>) treats <c>null</c> as lower than any value, so
     /// a <c>null</c> <c>Max</c> would compare as "exceeded" by every input and silently clamp every
     /// entered value to <c>null</c> (decompiled under #348) — see the sibling component for the same
-    /// reflection-based defaults.
+    /// reflection-based defaults. Resolved once per closed <c>TValue</c> into a <c>static readonly</c>
+    /// field rather than recomputed on every render, the same as the sibling component.
     /// </summary>
-    private static TValue GetTypeMinValue()
+    private static readonly TValue TypeMinValue = ResolveTypeBound("MinValue");
+
+    /// <inheritdoc cref="TypeMinValue"/>
+    private static readonly TValue TypeMaxValue = ResolveTypeBound("MaxValue");
+
+    /// <inheritdoc cref="FluentUINumericFieldComponent{TModel, TValue}.DefaultStep"/>
+    private static readonly TValue DefaultStep = (TValue)Convert.ChangeType(1, typeof(TValue));
+
+    private static TValue ResolveTypeBound(string fieldName)
     {
-        var field = typeof(TValue).GetField("MinValue");
+        var field = typeof(TValue).GetField(fieldName);
         return field != null ? (TValue)field.GetValue(null)! : default;
     }
-
-    /// <inheritdoc cref="GetTypeMinValue"/>
-    private static TValue GetTypeMaxValue()
-    {
-        var field = typeof(TValue).GetField("MaxValue");
-        return field != null ? (TValue)field.GetValue(null)! : default;
-    }
-
-    /// <inheritdoc cref="FluentUINumericFieldComponent{TModel, TValue}.GetDefaultStep"/>
-    private static TValue GetDefaultStep() => (TValue)Convert.ChangeType(1, typeof(TValue));
 
     private async Task OnLocalValueChanged()
     {

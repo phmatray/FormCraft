@@ -168,11 +168,12 @@ public class FieldConfigurationRefreshTests : FluentUITestBase
         typeof(FluentNumberInput<int>).GetProperty("Max")!.PropertyType.ShouldBe(typeof(int));
         typeof(FluentNumberInput<int>).GetProperty("Step")!.PropertyType.ShouldBe(typeof(int));
 
-        // Assert - an unconfigured field renders Fluent's own defaults, not default(int)
+        // Arrange / Act - an unconfigured field renders Fluent's own defaults, not default(int)
         var component = Render<FormCraftComponent<NumericModel>>(parameters => parameters
             .Add(p => p.Model, new NumericModel())
             .Add(p => p.Configuration, UnboundedConfiguration()));
 
+        // Assert
         var input = component.FindComponent<FluentNumberInput<int>>().Instance;
         input.Min.ShouldBe(int.MinValue);
         input.Max.ShouldBe(int.MaxValue);
@@ -204,6 +205,36 @@ public class FieldConfigurationRefreshTests : FluentUITestBase
 
         // Assert
         component.FindComponent<FluentNumberInput<int>>().Instance.Min.ShouldBe(int.MinValue);
+    }
+
+    /// <summary>
+    /// The nullable component's own copy of the drop case (#348) — <c>FluentNumberInput&lt;int?&gt;</c>
+    /// rather than <c>FluentNumberInput&lt;int&gt;</c>.
+    /// </summary>
+    /// <remarks>
+    /// Targeted at <c>Max</c> specifically, per this component's own doc comment: a regression that
+    /// let a dropped <c>Max</c> reach <c>FluentNumberInput</c> as <c>null</c> (for example
+    /// <c>Max="@Max"</c> without the <c>?? TypeMaxValue</c> fallback, since the parameter is already
+    /// nullable here and it would still compile) would silently clamp every entered value to
+    /// <c>null</c> rather than leaving the field unbounded — a failure this suite would otherwise
+    /// only catch through the doc comment's own reasoning, never through a run.
+    /// </remarks>
+    [Fact]
+    public void NullableNumericField_Should_Render_Unbounded_When_The_New_Configuration_Drops_Max()
+    {
+        // Arrange
+        var component = Render<FormCraftComponent<NumericModel>>(parameters => parameters
+            .Add(p => p.Model, new NumericModel())
+            .Add(p => p.Configuration, NullableBoundedConfiguration(50)));
+
+        component.FindComponent<FluentNumberInput<int?>>().Instance.Max.ShouldBe(50);
+
+        // Act - the replacement field declares no Max at all.
+        component.Render(parameters => parameters
+            .Add(p => p.Configuration, NullableUnboundedConfiguration()));
+
+        // Assert - unbounded, not clamped to null
+        component.FindComponent<FluentNumberInput<int?>>().Instance.Max.ShouldBe(int.MaxValue);
     }
 
     /// <summary>
@@ -289,6 +320,20 @@ public class FieldConfigurationRefreshTests : FluentUITestBase
             .AddField(x => x.Amount, field => field.WithLabel("Amount"))
             .Build();
 
+    private static IFormConfiguration<NumericModel> NullableBoundedConfiguration(int max) =>
+        FormBuilder<NumericModel>
+            .Create()
+            .AddField(x => x.OptionalAmount, field => field
+                .WithLabel("Optional Amount")
+                .WithAttribute("Max", (int?)max))
+            .Build();
+
+    private static IFormConfiguration<NumericModel> NullableUnboundedConfiguration() =>
+        FormBuilder<NumericModel>
+            .Create()
+            .AddField(x => x.OptionalAmount, field => field.WithLabel("Optional Amount"))
+            .Build();
+
     private static IFormConfiguration<TestModel> TextConfiguration(string inputType) =>
         FormBuilder<TestModel>
             .Create()
@@ -300,5 +345,7 @@ public class FieldConfigurationRefreshTests : FluentUITestBase
     private class NumericModel
     {
         public int Amount { get; set; }
+
+        public int? OptionalAmount { get; set; }
     }
 }
