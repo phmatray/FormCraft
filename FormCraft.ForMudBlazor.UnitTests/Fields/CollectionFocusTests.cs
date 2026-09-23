@@ -17,12 +17,13 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// — WCAG 2.1 <b>2.4.3 Focus Order</b> (Level A).
 /// </para>
 /// <para>
-/// <b>Why the expected id is learned *after* the removal.</b> The keyless <c>@for</c> loop does
-/// reuse the element already at each position — measured: the delete buttons at indices 0 and 1 keep
-/// their element ids across a removal — so learning the id beforehand would also work. These read
-/// the component's focus id first and only then learn who is standing in the slot, because that
-/// states the guarantee directly ("focus is on whichever delete button now occupies the slot")
-/// rather than resting it on a diffing detail that is true but incidental.
+/// <b>Why the expected id is learned *after* the removal.</b> The item loop's rows are keyed by
+/// identity since #334 — not by position — but every row here is a distinct <c>MixedItem</c>
+/// instance, so a surviving row's button is still found exactly where it renders: measured, the
+/// delete buttons that end up at indices 0 and 1 keep their element ids across a removal, the same
+/// as before #334. These read the component's focus id first and only then learn who is standing in
+/// the slot, because that states the guarantee directly ("focus is on whichever delete button now
+/// occupies the slot") rather than resting it on a diffing detail that is true but incidental.
 /// </para>
 /// </remarks>
 public class CollectionFocusTests : FocusAssertingTestBase
