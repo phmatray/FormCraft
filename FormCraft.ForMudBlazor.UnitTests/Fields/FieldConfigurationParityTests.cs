@@ -249,6 +249,53 @@ public class FieldConfigurationParityTests : MudBlazorTestBase
     }
 
     // -----------------------------------------------------------------------------------------
+    // Task 2 — derived-state rows: the shapes every real miss in #308 actually lived in.
+    // -----------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// The MudBlazor half of the issue's own table: lookup display text was "skipped by the sweep
+    /// entirely" in #308. A different <see cref="LookupConfig"/> <b>object</b> describing the SAME
+    /// field must still show the model's current value, not a blank left over from a reset with
+    /// nothing to repopulate it.
+    /// </summary>
+    [Fact]
+    public void LookupField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap()
+    {
+        var model = new LookupModel { CityId = 7 };
+        var component = Render<FormCraftComponent<LookupModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, LookupConfig()));
+
+        component.FindComponent<MudTextField<string>>().Instance.Value.ShouldBe("7");
+
+        // Act - a DIFFERENT configuration object describing the same lookup field.
+        component.Render(parameters => parameters.Add(p => p.Configuration, LookupConfig()));
+
+        component.FindComponent<MudTextField<string>>().Instance.Value.ShouldBe("7");
+    }
+
+    /// <summary>
+    /// The LOV counterpart of the row above: a fresh <see cref="LovConfig"/> object for the same
+    /// field must not leave the display blank, and must not leak a PREVIOUS selection into it
+    /// (Fluent's own miss in #336 — <c>_selectedItems</c> carried the old field's values forward).
+    /// </summary>
+    [Fact]
+    public void LovField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap()
+    {
+        var model = new LovModel { CustomerId = 7 };
+        var component = Render<FormCraftComponent<LovModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, LovConfig()));
+
+        component.FindComponent<MudTextField<string>>().Instance.Value.ShouldBe("7");
+
+        // Act - a DIFFERENT configuration object describing the same LOV field.
+        component.Render(parameters => parameters.Add(p => p.Configuration, LovConfig()));
+
+        component.FindComponent<MudTextField<string>>().Instance.Value.ShouldBe("7");
+    }
+
+    // -----------------------------------------------------------------------------------------
     // Config builders and models, one pair per row.
     // -----------------------------------------------------------------------------------------
 
@@ -312,6 +359,33 @@ public class FieldConfigurationParityTests : MudBlazorTestBase
             .AddField(x => x.Value, field => field.WithLabel("Value").AsMultipleFileUpload(maxFiles: maxFiles))
             .Build();
 
+    private static IFormConfiguration<LookupModel> LookupConfig() =>
+        FormBuilder<LookupModel>
+            .Create()
+            .AddField(x => x.CityId, field => field
+                .WithLabel("City")
+                .AsLookup<LookupModel, int, LookupCity>(
+                    dataProvider: _ => Task.FromResult(new LookupResult<LookupCity>
+                    {
+                        Items = [new LookupCity(7, "Lisbon")],
+                        TotalCount = 1,
+                    }),
+                    valueSelector: c => c.Id,
+                    displaySelector: c => c.Name))
+            .Build();
+
+    private static IFormConfiguration<LovModel> LovConfig() =>
+        FormBuilder<LovModel>
+            .Create()
+            .AddField(x => x.CustomerId, field => field
+                .WithLabel("Customer")
+                .AsLov<LovModel, int?, LovCustomer>(lov => lov
+                    .WithKey(c => (int?)c.Id)
+                    .WithDisplay(c => c.Name)
+                    .WithDataSource(() => new List<LovCustomer> { new(7, "ACME") })
+                    .AddColumn(c => c.Name, "Name")))
+            .Build();
+
     private class TextModel
     {
         public string Value { get; set; } = string.Empty;
@@ -371,4 +445,18 @@ public class FieldConfigurationParityTests : MudBlazorTestBase
     {
         public IReadOnlyList<IBrowserFile>? Value { get; set; }
     }
+
+    private class LookupModel
+    {
+        public int CityId { get; set; }
+    }
+
+    private record LookupCity(int Id, string Name);
+
+    private class LovModel
+    {
+        public int? CustomerId { get; set; }
+    }
+
+    private record LovCustomer(int Id, string Name);
 }
