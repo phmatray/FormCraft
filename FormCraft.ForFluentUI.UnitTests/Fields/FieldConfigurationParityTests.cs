@@ -17,14 +17,13 @@ namespace FormCraft.ForFluentUI.UnitTests.Fields;
 /// </para>
 /// <para>
 /// <b>Genuine exemptions differ from the MudBlazor side.</b> The three Fluent date components bind
-/// no configuration to their pickers at all (the spec's own example), and both file-upload
-/// components expose their UPLOAD CONSTRAINTS (accepted types, max size, max count) as computed
+/// no configuration to their pickers at all (the spec's own example), and the single-file upload
+/// component exposes its UPLOAD CONSTRAINTS (accepted types, max size, max count) as computed
 /// getters re-evaluated on every access — those never cache anything the hook could leave stale.
 /// MudBlazor's file-upload components DO cache real properties and are covered rows there.
-/// ⚠️ That is not the whole story for <c>FluentUIMultipleFileUploadComponent</c>: it also carries
-/// <c>TooManyFilesError</c>, state derived from a SELECTION rather than from the configuration, that
-/// this suite used to claim (wrongly) could not go stale — see <see cref="ExemptComponents"/> for the
-/// tracked gap.
+/// <c>FluentUIMultipleFileUploadComponent</c> shares that same constraint guarantee but also carries
+/// <c>TooManyFilesError</c>, state derived from a SELECTION rather than from the configuration — this
+/// suite used to claim (wrongly) that it could not go stale; it is now a covered row (#416).
 /// </para>
 /// </remarks>
 public class FieldConfigurationParityTests : FluentUITestBase
@@ -239,6 +238,37 @@ public class FieldConfigurationParityTests : FluentUITestBase
         component.FindAll("[data-testid=formcraft-lov-chip]").ShouldBeEmpty();
     }
 
+    /// <summary>
+    /// This adapter's own #416: <c>TooManyFilesError</c> is derived from the last selection
+    /// ATTEMPT rather than from the configuration, so - unlike the constraints on
+    /// <c>FluentUIFileUploadComponentBase</c>, which are computed getters re-evaluated on every
+    /// access - it needs its own reset in the hook or a stale error from the previous field keeps
+    /// rendering after a configuration swap.
+    /// </summary>
+    [Fact]
+    public async Task MultipleFileUploadField_Row_Clears_Its_Too_Many_Files_Error_After_A_Configuration_Swap()
+    {
+        var model = new MultipleFileUploadModel();
+        var component = Render<FormCraftComponent<MultipleFileUploadModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, MultipleFileUploadConfig(maxFiles: 1)));
+
+        // Act - select more files than the field allows.
+        var tooManyFiles = new List<IBrowserFile> { A.Fake<IBrowserFile>(), A.Fake<IBrowserFile>() };
+        var fileInput = component.FindComponent<FluentInputFile>();
+        await component.InvokeAsync(() =>
+            fileInput.Instance.OnInputFileChange.InvokeAsync(new InputFileChangeEventArgs(tooManyFiles)));
+
+        component.FindAll("[data-testid=formcraft-upload-too-many]").ShouldNotBeEmpty();
+
+        // Act - a DIFFERENT configuration object describing the same field.
+        component.Render(parameters => parameters
+            .Add(p => p.Configuration, MultipleFileUploadConfig(maxFiles: 1)));
+
+        // Assert - the stale error from the previous field's selection attempt does not survive.
+        component.FindAll("[data-testid=formcraft-upload-too-many]").ShouldBeEmpty();
+    }
+
     // -----------------------------------------------------------------------------------------
     // Task 4 — the completeness guard.
     // -----------------------------------------------------------------------------------------
@@ -264,6 +294,7 @@ public class FieldConfigurationParityTests : FluentUITestBase
         typeof(FluentUIAutocompleteFieldComponent<,>),
         typeof(FluentUILookupFieldComponent<,>),
         typeof(FluentUILovFieldComponent<,,>),
+        typeof(FluentUIMultipleFileUploadComponent<>),
     };
 
     /// <summary>
@@ -284,17 +315,10 @@ public class FieldConfigurationParityTests : FluentUITestBase
         // COMPUTED GETTERS on FluentUIFileUploadComponentBase, re-evaluating UploadConstraintResolver
         // against Context.Field live on every access - never cached into a field the hook would need
         // to reset. Unlike MudBlazor's upload components (covered rows there), these cannot go stale
-        // by construction.
+        // by construction. FluentUIMultipleFileUploadComponent<> is NOT exempt, despite sharing this
+        // base class: it also carries TooManyFilesError, state derived from a selection rather than
+        // from the configuration, which is now covered by MultipleFileUploadField_Row (#416).
         typeof(FluentUIFileUploadFieldComponent<>),
-
-        // ⚠️ Same base-class guarantee as above for ITS OWN constraints, but this component also
-        // carries a SECOND piece of state the base class does not: TooManyFilesError, a settable
-        // message built from MaximumFileCount in HandleFilesChangedAsync and cleared only on the
-        // NEXT successful selection - with no OnFieldConfigurationChanged override to reset it on a
-        // configuration swap. That is a real gap this exemption used to claim did not exist. Filed
-        // as #416 rather than fixed here: fixing it means overriding the hook and moving this row to
-        // CoveredComponents, both out of #349's scope.
-        typeof(FluentUIMultipleFileUploadComponent<>),
 
         // ColorPicker reads no attribute at all.
         typeof(FluentUIColorPickerComponent<>),
@@ -416,6 +440,12 @@ public class FieldConfigurationParityTests : FluentUITestBase
                     .AllowMultipleSelection()))
             .Build();
 
+    private static IFormConfiguration<MultipleFileUploadModel> MultipleFileUploadConfig(int maxFiles) =>
+        FormBuilder<MultipleFileUploadModel>
+            .Create()
+            .AddField(x => x.Value, field => field.WithLabel("Value").AsMultipleFileUpload(maxFiles: maxFiles))
+            .Build();
+
     private class TextModel
     {
         public string Value { get; set; } = string.Empty;
@@ -464,4 +494,9 @@ public class FieldConfigurationParityTests : FluentUITestBase
     }
 
     private record LovCustomer(int Id, string Name);
+
+    private class MultipleFileUploadModel
+    {
+        public IReadOnlyList<IBrowserFile>? Value { get; set; }
+    }
 }
