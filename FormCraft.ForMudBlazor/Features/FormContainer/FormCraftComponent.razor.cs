@@ -113,7 +113,6 @@ public partial class FormCraftComponent<TModel>
 
     private EditContext? _editContext;
     private DynamicFormValidator<TModel>? _validator;
-    private FormSecurityEnforcer<TModel>? _securityEnforcer;
     private IGroupedFormConfiguration<TModel>? GroupedConfiguration => Configuration as IGroupedFormConfiguration<TModel>;
     private ICollectionFormConfiguration<TModel>? CollectionConfiguration => Configuration as ICollectionFormConfiguration<TModel>;
 
@@ -155,7 +154,7 @@ public partial class FormCraftComponent<TModel>
     /// misconfigurations keep reporting under the component's log category.
     /// </remarks>
     private FormSecurityEnforcer<TModel> SecurityEnforcer =>
-        _securityEnforcer ??= new FormSecurityEnforcer<TModel>(
+        field ??= new FormSecurityEnforcer<TModel>(
             ServiceProvider,
             ServiceProvider.GetService<ILogger<FormCraftComponent<TModel>>>());
 

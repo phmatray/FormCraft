@@ -81,7 +81,6 @@ public partial class FormCraftComponent<TModel> where TModel : new()
     private EditContext? _editContext;
     // The shared validator from core since #279, not this adapter's own copy.
     private DynamicFormValidator<TModel>? _validator;
-    private FormSecurityEnforcer<TModel>? _securityEnforcer;
 
     /// <summary>
     /// The configuration's collection fields, when it carries any. A configuration built without
@@ -155,7 +154,7 @@ public partial class FormCraftComponent<TModel> where TModel : new()
     /// misconfigurations keep reporting under the component's log category.
     /// </remarks>
     private FormSecurityEnforcer<TModel> SecurityEnforcer =>
-        _securityEnforcer ??= new FormSecurityEnforcer<TModel>(
+        field ??= new FormSecurityEnforcer<TModel>(
             ServiceProvider,
             ServiceProvider.GetService<ILogger<FormCraftComponent<TModel>>>());
 
