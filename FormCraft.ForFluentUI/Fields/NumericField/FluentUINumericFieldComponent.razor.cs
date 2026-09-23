@@ -14,17 +14,17 @@ public partial class FluentUINumericFieldComponent<TModel, TValue> where TValue 
     private TValue _localValue;
 
     /// <summary>
-    /// The bounds and ARIA state to splat onto the input, carrying only the keys this field
-    /// actually configured.
+    /// The ARIA state to splat onto the input. Bounds used to share this dictionary too (#348): a
+    /// key is only ever <i>added</i> by a splat, so a field that stopped configuring a bound left
+    /// the previous field's value in place on <c>FluentNumberInput</c> — Blazor retains a component
+    /// parameter that a later render stops supplying. <c>Min</c>/<c>Max</c>/<c>Step</c> are now real
+    /// parameters (below) assigned unconditionally instead.
     /// </summary>
-    /// <remarks>
-    /// Splatted rather than bound one parameter at a time because Fluent types <c>Min</c>,
-    /// <c>Max</c> and <c>Step</c> as <c>TValue</c> - a non-nullable value type here, which has no
-    /// spare value meaning "unset". Binding them directly would force every field to declare bounds
-    /// it never asked for, so an unconfigured bound is instead simply absent from this dictionary
-    /// and Fluent keeps its own default.
-    /// </remarks>
     private Dictionary<string, object> ExtraAttributes { get; } = [];
+
+    private TValue? Min { get; set; }
+    private TValue? Max { get; set; }
+    private TValue? Step { get; set; }
 
     /// <inheritdoc />
     protected override void OnInitialized()
@@ -43,15 +43,11 @@ public partial class FluentUINumericFieldComponent<TModel, TValue> where TValue 
     {
         base.OnFieldConfigurationChanged();
 
-        // CLEARED first. ExtraAttributes is a dictionary and AddIfConfigured only ever adds, so
-        // without this the new field inherits every bound the previous one declared — the
-        // patch-not-reload trap in its purest form (#335).
+        Min = GetAttribute<TValue?>("Min");
+        Max = GetAttribute<TValue?>("Max");
+        Step = GetAttribute<TValue?>("Step");
+
         ExtraAttributes.Clear();
-
-        AddIfConfigured("Min");
-        AddIfConfigured("Max");
-        AddIfConfigured("Step");
-
         if (AriaRequired is { } ariaRequired)
         {
             ExtraAttributes["aria-required"] = ariaRequired;
@@ -69,13 +65,32 @@ public partial class FluentUINumericFieldComponent<TModel, TValue> where TValue 
         }
     }
 
-    private void AddIfConfigured(string key)
+    /// <summary>
+    /// <c>FluentNumberInput.Min</c>/<c>Max</c>/<c>Step</c> are <c>TValue</c>, not <c>TValue?</c>, so
+    /// an unconfigured bound has to be supplied explicitly rather than left unset — matching Fluent's
+    /// own per-type defaults (its constructor sets exactly these values, decompiled under #348)
+    /// keeps an unbounded field genuinely unbounded instead of clamping it to <c>default(TValue)</c>.
+    /// Reflection, not a hand-maintained switch, so a numeric type FormCraft adds later needs no
+    /// entry here — mirrors <c>MudBlazorNumericFieldComponent.GetTypeMinValue()</c>.
+    /// </summary>
+    private static TValue GetTypeMinValue()
     {
-        if (GetAttribute<TValue?>(key) is { } value)
-        {
-            ExtraAttributes[key] = value;
-        }
+        var field = typeof(TValue).GetField("MinValue");
+        return field != null ? (TValue)field.GetValue(null)! : default;
     }
+
+    /// <inheritdoc cref="GetTypeMinValue"/>
+    private static TValue GetTypeMaxValue()
+    {
+        var field = typeof(TValue).GetField("MaxValue");
+        return field != null ? (TValue)field.GetValue(null)! : default;
+    }
+
+    /// <summary>
+    /// Fluent's own default step for every supported numeric type is <c>1</c> (decompiled under
+    /// #348), so this reverts to that rather than to MudBlazor's smaller floating-point defaults.
+    /// </summary>
+    private static TValue GetDefaultStep() => (TValue)Convert.ChangeType(1, typeof(TValue));
 
     private async Task OnLocalValueChanged()
     {

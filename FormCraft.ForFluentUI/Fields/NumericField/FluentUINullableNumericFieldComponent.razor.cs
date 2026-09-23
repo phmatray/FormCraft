@@ -13,10 +13,14 @@ public partial class FluentUINullableNumericFieldComponent<TModel, TValue> where
     private TValue? _localValue;
 
     /// <summary>
-    /// The bounds and ARIA state to splat onto the input - see the sibling component for why these
-    /// are splatted rather than bound individually.
+    /// The ARIA state to splat onto the input - see the sibling component for why bounds moved off
+    /// this dictionary onto real parameters (#348).
     /// </summary>
     private Dictionary<string, object> ExtraAttributes { get; } = [];
+
+    private TValue? Min { get; set; }
+    private TValue? Max { get; set; }
+    private TValue? Step { get; set; }
 
     /// <inheritdoc />
     protected override void OnInitialized()
@@ -35,15 +39,11 @@ public partial class FluentUINullableNumericFieldComponent<TModel, TValue> where
     {
         base.OnFieldConfigurationChanged();
 
-        // CLEARED first. ExtraAttributes is a dictionary and AddIfConfigured only ever adds, so
-        // without this the new field inherits every bound the previous one declared — the
-        // patch-not-reload trap in its purest form (#335).
+        Min = GetAttribute<TValue?>("Min");
+        Max = GetAttribute<TValue?>("Max");
+        Step = GetAttribute<TValue?>("Step");
+
         ExtraAttributes.Clear();
-
-        AddIfConfigured("Min");
-        AddIfConfigured("Max");
-        AddIfConfigured("Step");
-
         if (AriaRequired is { } ariaRequired)
         {
             ExtraAttributes["aria-required"] = ariaRequired;
@@ -61,14 +61,29 @@ public partial class FluentUINullableNumericFieldComponent<TModel, TValue> where
         }
     }
 
-    private void AddIfConfigured(string key)
+    /// <summary>
+    /// <c>FluentNumberInput&lt;TValue?&gt;.Min</c> still has to be supplied a real value rather than
+    /// <c>null</c> when unconfigured: Fluent's own bounds check
+    /// (<c>Comparer&lt;TValue?&gt;.Default.Compare</c>) treats <c>null</c> as lower than any value, so
+    /// a <c>null</c> <c>Max</c> would compare as "exceeded" by every input and silently clamp every
+    /// entered value to <c>null</c> (decompiled under #348) — see the sibling component for the same
+    /// reflection-based defaults.
+    /// </summary>
+    private static TValue GetTypeMinValue()
     {
-        // Boxed as TValue? so it binds to the input's own nullable Min/Max/Step parameters.
-        if (GetAttribute<TValue?>(key) is { } value)
-        {
-            ExtraAttributes[key] = (TValue?)value;
-        }
+        var field = typeof(TValue).GetField("MinValue");
+        return field != null ? (TValue)field.GetValue(null)! : default;
     }
+
+    /// <inheritdoc cref="GetTypeMinValue"/>
+    private static TValue GetTypeMaxValue()
+    {
+        var field = typeof(TValue).GetField("MaxValue");
+        return field != null ? (TValue)field.GetValue(null)! : default;
+    }
+
+    /// <inheritdoc cref="FluentUINumericFieldComponent{TModel, TValue}.GetDefaultStep"/>
+    private static TValue GetDefaultStep() => (TValue)Convert.ChangeType(1, typeof(TValue));
 
     private async Task OnLocalValueChanged()
     {
