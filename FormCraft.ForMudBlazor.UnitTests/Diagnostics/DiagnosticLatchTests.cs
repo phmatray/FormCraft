@@ -68,10 +68,15 @@ public class DiagnosticLatchTests : MudBlazorTestBase
     {
         // Arrange - masked and multi-line: MudBlazor renders a <textarea> past one line and a
         // textarea cannot mask, so the line count is dropped to keep the value hidden (#207).
+        //
+        // The label is deliberately NOT "Password": MaskedLinesDiagnostic's own message contains
+        // "masked" and ends with "...or drop .AsPassword() if the value is not a secret", so
+        // asserting "Password" or "masked" would match the template rather than the field name and
+        // could never fail (#305, the same defect #309 fixed in the two tests below).
         var config = FormBuilder<TestModel>
             .Create()
             .AddField(x => x.Secret, f => f
-                .WithLabel("Password")
+                .WithLabel("Vault phrase")
                 .AsPassword()
                 .AsTextArea(lines: 4))
             .Build();
@@ -82,8 +87,7 @@ public class DiagnosticLatchTests : MudBlazorTestBase
         // Assert
         var warnings = _logs.Warnings;
         warnings.Count.ShouldBe(1);
-        warnings[0].ShouldContain("Password");
-        warnings[0].ShouldContain("masked");
+        warnings[0].ShouldContain("Vault phrase");
     }
 
     [Fact]
