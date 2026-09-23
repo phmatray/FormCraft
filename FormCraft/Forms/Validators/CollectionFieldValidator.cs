@@ -1,12 +1,40 @@
 namespace FormCraft;
 
 /// <summary>
+/// Non-generic surface over <see cref="CollectionFieldValidator{TModel, TItem}"/> that
+/// <c>DynamicFormValidator</c> can hold and call directly, without <c>MethodInfo.Invoke</c>.
+/// </summary>
+/// <remarks>
+/// Introduced by #344 in place of a <c>CreateValidator()</c> factory on
+/// <see cref="ICollectionFieldConfigurationBase"/>: a factory would put a behavioural method on a
+/// configuration interface, a heavier abstraction for the same result. Constructing the concrete
+/// <see cref="CollectionFieldValidator{TModel, TItem}"/> still requires reflection — its <c>TItem</c>
+/// is unknown at <c>DynamicFormValidator</c>'s own compile time — but every call on it afterwards is
+/// now a checked interface dispatch instead of a <see cref="System.Reflection.MethodInfo"/> invoke, so
+/// a signature change here is caught by the compiler rather than at runtime.
+/// </remarks>
+internal interface ICollectionValidator
+{
+    /// <inheritdoc cref="CollectionFieldValidator{TModel, TItem}.ValidateAllAsync"/>
+    Task<CollectionValidationResult> ValidateAllAsync(object model, IServiceProvider services);
+
+    /// <inheritdoc cref="CollectionFieldValidator{TModel, TItem}.ValidateItemFieldAsync"/>
+    Task<List<CollectionItemError>> ValidateItemFieldAsync(object model, int itemIndex, string fieldName, IServiceProvider services);
+
+    /// <inheritdoc cref="CollectionFieldValidator{TModel, TItem}.FormatItemMessage"/>
+    string FormatItemMessage(CollectionItemError itemError);
+
+    /// <inheritdoc cref="CollectionFieldValidator{TModel, TItem}.FormatItemMessagePrefix"/>
+    string FormatItemMessagePrefix(int itemIndex, string fieldName);
+}
+
+/// <summary>
 /// Validates collection fields by checking item count constraints and recursively validating each item
 /// using the item form configuration's validators.
 /// </summary>
 /// <typeparam name="TModel">The parent model type.</typeparam>
 /// <typeparam name="TItem">The type of items in the collection.</typeparam>
-public class CollectionFieldValidator<TModel, TItem>
+public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
     where TModel : new()
     where TItem : new()
 {
@@ -62,6 +90,13 @@ public class CollectionFieldValidator<TModel, TItem>
         var itemErrors = await ValidateItemsAsync(items, services);
         return new CollectionValidationResult(BuildMessages(items, itemErrors), itemErrors);
     }
+
+    /// <summary>
+    /// <see cref="ICollectionValidator"/>'s untyped entry point — casts once at the boundary and
+    /// delegates to <see cref="ValidateAllAsync(TModel, IServiceProvider)"/>.
+    /// </summary>
+    Task<CollectionValidationResult> ICollectionValidator.ValidateAllAsync(object model, IServiceProvider services)
+        => ValidateAllAsync((TModel)model, services);
 
     /// <summary>
     /// Validates a <b>single</b> item field — the one cell a field-change notification names — rather
@@ -126,6 +161,14 @@ public class CollectionFieldValidator<TModel, TItem>
 
         return errors;
     }
+
+    /// <summary>
+    /// <see cref="ICollectionValidator"/>'s untyped entry point — casts once at the boundary and
+    /// delegates to <see cref="ValidateItemFieldAsync(TModel, int, string, IServiceProvider)"/>.
+    /// </summary>
+    Task<List<CollectionItemError>> ICollectionValidator.ValidateItemFieldAsync(
+        object model, int itemIndex, string fieldName, IServiceProvider services)
+        => ValidateItemFieldAsync((TModel)model, itemIndex, fieldName, services);
 
     /// <summary>
     /// Projects one traversal's structured errors into the flat, collection-level messages: the
