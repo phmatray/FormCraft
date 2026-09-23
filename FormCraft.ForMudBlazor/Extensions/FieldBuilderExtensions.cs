@@ -25,7 +25,7 @@ public static class MudBlazorFieldBuilderExtensions
         this FieldBuilder<TModel, string> builder)
         where TModel : new()
     {
-        return builder.WithCustomRenderer<TModel, string, MudBlazorColorPickerRenderer>();
+        return builder.WithCustomRenderer<MudBlazorColorPickerRenderer>();
     }
 
     /// <summary>
@@ -47,7 +47,7 @@ public static class MudBlazorFieldBuilderExtensions
         where TModel : new()
     {
         return builder
-            .WithCustomRenderer<TModel, int, MudBlazorRatingRenderer>()
+            .WithCustomRenderer<MudBlazorRatingRenderer>()
             .WithAttribute("MaxRating", maxRating);
     }
 
@@ -78,7 +78,7 @@ public static class MudBlazorFieldBuilderExtensions
         where TModel : new()
     {
         return builder
-            .WithCustomRenderer<TModel, double, MudBlazorSliderRenderer>()
+            .WithCustomRenderer<MudBlazorSliderRenderer>()
             .WithAttribute("Min", min)
             .WithAttribute("Max", max)
             .WithAttribute("Step", step)

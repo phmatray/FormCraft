@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FormCraft\FormCraft.csproj" />
+    <ProjectReference Include="..\FormCraft.TestSupport\FormCraft.TestSupport.csproj" />
     <ProjectReference Include="..\FormCraft.ForMudBlazor\FormCraft.ForMudBlazor.csproj" />
     <!--
       Test-only reference, mirroring the one FormCraft.ForFluentUI.UnitTests takes on this package.
