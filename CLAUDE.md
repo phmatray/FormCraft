@@ -414,27 +414,42 @@ because it lives in core rather than in one of the two packages that need it.
   suppresses that list entirely while leaving `CustomContent` untouched. ⛔ Don't reach for
   `ShowPreview` here: it is FormCraft's own unrelated code-behind property (drives the drop zone's
   height), not a `MudFileUpload` parameter, and setting it does nothing to the duplicate list.
+- **A cleared multiple-file upload holds an empty list, not `null`** (#319). `MudBlazorMultipleFileUploadComponent`
+  binds `Files`/`FilesChanged` one-way, with an explicit `OnFilesChanged` handler, instead of
+  `@bind-Files` — **because** `@bind-Files` made MudBlazor a second writer of `CurrentValue`:
+  `ClearAsync()` set the field's own empty list, then `MudFileUpload.ClearAsync()`'s own
+  `FilesChanged(null)` echo landed on the two-way binding and overwrote it with `null`, so the field
+  notified *twice* and ended up holding `null` instead of empty. One-way binding plus the handler
+  normalising `null` to an empty list makes `OnFilesChanged` the only writer left, mirroring the
+  single-file component's `Files`/`OnFileChanged` shape. Pinned by `FileUploadNotificationTests`.
 - **A control that unmounts *or disables* itself on activation must move focus deliberately** —
   otherwise the element the keyboard user is standing on stops being focusable, focus falls to
   `<body>`, and the next <kbd>Tab</kbd> restarts from the top of the document (WCAG 2.1 **2.4.3
   Focus Order**, Level A). Both variants count: an `@if` over the value the handler mutates
   (upload **Clear**/chip close, collection **delete**/**Add**), and a `Disabled` binding the handler
   can make true (collection **move up/down** at the ends — browsers drop focus from a
-  newly-disabled element). Every one of them routes through **`FocusRestore.FocusSafelyAsync`**
-  (#281, #318). Targets: Clear and chip-close → the field's **Browse** button, because it carries
-  #262's `aria-describedby` so the requirement is announced exactly when removal makes the field
-  unsatisfied; row delete → the delete button taking the vacated slot, else the previous row's, else
-  **Add**, else the collection header; **Add** → the new row's header, *not* its delete button
-  (<kbd>Enter</kbd> there would undo the add) and not a field (they render through
-  `IFieldRendererService` and expose no reference); a move → the same row's still-enabled move
-  button, so focus follows the *item* rather than sitting on an index that now controls a different
-  one. ⚠️ **Only the helper is shared** — each `@ref` and call site is written per component, and
-  the null guard makes a dropped `@ref` silent, so a new control needs its own focus test.
-  ⛔ **Don't narrow the catch list**: the action has already succeeded, so a failed focus must stay a
-  no-op. `JSException` is the likely one — `domWrapper.focus` raises it for an element that has left
-  the DOM, which `OnValueChanged` can cause between the mutation and the awaited interop call.
-  Losing that catch escapes the click handler and tears down a Server circuit;
-  `A_Failing_Focus_Call_Should_Not_Break_A_*_Clear` and `FocusRestoreTests` pin it
+  newly-disabled element). **The swallow-safe catch list lives once, in core** —
+  `FormCraft.FocusRestore.SafelyAsync` (#337, extracted from `FormCraft.ForMudBlazor`'s original
+  `FocusRestore` under #281/#318) — and each adapter calls it through its own thin, UI-typed wrapper:
+  `FormCraft.ForMudBlazor.FocusRestore.FocusSafelyAsync(MudBaseButton?/ElementReference)` and
+  `FormCraft.ForFluentUI.FocusRestore.FocusSafelyAsync(ElementReference)`. **The collection field's
+  four controls (add, delete, move up, move down) carry this guarantee in *both* adapters**; the
+  upload Clear/chip-close controls have it only in MudBlazor — Fluent's file upload field has not
+  been audited for the same gap. Targets, MudBlazor upload: Clear and chip-close → the field's
+  **Browse** button, because it carries #262's `aria-describedby` so the requirement is announced
+  exactly when removal makes the field unsatisfied. Targets, either adapter's collection field: row
+  delete → the delete control taking the vacated slot, else the previous row's, else **Add**, else
+  the collection header; **Add** (only on the click that reaches `MaxItems`) → the new row's header,
+  *not* its delete control (<kbd>Enter</kbd> there would undo the add) and not a field (they render
+  through `IFieldRendererService` and expose no reference); a move → the same row's still-enabled
+  move control, so focus follows the *item* rather than sitting on an index that now controls a
+  different one. ⚠️ **Only the core catch list is shared** — each `@ref` and call site is written per
+  component, and the null guard makes a dropped `@ref` silent, so a new control needs its own focus
+  test. ⛔ **Don't narrow the catch list**: the action has already succeeded, so a failed focus must
+  stay a no-op. `JSException` is the likely one — `domWrapper.focus` raises it for an element that
+  has left the DOM, which `OnValueChanged` can cause between the mutation and the awaited interop
+  call. Losing that catch escapes the click handler and tears down a Server circuit;
+  `A_Failing_Focus_Call_Should_Not_Break_A_*_Clear` and both adapters' `FocusRestoreTests` pin it
 - ⛔ **A `@ref` on a *component* is captured once, when that component is created — it is NOT re-run
   on later renders.** So a per-index reference store must **not** be cleared each render to prune
   stale entries: doing so permanently loses the references for rows that were merely retained, and
@@ -442,26 +457,42 @@ because it lives in core rather than in one of the two packages that need it.
   removals silently focused **Add**). Let the entries outlive their rows and decide from what is
   rendered *now* instead: bounds-check the index against `Items.Count` **and** re-evaluate the
   markup's own gate (`CanRemove && !HasReachedMin`), since reaching `MinItems` unmounts every row's
-  delete button at once. Element references (`@ref` on plain HTML) *are* re-captured each render —
-  the two behave differently, which is why the row header fallback is an `ElementReference`
+  delete control at once. Element references (`@ref` on plain HTML) *are* re-captured each render —
+  the two behave differently, which is why the row header fallback is an `ElementReference` in
+  MudBlazor's `CollectionFieldComponent`. **The Fluent UI adapter's `FluentUICollectionFieldComponent`
+  sidesteps this hazard entirely**: `FluentButton` (the pinned v5 RC) exposes no focus API and no
+  public `ElementReference` of its own — confirmed by decompiling the installed assembly, it neither
+  declares `FocusAsync()` nor implements `IFluentComponentElementBase` — so *every* Fluent focus
+  target, not just the header, is a plain wrapping `<span>`/`<div>` with its own `@ref`, re-captured
+  every render like any other element reference. There is no component-typed target to go stale.
 - **Move focus from `OnAfterRenderAsync`, not from the handler.** The row you are aiming at may not
   exist, or may not be at that index, until the next render batch is applied — reading the captures
   inside the handler hands back the pre-action state. Set a pending-index field, act on it after the
-  render (`_focusAfterRemovalFrom` / `_focusRowAfterRender` in `CollectionFieldComponent`)
+  render (`_focusAfterRemovalFrom` / `_focusRowAfterRender` in `CollectionFieldComponent` and,
+  identically, in `FluentUICollectionFieldComponent`)
 - **Asserting focus in bUnit: assert the interop call, not DOM state.** bUnit models no real focus.
-  `MudButton.FocusAsync()` records `Blazor._internal.domWrapper.focus` with the target
-  `ElementReference` as `Arguments[0]` (measured on bUnit 2.9.0 / MudBlazor 9.8.0). MudButton exposes
-  **no public** `ElementReference` — it lives in a private `MudBaseButton._elementReference` — and
-  bUnit renders `blazor:elementReference` **empty**, so to say *which* button was focused, learn its
-  id through the public API: call `FocusAsync()` on the candidate and read the id back off the
-  recording (the id survives the clear re-render). ⛔ Don't reflect into MudBlazor's private field;
-  it breaks on any patch release. The helpers live once on **`FocusAssertingTestBase`**
-  (`TestSupport/`) — `FocusCount()`, `LastFocusedElementId()`, `LearnElementIdAsync(...)` (takes
-  `MudBaseButton`, so it covers `MudIconButton` too) and `FailTheFocusInterop()`. See
-  `FileUploadClearFocusTests`, `CollectionFocusTests`, `FocusRestoreTests`
+  `ElementReference.FocusAsync()` records `Blazor._internal.domWrapper.focus` with the target
+  `ElementReference` as `Arguments[0]` (measured on bUnit 2.9.0 / MudBlazor 9.8.0, and again on bUnit
+  2.9.0 / Fluent UI Blazor 5.0.0-rc.5 under #337). **MudBlazor's `MudButton` exposes no public**
+  `ElementReference` — it lives in a private `MudBaseButton._elementReference` — and bUnit renders
+  `blazor:elementReference` **empty**, so to say *which* button was focused, learn its id through the
+  public API: call `FocusAsync()` on the candidate and read the id back off the recording (the id
+  survives the clear re-render). ⛔ Don't reflect into MudBlazor's private field; it breaks on any
+  patch release. **Fluent has no such button-level API to call in the first place** (see above), but
+  its focus targets are plain `ElementReference` fields the component owns directly, so the Fluent
+  suite skips the "focus it to learn its id" indirection: those fields are `internal`, reachable from
+  the test project through `FormCraft.ForFluentUI.csproj`'s `InternalsVisibleTo`, and a test compares
+  `LastFocusedElementId()` straight against the field's own `.Id`. MudBlazor's helpers live once on
+  `FormCraft.ForMudBlazor.UnitTests.TestSupport.FocusAssertingTestBase` — `FocusCount()`,
+  `LastFocusedElementId()`, `LearnElementIdAsync(...)` (takes `MudBaseButton`, so it covers
+  `MudIconButton` too) and `FailTheFocusInterop()`; Fluent's own
+  `FormCraft.ForFluentUI.UnitTests.TestSupport.FocusAssertingTestBase` carries the same first three
+  members minus `LearnElementIdAsync`, for the reason above. See `FileUploadClearFocusTests`,
+  `CollectionFocusTests` and `FocusRestoreTests` in **each** adapter's test project.
 - **`Loose` JSInterop makes focus always succeed, so a "does not throw" test proves nothing** unless
   it makes the call fail — use `FailTheFocusInterop()`. Without it the catch block has zero coverage,
-  which is exactly how a missing `catch (JSException)` shipped under #281
+  which is exactly how a missing `catch (JSException)` shipped under #281. `MudBlazorTestBase` and
+  `FluentUITestBase` both run `Loose` by default, so this applies in either adapter's suite.
 
 #### Testing Patterns
 ```csharp

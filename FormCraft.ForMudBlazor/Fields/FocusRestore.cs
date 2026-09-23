@@ -28,6 +28,12 @@ namespace FormCraft.ForMudBlazor;
 /// Server that tears down the circuit and every other field's state with it. Failing to move focus
 /// is a small accessibility regression; throwing here is a data-loss bug.
 /// </para>
+/// <para>
+/// #337 moved the swallow-safe catch list itself into <see cref="global::FormCraft.FocusRestore"/> in
+/// core, once a second adapter (<c>FormCraft.ForFluentUI</c>) needed it too. This type is now a thin,
+/// MudBlazor-typed wrapper over that shared call — behaviour-preserving, so every test written
+/// against it keeps passing unmodified.
+/// </para>
 /// </remarks>
 internal static class FocusRestore
 {
@@ -43,7 +49,7 @@ internal static class FocusRestore
     /// render completes, and a control behind an <c>@if</c> may never have rendered at all.
     /// </param>
     internal static Task FocusSafelyAsync(MudBaseButton? target) =>
-        target is null ? Task.CompletedTask : FocusSafelyAsync(target.FocusAsync);
+        target is null ? Task.CompletedTask : global::FormCraft.FocusRestore.SafelyAsync(target.FocusAsync);
 
     /// <summary>
     /// Focuses a plain element, for the case where no button survives the action at all.
@@ -55,37 +61,5 @@ internal static class FocusRestore
     /// the user has landed rather than going silent.
     /// </remarks>
     internal static Task FocusSafelyAsync(ElementReference target) =>
-        FocusSafelyAsync(() => target.FocusAsync());
-
-    private static async Task FocusSafelyAsync(Func<ValueTask> focus)
-    {
-        try
-        {
-            await focus();
-        }
-        catch (JSException)
-        {
-            // The element is no longer focusable — typically gone from the DOM. This is the likely
-            // one: assigning the value raises OnValueChanged, so a parent that hides the field or
-            // drops the row can unmount the target before the awaited interop call reaches it.
-        }
-        catch (JSDisconnectedException)
-        {
-            // The circuit is gone; there is nothing left to focus.
-        }
-        catch (OperationCanceledException)
-        {
-            // The interop call timed out or was cancelled.
-        }
-        catch (ObjectDisposedException)
-        {
-            // The component was torn down mid-action.
-        }
-        catch (InvalidOperationException)
-        {
-            // No usable JS runtime behind the reference yet — the prerender/SSR pass, where
-            // RemoteJSRuntime rejects interop issued before the client connects. Broader than that
-            // one cause and knowingly so; see the class remarks on why swallowing wins here.
-        }
-    }
+        global::FormCraft.FocusRestore.SafelyAsync(target);
 }

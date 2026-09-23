@@ -47,11 +47,113 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
     [CascadingParameter]
     private EditContext? EditContext { get; set; }
 
+    /// <summary>
+    /// The collection's header wrapper, the last-resort focus target when an action leaves the field
+    /// with no control at all (#337, mirrors <c>FormCraft.ForMudBlazor</c>'s <c>_header</c>). Carries
+    /// <c>tabindex="-1"</c> in the markup so it can take focus without joining the tab order.
+    /// </summary>
+    /// <remarks>
+    /// <c>internal</c> rather than a leading-underscore private field so the focus-assertion test
+    /// suite can read the exact <see cref="ElementReference"/> the component would itself focus (see
+    /// <c>FormCraft.ForFluentUI.UnitTests.TestSupport.FocusAssertingTestBase</c> remarks for why
+    /// Fluent's <c>FluentButton</c> cannot be focused directly and every target here is a plain
+    /// wrapping element instead).
+    /// </remarks>
+    internal ElementReference HeaderTarget;
+
+    /// <summary>
+    /// The wrapper around the <b>Add</b> control, when one is rendered — the second focus target in
+    /// the removal chain (#337, mirrors <c>FormCraft.ForMudBlazor</c>'s <c>_addButton</c>).
+    /// </summary>
+    internal ElementReference? AddTarget;
+
+    /// <summary>
+    /// Each row's delete-control wrapper, by index — the focus targets for a removal (#337, mirrors
+    /// <c>FormCraft.ForMudBlazor</c>'s <c>_deleteButtons</c>).
+    /// </summary>
+    /// <remarks>
+    /// Keyed by index rather than held as a single reference because these controls are rendered per
+    /// row: a removal has to focus the control that takes the vacated slot, which is a different one
+    /// each time. Entries deliberately outlive the rows that produced them — see
+    /// <see cref="DeleteTargetAt"/> for why pruning is the wrong fix and what guards staleness
+    /// instead.
+    /// </remarks>
+    private readonly Dictionary<int, ElementReference> _deleteTargets = new();
+
+    /// <summary>
+    /// The index a row was just removed from, pending the focus move on the next completed render.
+    /// </summary>
+    private int? _focusAfterRemovalFrom;
+
+    /// <summary>Each row's reorder-control wrappers, by index. Same capture rules as <see cref="_deleteTargets"/>.</summary>
+    private readonly Dictionary<int, ElementReference> _moveUpTargets = new();
+
+    /// <inheritdoc cref="_moveUpTargets"/>
+    private readonly Dictionary<int, ElementReference> _moveDownTargets = new();
+
+    /// <summary>
+    /// Each row's header wrapper, by index — the focus target when a row has no usable control to
+    /// take focus (#337, mirrors <c>FormCraft.ForMudBlazor</c>'s <c>_rowHeaders</c>).
+    /// </summary>
+    private readonly Dictionary<int, ElementReference> _rowHeaderTargets = new();
+
+    /// <summary>
+    /// The row index to put focus in on the next completed render, after an add or a reorder.
+    /// </summary>
+    /// <remarks>
+    /// Deferred for the same reason as <see cref="_focusAfterRemovalFrom"/>: the row the focus is
+    /// aimed at may not exist — or may not be at that index — until the next render batch is applied.
+    /// </remarks>
+    private int? _focusRowAfterRender;
+
+    /// <summary>
+    /// Which way the item travelled, when <see cref="_focusRowAfterRender"/> came from a reorder;
+    /// <see langword="null"/> when it came from an add.
+    /// </summary>
+    /// <remarks>
+    /// The direction matters, it is not bookkeeping: focus must land on the control for the way the
+    /// user was already going, so pressing <kbd>Enter</kbd> again keeps moving the item. Preferring
+    /// <b>up</b> regardless would put a repeat keypress on "undo the move I just made" — the same
+    /// hazard that keeps focus off Delete after an add.
+    /// </remarks>
+    private bool? _reorderMovedDown;
+
     private List<TItem> Items => Configuration.CollectionAccessor(Model);
 
     private bool HasReachedMax => Configuration.MaxItems > 0 && Items.Count >= Configuration.MaxItems;
 
     private bool HasReachedMin => Configuration.MinItems > 0 && Items.Count <= Configuration.MinItems;
+
+    private bool DeleteTargetsRendered => Configuration.CanRemove && !HasReachedMin;
+
+    /// <summary>
+    /// The delete-control wrapper currently rendered at <paramref name="index"/>, or
+    /// <see langword="null"/> when that row no longer exists or delete is not rendered at all.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ <b>Staleness is handled by these two checks, not by pruning <see cref="_deleteTargets"/>.</b>
+    /// A <c>@ref</c> on a plain element is re-captured every render, but the dictionary entry for an
+    /// index that no longer renders a delete control would otherwise still be read as live. Entries
+    /// therefore outlive the rows they came from, and correctness comes from asking what is rendered
+    /// <i>now</i>: the index must still be within <see cref="Items"/>, and delete must still be
+    /// rendered at all (reaching <c>MinItems</c> unmounts every one of them at once).
+    /// </remarks>
+    internal ElementReference? DeleteTargetAt(int index) =>
+        DeleteTargetsRendered
+        && index >= 0
+        && index < Items.Count
+        && _deleteTargets.TryGetValue(index, out var target)
+            ? target
+            : null;
+
+    /// <summary>The reorder-control wrapper at <paramref name="index"/> — test-only access, mirroring <see cref="DeleteTargetAt"/>.</summary>
+    internal ElementReference MoveUpTargetAt(int index) => _moveUpTargets[index];
+
+    /// <inheritdoc cref="MoveUpTargetAt"/>
+    internal ElementReference MoveDownTargetAt(int index) => _moveDownTargets[index];
+
+    /// <summary>The row header wrapper at <paramref name="index"/> — test-only access, mirroring <see cref="DeleteTargetAt"/>.</summary>
+    internal ElementReference RowHeaderTargetAt(int index) => _rowHeaderTargets[index];
 
     private async Task AddItem()
     {
@@ -62,6 +164,20 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
 
         Items.Add(new TItem());
         await NotifyCollectionChanged();
+
+        // ONLY when this add unmounted Add itself. MaxItems defaults to 0, so HasReachedMax is
+        // normally never true and the control survives - with focus still on it, which is where a
+        // user building a list wants to stay. Moving focus anyway would push them into the new row's
+        // header (tabindex="-1", outside the tab order), forcing a Shift+Tab back to Add for every
+        // subsequent row: a regression in the common case, in the name of a failure that did not
+        // happen (#337).
+        if (!HasReachedMax)
+        {
+            return;
+        }
+
+        _focusRowAfterRender = Items.Count - 1;
+        _reorderMovedDown = null;
     }
 
     private async Task RemoveItem(int index)
@@ -73,6 +189,132 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
 
         Items.RemoveAt(index);
         await NotifyCollectionChanged();
+
+        // The delete control the user activated has just unmounted — and if this removal reached
+        // MinItems, so has every other row's. Move focus deliberately or it falls to <body> (#337).
+        // Deferred to OnAfterRenderAsync rather than done here: the @ref captures are only re-bound
+        // when the next render batch is applied, so reading them now would hand back the controls
+        // from *before* the removal — which is exactly a detached one in the MinItems case.
+        _focusAfterRemovalFrom = index;
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        // Take and clear BOTH pending requests before dispatching either. They can both be set:
+        // AddItem/MoveItem* await NotifyCollectionChanged(), which releases the Blazor dispatcher
+        // when the consumer's handler is genuinely async, so a delete click can be processed in that
+        // window. Leaving the other flag set lets it fire on some unrelated later render.
+        var removedIndex = _focusAfterRemovalFrom;
+        var rowIndex = _focusRowAfterRender;
+        var movedDown = _reorderMovedDown;
+        _focusAfterRemovalFrom = null;
+        _focusRowAfterRender = null;
+        _reorderMovedDown = null;
+
+        if (removedIndex is { } removed)
+        {
+            await FocusAfterRemovalAsync(removed);
+            return;
+        }
+
+        if (rowIndex is { } row)
+        {
+            await FocusRowAsync(row, movedDown);
+        }
+    }
+
+    /// <summary>
+    /// Focus target after a row is removed: the delete control that takes the vacated slot, else the
+    /// previous row's, else <b>Add</b>, else the collection header (#337, mirrors
+    /// <c>FormCraft.ForMudBlazor</c>'s <c>FocusAfterRemovalAsync</c>).
+    /// </summary>
+    /// <remarks>
+    /// The chain matters because a removal can unmount far more than the control that was clicked:
+    /// reaching <c>MinItems</c> falsifies the <c>@if</c> guarding <i>every</i> row's delete control at
+    /// once, and a field that also forbids adding is then left with no focusable control at all.
+    /// </remarks>
+    private async Task FocusAfterRemovalAsync(int removedIndex)
+    {
+        var survivor = DeleteTargetAt(removedIndex) ?? DeleteTargetAt(removedIndex - 1);
+        if (survivor is { } survivorTarget)
+        {
+            await FocusRestore.FocusSafelyAsync(survivorTarget);
+            return;
+        }
+
+        if (AddTarget is { } addTarget)
+        {
+            await FocusRestore.FocusSafelyAsync(addTarget);
+            return;
+        }
+
+        await FocusRestore.FocusSafelyAsync(HeaderTarget);
+    }
+
+    /// <summary>
+    /// Puts focus in the row at <paramref name="index"/> after an add or a reorder (#337, mirrors
+    /// <c>FormCraft.ForMudBlazor</c>'s <c>FocusRowAsync</c>).
+    /// </summary>
+    /// <param name="index">The row the acting item now occupies.</param>
+    /// <param name="movedDown">
+    /// Which way the item travelled for a reorder, or <see langword="null"/> after an <b>add</b>. A
+    /// reorder prefers a still-enabled move control on that row - it keeps the user on the control
+    /// they were operating. After an add the row itself is the target instead: the row's fields are
+    /// what the user wants next, and its Delete control would put <kbd>Enter</kbd> on "undo the add".
+    /// </param>
+    private async Task FocusRowAsync(int index, bool? movedDown)
+    {
+        if (movedDown is { } down)
+        {
+            var target = EnabledMoveTargetAt(index, down);
+            if (target is { } moveTarget)
+            {
+                await FocusRestore.FocusSafelyAsync(moveTarget);
+                return;
+            }
+        }
+
+        if (_rowHeaderTargets.TryGetValue(index, out var header))
+        {
+            await FocusRestore.FocusSafelyAsync(header);
+        }
+    }
+
+    /// <summary>
+    /// A still-enabled reorder-control wrapper on the given row, preferring the direction the item
+    /// just travelled and falling back to its counterpart when that one has become disabled at an
+    /// end (#337, mirrors <c>FormCraft.ForMudBlazor</c>'s <c>EnabledMoveButtonAt</c>).
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ The preference is the point, not a nicety: landing on the control for the direction the
+    /// user was already going means a repeat <kbd>Enter</kbd> keeps moving the item. Always
+    /// preferring <b>up</b> would put that repeat keypress on "undo the move I just made" whenever
+    /// the item travelled down into a mid-list slot.
+    /// </remarks>
+    private ElementReference? EnabledMoveTargetAt(int index, bool movedDown)
+    {
+        if (!Configuration.CanReorder || index < 0 || index >= Items.Count)
+        {
+            return null;
+        }
+
+        // Mirrors the Disabled bindings in the markup: up is dead at the top, down at the bottom.
+        var upEnabled = index > 0;
+        var downEnabled = index < Items.Count - 1;
+
+        var travelled = movedDown ? _moveDownTargets : _moveUpTargets;
+        var travelledEnabled = movedDown ? downEnabled : upEnabled;
+        if (travelledEnabled && travelled.TryGetValue(index, out var preferred))
+        {
+            return preferred;
+        }
+
+        var counterpart = movedDown ? _moveUpTargets : _moveDownTargets;
+        var counterpartEnabled = movedDown ? upEnabled : downEnabled;
+        return counterpartEnabled && counterpart.TryGetValue(index, out var fallback) ? fallback : null;
     }
 
     private async Task MoveItemUp(int index)
@@ -84,6 +326,12 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
 
         (Items[index], Items[index - 1]) = (Items[index - 1], Items[index]);
         await NotifyCollectionChanged();
+
+        // Follow the item to its new row. At index 0 the Move-up control the user pressed becomes
+        // Disabled under their finger, and browsers drop focus from a newly-disabled element - the
+        // same 2.4.3 failure as an unmount (#337).
+        _focusRowAfterRender = index - 1;
+        _reorderMovedDown = false;
     }
 
     private async Task MoveItemDown(int index)
@@ -95,6 +343,9 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
 
         (Items[index], Items[index + 1]) = (Items[index + 1], Items[index]);
         await NotifyCollectionChanged();
+
+        _focusRowAfterRender = index + 1;
+        _reorderMovedDown = true;
     }
 
     private async Task NotifyCollectionChanged()

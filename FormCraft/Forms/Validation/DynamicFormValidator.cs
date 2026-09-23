@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
@@ -174,8 +173,9 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
     /// Runs one validation pass over a collection field and returns both message shapes.
     /// </summary>
     /// <remarks>
-    /// Replaces the pair of calls this method used to make. <c>ValidateAllAsync</c> is non-generic in
-    /// its return type precisely so it can be invoked reflectively here without knowing the item type.
+    /// Replaces the pair of calls this method used to make. <see cref="CollectionValidationResult" /> is
+    /// non-generic precisely so <c>GetInvoker</c> can return it through <see cref="ICollectionValidator" />
+    /// without knowing the item type — a typed interface call now, not a reflective invoke (#344).
     /// </remarks>
     private Task<CollectionValidationResult> ValidateCollectionAsync(TModel model, ICollectionFieldConfigurationBase collectionField)
         => GetInvoker(collectionField).ValidateAllAsync(model!, ServiceProvider);
@@ -191,85 +191,35 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         => GetInvoker(collectionField).ValidateItemFieldAsync(model!, itemIndex, itemFieldName, ServiceProvider);
 
     /// <summary>
-    /// The reflective plumbing for one collection field's typed validator, resolved once.
+    /// One collection field's typed validator, resolved once.
     /// </summary>
     /// <remarks>
-    /// Keyed by the <b>configuration instance</b>, not by item type. The generic type and its methods
-    /// depend only on the item type, but the validator instance is constructed <i>from the
-    /// configuration</i> — so two collections of the same item type with different configurations
-    /// (different item forms, different min/max) must not share one. A
-    /// <see cref="ConditionalWeakTable{TKey, TValue}" /> also means an entry lives no longer than the
-    /// configuration it describes.
+    /// Keyed by the <b>configuration instance</b>, not by item type. The generic type depends only on
+    /// the item type, but the validator instance is constructed <i>from the configuration</i> — so two
+    /// collections of the same item type with different configurations (different item forms,
+    /// different min/max) must not share one. A <see cref="ConditionalWeakTable{TKey, TValue}" /> also
+    /// means an entry lives no longer than the configuration it describes.
     /// </remarks>
-    private static readonly ConditionalWeakTable<ICollectionFieldConfigurationBase, CollectionValidatorInvoker> ValidatorCache = new();
+    private static readonly ConditionalWeakTable<ICollectionFieldConfigurationBase, ICollectionValidator> ValidatorCache = new();
 
-    private static CollectionValidatorInvoker GetInvoker(ICollectionFieldConfigurationBase collectionField)
-        => ValidatorCache.GetValue(collectionField, static field => new CollectionValidatorInvoker(field));
+    private static ICollectionValidator GetInvoker(ICollectionFieldConfigurationBase collectionField)
+        => ValidatorCache.GetValue(collectionField, static field => CreateValidator(field));
 
     /// <summary>
-    /// Holds one collection field's typed validator and the two methods this component invokes on it,
-    /// so <c>MakeGenericType</c> / <c>Activator.CreateInstance</c> / <c>GetMethod</c> run once per
-    /// configuration rather than on every validation pass and every keystroke (#329).
+    /// Constructs one collection field's typed validator. This is the only reflective step left
+    /// (#344): the concrete <c>CollectionFieldValidator&lt;TModel, TItem&gt;</c> depends on
+    /// <c>TItem</c>, unknown here at compile time, so <c>MakeGenericType</c>/<c>Activator.CreateInstance</c>
+    /// still run once per configuration — but every call on the result afterwards goes through
+    /// <see cref="ICollectionValidator"/> directly, with no further <c>MethodInfo.Invoke</c>.
     /// </summary>
-    private sealed class CollectionValidatorInvoker
+    private static ICollectionValidator CreateValidator(ICollectionFieldConfigurationBase collectionField)
     {
-        private readonly object _validator;
-        private readonly MethodInfo _validateAll;
-        private readonly MethodInfo _validateCell;
-        private readonly MethodInfo _formatItemMessage;
-        private readonly MethodInfo _formatItemMessagePrefix;
+        var validatorType = typeof(CollectionFieldValidator<,>)
+            .MakeGenericType(typeof(TModel), collectionField.ItemType);
 
-        /// <remarks>
-        /// Resolution failures throw here rather than degrading to a no-op. The names come from
-        /// <c>nameof</c> and <see cref="Activator.CreateInstance(Type, object[])" /> throws rather
-        /// than returning null for a class, so none of this is reachable today — but throwing keeps
-        /// it that way. A silent fallback would be <i>cached</i>, so one unresolvable lookup would
-        /// make that collection report zero errors for the lifetime of its configuration instead of
-        /// failing once, loudly.
-        /// </remarks>
-        internal CollectionValidatorInvoker(ICollectionFieldConfigurationBase collectionField)
-        {
-            var validatorType = typeof(CollectionFieldValidator<,>)
-                .MakeGenericType(typeof(TModel), collectionField.ItemType);
-
-            _validator = Activator.CreateInstance(validatorType, collectionField)
-                ?? throw new InvalidOperationException(
-                    $"Could not construct a collection validator for item type '{collectionField.ItemType}'.");
-
-            _validateAll = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.ValidateAllAsync))
-                ?? throw new InvalidOperationException(
-                    $"'{validatorType}' does not declare {nameof(CollectionFieldValidator<TModel, object>.ValidateAllAsync)}.");
-
-            _validateCell = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.ValidateItemFieldAsync))
-                ?? throw new InvalidOperationException(
-                    $"'{validatorType}' does not declare {nameof(CollectionFieldValidator<TModel, object>.ValidateItemFieldAsync)}.");
-
-            _formatItemMessage = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.FormatItemMessage))
-                ?? throw new InvalidOperationException(
-                    $"'{validatorType}' does not declare {nameof(CollectionFieldValidator<TModel, object>.FormatItemMessage)}.");
-
-            _formatItemMessagePrefix = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.FormatItemMessagePrefix))
-                ?? throw new InvalidOperationException(
-                    $"'{validatorType}' does not declare {nameof(CollectionFieldValidator<TModel, object>.FormatItemMessagePrefix)}.");
-        }
-
-        internal Task<CollectionValidationResult> ValidateAllAsync(object model, IServiceProvider services)
-            => (Task<CollectionValidationResult>)_validateAll.Invoke(_validator, [model, services])!;
-
-        internal Task<List<CollectionItemError>> ValidateItemFieldAsync(
-            object model,
-            int itemIndex,
-            string fieldName,
-            IServiceProvider services)
-            => (Task<List<CollectionItemError>>)_validateCell.Invoke(
-                _validator,
-                [model, itemIndex, fieldName, services])!;
-
-        internal string FormatItemMessage(CollectionItemError itemError)
-            => (string)_formatItemMessage.Invoke(_validator, [itemError])!;
-
-        internal string FormatItemMessagePrefix(int itemIndex, string fieldName)
-            => (string)_formatItemMessagePrefix.Invoke(_validator, [itemIndex, fieldName])!;
+        return (ICollectionValidator)(Activator.CreateInstance(validatorType, collectionField)
+            ?? throw new InvalidOperationException(
+                $"Could not construct a collection validator for item type '{collectionField.ItemType}'."));
     }
 
     private FieldIdentifier CreateCollectionItemFieldIdentifier(string collectionFieldName, int itemIndex, string itemFieldName)
