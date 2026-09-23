@@ -305,7 +305,7 @@ public partial class FormCraftComponent<TModel>
             if (_formDiagnosticScope.ShouldWarnOnce(CustomTemplateFieldDiagnosticCategory, field.ValueExpression.ToString()))
             {
                 var displayName = string.IsNullOrWhiteSpace(field.Label) ? field.FieldName : field.Label;
-                DiagnosticLog.Warn(
+                FormDiagnosticLog.Warn(
                     ServiceProvider,
                     CustomTemplateFieldDiagnosticCategory,
                     "Field '{Field}' has a custom template whose value could not be written back to " +
