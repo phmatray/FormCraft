@@ -1,4 +1,5 @@
 using System.Collections;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Resources;
 
@@ -46,6 +47,68 @@ public class ValidationMessagesLocalizationTests
             var validator = field.TypedConfiguration.Validators.ShouldHaveSingleItem();
 
             validator.ErrorMessage.ShouldBe("Âge is required");
+        });
+    }
+
+    [Fact]
+    public async Task AddNumericField_Range_Message_Is_French_Under_FrFr_Culture()
+    {
+        await WithCultureAsync("fr-FR", async () =>
+        {
+            var services = A.Fake<IServiceProvider>();
+            var config = FormBuilder<TestModel>.Create()
+                .AddNumericField(x => x.Age, "Âge", min: 18, max: 65, required: false)
+                .Build();
+
+            var field = config.Fields
+                .OfType<FieldConfigurationWrapper<TestModel, int>>()
+                .First(f => f.FieldName == "Age");
+            var validator = field.TypedConfiguration.Validators.ShouldHaveSingleItem();
+
+            var result = await validator.ValidateAsync(new TestModel(), 17, services);
+            result.IsValid.ShouldBeFalse();
+            result.ErrorMessage.ShouldBe("Doit être compris entre 18 et 65");
+        });
+    }
+
+    [Fact]
+    public async Task WithEmailValidation_Default_Message_Is_French_Under_FrFr_Culture()
+    {
+        await WithCultureAsync("fr-FR", async () =>
+        {
+            var services = A.Fake<IServiceProvider>();
+            var config = FormBuilder<TestModel>.Create()
+                .AddField(x => x.Email, field => field.WithEmailValidation())
+                .Build();
+
+            var field = config.Fields
+                .OfType<FieldConfigurationWrapper<TestModel, string>>()
+                .First(f => f.FieldName == "Email");
+            var validator = field.TypedConfiguration.Validators.ShouldHaveSingleItem();
+
+            var result = await validator.ValidateAsync(new TestModel(), "not-an-email", services);
+            result.IsValid.ShouldBeFalse();
+            result.ErrorMessage.ShouldBe("Veuillez saisir une adresse e-mail valide");
+        });
+    }
+
+    [Fact]
+    public void AddFieldsFromAttributes_Required_Message_Is_French_Under_FrFr_Culture()
+    {
+        WithCulture("fr-FR", () =>
+        {
+            var config = FormBuilder<AttributeTestModel>.Create()
+                .AddFieldsFromAttributes()
+                .Build();
+
+            var field = config.Fields
+                .OfType<FieldConfigurationWrapper<AttributeTestModel, string>>()
+                .First(f => f.FieldName == "Name");
+            var validator = field.TypedConfiguration.Validators
+                .OfType<RequiredValidator<AttributeTestModel, string>>()
+                .ShouldHaveSingleItem();
+
+            validator.ErrorMessage.ShouldBe("Le champ Nom est obligatoire");
         });
     }
 
@@ -98,9 +161,35 @@ public class ValidationMessagesLocalizationTests
         }
     }
 
+    /// <summary>Async counterpart of <see cref="WithCulture"/>, for assertions that await <c>ValidateAsync</c>.</summary>
+    private static async Task WithCultureAsync(string culture, Func<Task> action)
+    {
+        var previousCulture = CultureInfo.CurrentCulture;
+        var previousUiCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            var info = new CultureInfo(culture);
+            CultureInfo.CurrentCulture = info;
+            CultureInfo.CurrentUICulture = info;
+            await action();
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previousCulture;
+            CultureInfo.CurrentUICulture = previousUiCulture;
+        }
+    }
+
     public class TestModel
     {
         public int Age { get; set; }
         public string Email { get; set; } = "";
+    }
+
+    public class AttributeTestModel
+    {
+        [Required]
+        [TextField("Nom")]
+        public string Name { get; set; } = "";
     }
 }

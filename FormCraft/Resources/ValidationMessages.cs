@@ -27,37 +27,41 @@ internal static class ValidationMessages
         => Resources.GetString(key, CultureInfo.CurrentUICulture)
            ?? throw new InvalidOperationException($"Missing validation message resource '{key}'.");
 
-    public static string Required(object label)
+    // Nullable object parameters throughout: BuildRangeMessage<TValue> and friends call these with a
+    // generic TValue that the compiler cannot prove non-null (e.g. a nullable numeric TValue), and
+    // string.Format renders a null argument as an empty string — the same thing `$"{min}"`
+    // interpolation on a null did before this change, so behaviour is unchanged.
+    public static string Required(object? label)
         => string.Format(CultureInfo.CurrentCulture, Get(nameof(Required)), label);
 
     public static string RequiredDefault()
         => Get(nameof(RequiredDefault));
 
-    public static string RequiredSelect(object label)
+    public static string RequiredSelect(object? label)
         => string.Format(CultureInfo.CurrentCulture, Get(nameof(RequiredSelect)), label);
 
-    public static string RequiredAtLeastOne(object label)
+    public static string RequiredAtLeastOne(object? label)
         => string.Format(CultureInfo.CurrentCulture, Get(nameof(RequiredAtLeastOne)), label);
 
-    public static string MinLength(object n)
+    public static string MinLength(object? n)
         => string.Format(CultureInfo.CurrentCulture, Get(nameof(MinLength)), n);
 
-    public static string MinLengthLong(object n)
+    public static string MinLengthLong(object? n)
         => string.Format(CultureInfo.CurrentCulture, Get(nameof(MinLengthLong)), n);
 
-    public static string MaxLength(object n)
+    public static string MaxLength(object? n)
         => string.Format(CultureInfo.CurrentCulture, Get(nameof(MaxLength)), n);
 
-    public static string MaxLengthLong(object n)
+    public static string MaxLengthLong(object? n)
         => string.Format(CultureInfo.CurrentCulture, Get(nameof(MaxLengthLong)), n);
 
-    public static string RangeBetween(object min, object max)
+    public static string RangeBetween(object? min, object? max)
         => string.Format(CultureInfo.CurrentCulture, Get(nameof(RangeBetween)), min, max);
 
-    public static string RangeAtLeast(object min)
+    public static string RangeAtLeast(object? min)
         => string.Format(CultureInfo.CurrentCulture, Get(nameof(RangeAtLeast)), min);
 
-    public static string RangeAtMost(object max)
+    public static string RangeAtMost(object? max)
         => string.Format(CultureInfo.CurrentCulture, Get(nameof(RangeAtMost)), max);
 
     public static string InvalidFormat()

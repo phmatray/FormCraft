@@ -198,7 +198,7 @@ public static class FieldBuilderExtensions
         {
             return builder.WithValidator(
                 value => string.IsNullOrEmpty(value?.ToString()) || IsValidEmail(value.ToString()!),
-                errorMessage ?? "Please enter a valid email address");
+                errorMessage ?? ValidationMessages.InvalidEmail());
         }
 
         /// <summary>
@@ -291,7 +291,7 @@ public static class FieldBuilderExtensions
         {
             return builder.WithValidator(
                 value => string.IsNullOrEmpty(value) || value.Length >= minLength,
-                errorMessage ?? $"Must be at least {minLength} characters long");
+                errorMessage ?? ValidationMessages.MinLengthLong(minLength));
         }
 
         /// <summary>
@@ -311,7 +311,7 @@ public static class FieldBuilderExtensions
         {
             return builder.WithValidator(
                 value => string.IsNullOrEmpty(value) || value.Length <= maxLength,
-                errorMessage ?? $"Must be no more than {maxLength} characters long");
+                errorMessage ?? ValidationMessages.MaxLengthLong(maxLength));
         }
     }
 
@@ -339,7 +339,7 @@ public static class FieldBuilderExtensions
         {
             return builder.WithValidator(
                 value => value.CompareTo(min) >= 0 && value.CompareTo(max) <= 0,
-                errorMessage ?? $"Must be between {min} and {max}");
+                errorMessage ?? ValidationMessages.RangeBetween(min, max));
         }
     }
 
