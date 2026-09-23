@@ -232,7 +232,7 @@ public partial class FormCraftComponent<TModel> where TModel : new()
     /// — and the field rendered nothing — for anything but a direct top-level property. Reading
     /// through the expression itself removes that failure mode for any reachable binding. Mirrors
     /// the MudBlazor adapter's identical method; this package has no shared diagnostics
-    /// infrastructure to route through instead (that gap belongs to #321).
+    /// infrastructure to route through instead.
     /// </summary>
     /// <remarks>
     /// A binding that still cannot be evaluated against the current model — most commonly a null
