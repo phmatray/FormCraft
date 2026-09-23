@@ -1,19 +1,12 @@
 using Microsoft.Extensions.Logging;
 
-namespace FormCraft.ForMudBlazor.UnitTests.TestSupport;
+namespace FormCraft.UnitTests.Diagnostics;
 
 /// <summary>
-/// Collects warning-level log messages so a diagnostic can be asserted on.
+/// Collects warning-level log messages so <c>FormDiagnosticLog.Warn</c> can be asserted on. Mirrors
+/// <c>FormCraft.ForMudBlazor.UnitTests.TestSupport.CapturingLoggerProvider</c>, kept local rather than
+/// shared across assemblies for one test file's worth of use.
 /// </summary>
-/// <remarks>
-/// The single <c>CapturingLoggerProvider</c> for the MudBlazor test project — <c>ShrinkLabelDiagnosticsTests</c>
-/// and <c>ShrinkLabelDiagnosticCollectorTests</c> used to carry their own private copies; both were
-/// folded into this one in #305.
-/// <para>
-/// The list is lock-guarded because a diagnostic may be emitted from a render that bUnit runs on its
-/// own dispatcher thread, and an unsynchronised <see cref="List{T}"/> can tear under that.
-/// </para>
-/// </remarks>
 internal sealed class CapturingLoggerProvider : ILoggerProvider
 {
     private readonly List<(string Category, string Message)> _entries = [];
@@ -26,6 +19,18 @@ internal sealed class CapturingLoggerProvider : ILoggerProvider
             lock (_entries)
             {
                 return _entries.Select(entry => entry.Message).ToList();
+            }
+        }
+    }
+
+    /// <summary>The same warnings, each paired with the logger category it was emitted under.</summary>
+    public IReadOnlyList<(string Category, string Message)> Entries
+    {
+        get
+        {
+            lock (_entries)
+            {
+                return _entries.ToList();
             }
         }
     }
@@ -61,4 +66,14 @@ internal sealed class CapturingLoggerProvider : ILoggerProvider
             }
         }
     }
+}
+
+/// <summary>
+/// A service provider whose every resolution throws, standing in for a torn-down circuit. Mirrors
+/// <c>FormCraft.ForMudBlazor.UnitTests.TestSupport.ThrowingServiceProvider</c>.
+/// </summary>
+internal sealed class ThrowingServiceProvider : IServiceProvider
+{
+    public object? GetService(Type serviceType) =>
+        throw new InvalidOperationException("Cannot access a disposed scope.");
 }

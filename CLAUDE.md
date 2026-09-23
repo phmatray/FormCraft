@@ -451,7 +451,7 @@ because it lives in core rather than in one of the two packages that need it.
   stay a no-op. `JSException` is the likely one — `domWrapper.focus` raises it for an element that
   has left the DOM, which `OnValueChanged` can cause between the mutation and the awaited interop
   call. Losing that catch escapes the click handler and tears down a Server circuit;
-  `A_Failing_Focus_Call_Should_Not_Break_A_*_Clear` and both adapters' `FocusRestoreTests` pin it
+  `A_Failing_Focus_Call_Should_Not_Break_A_*_Clear` and `FormCraft.UnitTests/Rendering/FocusRestoreTests.cs` pin it — the core suite exercises all five exception types, while each adapter's own `FocusRestoreTests` only smoke-tests JSException at the wrapper level
 - ⛔ **A `@ref` on a *component* is captured once, when that component is created — it is NOT re-run
   on later renders.** So a per-index reference store must **not** be cleared each render to prune
   stale entries: doing so permanently loses the references for rows that were merely retained, and

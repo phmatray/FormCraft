@@ -1,3 +1,4 @@
+using FormCraft.Diagnostics;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
 
@@ -45,7 +46,7 @@ internal static class MaskedLinesDiagnostic
         string fieldName,
         string? label,
         int configuredLines) =>
-        DiagnosticLog.Warn(
+        FormDiagnosticLog.Warn(
             services,
             Category,
             "Field '{Field}' is a password field and also asks for {Lines} lines. MudBlazor " +

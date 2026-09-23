@@ -218,6 +218,70 @@ public class CollectionFieldValidatorTests
         result.Messages.Count.ShouldBe(2);
     }
 
+    [Fact]
+    public async Task ValidateItemsAsync_Should_Not_Throw_And_Should_Still_Validate_Other_Items_When_One_Items_Nested_Binding_Is_Unreadable()
+    {
+        // Arrange - an item form field bound to a nested expression. Before #397 this call site
+        // (CollectionFieldValidator's hoisted-getters loop) had no guard: one item with a null
+        // intermediate threw an unhandled NullReferenceException out of the whole collection pass,
+        // instead of just failing that item's field against null and letting the rest validate.
+        var itemForm = FormBuilder<OrderItemModel>.Create()
+            .AddField(x => x.Nested!.Value, field => field.Required("Nested value is required"))
+            .AddField(x => x.ProductName, field => field.Required("Product name is required"))
+            .Build();
+        var config = new CollectionFieldConfiguration<OrderModel, OrderItemModel>(x => x.Items)
+        {
+            ItemFormConfiguration = itemForm
+        };
+        var validator = new CollectionFieldValidator<OrderModel, OrderItemModel>(config);
+        var model = new OrderModel
+        {
+            Items = new List<OrderItemModel>
+            {
+                new() { Nested = null, ProductName = "Widget" }, // unreadable nested binding
+                new() { Nested = new NestedOrderDetail(), ProductName = "" } // invalid ProductName
+            }
+        };
+        var services = A.Fake<IServiceProvider>();
+
+        // Act
+        var errors = await validator.ValidateItemsAsync(model, services);
+
+        // Assert - item 0's failed read is validated as null, not silently skipped: its Required()
+        // nested field still reports invalid (review finding, #397). Item 1's ProductName error still
+        // surfaces even though item 0's nested read failed.
+        errors.ShouldContain(e => e.ItemIndex == 0 && e.FieldName == "Value");
+        errors.ShouldContain(e => e.ItemIndex == 1 && e.FieldName == "ProductName");
+    }
+
+    [Fact]
+    public async Task ValidateItemFieldAsync_Should_Not_Throw_For_A_Nested_Binding_With_A_Null_Intermediate()
+    {
+        // Arrange - the single-cell path (a field-changed notification's own validation) hits the
+        // same unguarded read #397 fixes in the full-collection traversal above.
+        var itemForm = FormBuilder<OrderItemModel>.Create()
+            .AddField(x => x.Nested!.Value, field => field.Required("Nested value is required"))
+            .Build();
+        var config = new CollectionFieldConfiguration<OrderModel, OrderItemModel>(x => x.Items)
+        {
+            ItemFormConfiguration = itemForm
+        };
+        var validator = new CollectionFieldValidator<OrderModel, OrderItemModel>(config);
+        var model = new OrderModel
+        {
+            Items = new List<OrderItemModel> { new() { Nested = null } }
+        };
+        var services = A.Fake<IServiceProvider>();
+
+        // Act
+        var errors = await validator.ValidateItemFieldAsync(model, 0, "Value", services);
+
+        // Assert - the failed read is validated as null, not silently skipped: the Required() field
+        // still reports invalid (review finding, #397). An empty-errors assertion alone would also
+        // pass a regression that skips validating a field whose read failed.
+        errors.ShouldContain(e => e.FieldName == "Value" && e.Message == "Nested value is required");
+    }
+
     private CollectionFieldConfiguration<OrderModel, OrderItemModel> CreateCollectionConfig(
         int minItems = 0, int maxItems = 0)
     {
@@ -253,6 +317,12 @@ public class CollectionFieldValidatorTests
         public int Quantity { get; set; } = 1;
         public decimal UnitPrice { get; set; } = 0m;
         public decimal TotalPrice => Quantity * UnitPrice;
+        public NestedOrderDetail? Nested { get; set; }
+    }
+
+    public class NestedOrderDetail
+    {
+        public string Value { get; set; } = "";
     }
 
     /// <summary>

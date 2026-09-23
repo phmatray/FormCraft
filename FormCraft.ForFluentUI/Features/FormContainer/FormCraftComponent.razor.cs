@@ -1,3 +1,4 @@
+using FormCraft.Diagnostics;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.DependencyInjection;
@@ -77,6 +78,13 @@ public partial class FormCraftComponent<TModel> where TModel : new()
 
     [Inject]
     private IServiceProvider ServiceProvider { get; set; } = null!;
+
+    /// <summary>
+    /// This form's diagnostic latch, shared with the MudBlazor adapter from core since #398.
+    /// Currently backs only <see cref="WarnUnresolvedCustomTemplateField"/>; a readonly field
+    /// initialised once per component instance so the latch survives across renders.
+    /// </summary>
+    private readonly FormDiagnosticScope _formDiagnosticScope = new();
 
     private EditContext? _editContext;
     // The shared validator from core since #279, not this adapter's own copy.
@@ -230,15 +238,14 @@ public partial class FormCraftComponent<TModel> where TModel : new()
     /// <c>x =&gt; x.Nested.Value</c>), so the old lookup against <typeparamref name="TModel"/> failed
     /// — and the field rendered nothing — for anything but a direct top-level property. Reading
     /// through the expression itself removes that failure mode for any reachable binding. Mirrors
-    /// the MudBlazor adapter's identical method; this package has no shared diagnostics
-    /// infrastructure to route through instead.
+    /// the MudBlazor adapter's identical method, both routed through the shared
+    /// <see cref="FormDiagnosticLog"/>/<see cref="FormDiagnosticScope"/> since #398.
     /// </summary>
     /// <remarks>
     /// A binding that still cannot be evaluated against the current model — most commonly a null
     /// intermediate reference in a nested path — reports once per field via
-    /// <see cref="_warnedUnresolvedCustomTemplateFields"/> and returns <c>null</c>, so the template
-    /// still renders instead of the exception reaching the render pipeline or the field staying
-    /// invisible.
+    /// <see cref="_formDiagnosticScope"/> and returns <c>null</c>, so the template still renders
+    /// instead of the exception reaching the render pipeline or the field staying invisible.
     /// </remarks>
     private object GetCustomTemplateValue(IFieldConfiguration<TModel, object> field)
     {
@@ -253,46 +260,39 @@ public partial class FormCraftComponent<TModel> where TModel : new()
         }
     }
 
+    /// <summary>Logger category for the unresolved-custom-template-field diagnostic (#330).</summary>
+    private const string CustomTemplateFieldDiagnosticCategory = "FormCraft.ForFluentUI.CustomTemplateField";
+
     /// <summary>
-    /// Binding expressions already reported by <see cref="WarnUnresolvedCustomTemplateField"/> for
-    /// this form instance, so a binding that keeps failing is reported once rather than once per
-    /// render.
+    /// Reports a custom-template binding that could not be evaluated, once per distinct binding for
+    /// this form instance rather than once per render.
     /// </summary>
     /// <remarks>
     /// ⚠️ Keyed by the field's <b>expression text</b>, not <c>field.FieldName</c> — <c>FieldName</c>
     /// is only the value expression's last member (#330's own defect), so two different nested
     /// bindings ending in the same member name (<c>x =&gt; x.A.Value</c> and <c>x =&gt; x.B.Value</c>
     /// both report <c>"Value"</c>) would otherwise collide on one latch slot and silently suppress
-    /// each other's warning. The expression's <c>ToString()</c> is unique per distinct binding.
+    /// each other's warning. The expression's <c>ToString()</c> is unique per distinct binding, which
+    /// is what <see cref="FormDiagnosticScope.ShouldWarnOnce"/> is keyed on below.
     /// </remarks>
-    private readonly HashSet<string> _warnedUnresolvedCustomTemplateFields = [];
-
     private void WarnUnresolvedCustomTemplateField(IFieldConfiguration<TModel, object> field, Exception ex)
     {
-        if (!_warnedUnresolvedCustomTemplateFields.Add(field.ValueExpression.ToString()))
+        if (!_formDiagnosticScope.ShouldWarnOnce(CustomTemplateFieldDiagnosticCategory, field.ValueExpression.ToString()))
         {
             return;
         }
 
-        try
-        {
-            var displayName = string.IsNullOrWhiteSpace(field.Label) ? field.FieldName : field.Label;
-            var logger = ServiceProvider.GetService<ILogger<FormCraftComponent<TModel>>>();
-#pragma warning disable CA2254 // Template is a constant supplied above
-            logger?.LogWarning(
-                "Field '{Field}' has a custom template whose value could not be read from the " +
-                "model ({ExceptionType}: {ExceptionMessage}), so it renders with no value instead " +
-                "of the whole form failing. Check that its binding expression is reachable (e.g. " +
-                "no null intermediate in a nested path).",
-                displayName,
-                ex.GetType().Name,
-                ex.Message);
-#pragma warning restore CA2254
-        }
-        catch
-        {
-            // A failing diagnostic must not take the render down with it.
-        }
+        var displayName = string.IsNullOrWhiteSpace(field.Label) ? field.FieldName : field.Label;
+        FormDiagnosticLog.Warn(
+            ServiceProvider,
+            CustomTemplateFieldDiagnosticCategory,
+            "Field '{Field}' has a custom template whose value could not be read from the " +
+            "model ({ExceptionType}: {ExceptionMessage}), so it renders with no value instead " +
+            "of the whole form failing. Check that its binding expression is reachable (e.g. " +
+            "no null intermediate in a nested path).",
+            displayName,
+            ex.GetType().Name,
+            ex.Message);
     }
 
     private async Task UpdateFieldValue(string fieldName, object? value)
