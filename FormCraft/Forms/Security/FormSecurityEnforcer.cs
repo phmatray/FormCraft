@@ -283,8 +283,12 @@ public sealed class FormSecurityEnforcer<TModel>
             expression = member.Expression;
         }
 
-        // Defensive: FieldConfiguration<TModel, TValue>'s constructor already requires a
-        // MemberExpression body, so every field reaching configuration.Fields satisfies this.
+        // Every field built through the fluent builder already has a MemberExpression body (enforced
+        // by FieldConfiguration<TModel, TValue>'s constructor), so this branch is unreachable for
+        // those. IFormConfiguration<TModel>.Fields is a public, mutable list, though, and a
+        // hand-rolled IFieldConfiguration<TModel, TValue> (see that interface's own XML doc example)
+        // is not bound by that guard — this is its compatibility fallback, preserving the pre-#406
+        // FieldName-only key for any such implementation.
         return segments.Count == 0 ? field.FieldName : string.Join(".", segments);
     }
 

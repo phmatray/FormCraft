@@ -197,6 +197,23 @@ public class FormSecurityEnforcerTests
     }
 
     [Fact]
+    public async Task LogSubmittedAsync_Should_Redact_A_Nested_Field_Under_Its_Full_Path_Key()
+    {
+        // Redaction still matches on FieldName (last member, "City") by design, but the redacted
+        // "[REDACTED]" write must land under the field's full-path key, same as the value write.
+        var model = new TestModel { Address = new TestAddress { City = "Brussels" } };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Address!.City)
+            .WithSecurity(s => s.EnableAuditLogging(audit => audit.ExcludedFields.Add("City")))
+            .Build();
+
+        await CreateEnforcer().LogSubmittedAsync(config, model, null);
+
+        _auditEntries.ShouldHaveSingleItem().AdditionalData["Address.City"].ShouldBe("[REDACTED]");
+    }
+
+    [Fact]
     public async Task A_Form_Without_Security_Should_Touch_No_Security_Service()
     {
         var config = FormBuilder<TestModel>.Create().AddField(x => x.Name).Build();
