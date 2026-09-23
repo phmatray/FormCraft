@@ -11,5 +11,8 @@
                    Required="@EffectiveNativeRequired"
                    Disabled="@IsDisabled"
                    ReadOnly="@IsReadOnly"
+                   Min="@(Min ?? TypeMinValue)"
+                   Max="@(Max ?? TypeMaxValue)"
+                   Step="@(Step ?? DefaultStep)"
                    aria-describedby="@AriaDescribedBy"
                    @attributes="ExtraAttributes" />
