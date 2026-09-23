@@ -8,7 +8,9 @@ namespace FormCraft.UnitTests.Ci;
 /// <c>FormCraft.UnitTests</c> — so the remaining six survived every <c>./build.sh Clean</c>
 /// untouched, among them the published <c>FormCraft.ForMudBlazor</c> and both FluentUI projects,
 /// which #261 added to the solution long after the list was written and which it therefore never
-/// named at all.
+/// named at all. Sweeps every project in the solution except the one it is executing from (#310):
+/// <c>_build</c> is in <c>FormCraft.sln</c> too, and without that one exception <c>Clean</c> deletes
+/// the build output the running Nuke process was launched from.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -85,6 +87,29 @@ public class BuildTargetsTests
             .ToList();
 
         narrowed.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Clean_Should_Exclude_The_Running_Build_Own_Directory()
+    {
+        // #310: _build is a solution project too, so "sweep every project" also swept build/bin and
+        // build/obj — the output the running Nuke process itself was launched from. Pinned as its own
+        // predicate, distinct from the SetNarrowingOperators ban above: those reject *positional*
+        // narrowing of the project set, and this is the one legitimate `.Where(` the ban's own remark
+        // anticipates (Clean_Should_Sweep_Every_Project_In_The_Solution's SetNarrowingOperators doc).
+        var clean = TargetBody("Clean");
+
+        clean.ShouldContain(
+            "BuildProjectDirectory",
+            customMessage: "the Clean target no longer excludes the build project's own directory");
+
+        // Anchored between Select and SelectMany rather than matched anywhere in the body: a
+        // .Where(BuildProjectDirectory) placed AFTER SelectMany would filter leaf bin/obj paths
+        // instead of project directories and become a silent no-op, while still satisfying a looser
+        // "the text .Where(...BuildProjectDirectory...) appears somewhere" assertion.
+        clean.ShouldMatch(
+            @"\.Select\(\s*\w+\s*=>\s*\w+\.Directory\s*\)\s*\.Where\(\s*\w+\s*=>\s*\w+\s*!=\s*BuildProjectDirectory\s*\)\s*\.SelectMany\(",
+            customMessage: "the BuildProjectDirectory exclusion must sit between Select and SelectMany, not elsewhere in the pipeline");
     }
 
     [Fact]
