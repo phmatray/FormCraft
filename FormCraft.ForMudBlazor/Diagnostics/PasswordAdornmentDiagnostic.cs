@@ -1,3 +1,4 @@
+using FormCraft.Diagnostics;
 using Microsoft.Extensions.Logging;
 
 namespace FormCraft.ForMudBlazor;
@@ -19,9 +20,10 @@ namespace FormCraft.ForMudBlazor;
 /// Third diagnostic in the same shape (<c>ShrinkLabelDiagnostic</c>, <c>MaskedLinesDiagnostic</c>,
 /// this): resolve an optional <see cref="ILoggerFactory"/> inside a guard that swallows, and emit at
 /// most once per component instance. A fourth appeared (<see cref="MaskedValueDiagnostic"/>, #266),
-/// so the shape was extracted as promised — emission now goes through <see cref="DiagnosticLog"/>
-/// and the latch through <c>MudBlazorFieldComponentBase.ShouldReport</c> (#284). What is left here
-/// is this diagnostic's own category and message.
+/// so the shape was extracted as promised — emission now goes through
+/// <see cref="FormDiagnosticLog"/> (moved to core in #398) and the latch through
+/// <c>MudBlazorFieldComponentBase.ShouldReport</c> (#284). What is left here is this diagnostic's
+/// own category and message.
 /// </para>
 /// </remarks>
 internal static class PasswordAdornmentDiagnostic
@@ -36,7 +38,7 @@ internal static class PasswordAdornmentDiagnostic
     /// <param name="fieldName">The field's name, used when it has no label.</param>
     /// <param name="label">Display name for the message.</param>
     internal static void Warn(IServiceProvider? services, string fieldName, string? label) =>
-        DiagnosticLog.Warn(
+        FormDiagnosticLog.Warn(
             services,
             Category,
             "Field '{Field}' configures an adornment, but .AsPassword() installs a visibility " +
