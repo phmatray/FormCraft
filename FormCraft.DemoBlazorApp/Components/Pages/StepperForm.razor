@@ -5,7 +5,8 @@
     Title="Multi-Step Form with Stepper"
     Icon="@Icons.Material.Filled.LinearScale"
     Description="This demonstrates how to create multi-step forms using MudStepper, where each step contains different form fields and data persists across steps."
-    FormDemoIcon="@Icons.Material.Filled.Assignment">
+    FormDemoIcon="@Icons.Material.Filled.Assignment"
+    WideForm="true">
     <FormDemoContent>
         <MudPaper Elevation="1" Class="pa-6">
             <MudText Typo="Typo.h5" GutterBottom="true" Class="mb-4 d-flex align-items-center">
@@ -152,42 +153,37 @@
             }
         </MudPaper>
         
-        <MudPaper Elevation="1" Class="pa-6 mt-4">
-            <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
-                <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2" />
-                Features Demonstrated
-            </MudText>
-            <MudList T="string" Dense="true">
-                <MudListItem T="string" Icon="@Icons.Material.Filled.LinearScale">
-                    Multi-step form navigation with MudStepper
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.Storage">
-                    Data persistence across form steps
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.Security">
-                    Step validation before progression
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.Preview">
-                    Review step with summary of all data
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.PersonPin">
-                    Dynamic content based on previous steps
-                </MudListItem>
-            </MudList>
-        </MudPaper>
+        <SectionContent SectionName="demo-aside">
+            <MudPaper Elevation="1" Class="pa-6 mt-4">
+                <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-items-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2" />
+                    Features Demonstrated
+                </MudText>
+                <MudList T="string" Dense="true">
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.LinearScale">
+                        Multi-step form navigation with MudStepper
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Storage">
+                        Data persistence across form steps
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Security">
+                        Step validation before progression
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Preview">
+                        Review step with summary of all data
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.PersonPin">
+                        Dynamic content based on previous steps
+                    </MudListItem>
+                </MudList>
+            </MudPaper>
+        </SectionContent>
 
-        <!-- Additional Content Cards -->
-        <MudGrid Class="mt-4">
-            <MudItem xs="12">
-                <WhenToUseCard Text="@StepperForm.Documentation.WhenToUse" />
-            </MudItem>
-            <MudItem xs="12">
-                <CommonPitfallsCard Pitfalls="@StepperForm.Documentation.CommonPitfalls" />
-            </MudItem>
-            <MudItem xs="12">
-                <RelatedDemosCard DemoIds="@StepperForm.Documentation.RelatedDemoIds" />
-            </MudItem>
-        </MudGrid>
+        <DemoNotes>
+            <WhenToUseCard Text="@StepperForm.Documentation.WhenToUse" />
+            <CommonPitfallsCard Pitfalls="@StepperForm.Documentation.CommonPitfalls" />
+            <RelatedDemosCard DemoIds="@StepperForm.Documentation.RelatedDemoIds" />
+        </DemoNotes>
     </FormDemoContent>
 
     <CodeExampleContent>

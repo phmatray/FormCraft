@@ -1,0 +1,15 @@
+@namespace FormCraft.DemoBlazorApp.Components.Shared
+
+@*
+    Sends a demo's notes (When to use it, Pitfalls, Related demos) to the notes area DemoPageLayout
+    draws under the stage. FormDemoSection does this for the pages built on it; a page that lays out
+    its own form content wraps its notes in this, or they land inside the light form panel.
+*@
+<SectionContent SectionName="demo-notes">
+    @ChildContent
+</SectionContent>
+
+@code {
+    [Parameter, EditorRequired]
+    public RenderFragment ChildContent { get; set; } = null!;
+}
