@@ -69,6 +69,20 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
   most commonly a null intermediate in a nested path — is now reported once per field instead of
   either vanishing or crashing the render.
 
+- **Clearing a multiple-file upload notifies once, with an empty list — not `null` (#319).** The
+  component bound `Files` two-way (`@bind-Files="CurrentValue"`), which made MudBlazor a second
+  writer: `ClearAsync()` set the field's own empty list, then `MudFileUpload.ClearAsync()`'s own
+  `FilesChanged(null)` echoed straight back through the binding and overwrote it with `null` — so the
+  field notified *twice* and ended up holding `null`. It now binds `Files`/`FilesChanged` one-way with
+  an explicit handler that normalises that `null` echo to an empty list, mirroring the single-file
+  component. This applies to a standalone multiple-file field and to one rendered inside
+  `.WithItemForm(...)` alike, since both go through the same component (#203).
+
+  **If your code null-checks after clearing a multiple-file field, that check now sees an empty
+  list instead of `null`.** A pattern like `if (model.Files is null) { ... }` no longer runs after a
+  clear — check `Files.Count == 0` (or `!Files.Any()`) instead. The model's declared type is
+  unaffected either way; this only changes what a *clear* leaves behind.
+
 - **`RenderField` no longer resolves a field's actual type by reflection on every render (#314).**
   Identifying `FieldConfigurationWrapper<TModel, TValue>` used to test whether a type's *name*
   contained the substring `"FieldConfigurationWrapper"`, then reach its `GetActualFieldType()`
@@ -258,20 +272,20 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
   **Styling the marker.** The asterisk is a text node in a `span.formcraft-required-marker`, not MudBlazor's CSS `::after` — MudBlazor's only `mud-input-required` rule targets a `.mud-input-label` descendant that this span does not have. So restyle **`.formcraft-required-marker`** for upload fields; the `.mud-input-required` advice in the #199 entry above does not reach them. `.WithNativeRequired(false)` suppresses both channels, as everywhere else.
 
-- **In the MudBlazor adapter, every control that removes or disables itself now moves keyboard focus deliberately.** #281 fixed one such control — the upload **Clear** button — and this finishes the sweep across the five that were left, all the same WCAG 2.1 **2.4.3 Focus Order** (Level A) failure: activating them left focus on `<body>`, so the next <kbd>Tab</kbd> restarted from the top of the document (#318)
+- **Every control that removes or disables itself moves keyboard focus deliberately — the MudBlazor adapter in full, and the collection field in both adapters.** #281 fixed one such control in MudBlazor — the upload **Clear** button — and #318 finished the sweep across the five MudBlazor controls that were left, all the same WCAG 2.1 **2.4.3 Focus Order** (Level A) failure: activating them left focus on `<body>`, so the next <kbd>Tab</kbd> restarted from the top of the document. #337 then brought the Fluent UI adapter's collection field to the same guarantee, sharing the swallow-safe catch list through one core helper rather than a second copy — the Fluent UI adapter's file upload field does not have this yet (tracked separately)
 
-  | Control | Focus now goes to |
-  |---|---|
-  | a file **chip's close** button (multiple-file upload) | that field's **Browse** button — it carries #262's `aria-describedby`, so a required field announces itself the moment removal makes it unsatisfied |
-  | a collection row's **delete** | the delete button taking the vacated slot, else the previous row's, else **Add**, else the collection header |
-  | **Add**, on the click that reaches `MaxItems` | the new row itself — so <kbd>Tab</kbd> goes straight into its fields, and deliberately *not* its Delete button, where <kbd>Enter</kbd> would undo the add |
-  | **Move up** / **Move down**, when the item lands at an end and the button becomes disabled | the same row's still-enabled counterpart, so focus follows the *item* rather than sitting on an index that now controls a different one |
+  | Control | Adapter(s) | Focus now goes to |
+  |---|---|---|
+  | a file **chip's close** button (multiple-file upload) | MudBlazor | that field's **Browse** button — it carries #262's `aria-describedby`, so a required field announces itself the moment removal makes it unsatisfied |
+  | a collection row's **delete** | MudBlazor, Fluent UI | the delete button taking the vacated slot, else the previous row's, else **Add**, else the collection header |
+  | **Add**, on the click that reaches `MaxItems` | MudBlazor, Fluent UI | the new row itself — so <kbd>Tab</kbd> goes straight into its fields, and deliberately *not* its Delete button, where <kbd>Enter</kbd> would undo the add |
+  | **Move up** / **Move down**, when the item lands at an end and the button becomes disabled | MudBlazor, Fluent UI | the same row's still-enabled counterpart, so focus follows the *item* rather than sitting on an index that now controls a different one |
 
   Focus is moved only where it would actually have been lost: adding a row while **Add** survives (the default, since `MaxItems` is 0) leaves focus on Add, and removing one file chip of several leaves focus on the chip stack — in both cases the control the user is standing on is retained, so moving focus would cost them a tab back rather than help.
 
-  The swallow-safe focus call is shared (`FocusRestore`), so a failed focus can never turn a completed removal into an unhandled exception — which on Blazor Server would tear down the circuit. Two behaviours worth knowing: a single-item collection cannot be reordered at all (both buttons are disabled and the handlers no-op), and with `MinItems` reached *and* adding disallowed, focus lands on the collection's header, which carries its label.
+  The swallow-safe focus call is shared — a core `FocusRestore` helper feeding a thin, adapter-typed wrapper in each of `FormCraft.ForMudBlazor` and `FormCraft.ForFluentUI` (#337) — so a failed focus can never turn a completed removal into an unhandled exception, which on Blazor Server would tear down the circuit. Two behaviours worth knowing: a single-item collection cannot be reordered at all (both buttons are disabled and the handlers no-op), and with `MinItems` reached *and* adding disallowed, focus lands on the collection's header, which carries its label. The Fluent UI adapter's `FluentButton` (the pinned v5 RC) exposes no focus API of its own, so every Fluent target above is a plain wrapping element rather than the button itself.
 
-  ⚠️ **`FormCraft.ForFluentUI` is not covered.** Its collection field carries the same self-unmounting Add/delete and self-disabling reorder controls and still drops focus; porting `FocusRestore` across is tracked separately.
+  ⚠️ **`FormCraft.ForFluentUI`'s file upload field is not covered.** Its Clear button and multiple-file chip close carry the same self-unmounting shape and have not been audited for the same focus loss; porting `FocusRestore` to them is tracked separately. The collection field above is covered in both adapters.
 
 - **Clearing a file upload no longer throws keyboard focus away.** Both upload components render **Clear** inside an `@if` gated on the very value the button's own handler removes, so activating it unmounted the element the user was standing on and focus fell to `<body>` — the next <kbd>Tab</kbd> restarted from the top of the document instead of resuming where the user was, a WCAG 2.1 **2.4.3 Focus Order** (Level A) failure. Focus now moves deliberately to that field's **Browse** button (#281)
 

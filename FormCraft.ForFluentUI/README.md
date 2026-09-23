@@ -123,7 +123,10 @@ inside the MudBlazor demo whatever it injects.
 
 ## Not yet covered
 
-Nothing outstanding against the MudBlazor adapter's feature set.
+Nothing outstanding against the MudBlazor adapter's feature set. The collection field's keyboard
+focus restore (#337) now matches MudBlazor's; the file upload field's Clear/chip-close controls have
+not been audited for the same WCAG 2.1 2.4.3 gap MudBlazor's had before #318 and are tracked
+separately.
 
 See the follow-ups on [#260](https://github.com/phmatray/FormCraft/issues/260).
 

@@ -14,7 +14,8 @@
 
 <MudFileUpload @ref="@_fileUpload"
                T="IReadOnlyList<IBrowserFile>"
-               @bind-Files="CurrentValue"
+               Files="@CurrentValue"
+               FilesChanged="@OnFilesChanged"
                Accept="@Accept"
                MaximumFileCount="@MaxFiles"
                Hidden="@false"
