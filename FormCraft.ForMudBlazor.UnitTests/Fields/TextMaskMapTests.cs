@@ -66,6 +66,47 @@ public class TextMaskMapTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void Resolve_Should_Still_Refuse_A_Factory_Produced_PatternMask_With_A_Whitespace_Only_Pattern()
+    {
+        // Act - IsNullOrWhiteSpace, not IsNullOrEmpty, is what the factory branch tests. Only the
+        // blank-string case above was pinned for this branch; without this one, swapping in
+        // IsNullOrEmpty would pass every existing test while resolving " " to a mask whose single
+        // position is a literal space, accepting no input at all (the whitespace-pattern hazard the
+        // configured-pattern branch's own doc already names).
+        var resolved = TextMaskMap.Resolve(null, false, () => new PatternMask("   "));
+
+        // Assert
+        resolved.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Resolve_Should_Still_Bind_A_Factory_Produced_MultiMask_With_A_Default_Pattern()
+    {
+        // Act - MultiMask derives from PatternMask and sets Mask just as eagerly, so the ordinary,
+        // non-blank case must keep working through the same `is PatternMask` check the fix narrowed
+        // to.
+        var resolved = TextMaskMap.Resolve(null, false, () => new MultiMask("0000"));
+
+        // Assert
+        var multiMask = resolved.ShouldBeOfType<MultiMask>();
+        multiMask.Mask.ShouldBe("0000");
+    }
+
+    [Fact]
+    public void Resolve_Should_Still_Refuse_A_Factory_Produced_MultiMask_With_A_Blank_Default_Pattern()
+    {
+        // Act - MultiMask : PatternMask, so it is NOT one of the lazily-computed masks this fix
+        // reaches; its default pattern is set eagerly in its constructor, the same way PatternMask's
+        // is, so a blank one means "no mask" for exactly the same reason and was already refused
+        // before this fix. Pinned so a future "widen this to every IMask" edit cannot silently start
+        // binding it.
+        var resolved = TextMaskMap.Resolve(null, false, () => new MultiMask(""));
+
+        // Assert
+        resolved.ShouldBeNull();
+    }
+
+    [Fact]
     public void Resolve_Should_Still_Refuse_A_Null_Factory_Result()
     {
         // Act
