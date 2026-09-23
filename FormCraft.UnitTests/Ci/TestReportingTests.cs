@@ -707,6 +707,17 @@ public class TestReportingTests
         stray.ShouldBeEmpty(
             "a project's results directory is composed somewhere other than ResultsDirectoryFor or "
             + "the .Produces promises — route it through ResultsDirectoryFor instead (#339)");
+
+        // `stray` alone dedups by CONTENT, not by count: a second, hand-rolled
+        // `TestResultsDirectory / project.Name` planted anywhere else `project` is in scope reads as
+        // an "allowed" string too, so it would slip past the check above unflagged — exactly the
+        // fourth-derivation regression this test exists to catch, just spelled identically to one of
+        // the three legitimate ones instead of differently (code-review finding, #339). Each allowed
+        // shape is expected exactly once, so the total count is asserted too.
+        compositions.Count.ShouldBe(
+            allowed.Length,
+            $"found {compositions.Count} TestResultsDirectory composition(s), expected exactly "
+            + $"{allowed.Length} (one per allowed shape) — compositions: {string.Join(" | ", compositions)}");
     }
 
     [Fact]
