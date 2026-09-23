@@ -153,6 +153,38 @@ public class CollectionValidationPassTests : BunitContext
     }
 
     [Fact]
+    public async Task Correcting_A_Cell_Should_Refresh_The_Collections_Flat_Message_Set()
+    {
+        // Arrange - both rows invalid; a full pass puts both lines in the flat set.
+        var model = new OrderModel
+        {
+            Items = { new OrderItem { ProductName = "" }, new OrderItem { ProductName = "" } }
+        };
+        var editContext = new EditContext(model);
+        var counter = new CountingValidator();
+        var validator = RenderValidator(editContext, BuildConfiguration(counter));
+        await validator.Instance.ValidateModelAsync();
+        var collectionField = editContext.Field(nameof(OrderModel.Items));
+        editContext.GetValidationMessages(collectionField).ShouldBe(
+        [
+            "Items [1] - Product: Product name is required",
+            "Items [2] - Product: Product name is required"
+        ]);
+
+        // Act - correct row 0 only, then raise the notification a keystroke produces.
+        model.Items[0].ProductName = "Widget";
+        editContext.NotifyFieldChanged(new FieldIdentifier(model, "Items[0].ProductName"));
+
+        // Assert - row 0's line is gone, row 1's survives untouched, and no other row was
+        // revalidated to get there (still just the two rows from the full pass plus the one cell).
+        editContext.GetValidationMessages(collectionField).ShouldBe(
+        [
+            "Items [2] - Product: Product name is required"
+        ]);
+        counter.Seen.ShouldBe(["", "", "Widget"]);
+    }
+
+    [Fact]
     public async Task Editing_A_Row_Should_Report_Every_Configuration_Declared_For_That_Field()
     {
         // Arrange - two configurations for the SAME property. A full pass runs both, so the
