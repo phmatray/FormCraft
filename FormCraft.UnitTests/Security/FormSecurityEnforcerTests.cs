@@ -154,7 +154,7 @@ public class FormSecurityEnforcerTests
 
         await CreateEnforcer().LogSubmittedAsync(config, model, null);
 
-        _auditEntries.ShouldHaveSingleItem().AdditionalData["City"].ShouldBe("Brussels");
+        _auditEntries.ShouldHaveSingleItem().AdditionalData["Address.City"].ShouldBe("Brussels");
     }
 
     [Fact]
@@ -169,7 +169,31 @@ public class FormSecurityEnforcerTests
 
         await CreateEnforcer().LogSubmittedAsync(config, model, null);
 
-        _auditEntries.ShouldHaveSingleItem().AdditionalData["City"].ShouldBeNull();
+        _auditEntries.ShouldHaveSingleItem().AdditionalData["Address.City"].ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task LogSubmittedAsync_Should_Not_Collide_When_Two_Nested_Fields_Share_A_Member_Name()
+    {
+        // #406: Address.City and Work.City both resolved FieldName to "City", so the second field's
+        // write silently overwrote the first's under one shared key.
+        var model = new TestModel
+        {
+            Address = new TestAddress { City = "Brussels" },
+            Work = new TestAddress { City = "Antwerp" },
+        };
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Address!.City)
+            .AddField(x => x.Work!.City)
+            .WithSecurity(s => s.EnableAuditLogging())
+            .Build();
+
+        await CreateEnforcer().LogSubmittedAsync(config, model, null);
+
+        var entry = _auditEntries.ShouldHaveSingleItem();
+        entry.AdditionalData["Address.City"].ShouldBe("Brussels");
+        entry.AdditionalData["Work.City"].ShouldBe("Antwerp");
     }
 
     [Fact]
@@ -229,6 +253,7 @@ public class FormSecurityEnforcerTests
         public string Password { get; set; } = string.Empty;
         public string? Ssn { get; set; }
         public TestAddress? Address { get; set; }
+        public TestAddress? Work { get; set; }
     }
 
     public class TestAddress
