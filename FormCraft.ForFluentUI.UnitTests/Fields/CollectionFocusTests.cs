@@ -13,6 +13,8 @@ public class CollectionFocusTests : FocusAssertingTestBase
 {
     private const string DeleteSelector = "[data-testid=formcraft-collection-remove]";
     private const string AddSelector = "[data-testid=formcraft-collection-add]";
+    private const string MoveUpSelector = "[data-testid=formcraft-collection-move-up]";
+    private const string MoveDownSelector = "[data-testid=formcraft-collection-move-down]";
 
     [Fact]
     public async Task Removing_A_Middle_Row_Should_Focus_The_Delete_Control_That_Takes_Its_Place()
@@ -93,6 +95,127 @@ public class CollectionFocusTests : FocusAssertingTestBase
         component.FindAll(DeleteSelector).ShouldBeEmpty();
         FocusCount().ShouldBe(focusesBefore + 1);
         LastFocusedElementId().ShouldBe(headerId);
+    }
+
+    [Fact]
+    public async Task Adding_A_Row_That_Leaves_Add_Standing_Should_Not_Steal_Focus_From_It()
+    {
+        // Arrange - MaxItems defaults to 0, so HasReachedMax is never true and Add does NOT unmount
+        // itself. There is no 2.4.3 failure to fix, and moving focus anyway would push a user
+        // building a list into the new row's header - which carries tabindex="-1" and so is OUTSIDE
+        // the tab order, costing them a Shift+Tab back to Add for every single row.
+        var (component, _) = RenderCollection(1, collection => collection.AllowAdd().AllowRemove());
+        var focusesBefore = FocusCount();
+
+        // Act
+        await component.InvokeAsync(() => component.Find(AddSelector).Click());
+
+        // Assert - the row was added, Add survived, and focus was left where the user put it
+        component.FindAll(DeleteSelector).Count.ShouldBe(2);
+        component.FindAll(AddSelector).Count.ShouldBe(1);
+        FocusCount().ShouldBe(focusesBefore);
+    }
+
+    [Fact]
+    public async Task Adding_The_Last_Allowed_Row_Should_Move_Focus_Into_That_Row()
+    {
+        // Arrange - MaxItems 2 with one row: the Add click reaches the max, so Add unmounts itself.
+        var (component, field) = RenderCollection(1, collection => collection
+            .AllowAdd()
+            .AllowRemove()
+            .WithMaxItems(2));
+
+        // Act
+        await component.InvokeAsync(() => component.Find(AddSelector).Click());
+
+        // Assert - Add is gone, and focus moved deliberately into the new row's header - not onto
+        // any control, since the row's own fields render through IFieldRendererService and expose no
+        // reference to aim at, and landing on Delete would put Enter on "undo the add".
+        component.FindAll(AddSelector).ShouldBeEmpty();
+        FocusCount().ShouldBe(1);
+        LastFocusedElementId().ShouldBe(field.Instance.RowHeaderTargetAt(1).Id);
+    }
+
+    [Fact]
+    public async Task Moving_An_Item_To_The_Top_Should_Focus_Its_Move_Down_Control()
+    {
+        // Arrange - the disable-self variant: the item lands at index 0, so the Move-up control the
+        // user just pressed becomes Disabled under their finger. Browsers drop focus from a
+        // newly-disabled element, so this is the same 2.4.3 failure as an unmount.
+        var (component, field) = RenderCollection(3, collection => collection.AllowReorder());
+        var focusesBefore = FocusCount();
+
+        // Act
+        await component.InvokeAsync(() => component.FindAll(MoveUpSelector)[1].Click());
+
+        // Assert - focus moved to the counterpart that is still enabled on that row
+        FocusCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementId().ShouldBe(field.Instance.MoveDownTargetAt(0).Id);
+    }
+
+    [Fact]
+    public async Task Moving_An_Item_To_The_Bottom_Should_Focus_Its_Move_Up_Control()
+    {
+        // Arrange - the mirror case at the other end of the list
+        var (component, field) = RenderCollection(3, collection => collection.AllowReorder());
+        var focusesBefore = FocusCount();
+
+        // Act - move the middle item down, landing it last
+        await component.InvokeAsync(() => component.FindAll(MoveDownSelector)[1].Click());
+
+        // Assert
+        FocusCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementId().ShouldBe(field.Instance.MoveUpTargetAt(2).Id);
+    }
+
+    [Fact]
+    public async Task Moving_An_Item_Down_Within_The_Middle_Should_Focus_Its_Move_Down_Control()
+    {
+        // Arrange - the direction matters. Landing mid-list leaves BOTH controls enabled, so the
+        // choice is free - and it has to be the direction the user was already going, or a repeat
+        // Enter undoes the move instead of continuing it. Always preferring "up" passes the move-up
+        // test above and fails exactly here.
+        var (component, field) = RenderCollection(4, collection => collection.AllowReorder());
+        var focusesBefore = FocusCount();
+
+        // Act - move the second item down; it lands at index 2, still mid-list
+        await component.InvokeAsync(() => component.FindAll(MoveDownSelector)[1].Click());
+
+        // Assert
+        FocusCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementId().ShouldBe(field.Instance.MoveDownTargetAt(2).Id);
+    }
+
+    [Fact]
+    public async Task Moving_An_Item_Within_The_Middle_Should_Follow_It_To_Its_New_Row()
+    {
+        // Arrange - four rows, so the moved item lands somewhere both controls stay enabled. Focus
+        // should follow the ITEM to its new row rather than sit on the index the user started at,
+        // which would silently now control a different item.
+        var (component, field) = RenderCollection(4, collection => collection.AllowReorder());
+        var focusesBefore = FocusCount();
+
+        // Act - move the third item up; it lands at index 1, still mid-list
+        await component.InvokeAsync(() => component.FindAll(MoveUpSelector)[2].Click());
+
+        // Assert
+        FocusCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementId().ShouldBe(field.Instance.MoveUpTargetAt(1).Id);
+    }
+
+    [Fact]
+    public async Task A_Single_Item_Cannot_Be_Moved_So_Nothing_Is_Focused()
+    {
+        // Arrange - both move controls are Disabled with one row, and the handlers early-return, so
+        // there is no state change and nothing to move focus to. Pinned so the "no enabled
+        // counterpart" fallback is not mistaken for a reachable path through a move.
+        var (component, _) = RenderCollection(1, collection => collection.AllowReorder());
+        var focusesBefore = FocusCount();
+
+        // Act & Assert - the controls are disabled, and no focus request is issued
+        component.FindAll(MoveUpSelector)[0].HasAttribute("disabled").ShouldBeTrue();
+        component.FindAll(MoveDownSelector)[0].HasAttribute("disabled").ShouldBeTrue();
+        FocusCount().ShouldBe(focusesBefore);
     }
 
     private (IRenderedComponent<FormCraftComponent<MixedItemModel>> Component,

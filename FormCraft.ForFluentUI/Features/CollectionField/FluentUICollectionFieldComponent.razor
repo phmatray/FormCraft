@@ -43,28 +43,37 @@
             {
                 var index = i;
                 <FluentCard Class="formcraft-collection-item" data-testid="formcraft-collection-item">
-                    <FluentStack Orientation="Orientation.Horizontal"
-                                 HorizontalAlignment="HorizontalAlignment.SpaceBetween"
-                                 VerticalAlignment="VerticalAlignment.Center">
-                        <FluentLabel>Item @(index + 1)</FluentLabel>
-                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4">
-                            @if (Configuration.CanReorder)
-                            {
-                                <FluentButton Appearance="ButtonAppearance.Subtle"
-                                              Disabled="@(index == 0)"
-                                              OnClick="@(() => MoveItemUp(index))"
-                                              aria-label="Move up"
-                                              data-testid="formcraft-collection-move-up">
-                                    &#8593;
-                                </FluentButton>
-                                <FluentButton Appearance="ButtonAppearance.Subtle"
-                                              Disabled="@(index == Items.Count - 1)"
-                                              OnClick="@(() => MoveItemDown(index))"
-                                              aria-label="Move down"
-                                              data-testid="formcraft-collection-move-down">
-                                    &#8595;
-                                </FluentButton>
-                            }
+                    @* tabindex="-1" so a row can take focus without joining the tab order: it is
+                       where focus goes when the acting control leaves no usable target - after Add
+                       (the row's own fields render through IFieldRendererService and expose no
+                       reference to aim at), and as the reorder fallback (#337). *@
+                    <div @ref="_rowHeaderTargets[index]" tabindex="-1">
+                        <FluentStack Orientation="Orientation.Horizontal"
+                                     HorizontalAlignment="HorizontalAlignment.SpaceBetween"
+                                     VerticalAlignment="VerticalAlignment.Center">
+                            <FluentLabel>Item @(index + 1)</FluentLabel>
+                            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4">
+                                @if (Configuration.CanReorder)
+                                {
+                                    <span @ref="_moveUpTargets[index]" tabindex="-1">
+                                        <FluentButton Appearance="ButtonAppearance.Subtle"
+                                                      Disabled="@(index == 0)"
+                                                      OnClick="@(() => MoveItemUp(index))"
+                                                      aria-label="Move up"
+                                                      data-testid="formcraft-collection-move-up">
+                                            &#8593;
+                                        </FluentButton>
+                                    </span>
+                                    <span @ref="_moveDownTargets[index]" tabindex="-1">
+                                        <FluentButton Appearance="ButtonAppearance.Subtle"
+                                                      Disabled="@(index == Items.Count - 1)"
+                                                      OnClick="@(() => MoveItemDown(index))"
+                                                      aria-label="Move down"
+                                                      data-testid="formcraft-collection-move-down">
+                                            &#8595;
+                                        </FluentButton>
+                                    </span>
+                                }
                             @if (Configuration.CanRemove && !HasReachedMin)
                             {
                                 @* Captured per index so a removal can focus the control that takes
@@ -79,8 +88,9 @@
                                     </FluentButton>
                                 </span>
                             }
+                            </FluentStack>
                         </FluentStack>
-                    </FluentStack>
+                    </div>
 
                     @if (Configuration.ItemFormConfiguration != null)
                     {
