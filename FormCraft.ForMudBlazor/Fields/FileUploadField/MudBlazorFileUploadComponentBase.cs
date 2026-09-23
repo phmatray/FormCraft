@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
 
@@ -137,4 +138,23 @@ public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldCo
     /// </para>
     /// </remarks>
     protected Task FocusBrowseAsync() => FocusRestore.FocusSafelyAsync(BrowseButton);
+
+    /// <summary>
+    /// An empty <c>MudFileUpload&lt;T&gt;.SelectedTemplate</c> — passed by both upload components to
+    /// suppress MudBlazor's own built-in file list (#338).
+    /// </summary>
+    /// <remarks>
+    /// <c>MudFileUpload</c> renders its built-in chip list <i>in addition to</i> the
+    /// <c>CustomContent</c> drop zone FormCraft supplies for exactly one reason: <c>CustomContent</c>
+    /// replaces the drop target, not the file list, and the two are gated independently
+    /// (<c>if (SelectedTemplate != null)</c> in MudBlazor 9.10.0's own render tree — measured by
+    /// decompiling <c>MudFileUpload.razor.cs</c>, not assumed). Any <b>non-null</b>
+    /// <c>SelectedTemplate</c> takes that branch instead of the default chip list, even one that
+    /// renders nothing, so this is enough to suppress it while leaving <c>CustomContent</c> untouched.
+    /// Shared here rather than duplicated per component for the same reason as the rest of this class:
+    /// <typeparamref name="TValue"/> already equals the <c>T?</c> MudBlazor's own
+    /// <c>RenderFragment&lt;T?&gt;</c> expects, since each component declares this base with its own
+    /// <c>MudFileUpload</c>'s value type.
+    /// </remarks>
+    protected static RenderFragment SuppressBuiltInFileList(TValue value) => builder => { };
 }

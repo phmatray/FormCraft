@@ -58,6 +58,10 @@ Experience FormCraft in action! Visit our [interactive demo](https://phmatray.gi
 
 ## 🎉 Unreleased
 
+- **The multiple-file upload no longer lists every selected file twice (#338).** `MudFileUpload` renders its own built-in file list *in addition to* the `CustomContent` drop zone FormCraft supplies for its own chips — the two are independent, so each selected file appeared once as FormCraft's chip and once again as MudBlazor's, each with its own close button. Only FormCraft's routed through `RemoveFile`, and therefore through #318's focus-restore; MudBlazor's own ran its own internal removal instead.
+
+  MudBlazor's duplicate is now suppressed at the source, via `MudFileUpload<T>.SelectedTemplate` — any non-null template (even an empty one) replaces its default chip list, while `CustomContent` is untouched. A bare `.mud-chip-close-button` is unambiguous again as a result. The single-file component duplicated too, but asymmetrically: its own chip never carried a close button at all, so removing MudBlazor's duplicate there removes an inconsistent, unrestored-focus removal path rather than a control the field promised.
+
 - **Default validation messages are localizable (#354).** Every built-in message — `Required()`'s
   default, `WithMinLength`/`WithMaxLength`/`WithRange`, the numeric and attribute-driven builder
   extensions, `WithEmailValidation`, and the collection field's item-count errors — now comes from
