@@ -150,6 +150,37 @@ public class FluentUIFileUploadFieldComponentTests : FluentUITestBase
         firstId.ShouldNotBe(secondId);
     }
 
+    [Fact]
+    public void A_Single_File_Field_Should_Have_Only_A_Browse_Button_Before_File_Selection()
+    {
+        // Arrange & Act - confirm the audit finding: no self-unmounting or disabling controls exist.
+        var component = RenderSingleFileField();
+
+        // Assert - the only FormCraft-owned control is the Browse button
+        var controls = component.FindAll("[data-testid^=formcraft-upload-]");
+        controls.ShouldHaveSingleItem();
+        controls[0].GetAttribute("data-testid").ShouldBe("formcraft-upload-browse");
+    }
+
+    [Fact]
+    public void A_Multiple_File_Field_Should_Have_Only_A_Browse_Button_Before_File_Selection()
+    {
+        // Arrange
+        var config = FormBuilder<UploadModel>.Create()
+            .AddField(x => x.Attachments, f => f.WithLabel("Attachments"))
+            .Build();
+
+        // Act - confirm the audit finding: no self-unmounting or disabling controls exist.
+        var component = Render<FormCraftComponent<UploadModel>>(p => p
+            .Add(c => c.Model, new UploadModel())
+            .Add(c => c.Configuration, config));
+
+        // Assert - the only FormCraft-owned control is the Browse button
+        var controls = component.FindAll("[data-testid^=formcraft-upload-]");
+        controls.ShouldHaveSingleItem();
+        controls[0].GetAttribute("data-testid").ShouldBe("formcraft-upload-browse");
+    }
+
     private IRenderedComponent<FormCraftComponent<UploadModel>> RenderSingleFileField(
         Action<FieldBuilder<UploadModel, IBrowserFile?>>? configure = null)
     {
