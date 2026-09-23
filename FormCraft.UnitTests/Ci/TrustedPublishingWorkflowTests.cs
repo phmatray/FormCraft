@@ -85,7 +85,7 @@ public class TrustedPublishingWorkflowTests
     /// before overriding it.
     /// </para>
     /// <para>
-    /// ⛔ The <paramref name="workflowFile" />-only overload this replaced is gone on purpose (#332).
+    /// ⛔ The overload without <paramref name="jobName" /> this replaced is gone on purpose (#332).
     /// Every claim here is scoped to the job that owns the step via <see cref="JobOf" />, so it cannot
     /// be answered by another job's text and cannot be reddened by another job's legal duplicate id or
     /// name — the gap #255 already closed for the sibling suite, and that #302 made loud rather than

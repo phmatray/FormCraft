@@ -245,11 +245,12 @@ internal static class WorkflowSource
     /// <para>
     /// ⚠️ Names are unique per <b>job</b> at best, and not even that. A caller passing a whole file as
     /// the scope can therefore see two legitimate matches from two different jobs and fail here on a
-    /// valid workflow — more easily than the id path, whose same caveat now reads job-scoped too (#332).
-    /// <c>TestReportingTests</c> is already job-scoped via <see cref="JobsOf" /> and so unaffected;
-    /// <c>TrustedPublishingWorkflowTests</c> joined it under #332, so no in-repo caller passes a whole
-    /// file to either step scan any more. <c>WorkflowSourceTests</c> does pass whole files, deliberately,
-    /// on names that appear once.
+    /// valid workflow — the same risk the id path carried, whose caveat was also mis-pointed at #198
+    /// until #332. <c>TestReportingTests</c> is already job-scoped via <see cref="JobsOf" /> and so
+    /// unaffected; <c>TrustedPublishingWorkflowTests</c> joined it under #332, so no *guard suite*
+    /// passes a whole file to either step scan any more. <c>WorkflowSourceTests</c> still does,
+    /// deliberately, on names that appear once — it exists to test this reader directly, not to guard
+    /// a workflow, so the ambiguity risk it accepts is the point.
     /// </para>
     /// </remarks>
     internal static string? TryStepNamed(string scope, string stepName, string? scopeDescription = null)
