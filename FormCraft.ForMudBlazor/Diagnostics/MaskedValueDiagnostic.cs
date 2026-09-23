@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using FormCraft.Diagnostics;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
 
@@ -263,15 +264,16 @@ internal static class MaskedValueDiagnostic
             "leaves the stored value unchanged. Correct the data, widen the mask, or drop the " +
             "mask if the stored format is intentional.";
 
-        // Resolving the logger, emitting, and swallowing all belong to DiagnosticLog (#284), so
-        // what is left here is this diagnostic's own two messages. Nothing above needs the guard:
-        // RendersEmpty and IsNullOrWhiteSpace are total, so the never-throws promise is unchanged.
+        // Resolving the logger, emitting, and swallowing all belong to FormDiagnosticLog (#284,
+        // moved to core in #398), so what is left here is this diagnostic's own two messages.
+        // Nothing above needs the guard: RendersEmpty and IsNullOrWhiteSpace are total, so the
+        // never-throws promise is unchanged.
         //
         // The SAME predicate Applies used to reach its verdict, not a second copy of it: the
         // wording must follow from the decision rather than re-derive it.
         if (RendersEmpty(maskedResult))
         {
-            DiagnosticLog.Warn(
+            FormDiagnosticLog.Warn(
                 services,
                 Category,
                 "Field '{Field}' holds a value that its mask '{Mask}' rejects, so the field " +
@@ -285,7 +287,7 @@ internal static class MaskedValueDiagnostic
         // The #283 case. It names what is on screen because that is the only way the developer
         // can recognise it: nothing looks wrong, so "your field shows (155) 512-3456" is the
         // fact that turns an abstract warning into something checkable against the record.
-        DiagnosticLog.Warn(
+        FormDiagnosticLog.Warn(
             services,
             Category,
             "Field '{Field}' holds a value that its mask '{Mask}' only partly accepts, so the " +
