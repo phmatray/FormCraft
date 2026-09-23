@@ -90,6 +90,7 @@ public class FieldConfigurationParityTests : MudBlazorTestBase
             .Add(p => p.Configuration, BooleanConfig(BooleanDisplayStyle.Checkbox)));
 
         component.FindComponents<MudCheckBox<bool>>().Count.ShouldBe(1);
+        component.FindComponents<MudSwitch<bool>>().ShouldBeEmpty();
 
         component.Render(parameters => parameters
             .Add(p => p.Configuration, BooleanConfig(BooleanDisplayStyle.Switch)));
@@ -258,41 +259,93 @@ public class FieldConfigurationParityTests : MudBlazorTestBase
     /// field must still show the model's current value, not a blank left over from a reset with
     /// nothing to repopulate it.
     /// </summary>
+    /// <remarks>
+    /// ⚠️ <b>Same <c>CityId</c> on both sides is not enough.</b> <c>UpdateDisplayText()</c> only
+    /// fills <c>_displayText</c> when it is empty, and its fallback is <c>CurrentValue.ToString()</c>
+    /// — which recomputes the SAME "7" whether or not the hook resets <c>_displayText</c> first, so a
+    /// same-value swap alone cannot tell a working reset from a deleted one. Selecting through the
+    /// dialog first gives <c>_displayText</c> the actual display name ("Lisbon"), which the fallback
+    /// can never reproduce on its own — only THEN does the swap's outcome ("7" vs. a stale "Lisbon")
+    /// depend on whether the hook's reset ran.
+    /// </remarks>
     [Fact]
-    public void LookupField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap()
+    public async Task LookupField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap()
     {
         var model = new LookupModel { CityId = 7 };
+        Services.AddSingleton(StubDialogServiceReturning<MudBlazorLookupDialog>(new LookupCity(7, "Lisbon")));
+
         var component = Render<FormCraftComponent<LookupModel>>(parameters => parameters
             .Add(p => p.Model, model)
             .Add(p => p.Configuration, LookupConfig()));
 
         component.FindComponent<MudTextField<string>>().Instance.Value.ShouldBe("7");
 
+        // Act - select through the dialog, the component's own selection path, so the display text
+        // becomes something the ToString(CurrentValue) fallback could never reproduce by itself.
+        await component.Find("button").ClickAsync(new());
+        component.FindComponent<MudTextField<string>>().Instance.Value.ShouldBe("Lisbon");
+
         // Act - a DIFFERENT configuration object describing the same lookup field.
         component.Render(parameters => parameters.Add(p => p.Configuration, LookupConfig()));
 
+        // Assert - the stale dialog selection does not survive the swap; the reset falls back to
+        // the model's raw value instead of leaking the previous field's text forever (#298).
         component.FindComponent<MudTextField<string>>().Instance.Value.ShouldBe("7");
     }
 
     /// <summary>
-    /// The LOV counterpart of the row above: a fresh <see cref="LovConfig"/> object for the same
-    /// field must not leave the display blank, and must not leak a PREVIOUS selection into it
-    /// (Fluent's own miss in #336 — <c>_selectedItems</c> carried the old field's values forward).
+    /// The LOV counterpart of the row above, exercising #336's ACTUAL failure mode directly: a
+    /// selection made through the dialog must not survive a swap to a different configuration object
+    /// for the same field.
     /// </summary>
+    /// <remarks>
+    /// ⚠️ A row that never selects anything cannot catch this. <c>UpdateDisplayText()</c> prefers
+    /// <c>_selectedItems[0]</c>'s display text over <c>CurrentValue.ToString()</c> whenever
+    /// <c>_selectedItems</c> is non-empty — so if <c>_selectedItems.Clear()</c> is dropped from the
+    /// hook, a stale selected item survives the swap and keeps winning that comparison, showing the
+    /// PREVIOUS field's label instead of falling back to the current model value.
+    /// </remarks>
     [Fact]
-    public void LovField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap()
+    public async Task LovField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap()
     {
-        var model = new LovModel { CustomerId = 7 };
+        var model = new LovModel();
+        Services.AddSingleton(StubDialogServiceReturning<LovSelectionDialog<LovCustomer, int?>>(
+            new LovSelectionResult<LovCustomer> { SelectedItems = [new LovCustomer(7, "ACME")] }));
+
         var component = Render<FormCraftComponent<LovModel>>(parameters => parameters
             .Add(p => p.Model, model)
             .Add(p => p.Configuration, LovConfig()));
 
-        component.FindComponent<MudTextField<string>>().Instance.Value.ShouldBe("7");
+        // Act - select through the dialog, the component's own selection path.
+        await component.Find("button").ClickAsync(new());
+        component.FindComponent<MudTextField<string>>().Instance.Value.ShouldBe("ACME");
+        model.CustomerId.ShouldBe(7);
 
         // Act - a DIFFERENT configuration object describing the same LOV field.
         component.Render(parameters => parameters.Add(p => p.Configuration, LovConfig()));
 
+        // Assert - the stale selection does not survive: display falls back to the model's raw
+        // value instead of the previous field's selected label (#336).
         component.FindComponent<MudTextField<string>>().Instance.Value.ShouldBe("7");
+    }
+
+    /// <summary>
+    /// A minimal <see cref="IDialogService"/> double that resolves a component's own
+    /// <c>ShowAsync&lt;TDialog&gt;</c> call to a canned result, so a lookup/LOV parity row can drive
+    /// the REAL selection code path (<c>OpenLookupDialog</c>/<c>OpenLovDialog</c>, and everything
+    /// each writes off the result) without a <c>MudDialogProvider</c> in the render tree.
+    /// </summary>
+    private static IDialogService StubDialogServiceReturning<TDialog>(object selectedData)
+        where TDialog : IComponent
+    {
+        var reference = A.Fake<IDialogReference>();
+        A.CallTo(() => reference.Result).Returns(Task.FromResult<DialogResult?>(DialogResult.Ok(selectedData)));
+
+        var service = A.Fake<IDialogService>();
+        A.CallTo(() => service.ShowAsync<TDialog>(A<string>._, A<DialogParameters>._, A<DialogOptions>._))
+            .Returns(Task.FromResult(reference));
+
+        return service;
     }
 
     // -----------------------------------------------------------------------------------------
@@ -341,8 +394,14 @@ public class FieldConfigurationParityTests : MudBlazorTestBase
         // when the model's current value is empty.
         typeof(MudBlazorColorPickerComponent<>),
 
-        // Rating's MaxValue is bound in markup as `MaxValue="@GetMaxRating()"`, a method called
-        // fresh on every render - never cached into a field the hook would need to reset.
+        // Rating's markup binds `MaxValue="@GetMaxRating()"`, a method that re-reads the
+        // "MaxRating" attribute fresh on every render - never cached into a field the hook would
+        // need to reset. MudBlazorRatingComponent DOES also carry a `MaxValue` PROPERTY, set once
+        // from the same attribute in OnInitialized - but nothing ever reads it, because the markup
+        // calls the method instead. This exemption holds only because that field is dead: if the
+        // markup were ever changed to bind the property instead of calling GetMaxRating(), this
+        // component would need OnFieldConfigurationChanged() to re-run OnInitialized's assignment
+        // and would belong in CoveredComponents, not here.
         typeof(MudBlazorRatingComponent<>),
 
         // Same shape as Rating: every one of Slider's five configured values (Min/Max/Step/

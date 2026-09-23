@@ -18,10 +18,13 @@ namespace FormCraft.ForFluentUI.UnitTests.Fields;
 /// <para>
 /// <b>Genuine exemptions differ from the MudBlazor side.</b> The three Fluent date components bind
 /// no configuration to their pickers at all (the spec's own example), and both file-upload
-/// components expose their constraints as computed getters re-evaluated on every access — neither
-/// caches anything the hook could leave stale. MudBlazor's file-upload components DO cache real
-/// properties and are covered rows there. See <see cref="ExemptComponents"/> for the reasoning
-/// behind each entry.
+/// components expose their UPLOAD CONSTRAINTS (accepted types, max size, max count) as computed
+/// getters re-evaluated on every access — those never cache anything the hook could leave stale.
+/// MudBlazor's file-upload components DO cache real properties and are covered rows there.
+/// ⚠️ That is not the whole story for <c>FluentUIMultipleFileUploadComponent</c>: it also carries
+/// <c>TooManyFilesError</c>, state derived from a SELECTION rather than from the configuration, that
+/// this suite used to claim (wrongly) could not go stale — see <see cref="ExemptComponents"/> for the
+/// tracked gap.
 /// </para>
 /// </remarks>
 public class FieldConfigurationParityTests : FluentUITestBase
@@ -173,10 +176,11 @@ public class FieldConfigurationParityTests : FluentUITestBase
     /// The issue's own headline case for this adapter: an earlier fix cleared
     /// <c>_displayText</c> in the hook with nothing to repopulate it, leaving a valid stored value
     /// blank forever (#335). A different configuration object for the same field must keep showing
-    /// the model's current value.
+    /// the model's current value - and the picker opened for the PREVIOUS field must not survive
+    /// the swap either, or a click on it hands the new field's selectors the old field's rows.
     /// </summary>
     [Fact]
-    public void LookupField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap()
+    public async Task LookupField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap()
     {
         var model = new LookupModel { CityId = 7 };
         var component = Render<FormCraftComponent<LookupModel>>(parameters => parameters
@@ -185,19 +189,34 @@ public class FieldConfigurationParityTests : FluentUITestBase
 
         component.FindComponent<FluentTextInput>().Instance.Value.ShouldBe("7");
 
+        // Act - open the picker through its own control. _isOpen and _rows belong to the field
+        // that opened them, and must not outlive a swap to a different field's configuration.
+        await component.Find("[data-testid=formcraft-lookup-open]").ClickAsync(new());
+        component.FindAll("[data-testid=formcraft-lookup-panel]").ShouldNotBeEmpty();
+
         // Act - a DIFFERENT configuration object describing the same lookup field.
         component.Render(parameters => parameters.Add(p => p.Configuration, LookupConfig()));
 
+        // Assert - the display text survives the swap, and the previous field's open picker does not.
         component.FindComponent<FluentTextInput>().Instance.Value.ShouldBe("7");
+        component.FindAll("[data-testid=formcraft-lookup-panel]").ShouldBeEmpty();
     }
 
     /// <summary>
     /// LOV's own miss in #336: <c>_selectedItems</c> leaked the previous field's selection into the
-    /// new field's model. A fresh configuration object for the same field must show only the
-    /// CURRENT field's value, never a stale carry-over.
+    /// new field's model. A row selected through the picker's own multi-select path must not survive
+    /// a swap to a different configuration object for the same field.
     /// </summary>
+    /// <remarks>
+    /// ⚠️ <b>Single-select cannot catch this.</b> This component's hook recomputes
+    /// <c>DisplayText</c> unconditionally from <c>CurrentValue.ToString()</c> regardless of
+    /// <c>_selectedItems</c>, so a dropped <c>_selectedItems.Clear()</c> is invisible there. It IS
+    /// visible in multi-select: the chip list renders whenever <c>IsMultiSelect &amp;&amp;
+    /// _selectedItems.Count &gt; 0</c>, so a stale, uncleared item renders as a leaked chip belonging
+    /// to a field the user never selected anything on.
+    /// </remarks>
     [Fact]
-    public void LovField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap()
+    public async Task LovField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap()
     {
         var model = new LovModel { CustomerId = 7 };
         var component = Render<FormCraftComponent<LovModel>>(parameters => parameters
@@ -206,10 +225,18 @@ public class FieldConfigurationParityTests : FluentUITestBase
 
         component.FindComponent<FluentTextInput>().Instance.Value.ShouldBe("7");
 
+        // Act - select a row through the picker's own control, the actual #336 failure mode.
+        await component.Find("[data-testid=formcraft-lov-open]").ClickAsync(new());
+        await component.Find("[data-testid=formcraft-lov-row]").ClickAsync(new());
+        component.FindAll("[data-testid=formcraft-lov-chip]").Count.ShouldBe(1);
+
         // Act - a DIFFERENT configuration object describing the same LOV field.
         component.Render(parameters => parameters.Add(p => p.Configuration, LovConfig()));
 
+        // Assert - the display text survives the swap, and the stale selection does not: a leaked
+        // chip would mean the new field inherited a selection it never made.
         component.FindComponent<FluentTextInput>().Instance.Value.ShouldBe("7");
+        component.FindAll("[data-testid=formcraft-lov-chip]").ShouldBeEmpty();
     }
 
     // -----------------------------------------------------------------------------------------
@@ -259,6 +286,14 @@ public class FieldConfigurationParityTests : FluentUITestBase
         // to reset. Unlike MudBlazor's upload components (covered rows there), these cannot go stale
         // by construction.
         typeof(FluentUIFileUploadFieldComponent<>),
+
+        // ⚠️ Same base-class guarantee as above for ITS OWN constraints, but this component also
+        // carries a SECOND piece of state the base class does not: TooManyFilesError, a settable
+        // message built from MaximumFileCount in HandleFilesChangedAsync and cleared only on the
+        // NEXT successful selection - with no OnFieldConfigurationChanged override to reset it on a
+        // configuration swap. That is a real gap this exemption used to claim did not exist. Filed
+        // as #416 rather than fixed here: fixing it means overriding the hook and moving this row to
+        // CoveredComponents, both out of #349's scope.
         typeof(FluentUIMultipleFileUploadComponent<>),
 
         // ColorPicker reads no attribute at all.
@@ -371,7 +406,14 @@ public class FieldConfigurationParityTests : FluentUITestBase
                     .WithKey(c => (int?)c.Id)
                     .WithDisplay(c => c.Name)
                     .WithDataSource(() => new List<LovCustomer> { new(7, "ACME") })
-                    .AddColumn(c => c.Name, "Name")))
+                    .AddColumn(c => c.Name, "Name")
+                    // Multi-select, not because this field needs it, but because it is the only
+                    // mode in which a dropped _selectedItems.Clear() is DOM-observable here - see
+                    // the remark on LovField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap.
+                    // ResolveSelectionValue()'s pattern-matched fallback (`values is TValue
+                    // typedList ? typedList : values[0]`) keeps a scalar int? field working
+                    // correctly even in multi-select mode.
+                    .AllowMultipleSelection()))
             .Build();
 
     private class TextModel
