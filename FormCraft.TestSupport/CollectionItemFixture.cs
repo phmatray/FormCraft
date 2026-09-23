@@ -95,6 +95,14 @@ namespace FormCraft.TestSupport;
 /// — a reorder-only test cannot catch a builder that invokes the callback first, because
 /// <c>AllowReorder</c> is an independent setter that reads the same either way.
 /// </para>
+/// <para>
+/// <b>The trailing <c>configureCollection</c> contract is enforced for every builder here, including
+/// one not yet written.</b> <see cref="CollectionItemBuilderSurfaceGuard"/> (#350) reflects over every
+/// member of this class returning <c>IFormConfiguration&lt;&gt;</c> and fails the build if one lacks a
+/// last, optional <c>configureCollection</c> parameter or declares it without actually invoking it
+/// last — the named self-test above pins today's seven builders one by one, and this guard is what
+/// still catches an eighth.
+/// </para>
 /// </summary>
 public static class CollectionItemFixture
 {
