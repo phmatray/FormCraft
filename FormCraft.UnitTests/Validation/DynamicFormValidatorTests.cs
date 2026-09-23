@@ -151,6 +151,29 @@ public class DynamicFormValidatorTests : BunitContext
     }
 
     [Fact]
+    public void HandleFieldChanged_Should_Not_Throw_For_A_Nested_Binding_With_A_Null_Intermediate()
+    {
+        // Arrange - the field-changed path (a single field's re-validation) reads the same cache
+        // through the same unguarded shape ValidateModelAsync used to (#397's "fixed along the way"):
+        // it was never named by the issue's three call sites, but it is the same file, the same
+        // hazard, and the same fix.
+        var model = new TestModel { Nested = null };
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Nested!.Value, field => field.WithLabel("Nested value"))
+            .Build();
+
+        RenderValidator(editContext, config);
+
+        // Act & Assert - FieldName is the expression's last member ("Value"), not the dotted path
+        // (FieldConfiguration.cs), so that is what HandleFieldChanged matches on. Validators complete
+        // synchronously, so the async void handler completes synchronously too; asserting immediately
+        // is deterministic (see CollectionValidationPassTests).
+        Should.NotThrow(() =>
+            editContext.NotifyFieldChanged(new FieldIdentifier(model, "Value")));
+    }
+
+    [Fact]
     public void OnInitialized_Should_Throw_Without_A_Cascading_EditContext()
     {
         // Arrange - the component is only meaningful inside an EditForm, and says so.
