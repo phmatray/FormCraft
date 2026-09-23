@@ -324,6 +324,40 @@ public class FieldConfigurationRefreshTests : MudBlazorTestBase
         component.FindComponent<MudNumericField<int>>().Instance.Format.ShouldBe("N2");
     }
 
+    /// <summary>
+    /// A numeric field that drops its <c>Min</c> renders unbounded again, even on a component
+    /// instance that previously rendered a field which declared one (#348).
+    /// </summary>
+    /// <remarks>
+    /// The Fluent adapter's equivalent had to move <c>Min</c>/<c>Max</c>/<c>Step</c> off a splatted
+    /// dictionary onto real parameters, because a splat cannot express "no longer configured" — an
+    /// omitted key just leaves Blazor holding the previous value. MudBlazor's numeric component
+    /// never had that problem: <c>Min</c>/<c>Max</c>/<c>Step</c> are already real
+    /// <c>TValue?</c> parameters, reassigned unconditionally in <c>OnFieldConfigurationChanged()</c>
+    /// (<c>Min = GetAttribute&lt;TValue?&gt;("Min")</c>, no <c>??</c> keeping the old value), and the
+    /// razor projects a dropped <c>null</c> to <c>GetTypeMinValue()</c> rather than passing it
+    /// through. This pins that the two adapters agree rather than fixing a defect.
+    /// </remarks>
+    [Fact]
+    public void NumericField_Should_Render_Unbounded_When_The_New_Configuration_Drops_Min()
+    {
+        // Arrange
+        var model = new NumericModel { Amount = 3 };
+
+        var component = Render<FormCraftComponent<NumericModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, NumericMinConfiguration(5)));
+
+        component.FindComponent<MudNumericField<int>>().Instance.Min.ShouldBe(5);
+
+        // Act - the replacement field declares no Min at all.
+        component.Render(parameters => parameters
+            .Add(p => p.Configuration, NumericConfiguration("N0")));
+
+        // Assert
+        component.FindComponent<MudNumericField<int>>().Instance.Min.ShouldBe(int.MinValue);
+    }
+
     [Fact]
     public void BooleanField_Should_Swap_Between_Checkbox_And_Switch_With_The_Configuration()
     {
@@ -424,6 +458,14 @@ public class FieldConfigurationRefreshTests : MudBlazorTestBase
             .AddField(x => x.Amount, field => field
                 .WithLabel("Amount")
                 .WithAttribute("Format", format))
+            .Build();
+
+    private static IFormConfiguration<NumericModel> NumericMinConfiguration(int min) =>
+        FormBuilder<NumericModel>
+            .Create()
+            .AddField(x => x.Amount, field => field
+                .WithLabel("Amount")
+                .WithAttribute("Min", (int?)min))
             .Build();
 
     private static IFormConfiguration<BooleanModel> BooleanConfiguration(BooleanDisplayStyle style) =>

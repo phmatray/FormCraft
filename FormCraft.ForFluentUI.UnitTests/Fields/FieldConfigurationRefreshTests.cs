@@ -126,37 +126,19 @@ public class FieldConfigurationRefreshTests : FluentUITestBase
     /// A numeric field rebinds its <c>Min</c> when a different field declares another one (#335).
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// The numeric component collects <c>Min</c>/<c>Max</c>/<c>Step</c> into a
-    /// <c>Dictionary&lt;string, object&gt;</c> through a helper that only ever <i>adds</i> when the
-    /// attribute is configured, then splats it with <c>@attributes</c>. Nothing removed a key, so
-    /// before this fix the dictionary accumulated across fields; it is now cleared on every reload.
-    /// </para>
-    /// <para>
-    /// ⚠️ <b>Scope of this test.</b> It swaps one bound for another rather than dropping it, because
-    /// <i>omission</i> cannot be expressed through a splat: Blazor retains a component parameter that
-    /// a later render stops supplying, so a field that declares no <c>Min</c> leaves
-    /// <c>FluentNumberInput.Min</c> holding the previous field's value even though FormCraft's
-    /// dictionary is correct. Expressing "unset" would mean FormCraft supplying Fluent's own defaults
-    /// (<c>int.MinValue</c>) explicitly, i.e. binding the bounds as real parameters instead of
-    /// splatting a dictionary. That is a change to how the Fluent numeric components are written and
-    /// is recorded as a follow-up rather than smuggled in here.
-    /// </para>
+    /// The numeric component now binds <c>Min</c>/<c>Max</c>/<c>Step</c> as real parameters,
+    /// assigned unconditionally every reload (#348) — see
+    /// <see cref="Bound_FluentNumberInput_Min_Should_Be_A_Non_Nullable_TValue"/> for why a splatted
+    /// dictionary could not express "unset" in the first place.
     /// </remarks>
     [Fact]
     public void NumericField_Should_Rebind_Its_Min_When_The_Configuration_Is_Swapped()
     {
         // Arrange
-        // Typed as int? deliberately: AddIfConfigured reads it back with GetAttribute<TValue?>, so a
-        // plainly-boxed int would not match and the bound would never be configured at all. The
-        // existing numeric suite spells its Min/Max/Step the same way.
         var component = Render<FormCraftComponent<NumericModel>>(parameters => parameters
             .Add(p => p.Model, new NumericModel())
             .Add(p => p.Configuration, BoundedConfiguration(5)));
 
-        // Asserted on what the Fluent input was actually bound, the way the existing numeric suite
-        // does: ExtraAttributes is splatted onto the component, so the dictionary's contents become
-        // its parameters.
         component.FindComponent<FluentNumberInput<int>>().Instance.Min.ShouldBe(5);
 
         // Act
@@ -165,6 +147,94 @@ public class FieldConfigurationRefreshTests : FluentUITestBase
 
         // Assert
         component.FindComponent<FluentNumberInput<int>>().Instance.Min.ShouldBe(9);
+    }
+
+    /// <summary>
+    /// Characterisation (#348): <c>FluentNumberInput&lt;int&gt;.Min</c>/<c>Max</c>/<c>Step</c> are
+    /// typed <c>TValue</c>, not <c>TValue?</c> — there is no value that means "unset" for a
+    /// non-nullable numeric type, so "no bound configured" can only be expressed by supplying
+    /// Fluent's own per-type default explicitly, never by leaving the parameter unassigned.
+    /// </summary>
+    /// <remarks>
+    /// Pins the spelling of "unset" this fix relies on (Task 1 Step 4): reflection over Fluent's own
+    /// declared parameter types, plus the values its constructor assigns before any FormCraft
+    /// parameter is applied (decompiled under #348).
+    /// </remarks>
+    [Fact]
+    public void Bound_FluentNumberInput_Min_Should_Be_A_Non_Nullable_TValue()
+    {
+        // Assert - the declared parameter type leaves no "unset" value to fall back on
+        typeof(FluentNumberInput<int>).GetProperty("Min")!.PropertyType.ShouldBe(typeof(int));
+        typeof(FluentNumberInput<int>).GetProperty("Max")!.PropertyType.ShouldBe(typeof(int));
+        typeof(FluentNumberInput<int>).GetProperty("Step")!.PropertyType.ShouldBe(typeof(int));
+
+        // Arrange / Act - an unconfigured field renders Fluent's own defaults, not default(int)
+        var component = Render<FormCraftComponent<NumericModel>>(parameters => parameters
+            .Add(p => p.Model, new NumericModel())
+            .Add(p => p.Configuration, UnboundedConfiguration()));
+
+        // Assert
+        var input = component.FindComponent<FluentNumberInput<int>>().Instance;
+        input.Min.ShouldBe(int.MinValue);
+        input.Max.ShouldBe(int.MaxValue);
+        input.Step.ShouldBe(1);
+    }
+
+    /// <summary>
+    /// The drop case #335 could not fix (#348): a numeric field that declares no bound must render
+    /// unbounded even on a component instance that previously rendered a field which did.
+    /// </summary>
+    /// <remarks>
+    /// Blazor retains a component parameter that a later render stops supplying, so before this fix
+    /// <c>FluentNumberInput.Min</c> kept the previous field's <c>5</c> forever, even though
+    /// FormCraft's own splatted dictionary was correctly empty.
+    /// </remarks>
+    [Fact]
+    public void NumericField_Should_Render_Unbounded_When_The_New_Configuration_Drops_Min()
+    {
+        // Arrange
+        var component = Render<FormCraftComponent<NumericModel>>(parameters => parameters
+            .Add(p => p.Model, new NumericModel())
+            .Add(p => p.Configuration, BoundedConfiguration(5)));
+
+        component.FindComponent<FluentNumberInput<int>>().Instance.Min.ShouldBe(5);
+
+        // Act - the replacement field declares no Min at all.
+        component.Render(parameters => parameters
+            .Add(p => p.Configuration, UnboundedConfiguration()));
+
+        // Assert
+        component.FindComponent<FluentNumberInput<int>>().Instance.Min.ShouldBe(int.MinValue);
+    }
+
+    /// <summary>
+    /// The nullable component's own copy of the drop case (#348) — <c>FluentNumberInput&lt;int?&gt;</c>
+    /// rather than <c>FluentNumberInput&lt;int&gt;</c>.
+    /// </summary>
+    /// <remarks>
+    /// Targeted at <c>Max</c> specifically, per this component's own doc comment: a regression that
+    /// let a dropped <c>Max</c> reach <c>FluentNumberInput</c> as <c>null</c> (for example
+    /// <c>Max="@Max"</c> without the <c>?? TypeMaxValue</c> fallback, since the parameter is already
+    /// nullable here and it would still compile) would silently clamp every entered value to
+    /// <c>null</c> rather than leaving the field unbounded — a failure this suite would otherwise
+    /// only catch through the doc comment's own reasoning, never through a run.
+    /// </remarks>
+    [Fact]
+    public void NullableNumericField_Should_Render_Unbounded_When_The_New_Configuration_Drops_Max()
+    {
+        // Arrange
+        var component = Render<FormCraftComponent<NumericModel>>(parameters => parameters
+            .Add(p => p.Model, new NumericModel())
+            .Add(p => p.Configuration, NullableBoundedConfiguration(50)));
+
+        component.FindComponent<FluentNumberInput<int?>>().Instance.Max.ShouldBe(50);
+
+        // Act - the replacement field declares no Max at all.
+        component.Render(parameters => parameters
+            .Add(p => p.Configuration, NullableUnboundedConfiguration()));
+
+        // Assert - unbounded, not clamped to null
+        component.FindComponent<FluentNumberInput<int?>>().Instance.Max.ShouldBe(int.MaxValue);
     }
 
     /// <summary>
@@ -244,6 +314,26 @@ public class FieldConfigurationRefreshTests : FluentUITestBase
                 .WithAttribute("Min", (int?)min))
             .Build();
 
+    private static IFormConfiguration<NumericModel> UnboundedConfiguration() =>
+        FormBuilder<NumericModel>
+            .Create()
+            .AddField(x => x.Amount, field => field.WithLabel("Amount"))
+            .Build();
+
+    private static IFormConfiguration<NumericModel> NullableBoundedConfiguration(int max) =>
+        FormBuilder<NumericModel>
+            .Create()
+            .AddField(x => x.OptionalAmount, field => field
+                .WithLabel("Optional Amount")
+                .WithAttribute("Max", (int?)max))
+            .Build();
+
+    private static IFormConfiguration<NumericModel> NullableUnboundedConfiguration() =>
+        FormBuilder<NumericModel>
+            .Create()
+            .AddField(x => x.OptionalAmount, field => field.WithLabel("Optional Amount"))
+            .Build();
+
     private static IFormConfiguration<TestModel> TextConfiguration(string inputType) =>
         FormBuilder<TestModel>
             .Create()
@@ -255,5 +345,7 @@ public class FieldConfigurationRefreshTests : FluentUITestBase
     private class NumericModel
     {
         public int Amount { get; set; }
+
+        public int? OptionalAmount { get; set; }
     }
 }
