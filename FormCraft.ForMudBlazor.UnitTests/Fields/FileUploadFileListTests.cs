@@ -22,9 +22,11 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// </para>
 /// <para>
 /// The single-file component duplicated too, but <i>asymmetrically</i> — measured rather than
-/// inferred from the multiple-file case, per the issue's own instruction (it binds
-/// <c>Files</c>/<c>FilesChanged</c> one-way where the multiple-file component uses
-/// <c>@bind-Files</c>). FormCraft's own chip there carries no <c>OnClose</c> at all — a single file
+/// inferred from the multiple-file case, per the issue's own instruction (at the time, it bound
+/// <c>Files</c>/<c>FilesChanged</c> one-way where the multiple-file component used
+/// <c>@bind-Files</c>; #319 later moved the multiple-file component to the same one-way shape for an
+/// unrelated reason — a double-notify on clear — so both now bind the same way). FormCraft's own
+/// chip there carries no <c>OnClose</c> at all — a single file
 /// is only ever removed via "Clear", which already routes through <c>ClearAsync</c> and #281's
 /// focus-restore — so MudBlazor's own chip was the *only* close button the field ever had, and it
 /// never went through that path. Suppressing it removes an inconsistent removal affordance, not a

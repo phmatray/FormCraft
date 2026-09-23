@@ -69,10 +69,12 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
 
     private async Task ClearAsync()
     {
-        CurrentValue = new List<IBrowserFile>();
-
         if (_fileUpload is not null)
         {
+            // Raises FilesChanged(null); OnFilesChanged below is now the ONLY writer of CurrentValue
+            // on this path — fixes #319's double-notify (this used to also assign CurrentValue here,
+            // then MudFileUpload.ClearAsync() echoed a second, null value straight back through the
+            // old @bind-Files).
             await _fileUpload.ClearAsync();
         }
 
@@ -80,6 +82,29 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
         // focus deliberately or it falls to <body> (#281). Reuses the shared base member so this
         // component and the single-file one cannot drift.
         await FocusBrowseAsync();
+    }
+
+    /// <summary>
+    /// Normalises MudBlazor's <c>null</c> (selection cleared) to an empty list — the field's own
+    /// representation of "no files" — and suppresses the spurious extra notification
+    /// <see cref="MudFileUpload{T}.ClearAsync"/> raises even when the field was already empty (#319).
+    /// </summary>
+    private void OnFilesChanged(IReadOnlyList<IBrowserFile>? files)
+    {
+        var next = files ?? new List<IBrowserFile>();
+        if (next.Count == 0 && CurrentValue is null or { Count: 0 })
+        {
+            // Already empty — whether that's a fresh empty list or a null-starting model that was
+            // never touched — MudFileUpload.ClearAsync() still raises FilesChanged(null) even when
+            // there was nothing to clear. Without this guard that would be a spurious notification —
+            // and CurrentValue's own equality guard can't catch it, since a fresh empty list is never
+            // reference-equal to another empty list instance, nor to null (#319 review).
+            return;
+        }
+
+        CurrentValue = next;
+        ClearDragClass();
+        StateHasChanged();
     }
 
     private async Task RemoveFile(IBrowserFile fileToRemove)

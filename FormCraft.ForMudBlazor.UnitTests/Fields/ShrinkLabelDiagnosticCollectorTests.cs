@@ -1,3 +1,4 @@
+using FormCraft.ForMudBlazor.UnitTests.TestSupport;
 using Microsoft.Extensions.Logging;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
@@ -79,44 +80,5 @@ public class ShrinkLabelDiagnosticCollectorTests
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.AddProvider(provider));
         return services.BuildServiceProvider();
-    }
-
-    private sealed class ThrowingServiceProvider : IServiceProvider
-    {
-        public object? GetService(Type serviceType) =>
-            throw new InvalidOperationException("Cannot access a disposed scope.");
-    }
-
-    private sealed class CapturingLoggerProvider : ILoggerProvider
-    {
-        private readonly List<string> _warnings = [];
-
-        public IReadOnlyList<string> Warnings => _warnings;
-
-        public ILogger CreateLogger(string categoryName) => new CapturingLogger(_warnings);
-
-        public void Dispose()
-        {
-        }
-
-        private sealed class CapturingLogger(List<string> warnings) : ILogger
-        {
-            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-
-            public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Warning;
-
-            public void Log<TState>(
-                LogLevel logLevel,
-                EventId eventId,
-                TState state,
-                Exception? exception,
-                Func<TState, Exception?, string> formatter)
-            {
-                if (logLevel >= LogLevel.Warning)
-                {
-                    warnings.Add(formatter(state, exception));
-                }
-            }
-        }
     }
 }

@@ -67,6 +67,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      #337: the collection field's per-index focus-target ElementReferences are internal, and the
+      focus-assertion tests need the exact same reference the component would focus (not a
+      re-derived one) to prove focus landed on it. See FocusRestore.cs for why FluentButton itself
+      cannot be the target: v5 RC exposes no FocusAsync()/ElementReference of its own.
+    -->
+    <InternalsVisibleTo Include="FormCraft.ForFluentUI.UnitTests"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Include README and icon in package -->
     <None Include="README.md" Pack="true" PackagePath="\" />
     <None Include="icon.png" Pack="true" PackagePath="\" Condition="Exists('icon.png')" />
