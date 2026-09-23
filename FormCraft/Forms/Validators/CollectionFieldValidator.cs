@@ -31,7 +31,7 @@ public class CollectionFieldValidator<TModel, TItem>
     /// Superseded in-tree by <see cref="ValidateAllAsync" />, which returns this method's messages
     /// <i>and</i> the structured per-item errors from the same traversal. This wrapper stays for
     /// external callers; asking for both shapes through this method and
-    /// <see cref="ValidateItemsAsync" /> in turn is what ran every item validator twice (#329).
+    /// <see cref="ValidateItemsAsync(TModel, IServiceProvider)" /> in turn is what ran every item validator twice (#329).
     /// </remarks>
     public async Task<List<string>> ValidateAsync(TModel model, IServiceProvider services)
         => [.. (await ValidateAllAsync(model, services)).Messages];
@@ -43,7 +43,7 @@ public class CollectionFieldValidator<TModel, TItem>
     /// </summary>
     /// <remarks>
     /// Callers needing both used to obtain them by awaiting <see cref="ValidateAsync" /> and then
-    /// <see cref="ValidateItemsAsync" /> — and because the former already awaits the latter, that ran
+    /// <see cref="ValidateItemsAsync(TModel, IServiceProvider)" /> — and because the former already awaits the latter, that ran
     /// every item field's validators twice per pass. Harmless-looking (each message still lands once,
     /// on its own identifier) and not harmless at all for a validator that calls an API or has any
     /// other side effect (#329). One traversal now feeds both, with the flat messages derived from
@@ -54,8 +54,13 @@ public class CollectionFieldValidator<TModel, TItem>
     /// <returns>The flat messages and the structured per-item errors from a single traversal.</returns>
     public async Task<CollectionValidationResult> ValidateAllAsync(TModel model, IServiceProvider services)
     {
-        var itemErrors = await ValidateItemsAsync(model, services);
-        return new CollectionValidationResult(BuildMessages(model, itemErrors), itemErrors);
+        // Resolved ONCE and threaded into both the traversal and the count rules, rather than each
+        // calling the accessor itself - a property that materialises a new list per access (e.g.
+        // `=> _set.ToList()`) would otherwise have its count measured against a different snapshot
+        // than the one actually validated (#344).
+        var items = _configuration.CollectionAccessor(model);
+        var itemErrors = await ValidateItemsAsync(items, services);
+        return new CollectionValidationResult(BuildMessages(items, itemErrors), itemErrors);
     }
 
     /// <summary>
@@ -63,7 +68,7 @@ public class CollectionFieldValidator<TModel, TItem>
     /// than the whole collection.
     /// </summary>
     /// <remarks>
-    /// The field-changed path used to call <see cref="ValidateItemsAsync" /> and discard every result
+    /// The field-changed path used to call <see cref="ValidateItemsAsync(TModel, IServiceProvider)" /> and discard every result
     /// but the matching cell. Since #203 a keystroke in any row raises that notification, so a
     /// 50-row × 5-field form ran 250 validator invocations per character and used one of them; with
     /// an async validator, that is 250 awaited calls (#329).
@@ -126,10 +131,14 @@ public class CollectionFieldValidator<TModel, TItem>
     /// Projects one traversal's structured errors into the flat, collection-level messages: the
     /// item-count rules first, then one line per item error in the order the traversal produced them.
     /// </summary>
-    private List<string> BuildMessages(TModel model, List<CollectionItemError> itemErrors)
+    /// <param name="items">
+    /// The same resolved collection <see cref="ValidateAllAsync"/> passed to the item traversal -
+    /// never re-resolved here, so the count rules describe the same snapshot that was validated (#344).
+    /// </param>
+    /// <param name="itemErrors">The structured per-item errors from that same traversal.</param>
+    private List<string> BuildMessages(List<TItem>? items, List<CollectionItemError> itemErrors)
     {
         var errors = new List<string>();
-        var items = _configuration.CollectionAccessor(model);
         var itemCount = items?.Count ?? 0;
 
         // Validate min items
@@ -201,10 +210,18 @@ public class CollectionFieldValidator<TModel, TItem>
     /// <param name="model">The parent model instance.</param>
     /// <param name="services">The service provider for dependency injection.</param>
     /// <returns>A list of structured per-item validation errors. Empty if validation passed.</returns>
-    public async Task<List<CollectionItemError>> ValidateItemsAsync(TModel model, IServiceProvider services)
+    public Task<List<CollectionItemError>> ValidateItemsAsync(TModel model, IServiceProvider services)
+        => ValidateItemsAsync(_configuration.CollectionAccessor(model), services);
+
+    /// <summary>
+    /// The item traversal itself, given an already-resolved collection. <see cref="ValidateAllAsync"/>
+    /// resolves the accessor once and threads the same list in here and into
+    /// <see cref="BuildMessages"/>; the public <see cref="ValidateItemsAsync(TModel, IServiceProvider)"/>
+    /// overload keeps resolving its own, since external callers rely on that shape (#344).
+    /// </summary>
+    private async Task<List<CollectionItemError>> ValidateItemsAsync(List<TItem>? items, IServiceProvider services)
     {
         var errors = new List<CollectionItemError>();
-        var items = _configuration.CollectionAccessor(model);
 
         if (items == null || _configuration.ItemFormConfiguration == null)
         {
