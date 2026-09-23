@@ -35,12 +35,14 @@ public partial class MudBlazorFileUploadFieldComponent<TModel>
     {
         base.OnFieldConfigurationChanged();
 
-        Accept = GetAttribute<string>("Accept");
+        var config = UploadConfiguration;
+        var attributes = Context.Field.AdditionalAttributes;
+        Accept = UploadConstraintResolver.ResolveAccept(config, attributes);
         AllowMultiple = GetAttribute<bool>("AllowMultiple");
-        MaxFileSize = GetAttribute<long?>("MaxFileSize");
-        MaxFiles = GetAttribute<int?>("MaxFiles");
-        ShowPreview = GetAttribute<bool>("ShowPreview");
-        EnableDragDrop = GetAttribute("EnableDragDrop", true);
+        MaxFileSize = UploadConstraintResolver.ResolveMaxFileSize(config, attributes, "MaxFileSize");
+        MaxFiles = UploadConstraintResolver.ResolveMaxFiles(config, attributes, "MaxFiles");
+        ShowPreview = UploadConstraintResolver.ResolveShowPreview(config, attributes) ?? false;
+        EnableDragDrop = UploadConstraintResolver.ResolveEnableDragDrop(config, attributes) ?? true;
         UploadMode = GetAttribute("UploadMode", FileUploadMode.Immediate);
     }
 
