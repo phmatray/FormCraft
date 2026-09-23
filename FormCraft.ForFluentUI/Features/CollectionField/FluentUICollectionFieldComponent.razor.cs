@@ -47,11 +47,71 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
     [CascadingParameter]
     private EditContext? EditContext { get; set; }
 
+    /// <summary>
+    /// The collection's header wrapper, the last-resort focus target when an action leaves the field
+    /// with no control at all (#337, mirrors <c>FormCraft.ForMudBlazor</c>'s <c>_header</c>). Carries
+    /// <c>tabindex="-1"</c> in the markup so it can take focus without joining the tab order.
+    /// </summary>
+    /// <remarks>
+    /// <c>internal</c> rather than a leading-underscore private field so the focus-assertion test
+    /// suite can read the exact <see cref="ElementReference"/> the component would itself focus (see
+    /// <c>FormCraft.ForFluentUI.UnitTests.TestSupport.FocusAssertingTestBase</c> remarks for why
+    /// Fluent's <c>FluentButton</c> cannot be focused directly and every target here is a plain
+    /// wrapping element instead).
+    /// </remarks>
+    internal ElementReference HeaderTarget;
+
+    /// <summary>
+    /// The wrapper around the <b>Add</b> control, when one is rendered — the second focus target in
+    /// the removal chain (#337, mirrors <c>FormCraft.ForMudBlazor</c>'s <c>_addButton</c>).
+    /// </summary>
+    internal ElementReference? AddTarget;
+
+    /// <summary>
+    /// Each row's delete-control wrapper, by index — the focus targets for a removal (#337, mirrors
+    /// <c>FormCraft.ForMudBlazor</c>'s <c>_deleteButtons</c>).
+    /// </summary>
+    /// <remarks>
+    /// Keyed by index rather than held as a single reference because these controls are rendered per
+    /// row: a removal has to focus the control that takes the vacated slot, which is a different one
+    /// each time. Entries deliberately outlive the rows that produced them — see
+    /// <see cref="DeleteTargetAt"/> for why pruning is the wrong fix and what guards staleness
+    /// instead.
+    /// </remarks>
+    private readonly Dictionary<int, ElementReference> _deleteTargets = new();
+
+    /// <summary>
+    /// The index a row was just removed from, pending the focus move on the next completed render.
+    /// </summary>
+    private int? _focusAfterRemovalFrom;
+
     private List<TItem> Items => Configuration.CollectionAccessor(Model);
 
     private bool HasReachedMax => Configuration.MaxItems > 0 && Items.Count >= Configuration.MaxItems;
 
     private bool HasReachedMin => Configuration.MinItems > 0 && Items.Count <= Configuration.MinItems;
+
+    private bool DeleteTargetsRendered => Configuration.CanRemove && !HasReachedMin;
+
+    /// <summary>
+    /// The delete-control wrapper currently rendered at <paramref name="index"/>, or
+    /// <see langword="null"/> when that row no longer exists or delete is not rendered at all.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ <b>Staleness is handled by these two checks, not by pruning <see cref="_deleteTargets"/>.</b>
+    /// A <c>@ref</c> on a plain element is re-captured every render, but the dictionary entry for an
+    /// index that no longer renders a delete control would otherwise still be read as live. Entries
+    /// therefore outlive the rows they came from, and correctness comes from asking what is rendered
+    /// <i>now</i>: the index must still be within <see cref="Items"/>, and delete must still be
+    /// rendered at all (reaching <c>MinItems</c> unmounts every one of them at once).
+    /// </remarks>
+    internal ElementReference? DeleteTargetAt(int index) =>
+        DeleteTargetsRendered
+        && index >= 0
+        && index < Items.Count
+        && _deleteTargets.TryGetValue(index, out var target)
+            ? target
+            : null;
 
     private async Task AddItem()
     {
@@ -73,6 +133,55 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem>
 
         Items.RemoveAt(index);
         await NotifyCollectionChanged();
+
+        // The delete control the user activated has just unmounted — and if this removal reached
+        // MinItems, so has every other row's. Move focus deliberately or it falls to <body> (#337).
+        // Deferred to OnAfterRenderAsync rather than done here: the @ref captures are only re-bound
+        // when the next render batch is applied, so reading them now would hand back the controls
+        // from *before* the removal — which is exactly a detached one in the MinItems case.
+        _focusAfterRemovalFrom = index;
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        var removedIndex = _focusAfterRemovalFrom;
+        _focusAfterRemovalFrom = null;
+
+        if (removedIndex is { } removed)
+        {
+            await FocusAfterRemovalAsync(removed);
+        }
+    }
+
+    /// <summary>
+    /// Focus target after a row is removed: the delete control that takes the vacated slot, else the
+    /// previous row's, else <b>Add</b>, else the collection header (#337, mirrors
+    /// <c>FormCraft.ForMudBlazor</c>'s <c>FocusAfterRemovalAsync</c>).
+    /// </summary>
+    /// <remarks>
+    /// The chain matters because a removal can unmount far more than the control that was clicked:
+    /// reaching <c>MinItems</c> falsifies the <c>@if</c> guarding <i>every</i> row's delete control at
+    /// once, and a field that also forbids adding is then left with no focusable control at all.
+    /// </remarks>
+    private async Task FocusAfterRemovalAsync(int removedIndex)
+    {
+        var survivor = DeleteTargetAt(removedIndex) ?? DeleteTargetAt(removedIndex - 1);
+        if (survivor is { } survivorTarget)
+        {
+            await FocusRestore.FocusSafelyAsync(survivorTarget);
+            return;
+        }
+
+        if (AddTarget is { } addTarget)
+        {
+            await FocusRestore.FocusSafelyAsync(addTarget);
+            return;
+        }
+
+        await FocusRestore.FocusSafelyAsync(HeaderTarget);
     }
 
     private async Task MoveItemUp(int index)

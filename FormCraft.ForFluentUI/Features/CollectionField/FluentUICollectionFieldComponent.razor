@@ -6,19 +6,28 @@
 @if (Configuration.IsVisible)
 {
     <FluentCard Class="formcraft-collection">
-        <FluentStack Orientation="Orientation.Horizontal"
-                     HorizontalAlignment="HorizontalAlignment.SpaceBetween"
-                     VerticalAlignment="VerticalAlignment.Center">
-            <FluentLabel Weight="LabelWeight.Semibold">@(Configuration.Label ?? Configuration.FieldName)</FluentLabel>
-            @if (Configuration.CanAdd && !HasReachedMax)
-            {
-                <FluentButton Appearance="ButtonAppearance.Outline"
-                              OnClick="@AddItem"
-                              data-testid="formcraft-collection-add">
-                    @Configuration.AddButtonText
-                </FluentButton>
-            }
-        </FluentStack>
+        @* tabindex="-1" makes the header programmatically focusable without joining the tab order:
+           it is the last-resort focus target when a removal leaves the field with no control at all
+           (#337, mirrors FormCraft.ForMudBlazor's _header). *@
+        <div @ref="HeaderTarget" tabindex="-1">
+            <FluentStack Orientation="Orientation.Horizontal"
+                         HorizontalAlignment="HorizontalAlignment.SpaceBetween"
+                         VerticalAlignment="VerticalAlignment.Center">
+                <FluentLabel Weight="LabelWeight.Semibold">@(Configuration.Label ?? Configuration.FieldName)</FluentLabel>
+                @if (Configuration.CanAdd && !HasReachedMax)
+                {
+                    @* FluentButton (the pinned v5 RC) exposes no FocusAsync()/ElementReference of its
+                       own, so the wrapping span - not the button - is the focus target (#337). *@
+                    <span @ref="AddTarget" tabindex="-1">
+                        <FluentButton Appearance="ButtonAppearance.Outline"
+                                      OnClick="@AddItem"
+                                      data-testid="formcraft-collection-add">
+                            @Configuration.AddButtonText
+                        </FluentButton>
+                    </span>
+                }
+            </FluentStack>
+        </div>
 
         @if (Items.Count == 0)
         {
@@ -58,12 +67,17 @@
                             }
                             @if (Configuration.CanRemove && !HasReachedMin)
                             {
-                                <FluentButton Appearance="ButtonAppearance.Subtle"
-                                              OnClick="@(() => RemoveItem(index))"
-                                              aria-label="Remove item"
-                                              data-testid="formcraft-collection-remove">
-                                    Remove
-                                </FluentButton>
+                                @* Captured per index so a removal can focus the control that takes
+                                   the vacated slot - the row loop is keyless, so Blazor reuses the
+                                   element already at each position (#337). *@
+                                <span @ref="_deleteTargets[index]" tabindex="-1">
+                                    <FluentButton Appearance="ButtonAppearance.Subtle"
+                                                  OnClick="@(() => RemoveItem(index))"
+                                                  aria-label="Remove item"
+                                                  data-testid="formcraft-collection-remove">
+                                        Remove
+                                    </FluentButton>
+                                </span>
                             }
                         </FluentStack>
                     </FluentStack>
