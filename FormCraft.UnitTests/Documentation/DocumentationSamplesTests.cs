@@ -475,7 +475,7 @@ public class DocumentationSamplesTests
         var config = FormBuilder<ProductModel>.Create()
             .AddField(x => x.Color, field => field
                 .WithLabel("Product Color")
-                .WithCustomRenderer<ProductModel, string, ColorPickerRenderer>()
+                .WithCustomRenderer<ColorPickerRenderer>()
                 .WithHelpText("Select the primary color"))
             .Build();
 

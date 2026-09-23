@@ -36,27 +36,15 @@ public static class FieldBuilderExtensions
         }
 
         /// <summary>
-        /// Configures the field to use a custom renderer with explicit type parameters.
-        /// </summary>
-        /// <typeparam name="TRenderer">The type of the custom renderer.</typeparam>
-        /// <returns>The FieldBuilder instance for method chaining.</returns>
-        /// <example>
-        /// <code>
-        /// .AddField(x => x.Color)
-        ///     .WithCustomRenderer&lt;ProductModel, string, ColorPickerRenderer&gt;()
-        /// </code>
-        /// </example>
-        public FieldBuilder<TModel, TValue> WithCustomRenderer<TRenderer>() where TRenderer : ICustomFieldRenderer<TValue>
-        {
-            builder.Configuration.CustomRendererType = typeof(TRenderer);
-            return builder;
-        }
-
-        /// <summary>
         /// Configures the field to use a custom renderer by type.
         /// </summary>
         /// <param name="rendererType">The type of the custom renderer.</param>
         /// <returns>The FieldBuilder instance for method chaining.</returns>
+        /// <remarks>
+        /// For a renderer type known at compile time, prefer <see cref="FieldBuilder{TModel, TValue}.WithCustomRenderer{TRenderer}"/>,
+        /// which checks <c>TRenderer</c> against this field's value type. Reach for this overload only
+        /// when the renderer type is genuinely dynamic and not known until runtime.
+        /// </remarks>
         /// <example>
         /// <code>
         /// .AddField(x => x.Color)

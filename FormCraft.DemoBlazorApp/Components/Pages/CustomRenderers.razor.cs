@@ -36,7 +36,7 @@ public partial class CustomRenderers
             new() { Feature = "AsRating()", Usage = "Star-based rating for integer fields", Example = "field.AsRating(maxRating: 5).WithLabel(\"Quality\")" },
             new() { Feature = "AsSlider()", Usage = "Range selection for numeric fields", Example = "field.AsSlider(min: 0, max: 100, step: 5)" },
             new() { Feature = "CustomFieldRendererBase<T>", Usage = "Base class for creating custom renderers", Example = "class MyRenderer : CustomFieldRendererBase<string>" },
-            new() { Feature = "WithCustomRenderer()", Usage = "Apply a custom renderer to a field", Example = "field.WithCustomRenderer<TModel, TValue, TRenderer>()" },
+            new() { Feature = "WithCustomRenderer()", Usage = "Apply a custom renderer to a field", Example = "field.WithCustomRenderer<TRenderer>()" },
             new() { Feature = "ShowInCard()", Usage = "Display field groups in Material cards", Example = "group.ShowInCard(elevation: 2)" }
         ],
         CodeExamples =
@@ -267,7 +267,7 @@ public partial class CustomRenderers
                 this FieldBuilder<TModel, string> builder)
                 where TModel : new()
             {
-                return builder.WithCustomRenderer<TModel, string, MudBlazorColorPickerRenderer>();
+                return builder.WithCustomRenderer<MudBlazorColorPickerRenderer>();
             }
             """;
     }

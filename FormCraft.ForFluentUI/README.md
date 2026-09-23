@@ -101,9 +101,9 @@ Three ship with the package, used via `.WithCustomRenderer(...)` rather than reg
 registering them would turn every `double` into a slider and every `string` into a colour picker:
 
 ```csharp
-.AddField(x => x.Volume, f => f.WithCustomRenderer(typeof(FluentUISliderRenderer)))
-.AddField(x => x.Score,  f => f.WithCustomRenderer(typeof(FluentUIRatingRenderer)))
-.AddField(x => x.Colour, f => f.WithCustomRenderer(typeof(FluentUIColorPickerRenderer)))
+.AddField(x => x.Volume, f => f.WithCustomRenderer<FluentUISliderRenderer>())
+.AddField(x => x.Score,  f => f.WithCustomRenderer<FluentUIRatingRenderer>())
+.AddField(x => x.Colour, f => f.WithCustomRenderer<FluentUIColorPickerRenderer>())
 ```
 
 The rating renders a row of focusable, labelled buttons rather than Fluent's `FluentRatingDisplay`.

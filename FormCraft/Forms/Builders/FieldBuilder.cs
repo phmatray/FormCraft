@@ -394,4 +394,29 @@ public class FieldBuilder<TModel, TValue> where TModel : new()
         return this;
     }
 
+    /// <summary>
+    /// Configures the field to use a custom renderer, checked at compile time against this
+    /// field's <typeparamref name="TValue"/>.
+    /// </summary>
+    /// <typeparam name="TRenderer">The type of the custom renderer.</typeparam>
+    /// <returns>The FieldBuilder instance for method chaining.</returns>
+    /// <remarks>
+    /// An instance method rather than an extension (#322): an extension of this same generic shape
+    /// is unreachable, because normal member lookup finds <see cref="WithCustomRenderer(IFieldRenderer)"/>
+    /// by name first and never falls back to searching extension methods, regardless of arity. As a
+    /// genuine member of this class, this overload takes part in ordinary overload resolution instead
+    /// and is selected by its distinct arity (one type argument, no formal parameters).
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// .AddField(x => x.Color)
+    ///     .WithCustomRenderer&lt;ColorPickerRenderer&gt;()
+    /// </code>
+    /// </example>
+    public FieldBuilder<TModel, TValue> WithCustomRenderer<TRenderer>() where TRenderer : ICustomFieldRenderer<TValue>
+    {
+        Configuration.CustomRendererType = typeof(TRenderer);
+        return this;
+    }
+
 }

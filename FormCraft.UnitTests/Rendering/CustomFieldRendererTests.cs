@@ -16,13 +16,13 @@ public class CustomFieldRendererTests
     }
 
     [Fact]
-    public void WithCustomRenderer_Extension_Should_Set_CustomRendererType()
+    public void WithCustomRenderer_Generic_Should_Set_CustomRendererType()
     {
         // Arrange & Act
         var formBuilder = FormBuilder<TestModel>
             .Create()
             .AddField(x => x.TestProperty, field => field
-                .WithCustomRenderer<TestModel, string, TestCustomRenderer>())
+                .WithCustomRenderer<TestCustomRenderer>())
             .Build();
 
         // Assert

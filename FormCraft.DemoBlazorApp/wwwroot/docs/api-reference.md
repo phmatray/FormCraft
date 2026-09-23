@@ -427,10 +427,10 @@ read and write the field value.
 ### Using Custom Renderers
 
 ```csharp
-// Type arguments: model, value, renderer
+// TRenderer is checked against the field's value type
 .AddField(x => x.FavoriteColor, field => field
     .WithLabel("Favorite Color")
-    .WithCustomRenderer<MyModel, string, ColorPickerRenderer>())
+    .WithCustomRenderer<ColorPickerRenderer>())
 ```
 
 ## Advanced Features

@@ -6,7 +6,7 @@ namespace FormCraft.ForFluentUI;
 /// Renders a numeric field as a Fluent UI slider.
 /// </summary>
 /// <remarks>
-/// A <b>custom</b> renderer, used via <c>.WithCustomRenderer(new FluentUISliderRenderer())</c>. It is
+/// A <b>custom</b> renderer, used via <c>.WithCustomRenderer&lt;FluentUISliderRenderer&gt;()</c>. It is
 /// deliberately not an <c>IFieldRenderer</c> registered by <c>AddFormCraftFluentUI()</c>: registering
 /// it would make every <c>double</c> field in every form a slider.
 /// </remarks>
