@@ -86,7 +86,7 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
         // calling the accessor itself - a property that materialises a new list per access (e.g.
         // `=> _set.ToList()`) would otherwise have its count measured against a different snapshot
         // than the one actually validated (#344).
-        var items = _configuration.CollectionAccessor(model);
+        var items = TryReadCollection(model);
         var itemErrors = await ValidateItemsAsync(items, services);
         return new CollectionValidationResult(BuildMessages(items, itemErrors), itemErrors);
     }
@@ -120,7 +120,7 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
         IServiceProvider services)
     {
         var errors = new List<CollectionItemError>();
-        var items = _configuration.CollectionAccessor(model);
+        var items = TryReadCollection(model);
 
         if (items == null || _configuration.ItemFormConfiguration == null)
         {
@@ -260,16 +260,46 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
     /// <param name="services">The service provider for dependency injection.</param>
     /// <returns>A list of structured per-item validation errors. Empty if validation passed.</returns>
     /// <remarks>
-    /// <c>async</c> deliberately, though the body is one call: a non-async wrapper would evaluate
-    /// <c>_configuration.CollectionAccessor(model)</c> as a plain argument, and an exception from a
-    /// misbehaving accessor would then escape synchronously from this method call instead of
-    /// completing the returned <see cref="Task" /> as faulted - a caller that awaits elsewhere in a
-    /// <c>try</c>/<c>catch</c> (or collects the task for <see cref="Task.WhenAll(Task[])" />) would
-    /// see it differently than before. Marking this <c>async</c> keeps that guarantee external
-    /// callers already had (#344).
+    /// <c>async</c> historically defended against an exception from a misbehaving accessor escaping
+    /// this method call synchronously instead of completing the returned <see cref="Task" /> as
+    /// faulted (#344) - a caller awaiting elsewhere in a <c>try</c>/<c>catch</c> (or collecting the
+    /// task for <see cref="Task.WhenAll(Task[])" />) would see it differently otherwise. The accessor
+    /// read itself is now guarded by <see cref="TryReadCollection" /> (#408) for the null-intermediate
+    /// case specifically, but <c>async</c> stays as a defence for any other misbehaving accessor -
+    /// <see cref="TryReadCollection" /> deliberately does not widen into a general try/catch (see its
+    /// own remarks).
     /// </remarks>
     public async Task<List<CollectionItemError>> ValidateItemsAsync(TModel model, IServiceProvider services)
-        => await ValidateItemsAsync(_configuration.CollectionAccessor(model), services);
+        => await ValidateItemsAsync(TryReadCollection(model), services);
+
+    /// <summary>
+    /// Reads the collection through <see cref="ICollectionFieldConfiguration{TModel, TItem}.CollectionAccessor"/>,
+    /// returning <see langword="null"/> instead of throwing when a nested binding's intermediate is
+    /// null (e.g. <c>x => x.Details.Items</c> where <c>Details</c> is null) - the same failure #397
+    /// fixed for individual field getters, one level up at the collection binding itself (#408).
+    /// </summary>
+    /// <remarks>
+    /// Routes through <see cref="FieldValueGetterCache{TModel}.TryInvoke"/> rather than adding a new
+    /// try/catch: <see cref="ICollectionFieldConfiguration{TModel, TItem}.CollectionAccessor"/> is
+    /// <c>Func&lt;TModel, List&lt;TItem&gt;&gt;</c>, which converts to <c>TryInvoke</c>'s
+    /// <c>Func&lt;TModel, object&gt;</c> parameter by ordinary delegate covariance (<c>List&lt;TItem&gt;</c>
+    /// is a reference type). <c>TryInvoke</c> deliberately catches <see cref="Exception"/> broadly,
+    /// matching <see cref="FieldValueGetterCache{TModel}.TryGetValue"/>'s own rationale (#397) and
+    /// #408's own spec: the read invokes an arbitrary compiled expression that can fail for any reason
+    /// a delegate call can, and narrowing the catch to only the null-intermediate case is a design
+    /// change to that shared, already-reviewed helper - not something this one call site should
+    /// silently redecide. A failed read comes back as <see langword="null"/>, which every caller here
+    /// already treats as zero items via its existing null-coalescing/null-check logic - no new
+    /// "unreadable collection" error shape is introduced. One private helper here rather than the
+    /// same three lines duplicated at each call site.
+    /// </remarks>
+    /// <param name="model">The parent model instance.</param>
+    /// <returns>The collection on success; <see langword="null"/> when the read fails.</returns>
+    private List<TItem>? TryReadCollection(TModel model)
+    {
+        FieldValueGetterCache<TModel>.TryInvoke(_configuration.CollectionAccessor, model, out var value);
+        return value as List<TItem>;
+    }
 
     /// <summary>
     /// The item traversal itself, given an already-resolved collection. <see cref="ValidateAllAsync"/>

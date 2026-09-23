@@ -282,6 +282,76 @@ public class CollectionFieldValidatorTests
         errors.ShouldContain(e => e.FieldName == "Value" && e.Message == "Nested value is required");
     }
 
+    [Fact]
+    public async Task ValidateAllAsync_Should_Not_Throw_And_Should_Report_MinItems_When_Collection_Binding_Is_Unreadable()
+    {
+        // Arrange - the collection itself is bound through a nested path (`x => x.Details!.Items`)
+        // whose intermediate (`Details`) is null. Before #408 this call site's direct
+        // `_configuration.CollectionAccessor(model)` had no guard at all, unlike the per-item field
+        // reads #397 already guards, and threw an unhandled NullReferenceException.
+        var config = new CollectionFieldConfiguration<OrderModel, OrderItemModel>(x => x.Details!.Items)
+        {
+            MinItems = 1
+        };
+        var validator = new CollectionFieldValidator<OrderModel, OrderItemModel>(config);
+        var model = new OrderModel { Details = null };
+        var services = A.Fake<IServiceProvider>();
+
+        // Act
+        var result = await validator.ValidateAllAsync(model, services);
+
+        // Assert - an unreadable collection validates as zero items: MinItems(1) fires exactly as it
+        // would for a genuinely empty (but readable) collection, and there are no item errors.
+        result.Messages.ShouldContain(m => m.Contains("at least 1"));
+        result.ItemErrors.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ValidateItemFieldAsync_Should_Not_Throw_And_Return_No_Errors_When_Collection_Binding_Is_Unreadable()
+    {
+        // Arrange - same unreadable collection binding, hitting the single-cell path instead.
+        var itemForm = FormBuilder<OrderItemModel>.Create()
+            .AddField(x => x.ProductName, field => field.Required("Product name is required"))
+            .Build();
+        var config = new CollectionFieldConfiguration<OrderModel, OrderItemModel>(x => x.Details!.Items)
+        {
+            ItemFormConfiguration = itemForm
+        };
+        var validator = new CollectionFieldValidator<OrderModel, OrderItemModel>(config);
+        var model = new OrderModel { Details = null };
+        var services = A.Fake<IServiceProvider>();
+
+        // Act
+        var errors = await validator.ValidateItemFieldAsync(model, 0, "ProductName", services);
+
+        // Assert - matches the existing out-of-range-index behaviour: no errors, not a throw.
+        errors.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ValidateItemsAsync_TModel_Overload_Should_Not_Throw_When_Collection_Binding_Is_Unreadable()
+    {
+        // Arrange - same unreadable collection binding, hitting the public ValidateItemsAsync(TModel,
+        // IServiceProvider) overload, which re-resolves the accessor itself rather than reusing a
+        // snapshot ValidateAllAsync already read.
+        var itemForm = FormBuilder<OrderItemModel>.Create()
+            .AddField(x => x.ProductName, field => field.Required("Product name is required"))
+            .Build();
+        var config = new CollectionFieldConfiguration<OrderModel, OrderItemModel>(x => x.Details!.Items)
+        {
+            ItemFormConfiguration = itemForm
+        };
+        var validator = new CollectionFieldValidator<OrderModel, OrderItemModel>(config);
+        var model = new OrderModel { Details = null };
+        var services = A.Fake<IServiceProvider>();
+
+        // Act
+        var errors = await validator.ValidateItemsAsync(model, services);
+
+        // Assert
+        errors.ShouldBeEmpty();
+    }
+
     private CollectionFieldConfiguration<OrderModel, OrderItemModel> CreateCollectionConfig(
         int minItems = 0, int maxItems = 0)
     {
@@ -308,6 +378,19 @@ public class CollectionFieldValidatorTests
     public class OrderModel
     {
         public string OrderNumber { get; set; } = "";
+        public List<OrderItemModel> Items { get; set; } = new();
+
+        // Unrelated to Items above - exists so a collection field can be bound through a nested path
+        // (`x => x.Details!.Items`) whose intermediate is null (#408). OrderModel keeps its own
+        // top-level Items property so CollectionFieldConfiguration's setter-building step (which
+        // resolves the setter by the expression's last member name against TModel directly) still
+        // finds a same-named, same-typed property to bind - the tests using this nested path never
+        // call CollectionSetter, so which property it actually targets is irrelevant to them.
+        public OrderDetailModel? Details { get; set; }
+    }
+
+    public class OrderDetailModel
+    {
         public List<OrderItemModel> Items { get; set; } = new();
     }
 
