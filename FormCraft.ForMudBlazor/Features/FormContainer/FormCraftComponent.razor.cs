@@ -377,6 +377,15 @@ public partial class FormCraftComponent<TModel>
     /// intermediate reference in a nested path — reports once per field via
     /// <see cref="_formDiagnosticScope"/> and returns <c>null</c>, so the template still renders
     /// instead of the exception reaching the render pipeline or the field staying invisible.
+    /// <para>
+    /// ⚠️ The latch key is the field's <b>expression text</b>, not <c>field.FieldName</c> —
+    /// <c>FieldName</c> is only the value expression's last member (#330's own defect), so two
+    /// different nested bindings that happen to end in the same member name (<c>x =&gt; x.A.Value</c>
+    /// and <c>x =&gt; x.B.Value</c> both report <c>"Value"</c>) would otherwise share one latch slot:
+    /// whichever field failed first would silently suppress the other's warning forever, the same
+    /// over-latching failure <c>CollectionItemFieldScope</c>'s own doc warns about. The expression's
+    /// <c>ToString()</c> is unique per distinct binding, which a bare field name is not.
+    /// </para>
     /// </remarks>
     private object GetCustomTemplateValue(IFieldConfiguration<TModel, object> field)
     {
@@ -386,7 +395,7 @@ public partial class FormCraftComponent<TModel>
         }
         catch (Exception ex)
         {
-            if (_formDiagnosticScope.ShouldWarnOnce(CustomTemplateFieldDiagnosticCategory, field.FieldName))
+            if (_formDiagnosticScope.ShouldWarnOnce(CustomTemplateFieldDiagnosticCategory, field.ValueExpression.ToString()))
             {
                 var displayName = string.IsNullOrWhiteSpace(field.Label) ? field.FieldName : field.Label;
                 DiagnosticLog.Warn(

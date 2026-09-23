@@ -125,6 +125,55 @@ public class CustomTemplateTests : FluentUITestBase
         warnings[0].ShouldContain(nameof(NullReferenceException));
     }
 
+    [Fact]
+    public void WithCustomTemplate_Should_Report_Each_Field_Separately_Even_When_FieldNames_Collide()
+    {
+        // Arrange - FieldName is only the expression's last member, so x => x.A.Value and
+        // x => x.B.Value both report FieldName "Value" even though they are two unrelated fields.
+        // Latching on FieldName alone would let whichever field fails first silently swallow the
+        // other's warning forever (review finding on #330's diagnostic).
+        var logs = new CapturingLoggerProvider();
+        Services.AddLogging(builder => builder.AddProvider(logs));
+
+        var model = new TwoNestedPathsModel { A = null, B = null };
+        var config = FormBuilder<TwoNestedPathsModel>
+            .Create()
+            .AddField(x => x.A!.Value, field => field
+                .WithLabel("Field A")
+                .WithCustomTemplate(context => builder =>
+                {
+                    builder.OpenElement(0, "div");
+                    builder.AddAttribute(1, "class", "field-a");
+                    builder.AddContent(2, $"A: {context.Value}");
+                    builder.CloseElement();
+                }))
+            .AddField(x => x.B!.Value, field => field
+                .WithLabel("Field B")
+                .WithCustomTemplate(context => builder =>
+                {
+                    builder.OpenElement(0, "div");
+                    builder.AddAttribute(1, "class", "field-b");
+                    builder.AddContent(2, $"B: {context.Value}");
+                    builder.CloseElement();
+                }))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<TwoNestedPathsModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert - both fields still render...
+        component.Find(".field-a").TextContent.ShouldBe("A: ");
+        component.Find(".field-b").TextContent.ShouldBe("B: ");
+
+        // ...and BOTH get their own diagnostic, not just whichever failed first.
+        var warnings = logs.Warnings;
+        warnings.Count.ShouldBe(2);
+        warnings.ShouldContain(w => w.Contains("Field A"));
+        warnings.ShouldContain(w => w.Contains("Field B"));
+    }
+
     private class TestModel
     {
         public string Name { get; set; } = string.Empty;
@@ -138,6 +187,12 @@ public class CustomTemplateTests : FluentUITestBase
     private class NestedValue
     {
         public string Value { get; set; } = string.Empty;
+    }
+
+    private class TwoNestedPathsModel
+    {
+        public NestedValue? A { get; set; }
+        public NestedValue? B { get; set; }
     }
 
     /// <summary>

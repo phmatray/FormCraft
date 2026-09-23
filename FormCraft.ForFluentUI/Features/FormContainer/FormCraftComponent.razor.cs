@@ -406,14 +406,22 @@ public partial class FormCraftComponent<TModel> where TModel : new()
     }
 
     /// <summary>
-    /// Field names already reported by <see cref="WarnUnresolvedCustomTemplateField"/> for this form
-    /// instance, so a binding that keeps failing is reported once rather than once per render.
+    /// Binding expressions already reported by <see cref="WarnUnresolvedCustomTemplateField"/> for
+    /// this form instance, so a binding that keeps failing is reported once rather than once per
+    /// render.
     /// </summary>
+    /// <remarks>
+    /// ⚠️ Keyed by the field's <b>expression text</b>, not <c>field.FieldName</c> — <c>FieldName</c>
+    /// is only the value expression's last member (#330's own defect), so two different nested
+    /// bindings ending in the same member name (<c>x =&gt; x.A.Value</c> and <c>x =&gt; x.B.Value</c>
+    /// both report <c>"Value"</c>) would otherwise collide on one latch slot and silently suppress
+    /// each other's warning. The expression's <c>ToString()</c> is unique per distinct binding.
+    /// </remarks>
     private readonly HashSet<string> _warnedUnresolvedCustomTemplateFields = [];
 
     private void WarnUnresolvedCustomTemplateField(IFieldConfiguration<TModel, object> field, Exception ex)
     {
-        if (!_warnedUnresolvedCustomTemplateFields.Add(field.FieldName))
+        if (!_warnedUnresolvedCustomTemplateFields.Add(field.ValueExpression.ToString()))
         {
             return;
         }
