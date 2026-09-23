@@ -384,7 +384,7 @@ public partial class FormCraftComponent<TModel>
         {
             return FieldValueGetterCache<TModel>.GetOrCompile(field)(Model);
         }
-        catch
+        catch (Exception ex)
         {
             if (_formDiagnosticScope.ShouldWarnOnce(CustomTemplateFieldDiagnosticCategory, field.FieldName))
             {
@@ -393,10 +393,12 @@ public partial class FormCraftComponent<TModel>
                     ServiceProvider,
                     CustomTemplateFieldDiagnosticCategory,
                     "Field '{Field}' has a custom template whose value could not be read from the " +
-                    "model, so it renders with no value instead of the whole form failing. Check " +
-                    "that its binding expression is reachable (e.g. no null intermediate in a " +
-                    "nested path).",
-                    displayName);
+                    "model ({ExceptionType}: {ExceptionMessage}), so it renders with no value " +
+                    "instead of the whole form failing. Check that its binding expression is " +
+                    "reachable (e.g. no null intermediate in a nested path).",
+                    displayName,
+                    ex.GetType().Name,
+                    ex.Message);
             }
 
             return null!;

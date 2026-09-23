@@ -181,6 +181,39 @@ public class CustomTemplateTests : MudBlazorTestBase
         var warnings = logs.Warnings;
         warnings.Count.ShouldBe(1);
         warnings[0].ShouldContain("Nested value");
+        warnings[0].ShouldContain(nameof(NullReferenceException));
+    }
+
+    [Fact]
+    public void WithCustomTemplate_Should_Not_Crash_For_A_Value_Typed_Field_When_Unresolvable()
+    {
+        // Arrange - the fallback path returns null from GetCustomTemplateValue for ANY TValue,
+        // including a value type like int, where a naive cast would throw. FieldConfigurationWrapper
+        // hands the object-typed value to the typed template through a pattern match
+        // (`_objectContext.Value is TValue typed ? typed : default!`), not a direct cast, so a null
+        // becomes the type's default (0 for int) rather than a NullReferenceException. Pinning this
+        // because the diagnostic's whole point is "still renders" - it must hold for value types too.
+        var model = new NestedIntModel { Nested = null };
+        var config = FormBuilder<NestedIntModel>
+            .Create()
+            .AddField(x => x.Nested!.Value, field => field
+                .WithLabel("Nested int")
+                .WithCustomTemplate(context => builder =>
+                {
+                    builder.OpenElement(0, "div");
+                    builder.AddAttribute(1, "class", "int-template");
+                    builder.AddContent(2, $"Int: {context.Value}");
+                    builder.CloseElement();
+                }))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<NestedIntModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        component.Find(".int-template").TextContent.ShouldBe("Int: 0");
     }
 
     private class TestModel
@@ -196,5 +229,15 @@ public class CustomTemplateTests : MudBlazorTestBase
     private class NestedValue
     {
         public string Value { get; set; } = string.Empty;
+    }
+
+    private class NestedIntModel
+    {
+        public NestedIntValue? Nested { get; set; }
+    }
+
+    private class NestedIntValue
+    {
+        public int Value { get; set; }
     }
 }

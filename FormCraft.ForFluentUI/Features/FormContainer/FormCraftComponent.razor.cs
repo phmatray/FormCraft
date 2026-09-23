@@ -398,9 +398,9 @@ public partial class FormCraftComponent<TModel> where TModel : new()
         {
             return FieldValueGetterCache<TModel>.GetOrCompile(field)(Model);
         }
-        catch
+        catch (Exception ex)
         {
-            WarnUnresolvedCustomTemplateField(field);
+            WarnUnresolvedCustomTemplateField(field, ex);
             return null!;
         }
     }
@@ -411,7 +411,7 @@ public partial class FormCraftComponent<TModel> where TModel : new()
     /// </summary>
     private readonly HashSet<string> _warnedUnresolvedCustomTemplateFields = [];
 
-    private void WarnUnresolvedCustomTemplateField(IFieldConfiguration<TModel, object> field)
+    private void WarnUnresolvedCustomTemplateField(IFieldConfiguration<TModel, object> field, Exception ex)
     {
         if (!_warnedUnresolvedCustomTemplateFields.Add(field.FieldName))
         {
@@ -425,9 +425,12 @@ public partial class FormCraftComponent<TModel> where TModel : new()
 #pragma warning disable CA2254 // Template is a constant supplied above
             logger?.LogWarning(
                 "Field '{Field}' has a custom template whose value could not be read from the " +
-                "model, so it renders with no value instead of the whole form failing. Check that " +
-                "its binding expression is reachable (e.g. no null intermediate in a nested path).",
-                displayName);
+                "model ({ExceptionType}: {ExceptionMessage}), so it renders with no value instead " +
+                "of the whole form failing. Check that its binding expression is reachable (e.g. " +
+                "no null intermediate in a nested path).",
+                displayName,
+                ex.GetType().Name,
+                ex.Message);
 #pragma warning restore CA2254
         }
         catch

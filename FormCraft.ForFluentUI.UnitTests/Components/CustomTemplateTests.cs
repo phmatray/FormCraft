@@ -122,6 +122,7 @@ public class CustomTemplateTests : FluentUITestBase
         var warnings = logs.Warnings;
         warnings.Count.ShouldBe(1);
         warnings[0].ShouldContain("Nested value");
+        warnings[0].ShouldContain(nameof(NullReferenceException));
     }
 
     private class TestModel
