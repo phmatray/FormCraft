@@ -163,6 +163,54 @@ public class CollectionRowIdentityTests : FluentUITestBase
     }
 
     /// <summary>
+    /// A struct row keeps its own component instance across a render, not just across an Add — the
+    /// identity half of the struct case, complementing
+    /// <see cref="A_Struct_Typed_Item_Should_Render_And_Grow_Without_Throwing"/>'s "does not throw".
+    /// </summary>
+    /// <remarks>
+    /// Guards <c>RowKey</c>'s <c>IsValueType</c> branch itself. Dropping or inverting it still passes
+    /// the "does not throw" test above unchanged: a <c>TItem</c> struct passed into
+    /// <c>_rowTokens.GetValue</c> boxes fresh into <see cref="object"/> on every call, so
+    /// <see cref="System.Runtime.CompilerServices.ConditionalWeakTable{TKey,TValue}"/> — which
+    /// compares keys by REFERENCE, never finds a match — mints a brand-new token every single render,
+    /// which never equals the token from the render before it. No exception follows; every struct
+    /// row's component would instead be torn down and rebuilt on every render, silently reintroducing
+    /// (and for structs specifically, worsening past the pre-#401 unkeyed loop) the very identity loss
+    /// this feature exists to fix. Only re-rendering and comparing instances — the way every
+    /// reference-type test in this file already does — can catch that a fallback branch was lost.
+    /// </remarks>
+    [Fact]
+    public void A_Struct_Typed_Item_Should_Keep_Its_Component_Instance_Across_A_Render()
+    {
+        // Arrange
+        var model = new StructItemModel
+        {
+            Items = [new StructItem { ProductName = "a" }, new StructItem { ProductName = "b" }],
+        };
+
+        var config = FormBuilder<StructItemModel>
+            .Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field.WithLabel("Product"))))
+            .Build();
+
+        var component = Render<FormCraftComponent<StructItemModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+        var before = component.FindComponents<FluentUITextFieldComponent<StructItem>>()[0].Instance;
+
+        // Act - a no-op re-render, the same trigger every reference-type identity test in this file
+        // uses to prove a component instance survives.
+        component.Render();
+
+        // Assert - row 0 is still rendered by the SAME component instance.
+        var after = component.FindComponents<FluentUITextFieldComponent<StructItem>>()[0].Instance;
+        after.ShouldBeSameAs(before);
+    }
+
+    /// <summary>
     /// A value-typed item. <b>The <c>struct</c> is the point</b> — see
     /// <see cref="A_Struct_Typed_Item_Should_Render_And_Grow_Without_Throwing"/>.
     /// </summary>
