@@ -21,7 +21,7 @@ namespace FormCraft.UnitTests.Ci;
 /// <b>Both spellings are covered.</b> The flag form (<c>--filter</c>, <c>--collect</c>) and the
 /// MSBuild-property form (<c>-p:VSTestTestCaseFilter=…</c>) are equally inert — the property form was
 /// measured for #299 and produced <c>MTP0001</c> with all 158 tests of the target project running.
-/// <see cref="TestReportingTests.BuildScript_Should_Not_Set_The_VSTest_Properties_That_Mtp_Ignores" />
+/// <see cref="TestReportingTests.BuildScript_Should_Not_Use_DotNetTests_VSTest_Logger_Or_Results_Settings" />
 /// pins the same class of mistake in <c>build/Build.cs</c>; this class covers the documentation.
 /// </para>
 /// <para>
