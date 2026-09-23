@@ -5,7 +5,7 @@
   <!-- Framework-agnostic packages -->
   <ItemGroup>
     <!-- Epinglee directement : bunit tire AngleSharp 1.4.0, vulnerable (GHSA-pgww-w46g-26qg). -->
-    <PackageVersion Include="AngleSharp" Version="1.8.1" />
+    <PackageVersion Include="AngleSharp" Version="1.8.2" />
     <!--
       Pinned directly for the same reason as AngleSharp above: Nuke.Common 10.1.0 (the latest
       published version — a bump does not help) pulls System.Security.Cryptography.Xml 9.0.0
@@ -39,11 +39,11 @@
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.401" />
     <!-- Code quality -->
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
-    <PackageVersion Include="Markdig" Version="1.3.2" />
+    <PackageVersion Include="Markdig" Version="1.4.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Http" Version="2.3.13" />
     <!-- Versioning -->
     <PackageVersion Include="GitVersion.MsBuild" Version="6.8.2" />
-    <PackageVersion Include="MinVer" Version="7.0.0" />
+    <PackageVersion Include="MinVer" Version="8.0.0" />
   </ItemGroup>
   <!-- .NET 8.0 packages -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
