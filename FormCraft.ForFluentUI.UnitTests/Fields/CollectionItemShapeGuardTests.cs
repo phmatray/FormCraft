@@ -13,12 +13,28 @@ namespace FormCraft.ForFluentUI.UnitTests.Fields;
 /// </remarks>
 public class CollectionItemShapeGuardTests
 {
+    /// <summary>
+    /// Collection roots that re-declare a fixture shape <b>deliberately</b>, mirroring the reasons
+    /// recorded once in <c>FormCraft.ForMudBlazor.UnitTests.Fields.CollectionItemShapeGuardTests</c>.
+    /// </summary>
+    private static readonly IReadOnlySet<Type> DeliberateLocalCopies = new HashSet<Type>
+    {
+        // CollectionRowIdentityTests.StructItemModel (#401, porting #334) - holds a `struct` item,
+        // and the struct IS the test: it proves a keyed collection loop renders and grows a
+        // value-typed TItem without throwing (RowKey falls back to a boxed index for it, since a
+        // struct boxes fresh on every access and has no reference-stable identity to hand a weak
+        // table). Every CollectionItemFixture model is a class, so adopting the fixture would stop
+        // the suite from exercising a value-typed TItem at all.
+        typeof(CollectionRowIdentityTests.StructItemModel),
+    };
+
     [Fact]
     public void No_Suite_Should_Re_Declare_A_Collection_Item_Shape_The_Fixture_Provides()
     {
         // Arrange & Act - the guard as CI runs it, over this assembly.
         var offenders = CollectionItemShapeGuard.FindOffenders(
-            CollectionItemShapeGuard.TestAssemblyTypes(typeof(CollectionItemShapeGuardTests).Assembly));
+            CollectionItemShapeGuard.TestAssemblyTypes(typeof(CollectionItemShapeGuardTests).Assembly),
+            DeliberateLocalCopies);
 
         // Assert - the message has to name the offender AND say what to do, because the reader is a
         // contributor who has just watched a green build turn red on a file they did not touch.
