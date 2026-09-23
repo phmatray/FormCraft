@@ -124,6 +124,16 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         {
             foreach (var collectionField in collectionConfig.CollectionFields)
             {
+                // Hidden collections must not block submission with invisible errors - mirrors the
+                // ordinary-field guard above (:102). ICollectionFieldConfigurationBase exposes only
+                // the static IsVisible flag (no VisibilityCondition), and both adapters' render
+                // loops gate rendering on exactly this flag, so there is nothing else to mirror
+                // (#342).
+                if (!collectionField.IsVisible)
+                {
+                    continue;
+                }
+
                 // ONE traversal produces both message shapes. Asking for them separately meant
                 // running every item field's validator twice per pass, because the flat-message call
                 // already performs the per-item walk internally (#329).
@@ -206,6 +216,8 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         private readonly object _validator;
         private readonly MethodInfo _validateAll;
         private readonly MethodInfo _validateCell;
+        private readonly MethodInfo _formatItemMessage;
+        private readonly MethodInfo _formatItemMessagePrefix;
 
         /// <remarks>
         /// Resolution failures throw here rather than degrading to a no-op. The names come from
@@ -231,6 +243,14 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             _validateCell = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.ValidateItemFieldAsync))
                 ?? throw new InvalidOperationException(
                     $"'{validatorType}' does not declare {nameof(CollectionFieldValidator<TModel, object>.ValidateItemFieldAsync)}.");
+
+            _formatItemMessage = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.FormatItemMessage))
+                ?? throw new InvalidOperationException(
+                    $"'{validatorType}' does not declare {nameof(CollectionFieldValidator<TModel, object>.FormatItemMessage)}.");
+
+            _formatItemMessagePrefix = validatorType.GetMethod(nameof(CollectionFieldValidator<TModel, object>.FormatItemMessagePrefix))
+                ?? throw new InvalidOperationException(
+                    $"'{validatorType}' does not declare {nameof(CollectionFieldValidator<TModel, object>.FormatItemMessagePrefix)}.");
         }
 
         internal Task<CollectionValidationResult> ValidateAllAsync(object model, IServiceProvider services)
@@ -244,6 +264,12 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             => (Task<List<CollectionItemError>>)_validateCell.Invoke(
                 _validator,
                 [model, itemIndex, fieldName, services])!;
+
+        internal string FormatItemMessage(CollectionItemError itemError)
+            => (string)_formatItemMessage.Invoke(_validator, [itemError])!;
+
+        internal string FormatItemMessagePrefix(int itemIndex, string fieldName)
+            => (string)_formatItemMessagePrefix.Invoke(_validator, [itemIndex, fieldName])!;
     }
 
     private FieldIdentifier CreateCollectionItemFieldIdentifier(string collectionFieldName, int itemIndex, string itemFieldName)
@@ -337,7 +363,50 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             _messageStore.Add(fieldIdentifier, itemError.Message);
         }
 
+        // Keep the collection's own flat message set (what a ValidationSummary shows) in agreement
+        // with the nested identifier just updated above - otherwise a corrected cell's line
+        // survives in the flat set until the next full pass (#342).
+        RefreshCollectionFlatMessages(collectionField, itemIndex, itemFieldName, itemErrors);
+
         _editContext.NotifyValidationStateChanged();
+    }
+
+    /// <summary>
+    /// Replaces one item field's line(s) in a collection's flat message set with its current
+    /// errors, after a single-cell edit.
+    /// </summary>
+    /// <remarks>
+    /// Reads the flat set's current lines straight out of <see cref="_messageStore" /> (the only
+    /// source of truth already in hand) and removes the edited cell's own line(s) by their
+    /// formatted prefix, rather than recomputing the whole set - recomputing would mean
+    /// revalidating every other row, which is exactly the per-keystroke cost #329 removed from this
+    /// path. See <see cref="CollectionFieldValidator{TModel,TItem}.FormatItemMessagePrefix" /> for
+    /// the one collision this prefix match cannot distinguish.
+    /// </remarks>
+    private void RefreshCollectionFlatMessages(
+        ICollectionFieldConfigurationBase collectionField,
+        int itemIndex,
+        string itemFieldName,
+        List<CollectionItemError> cellErrors)
+    {
+        var invoker = GetInvoker(collectionField);
+        var collectionIdentifier = _editContext!.Field(collectionField.FieldName);
+
+        var prefix = invoker.FormatItemMessagePrefix(itemIndex, itemFieldName);
+        var remaining = _messageStore![collectionIdentifier]
+            .Where(line => !line.StartsWith(prefix, StringComparison.Ordinal))
+            .ToList();
+
+        foreach (var error in cellErrors)
+        {
+            remaining.Add(invoker.FormatItemMessage(error));
+        }
+
+        _messageStore.Clear(collectionIdentifier);
+        foreach (var message in remaining)
+        {
+            _messageStore.Add(collectionIdentifier, message);
+        }
     }
 
     public void Dispose()
