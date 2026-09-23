@@ -196,10 +196,12 @@ public class CustomTemplateTests : FluentUITestBase
     }
 
     /// <summary>
-    /// Collects warning-level log messages so a diagnostic can be asserted on. This adapter has no
-    /// shared diagnostics infrastructure (unlike <c>FormCraft.ForMudBlazor</c>'s
-    /// <c>DiagnosticLog</c>/<c>CapturingLoggerProvider</c>) and this is the only test needing one, so
-    /// it stays local rather than starting a new shared TestSupport type for a single call site.
+    /// Collects warning-level log messages so a diagnostic can be asserted on. The production
+    /// warning path now goes through the shared <c>FormCraft.Diagnostics.FormDiagnosticLog</c>
+    /// (#398), but this project has no shared <c>CapturingLoggerProvider</c> test double of its
+    /// own — unlike <c>FormCraft.ForMudBlazor.UnitTests</c>'s <c>TestSupport</c> one — and this is
+    /// the only test needing one, so it stays local rather than starting a new shared TestSupport
+    /// type for a single call site.
     /// </summary>
     private sealed class CapturingLoggerProvider : ILoggerProvider
     {
