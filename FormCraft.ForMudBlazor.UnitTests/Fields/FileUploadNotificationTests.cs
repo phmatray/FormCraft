@@ -77,6 +77,25 @@ public class FileUploadNotificationTests : MudBlazorTestBase
     }
 
     [Fact]
+    public async Task Clearing_A_Null_Starting_Multiple_File_Upload_Notifies_Zero_Times()
+    {
+        // Arrange - a model whose property is left at its default (null, not an empty list) is
+        // "already empty" the same way an empty list is (#319 review). The guard checked only
+        // `CurrentValue is { Count: 0 }`, which is false for null, so a null-starting field took the
+        // "real change" branch and got assigned+notified with a spurious empty list.
+        var notifications = new List<object?>();
+        var model = new TestModel { Uploads = null };
+        var component = RenderStandaloneMultipleUpload(model, notifications);
+
+        // Act
+        var fileUpload = component.FindComponent<MudFileUpload<IReadOnlyList<IBrowserFile>>>();
+        await component.InvokeAsync(() => fileUpload.Instance.ClearAsync());
+
+        // Assert - null is already "no files"; clearing it must not raise a notification either.
+        notifications.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Selecting_Files_Notifies_Once_With_The_Selected_Files()
     {
         // Arrange - MudFileUpload itself reads the browser's file picker result and raises

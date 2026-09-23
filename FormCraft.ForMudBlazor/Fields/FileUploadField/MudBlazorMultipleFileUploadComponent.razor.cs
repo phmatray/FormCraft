@@ -92,12 +92,13 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
     private void OnFilesChanged(IReadOnlyList<IBrowserFile>? files)
     {
         var next = files ?? new List<IBrowserFile>();
-        if (next.Count == 0 && CurrentValue is { Count: 0 })
+        if (next.Count == 0 && CurrentValue is null or { Count: 0 })
         {
-            // Already empty; MudFileUpload.ClearAsync() still raises FilesChanged(null) even when
+            // Already empty — whether that's a fresh empty list or a null-starting model that was
+            // never touched — MudFileUpload.ClearAsync() still raises FilesChanged(null) even when
             // there was nothing to clear. Without this guard that would be a spurious notification —
             // and CurrentValue's own equality guard can't catch it, since a fresh empty list is never
-            // reference-equal to another empty list instance.
+            // reference-equal to another empty list instance, nor to null (#319 review).
             return;
         }
 
