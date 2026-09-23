@@ -102,7 +102,10 @@ class Build : NukeBuild
             // project for output nobody asked to have cleaned. BuildProjectDirectory is the property
             // Nuke already exposes for "the directory this build is running from", so the exclusion
             // states the reason rather than a project name and survives a rename of _build. #288's
-            // own guard anticipated exactly this predicate and permits `.Where(`.
+            // own guard anticipated exactly this predicate and permits `.Where(`. This supersedes
+            // #275's original "correct and harmless" ruling on sweeping _build — that call was right
+            // about what POSIX measurement showed and never weighed the Windows/chained-invocation
+            // costs above.
             //
             // Materialised before deleting: SelectMany is lazy, so without ToList each project's
             // glob would run after earlier projects had already been deleted. Harmless on today's

@@ -102,9 +102,14 @@ public class BuildTargetsTests
         clean.ShouldContain(
             "BuildProjectDirectory",
             customMessage: "the Clean target no longer excludes the build project's own directory");
+
+        // Anchored between Select and SelectMany rather than matched anywhere in the body: a
+        // .Where(BuildProjectDirectory) placed AFTER SelectMany would filter leaf bin/obj paths
+        // instead of project directories and become a silent no-op, while still satisfying a looser
+        // "the text .Where(...BuildProjectDirectory...) appears somewhere" assertion.
         clean.ShouldMatch(
-            @"\.Where\(\s*\w+\s*=>\s*\w+\s*!=\s*BuildProjectDirectory\s*\)",
-            customMessage: "the exclusion no longer filters the project directories by BuildProjectDirectory");
+            @"\.Select\(\s*\w+\s*=>\s*\w+\.Directory\s*\)\s*\.Where\(\s*\w+\s*=>\s*\w+\s*!=\s*BuildProjectDirectory\s*\)\s*\.SelectMany\(",
+            customMessage: "the BuildProjectDirectory exclusion must sit between Select and SelectMany, not elsewhere in the pipeline");
     }
 
     [Fact]
