@@ -76,7 +76,7 @@ dotnet test FormCraft.ForFluentUI.UnitTests/FormCraft.ForFluentUI.UnitTests.cspr
 
 # Run one class — everything after `--` is forwarded to the test host.
 # Always name the .csproj: run solution-wide, the filter is applied to all three
-# assemblies and the two that match nothing report Failed!, exiting 1.
+# assemblies and the two that match nothing report Zero tests ran, exiting 8.
 dotnet test FormCraft.UnitTests/FormCraft.UnitTests.csproj -c Release \
   -- --filter-class FormCraft.UnitTests.Ci.GitignoreTests
 
@@ -98,7 +98,7 @@ name matches nothing. `--filter-trait` is useless here: no test in this repo car
 is still not wired up (no MTP coverage extension is referenced). ⛔ The MSBuild-property spelling
 `-p:VSTestTestCaseFilter=…` is still **silently inert** — the whole project runs, exit `0`, and not
 even a warning. `FormCraft.UnitTests/Ci/ClaudeMdTestCommandsTests` fails — it is a unit test, so
-`dotnet test` catches this, **not** `dotnet build` — if a `--collect` or `-p:VSTest…` command returns
+`dotnet test` catches this, **not** `dotnet build` — if a `--collect`, `--logger` or `-p:VSTest…` command returns
 to this file.
 
 ⚠️ **A green-looking run may have run nothing.**

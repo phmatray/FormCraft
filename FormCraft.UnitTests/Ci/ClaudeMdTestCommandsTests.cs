@@ -62,13 +62,26 @@ public class ClaudeMdTestCommandsTests
         RegexOptions.Compiled);
 
     /// <summary>
-    /// A VSTest option that does not work under native MTP mode: <c>--collect</c> (fails, exit 5) or
-    /// any <c>-p:VSTest…</c> MSBuild property (silently ignored). Bare <c>--filter</c> is absent on
-    /// purpose — it filters now (#371).
+    /// A VSTest option that does not work under native MTP mode: <c>--collect</c> or <c>--logger</c>
+    /// (both fail, exit 5) or any <c>-p:VSTest…</c> MSBuild property (silently ignored). Bare
+    /// <c>--filter</c> is absent on purpose — it filters now (#371).
     /// </summary>
     private static readonly Regex BrokenVsTestOption = new(
-        @"--collect\b|[-/]p:VSTest\w+",
+        @"--(?:collect|logger)\b|[-/]p:VSTest\w+",
         RegexOptions.Compiled);
+
+    [Theory]
+    [InlineData("dotnet test -p:VSTestTestCaseFilter=FullyQualifiedName~X", true)]
+    [InlineData("dotnet test --collect \"XPlat Code Coverage\"", true)]
+    [InlineData("dotnet test --logger trx", true)]
+    [InlineData("dotnet test FormCraft.UnitTests/FormCraft.UnitTests.csproj -- --filter-class Foo", false)]
+    [InlineData("dotnet test --filter \"FullyQualifiedName~X\"", false)]
+    public void BrokenVsTestOption_Should_Flag_Only_The_Options_Measured_Broken(string command, bool broken)
+    {
+        // Pins the pattern itself: the guard below only asserts "no offender in CLAUDE.md", which
+        // stays green if the pattern is weakened while the file happens to be clean.
+        BrokenVsTestOption.IsMatch(command).ShouldBe(broken);
+    }
 
     private static string ClaudeMdPath => Path.Combine(WorkflowSource.RepoRoot, ClaudeMd);
 
