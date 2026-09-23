@@ -27,7 +27,7 @@ public class RequiredValidator<TModel, TValue> : IFieldValidator<TModel, TValue>
     /// <param name="errorMessage">The error message to display when validation fails. If null, a default message is used.</param>
     public RequiredValidator(string? errorMessage = null)
     {
-        ErrorMessage = errorMessage ?? "This field is required.";
+        ErrorMessage = errorMessage ?? ValidationMessages.RequiredDefault();
     }
 
     /// <summary>
