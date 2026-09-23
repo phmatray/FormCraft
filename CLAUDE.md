@@ -41,8 +41,10 @@ dotnet format FormCraft.sln style        # ...or the IDE* code-style rules only
   `net8.0;net10.0`, and a fix applied once per TFM can land as a literal
   `<<<<<<< TODO: Unmerged change from project 'FormCraft(net10.0)'` conflict block **written into
   the `.cs` file** — code that does not compile (measured in #301 on `FieldRendererBase.cs`).
-  Verify mode never writes, so CI is safe. After any apply run:
-  `grep -rl '<<<<<<< TODO' --include='*.cs' .` and hand-resolve before committing.
+  Verify mode never writes, so CI is safe. **The guard is `FormCraft.UnitTests/Ci/ConflictMarkerTests`**
+  (#347) — it fails `dotnet test` if a tracked `.cs` file carries a marker, so a corrupted file
+  cannot reach `dev` unnoticed. `grep -rl '<<<<<<< TODO' --include='*.cs' .` is still useful as a
+  quick diagnostic right after an apply run, but the test is what actually enforces this.
 - ⚠️ **One `dotnet format` run does not always reach a fixpoint.** Measured in #301: after formatting
   a `field`-keyword property, verify still reported three `WHITESPACE` diagnostics on it, and a
   second run cleared them. If `./build.sh Format` fails right after you formatted, run the formatter
