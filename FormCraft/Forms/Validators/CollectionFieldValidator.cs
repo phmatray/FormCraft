@@ -253,8 +253,17 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
     /// <param name="model">The parent model instance.</param>
     /// <param name="services">The service provider for dependency injection.</param>
     /// <returns>A list of structured per-item validation errors. Empty if validation passed.</returns>
-    public Task<List<CollectionItemError>> ValidateItemsAsync(TModel model, IServiceProvider services)
-        => ValidateItemsAsync(_configuration.CollectionAccessor(model), services);
+    /// <remarks>
+    /// <c>async</c> deliberately, though the body is one call: a non-async wrapper would evaluate
+    /// <c>_configuration.CollectionAccessor(model)</c> as a plain argument, and an exception from a
+    /// misbehaving accessor would then escape synchronously from this method call instead of
+    /// completing the returned <see cref="Task" /> as faulted - a caller that awaits elsewhere in a
+    /// <c>try</c>/<c>catch</c> (or collects the task for <see cref="Task.WhenAll(Task[])" />) would
+    /// see it differently than before. Marking this <c>async</c> keeps that guarantee external
+    /// callers already had (#344).
+    /// </remarks>
+    public async Task<List<CollectionItemError>> ValidateItemsAsync(TModel model, IServiceProvider services)
+        => await ValidateItemsAsync(_configuration.CollectionAccessor(model), services);
 
     /// <summary>
     /// The item traversal itself, given an already-resolved collection. <see cref="ValidateAllAsync"/>
