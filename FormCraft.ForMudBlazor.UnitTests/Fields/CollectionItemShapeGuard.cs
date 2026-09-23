@@ -93,38 +93,60 @@ internal static class CollectionItemShapeGuard
             .Select(t => t.GetGenericArguments()[0]);
 
     /// <summary>
-    /// Whether <paramref name="type"/> is a <i>shared</i> model — declared at namespace scope rather
-    /// than nested inside a test class.
+    /// Whether <paramref name="type"/> is a <i>shared</i> model — declared in the fixture's own
+    /// assembly, <c>FormCraft.TestSupport</c>.
     /// </summary>
     /// <remarks>
-    /// This is the whole ownership rule. A copy is `private`, which in C# means nested, which is what
-    /// lets it shadow the namespace-scope original. Deriving ownership this way means a model added to
-    /// the fixture tomorrow is shared by construction — nothing to remember, nothing to enrol.
+    /// <para>
+    /// Re-keyed in #343 from "namespace scope vs nested" to this. The old rule — <c>DeclaringType is
+    /// null</c> — conflated two different things that happened to coincide as long as the fixture and
+    /// every suite that might copy it lived in one assembly: "declared by the fixture" and "declared
+    /// at namespace scope, wherever that is". They stopped coinciding the moment a second test
+    /// assembly (Fluent UI's) could declare its own namespace-scope, public model — which the old rule
+    /// would have called shared for the same reason it called the fixture's own models shared, and so
+    /// would never have flagged as an offender at all.
+    /// </para>
+    /// <para>
+    /// Deriving ownership from the declaring assembly rather than a hand-maintained roster means a
+    /// model added to the fixture tomorrow is shared by construction — nothing to remember, nothing to
+    /// enrol — which is the property the old rule had and this one keeps.
+    /// </para>
     /// </remarks>
-    internal static bool IsSharedShape(Type type) => type.DeclaringType is null;
+    internal static bool IsSharedShape(Type type) => type.Assembly == typeof(CollectionItemFixture).Assembly;
 
     /// <summary>
-    /// Every type declared in the test assembly, including nested and non-public ones, minus the
-    /// compiler's own.
+    /// Every type declared in <paramref name="assembly"/> <b>and</b> in the fixture's own assembly,
+    /// including nested and non-public ones, minus the compiler's own.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// Takes the caller's assembly explicitly (#343) rather than reading its own — each adapter suite
+    /// runs the guard over itself, so a hard-coded <c>typeof(CollectionItemShapeGuard).Assembly</c>
+    /// would always report on whichever assembly happens to declare this guard, never on the caller's.
+    /// </para>
+    /// <para>
+    /// Always includes the fixture's assembly too, union'd in: <c>Assembly.GetTypes()</c> only ever
+    /// returns types <i>declared</i> in the assembly it is called on, and every comparison below needs
+    /// the fixture's own shared models in the universe to compare a candidate copy against — scanning
+    /// the caller alone would find plenty of local candidates and nothing shared to match them to,
+    /// which is silence, not a passing check.
+    /// </para>
+    /// <para>
     /// The nested/non-public part is load-bearing: every model this guard exists to catch is a
     /// <c>private class</c> inside a test class, so a scan of public top-level types would find none of
     /// them. Iterator state machines, lambda display classes and async builders carry
     /// <see cref="CompilerGeneratedAttribute"/> and are dropped as noise.
+    /// </para>
     /// <para>
     /// A partially-unloadable assembly degrades to "scan what loaded" rather than throwing: a check
     /// meant to be trusted must not turn a dependency bump into an opaque type-load stack trace that
     /// says nothing about the rule it enforces.
     /// </para>
     /// </remarks>
-    internal static IEnumerable<Type> TestAssemblyTypes()
+    /// <param name="assembly">The consuming test assembly to scan — pass the caller's own.</param>
+    internal static IEnumerable<Type> TestAssemblyTypes(Assembly assembly)
     {
-        // Two assemblies, not one, since #343: the models moved to FormCraft.TestSupport, and
-        // Assembly.GetTypes() only ever returns types DECLARED in the assembly it is called on, so
-        // scanning this assembly alone would no longer see them at all - emptying the "shared" side
-        // of every comparison below and silently disabling the guard rather than reporting anything.
-        return new[] { typeof(CollectionItemShapeGuard).Assembly, typeof(CollectionItemFixture).Assembly }
+        return new[] { assembly, typeof(CollectionItemFixture).Assembly }
             .Distinct()
             .SelectMany(TypesOf);
     }

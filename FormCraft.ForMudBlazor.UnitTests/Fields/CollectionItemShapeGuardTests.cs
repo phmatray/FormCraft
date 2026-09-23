@@ -59,7 +59,8 @@ public class CollectionItemShapeGuardTests
     {
         // Arrange & Act - the guard as CI runs it, over the whole assembly.
         var offenders = CollectionItemShapeGuard.FindOffenders(
-            CollectionItemShapeGuard.TestAssemblyTypes().Where(t => t.DeclaringType != typeof(Offending)),
+            CollectionItemShapeGuard.TestAssemblyTypes(typeof(CollectionItemShapeGuardTests).Assembly)
+                .Where(t => t.DeclaringType != typeof(Offending)),
             DeliberateLocalCopies);
 
         // Assert - the message has to name the offender AND say what to do, because the reader is a
@@ -78,7 +79,7 @@ public class CollectionItemShapeGuardTests
         // adopts the fixture, and a stale entry is worse than none: it silently absolves a FUTURE
         // re-declaration of that same type. This is the same failure the file's header describes for
         // the detection path — a check that has quietly stopped checking still reports green.
-        var universe = CollectionItemShapeGuard.TestAssemblyTypes()
+        var universe = CollectionItemShapeGuard.TestAssemblyTypes(typeof(CollectionItemShapeGuardTests).Assembly)
             .Where(t => t.DeclaringType != typeof(Offending))
             .ToList();
 
@@ -273,6 +274,19 @@ public class CollectionItemShapeGuardTests
         CollectionItemShapeGuard.IsSharedShape(typeof(SingleStringA)).ShouldBeFalse();
     }
 
+    [Fact]
+    public void IsSharedShape_Should_Require_Declaration_In_The_Fixture_Assembly_Not_Just_Namespace_Scope()
+    {
+        // Arrange & Act - a namespace-scope, PUBLIC type declared in THIS assembly (not nested, and
+        // not in FormCraft.TestSupport, the fixture's own assembly) must NOT read as shared. The old
+        // rule ("DeclaringType is null") called any namespace-scope type shared regardless of which
+        // assembly declared it - which is exactly what would have let a Fluent UI suite's own
+        // namespace-scope copy pass unnoticed once the guard was pointed at a second assembly (#343):
+        // CollectionFieldSubmitTests.OrderModel there is namespace-scope, not nested, so the nesting
+        // rule alone would have called it shared and skipped it rather than flagging it.
+        CollectionItemShapeGuard.IsSharedShape(typeof(NamespaceScopeLocalCopy)).ShouldBeFalse();
+    }
+
     private class OrderedOneWay
     {
         public string Name { get; set; } = string.Empty;
@@ -369,4 +383,18 @@ public class CollectionItemShapeGuardTests
             public List<BasketLine> Lines { get; set; } = new();
         }
     }
+}
+
+/// <summary>
+/// Namespace-scope and public — like a re-declared model in a suite that has no idea the fixture
+/// exists — but declared in <c>FormCraft.ForMudBlazor.UnitTests</c>, not in the fixture's own
+/// <c>FormCraft.TestSupport</c> assembly. Deliberately NOT nested inside
+/// <see cref="CollectionItemShapeGuardTests"/>: the old ownership rule ("DeclaringType is null")
+/// would have called this shared for exactly that reason, which is the bug
+/// <c>IsSharedShape_Should_Require_Declaration_In_The_Fixture_Assembly_Not_Just_Namespace_Scope</c>
+/// exists to pin (#343).
+/// </summary>
+public class NamespaceScopeLocalCopy
+{
+    public string Secret { get; set; } = string.Empty;
 }
