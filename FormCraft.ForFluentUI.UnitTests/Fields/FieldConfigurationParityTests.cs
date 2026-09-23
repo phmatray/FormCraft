@@ -155,14 +155,14 @@ public class FieldConfigurationParityTests : FluentUITestBase
             .Add(p => p.Configuration, AutocompleteConfig(v => v)));
 
         component.FindComponent<FluentAutocomplete<SelectOption<string>, string>>()
-            .Instance.SelectedItem?.Label.ShouldBe("abc");
+            .Instance.SelectedItem.ShouldNotBeNull().Label.ShouldBe("abc");
 
         // Act - a DIFFERENT configuration for the same field, with a different display function.
         component.Render(parameters => parameters
             .Add(p => p.Configuration, AutocompleteConfig(v => v.ToUpperInvariant())));
 
         component.FindComponent<FluentAutocomplete<SelectOption<string>, string>>()
-            .Instance.SelectedItem?.Label.ShouldBe("ABC");
+            .Instance.SelectedItem.ShouldNotBeNull().Label.ShouldBe("ABC");
     }
 
     // -----------------------------------------------------------------------------------------
@@ -220,6 +220,12 @@ public class FieldConfigurationParityTests : FluentUITestBase
     /// Every field-type component with a row above. Kept as the single source of truth the guard
     /// reads, so the suite and the guard cannot drift apart.
     /// </summary>
+    /// <remarks>
+    /// ⚠️ <b>Known ceiling:</b> this list is hand-maintained, not derived from the <c>[Fact]</c>
+    /// methods above. The guard proves <c>universe ⊆ CoveredComponents ∪ ExemptComponents</c>; it does
+    /// not prove <c>CoveredComponents</c> is exactly the set of types with a real row — a type added
+    /// here without a matching row would pass silently. Keep the two in step by hand.
+    /// </remarks>
     private static readonly IReadOnlySet<Type> CoveredComponents = new HashSet<Type>
     {
         typeof(FluentUITextFieldComponent<>),

@@ -305,6 +305,12 @@ public class FieldConfigurationParityTests : MudBlazorTestBase
     /// reads, so the suite and the guard cannot drift apart the way #308's hand-maintained coverage
     /// did.
     /// </summary>
+    /// <remarks>
+    /// ⚠️ <b>Known ceiling:</b> this list is hand-maintained, not derived from the <c>[Fact]</c>
+    /// methods above. The guard proves <c>universe ⊆ CoveredComponents ∪ ExemptComponents</c>; it does
+    /// not prove <c>CoveredComponents</c> is exactly the set of types with a real row — a type added
+    /// here without a matching row would pass silently. Keep the two in step by hand.
+    /// </remarks>
     private static readonly IReadOnlySet<Type> CoveredComponents = new HashSet<Type>
     {
         typeof(MudBlazorTextFieldComponent<>),
