@@ -252,7 +252,7 @@ public static class AutoFormBuilderExtensions
         var required = prop.GetCustomAttribute<RequiredAttribute>();
         if (required != null)
         {
-            field.Required(required.ErrorMessage ?? $"{label} is required");
+            field.Required(required.ErrorMessage ?? ValidationMessages.Required(label));
         }
 
         var emailAddress = prop.GetCustomAttribute<EmailAddressAttribute>();
@@ -268,14 +268,14 @@ public static class AutoFormBuilderExtensions
             if (minLength != null)
             {
                 stringField.WithMinLength(minLength.Length,
-                    minLength.ErrorMessage ?? $"Must be at least {minLength.Length} characters");
+                    minLength.ErrorMessage ?? ValidationMessages.MinLength(minLength.Length));
             }
 
             var maxLength = prop.GetCustomAttribute<MaxLengthAttribute>();
             if (maxLength != null)
             {
                 stringField.WithMaxLength(maxLength.Length,
-                    maxLength.ErrorMessage ?? $"Must be no more than {maxLength.Length} characters");
+                    maxLength.ErrorMessage ?? ValidationMessages.MaxLength(maxLength.Length));
             }
 
             var stringLength = prop.GetCustomAttribute<StringLengthAttribute>();
@@ -284,11 +284,11 @@ public static class AutoFormBuilderExtensions
                 if (stringLength.MinimumLength > 0)
                 {
                     stringField.WithMinLength(stringLength.MinimumLength,
-                        stringLength.ErrorMessage ?? $"Must be at least {stringLength.MinimumLength} characters");
+                        stringLength.ErrorMessage ?? ValidationMessages.MinLength(stringLength.MinimumLength));
                 }
 
                 stringField.WithMaxLength(stringLength.MaximumLength,
-                    stringLength.ErrorMessage ?? $"Must be no more than {stringLength.MaximumLength} characters");
+                    stringLength.ErrorMessage ?? ValidationMessages.MaxLength(stringLength.MaximumLength));
             }
         }
 
@@ -298,7 +298,7 @@ public static class AutoFormBuilderExtensions
             field.WithAttribute("min", range.Minimum);
             field.WithAttribute("max", range.Maximum);
             field.WithValidator(value => value == null || range.IsValid(value),
-                range.ErrorMessage ?? $"Must be between {range.Minimum} and {range.Maximum}");
+                range.ErrorMessage ?? ValidationMessages.RangeBetween(range.Minimum, range.Maximum));
         }
     }
 

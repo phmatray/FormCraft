@@ -56,7 +56,7 @@ public static class AttributeFormBuilderExtensions
                             // Empty values pass the format check; requiredness is controlled by [Required]
                             field.WithValidator(value =>
                                     string.IsNullOrEmpty(value) || (value.Contains("@") && value.Contains(".")),
-                                "Please enter a valid email address");
+                                ValidationMessages.InvalidEmail());
                         }
 
                         ApplyValidationAttributes(field, prop, emailAttr.Label);
@@ -86,7 +86,7 @@ public static class AttributeFormBuilderExtensions
                         if (textAreaAttr.MaxLength.HasValue)
                         {
                             field.WithMaxLength(textAreaAttr.MaxLength.Value,
-                                $"Must be no more than {textAreaAttr.MaxLength.Value} characters");
+                                ValidationMessages.MaxLength(textAreaAttr.MaxLength.Value));
                         }
 
                         if (textAreaAttr.AutoResize)
@@ -337,7 +337,7 @@ public static class AttributeFormBuilderExtensions
         var required = prop.GetCustomAttribute<RequiredAttribute>();
         if (required != null)
         {
-            field.Required(required.ErrorMessage ?? $"{label} is required");
+            field.Required(required.ErrorMessage ?? ValidationMessages.Required(label));
         }
 
         // Only apply string-specific validations for string fields
@@ -348,13 +348,13 @@ public static class AttributeFormBuilderExtensions
                 var minLength = prop.GetCustomAttribute<MinLengthAttribute>();
                 if (minLength != null)
                 {
-                    stringField.WithMinLength(minLength.Length, minLength.ErrorMessage ?? $"Must be at least {minLength.Length} characters");
+                    stringField.WithMinLength(minLength.Length, minLength.ErrorMessage ?? ValidationMessages.MinLength(minLength.Length));
                 }
 
                 var maxLength = prop.GetCustomAttribute<MaxLengthAttribute>();
                 if (maxLength != null)
                 {
-                    stringField.WithMaxLength(maxLength.Length, maxLength.ErrorMessage ?? $"Must be no more than {maxLength.Length} characters");
+                    stringField.WithMaxLength(maxLength.Length, maxLength.ErrorMessage ?? ValidationMessages.MaxLength(maxLength.Length));
                 }
             }
         }
@@ -365,7 +365,7 @@ public static class AttributeFormBuilderExtensions
             field.WithAttribute("min", range.Minimum);
             field.WithAttribute("max", range.Maximum);
             field.WithValidator(value => value == null || range.IsValid(value),
-                range.ErrorMessage ?? $"Must be between {range.Minimum} and {range.Maximum}");
+                range.ErrorMessage ?? ValidationMessages.RangeBetween(range.Minimum, range.Maximum));
         }
 
         var pattern = prop.GetCustomAttribute<RegularExpressionAttribute>();
@@ -380,7 +380,7 @@ public static class AttributeFormBuilderExtensions
                 }
 
                 return System.Text.RegularExpressions.Regex.IsMatch(value.ToString()!, pattern.Pattern);
-            }, pattern.ErrorMessage ?? "Invalid format");
+            }, pattern.ErrorMessage ?? ValidationMessages.InvalidFormat());
         }
     }
 

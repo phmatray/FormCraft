@@ -36,14 +36,14 @@ public static class FluentFormBuilderExtensions
             return builder.AddField(expression, field =>
             {
                 field.WithLabel(label)
-                    .Required($"{label} is required");
+                    .Required(ValidationMessages.Required(label));
 
                 if (minLength > 1)
                 {
-                    field.WithMinLength(minLength, $"Must be at least {minLength} characters");
+                    field.WithMinLength(minLength, ValidationMessages.MinLength(minLength));
                 }
 
-                field.WithMaxLength(maxLength, $"Must be no more than {maxLength} characters");
+                field.WithMaxLength(maxLength, ValidationMessages.MaxLength(maxLength));
 
                 if (!string.IsNullOrEmpty(placeholder))
                 {
@@ -73,7 +73,7 @@ public static class FluentFormBuilderExtensions
             return builder.AddField(expression, field =>
             {
                 field.WithLabel(label)
-                    .Required($"{label} is required")
+                    .Required(ValidationMessages.Required(label))
                     .WithEmailValidation()
                     .WithPlaceholder(placeholder ?? "your.email@example.com");
             });
@@ -107,7 +107,7 @@ public static class FluentFormBuilderExtensions
 
                 if (required)
                 {
-                    field.Required($"{label} is required");
+                    field.Required(ValidationMessages.Required(label));
                 }
 
                 var hasMin = min != int.MinValue;
@@ -147,7 +147,7 @@ public static class FluentFormBuilderExtensions
 
                 if (required)
                 {
-                    field.Required($"{label} is required");
+                    field.Required(ValidationMessages.Required(label));
                 }
 
                 var hasMin = min != decimal.MinValue;
@@ -190,11 +190,11 @@ public static class FluentFormBuilderExtensions
 
                 if (required)
                 {
-                    field.Required($"{label} is required");
+                    field.Required(ValidationMessages.Required(label));
                 }
 
                 // Ensure non-negative values for currency
-                field.WithRange(0, decimal.MaxValue, "Amount must be positive");
+                field.WithRange(0, decimal.MaxValue, ValidationMessages.AmountPositive());
             });
         }
 
@@ -219,11 +219,11 @@ public static class FluentFormBuilderExtensions
                 field.WithLabel(label)
                     .WithPlaceholder("0.00")
                     .WithHelpText("Enter percentage (0-100)")
-                    .WithRange(0, 100, "Percentage must be between 0 and 100");
+                    .WithRange(0, 100, ValidationMessages.PercentageRange());
 
                 if (required)
                 {
-                    field.Required($"{label} is required");
+                    field.Required(ValidationMessages.Required(label));
                 }
             });
         }
@@ -250,7 +250,7 @@ public static class FluentFormBuilderExtensions
             return builder.AddField(expression, field =>
             {
                 field.WithLabel(label)
-                    .Required($"Please select {label}")
+                    .Required(ValidationMessages.RequiredSelect(label))
                     .WithOptions(options);
             });
         }
@@ -276,11 +276,11 @@ public static class FluentFormBuilderExtensions
                 field.WithLabel(label)
                     .WithPlaceholder("(555) 123-4567")
                     .WithValidator(phone => string.IsNullOrEmpty(phone) || IsValidPhone(phone),
-                        "Please enter a valid phone number");
+                        ValidationMessages.InvalidPhone());
 
                 if (required)
                 {
-                    field.Required($"{label} is required");
+                    field.Required(ValidationMessages.Required(label));
                 }
             });
         }
@@ -307,14 +307,14 @@ public static class FluentFormBuilderExtensions
             {
                 field.WithLabel(label)
                     .WithInputType("password")
-                    .Required($"{label} is required")
-                    .WithMinLength(minLength, $"Must be at least {minLength} characters");
+                    .Required(ValidationMessages.Required(label))
+                    .WithMinLength(minLength, ValidationMessages.MinLength(minLength));
 
                 if (requireSpecialChars)
                 {
                     field.WithValidator(password =>
                             string.IsNullOrEmpty(password) || HasSpecialCharacters(password),
-                        "Must contain at least one special character");
+                        ValidationMessages.SpecialCharacterRequired());
                 }
             });
         }
@@ -353,10 +353,10 @@ public static class FluentFormBuilderExtensions
     private static string BuildRangeMessage<TValue>(bool hasMin, bool hasMax, TValue min, TValue max)
     {
         return hasMin && hasMax
-            ? $"Must be between {min} and {max}"
+            ? ValidationMessages.RangeBetween(min, max)
             : hasMin
-                ? $"Must be at least {min}"
-                : $"Must be at most {max}";
+                ? ValidationMessages.RangeAtLeast(min)
+                : ValidationMessages.RangeAtMost(max);
     }
 
     private static bool IsValidPhone(string phone)
@@ -411,7 +411,7 @@ public static class FluentFormBuilderExtensions
 
             if (required)
             {
-                field.Required($"{label} is required");
+                field.Required(ValidationMessages.Required(label));
             }
         });
     }
@@ -452,7 +452,7 @@ public static class FluentFormBuilderExtensions
 
             if (required)
             {
-                field.Required($"At least one {label.ToLower()} is required");
+                field.Required(ValidationMessages.RequiredAtLeastOne(label.ToLower()));
             }
         });
     }

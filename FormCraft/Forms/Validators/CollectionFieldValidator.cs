@@ -135,13 +135,13 @@ public class CollectionFieldValidator<TModel, TItem>
         // Validate min items
         if (_configuration.MinItems > 0 && itemCount < _configuration.MinItems)
         {
-            errors.Add($"{_configuration.Label ?? _configuration.FieldName} requires at least {_configuration.MinItems} item(s).");
+            errors.Add(ValidationMessages.CollectionMinItems(_configuration.Label ?? _configuration.FieldName, _configuration.MinItems));
         }
 
         // Validate max items
         if (_configuration.MaxItems > 0 && itemCount > _configuration.MaxItems)
         {
-            errors.Add($"{_configuration.Label ?? _configuration.FieldName} allows at most {_configuration.MaxItems} item(s).");
+            errors.Add(ValidationMessages.CollectionMaxItems(_configuration.Label ?? _configuration.FieldName, _configuration.MaxItems));
         }
 
         foreach (var itemError in itemErrors)
