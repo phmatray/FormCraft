@@ -1,3 +1,4 @@
+using FormCraft.ForMudBlazor.UnitTests.TestSupport;
 using Microsoft.Extensions.Logging;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
@@ -79,12 +80,6 @@ public class ShrinkLabelDiagnosticCollectorTests
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.AddProvider(provider));
         return services.BuildServiceProvider();
-    }
-
-    private sealed class ThrowingServiceProvider : IServiceProvider
-    {
-        public object? GetService(Type serviceType) =>
-            throw new InvalidOperationException("Cannot access a disposed scope.");
     }
 
     private sealed class CapturingLoggerProvider : ILoggerProvider
