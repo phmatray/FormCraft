@@ -256,7 +256,12 @@ class Build : NukeBuild
             // invocation this replaced ran both assemblies and reported both, so failing fast here
             // would be a real regression in diagnosis rather than a stylistic choice. Recorded and
             // re-thrown below.
-            var failed = new List<string>();
+            // Holds the Project instances themselves, not their names, so the "did not complete"
+            // summary below can share ResultsDirectoryFor with the run and the guard rather than
+            // hand-rolling the same path a third time (#339). Membership is tested by reference
+            // equality (List<Project>.Contains uses default equality), which is sound here because
+            // every entry always originates in testProjects.
+            var failed = new List<Project>();
 
             // One home for the path, because the run and the guard below have to agree on it: if
             // they ever computed it differently the guard would inspect a directory nothing wrote
@@ -288,7 +293,7 @@ class Build : NukeBuild
                     // the only evidence of which kind it was. Hence "did not complete" rather than
                     // "tests failed" in the summary below: this list cannot tell the two apart, and
                     // claiming the narrower one sends the reader to the wrong place.
-                    failed.Add(project.Name);
+                    failed.Add(project);
                     Serilog.Log.Error(exception, "{Project} did not complete", project.Name);
                 }
             }
@@ -336,7 +341,7 @@ class Build : NukeBuild
             // entry per (project, kind): a suite that emitted neither report is one problem to go
             // and look at, not two.
             var missingReports = testProjects
-                .Where(project => !failed.Contains(project.Name))
+                .Where(project => !failed.Contains(project))
                 .Select(project => (
                     Project: project,
                     Missing: ReporterBackedReports
@@ -383,7 +388,7 @@ class Build : NukeBuild
                     "did not complete: "
                     + string.Join(
                         ", ",
-                        failed.Select(name => $"{name} (reports, if any, in {TestResultsDirectory / name})")));
+                        failed.Select(project => $"{project.Name} (reports, if any, in {ResultsDirectoryFor(project)})")));
             }
 
             if (problems.Count > 0)

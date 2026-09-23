@@ -648,14 +648,85 @@ public class TestReportingTests
         // The list's own identifier is wildcarded along with the lambda parameter, per the policy
         // stated two blocks above: renaming `failed` — arguably an improvement, since its comment
         // says it cannot tell a red suite from a crashed host — is a refactor this has no business
-        // reddening on. What is required is that a negated membership test on the project's name
-        // still stands between the project set and the glob.
+        // reddening on. What is required is that a negated membership test on the project itself
+        // still stands between the project set and the glob. #339 moved `failed` from
+        // `List<string>` to `List<Project>` so the failure summary could share `ResultsDirectoryFor`
+        // with this guard instead of hand-rolling the same path a third time, so the membership test
+        // is no longer anchored on `.Name` — asserting `.Name` here would reject the fix this issue
+        // asks for.
         var build = WorkflowSource.BuildScript;
 
         build.ShouldMatch(
-            @"\.Where\(\s*\w+\s*=>\s*!\w+\.Contains\(\w+\.Name\)\)[\s\S]{0,400}?ReporterBackedReports",
+            @"\.Where\(\s*\w+\s*=>\s*!\w+\.Contains\(\w+\)\)[\s\S]{0,400}?ReporterBackedReports",
             "the report guard no longer excludes projects that did not complete, so a crashed suite "
             + "is reported twice — once as failed, once as a reporter regression that never happened");
+
+        // #339: the "did not complete" summary used to compose `TestResultsDirectory / name` by
+        // hand instead of calling `ResultsDirectoryFor` like the run and the guard above already
+        // do — a comment claiming "one home for the path" that the code did not actually hold.
+        // Pinned here so a future edit cannot quietly reintroduce the hand-rolled composition.
+        // The list's own identifier is wildcarded, per this method's own policy stated above
+        // (spec-review finding, #339): a hardcoded `failed.Select` would redden on the same
+        // rename this test already promises not to mind.
+        build.ShouldMatch(
+            @"\w+\.Select\(\s*\w+\s*=>\s*\$""\{[\w.]*Name\}[\s\S]{0,80}?ResultsDirectoryFor\(\w+\)",
+            "the \"did not complete\" summary does not get its directory from ResultsDirectoryFor");
+    }
+
+    /// <summary>
+    /// Guards the invariant #339 restores: a project's results directory has exactly one
+    /// definition (<c>ResultsDirectoryFor</c>), and every other reader of that path — the run, the
+    /// report guard, the "did not complete" summary, and any reader added later — goes through it
+    /// rather than composing <c>TestResultsDirectory / &lt;x&gt;</c> by hand. Structural rather than
+    /// a regex pinned to today's three callers, so a *fourth* hand-rolled derivation fails this test
+    /// on sight instead of waiting for someone to notice the comment no longer describes the code.
+    /// </summary>
+    [Fact]
+    public void BuildScript_Should_Derive_The_Results_Directory_In_Exactly_One_Place()
+    {
+        var build = WorkflowSource.BuildScript;
+
+        // Every `TestResultsDirectory / <something>` composition in the file, captured up to the
+        // first character that cannot appear inside one of the shapes below — a statement
+        // terminator, an argument separator, or the closing paren of the call it sits in.
+        var compositions = Regex.Matches(build, @"\bTestResultsDirectory\s*/\s*[^;,)\r\n]+")
+            .Select(match => match.Value.Trim())
+            .ToList();
+
+        // The only two shapes allowed to compose the path directly: ResultsDirectoryFor's own
+        // definition (the single source), and the two .Produces promises — which describe the
+        // shape of the directory on disk rather than resolve a path at runtime, so they are not the
+        // "derivation" this test is about (see Test_Target_Should_Promise_Its_Artifacts_Recursively).
+        // Matched by SHAPE, with identifiers wildcarded, rather than pinned to today's parameter
+        // names (verification-gap finding, #339): renaming ResultsDirectoryFor's parameter or the
+        // .Produces lambda's own is a refactor this test has no business reddening on — only the
+        // string literals are pinned, since ".Produces" describes a glob, not a variable.
+        string[] allowedShapes =
+        [
+            @"^TestResultsDirectory / \w+\.Name$",
+            @"^TestResultsDirectory / ""\*\*"" / \w+$",
+            @"^TestResultsDirectory / ""\*\*/\*\.log""$",
+        ];
+
+        var stray = compositions
+            .Where(c => !allowedShapes.Any(shape => Regex.IsMatch(c, shape)))
+            .ToList();
+
+        // Shouldly prints the collection on failure, so this names the offending composition.
+        stray.ShouldBeEmpty(
+            "a project's results directory is composed somewhere other than ResultsDirectoryFor or "
+            + "the .Produces promises — route it through ResultsDirectoryFor instead (#339)");
+
+        // `stray` alone dedups by SHAPE, not by count: a second, hand-rolled
+        // `TestResultsDirectory / project.Name` planted anywhere else `project` is in scope reads as
+        // an "allowed" shape too, so it would slip past the check above unflagged — exactly the
+        // fourth-derivation regression this test exists to catch, just spelled identically in shape
+        // to one of the three legitimate ones instead of differently (code-review finding, #339).
+        // Each allowed shape is expected exactly once, so the total count is asserted too.
+        compositions.Count.ShouldBe(
+            allowedShapes.Length,
+            $"found {compositions.Count} TestResultsDirectory composition(s), expected exactly "
+            + $"{allowedShapes.Length} (one per allowed shape) — compositions: {string.Join(" | ", compositions)}");
     }
 
     [Fact]
