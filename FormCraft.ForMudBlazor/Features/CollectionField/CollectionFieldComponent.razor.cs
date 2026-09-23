@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
@@ -24,28 +25,50 @@ public partial class CollectionFieldComponent<TModel, TItem>
     where TItem : new()
 {
     /// <summary>
-    /// Each row's delete button, by index — the focus targets for a removal (#318).
+    /// Each row's delete button, by <see cref="RowKey"/> — the focus targets for a removal (#318).
     /// </summary>
     /// <remarks>
-    /// Keyed by index rather than held as a single reference because these controls are rendered per
-    /// row: a removal has to focus the button that takes the vacated slot, which is a different one
-    /// each time. Entries deliberately outlive the rows that produced them — see
-    /// <see cref="DeleteButtonAt"/> for why pruning is the wrong fix and what guards staleness
-    /// instead.
+    /// Keyed by row IDENTITY rather than held as a single reference because these controls are
+    /// rendered per row: a removal has to focus the button that takes the vacated slot, which is a
+    /// different one each time. Keyed by <see cref="RowKey"/> — not by plain index — since #334: the
+    /// row's own <c>@key</c> can now move a surviving row's whole subtree (buttons included) to a
+    /// different index, and a component's <c>@ref</c> fires only once, at creation, so an
+    /// index-keyed dictionary would go stale the moment a row moved. Entries deliberately outlive the
+    /// rows that produced them — see <see cref="DeleteButtonAt"/> for why pruning is the wrong fix and
+    /// what guards staleness instead.
     /// </remarks>
-    private readonly Dictionary<int, MudIconButton> _deleteButtons = new();
+    private readonly Dictionary<object, MudIconButton> _deleteButtons = new();
 
-    /// <summary>Each row's reorder buttons, by index. Same capture rules as <see cref="_deleteButtons"/>.</summary>
-    private readonly Dictionary<int, MudIconButton> _moveUpButtons = new();
+    /// <summary>Each row's reorder buttons, by <see cref="RowKey"/>. Same capture rules as <see cref="_deleteButtons"/>.</summary>
+    private readonly Dictionary<object, MudIconButton> _moveUpButtons = new();
 
     /// <inheritdoc cref="_moveUpButtons"/>
-    private readonly Dictionary<int, MudIconButton> _moveDownButtons = new();
+    private readonly Dictionary<object, MudIconButton> _moveDownButtons = new();
 
     /// <summary>
-    /// Each row's header element, by index — the focus target when a row has no usable control to
-    /// take focus. Element references, unlike component references, are re-captured every render.
+    /// Each row's header element, by <see cref="RowKey"/> — the focus target when a row has no usable
+    /// control to take focus. Element references, unlike component references, are re-captured every
+    /// render, so keying them by row identity costs nothing extra; it is done anyway so every focus
+    /// dictionary in this component shares one lookup key.
     /// </summary>
-    private readonly Dictionary<int, ElementReference> _rowHeaders = new();
+    private readonly Dictionary<object, ElementReference> _rowHeaders = new();
+
+    /// <summary>
+    /// Weak per-item tokens, minted once per item instance and reused for its lifetime — the
+    /// mechanism behind <see cref="RowKey"/> (#334).
+    /// </summary>
+    /// <remarks>
+    /// A <see cref="ConditionalWeakTable{TKey,TValue}"/> compares KEYS by reference, never by
+    /// <c>Equals</c> — the property #308's reverted <c>@key="Items[index]"</c> was missing. That
+    /// attempt keyed on the item itself, so two rows whose items compared EQUAL (a <c>record</c>, a
+    /// <c>struct</c>, or any <c>Equals</c>-overriding class) collided into Blazor's duplicate-key
+    /// render exception. A token is a fresh, unique <see cref="object"/> minted once per item
+    /// instance and never compared by value, so two equal-by-value rows still get two different
+    /// tokens. Weak, and never written to by this component's own Add/Remove/Move: it stays correct
+    /// even when <see cref="Items"/> — the CALLER's list — is mutated from outside, and an item that
+    /// leaves the list is collected normally once nothing else references it.
+    /// </remarks>
+    private readonly ConditionalWeakTable<object, object> _rowTokens = new();
 
     /// <summary>The <b>Add</b> button, when one is rendered — the second focus target in the chain.</summary>
     private MudButton? _addButton;
@@ -132,6 +155,62 @@ public partial class CollectionFieldComponent<TModel, TItem>
     }
 
     private List<TItem> Items => Configuration.CollectionAccessor(Model);
+
+    /// <summary>
+    /// This row's identity (#334) — a per-item weak token for a reference-type item that appears
+    /// only once in <see cref="Items"/>; a boxed <paramref name="index"/> otherwise. Used both as the
+    /// row's <c>@key</c> and as the lookup key for every focus dictionary above, so "the button now
+    /// at index N" and "the button for the row Blazor rendered at N" always name the same object.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The boxed-<c>int</c> fallback is not a cop-out: Blazor's keyed reconciliation compares keys
+    /// with <c>Equals</c>/<c>GetHashCode</c> (<c>EqualityComparer&lt;object&gt;.Default</c>), and a
+    /// boxed <see cref="int"/> compares by VALUE across renders — so a loop whose length does not
+    /// change out from under a given index reconciles identically to an unkeyed one. That is exactly
+    /// what a value-typed <typeparamref name="TItem"/> gets: it boxes fresh on every access, so no
+    /// reference-stable identity exists to hand <see cref="_rowTokens"/>, and today's positional
+    /// behaviour is preserved rather than approximated.
+    /// </para>
+    /// <para>
+    /// The other fallback case is the SAME item object instance appearing more than once in
+    /// <see cref="Items"/> right now (<see cref="HasDuplicateReference"/>) — legal for a reference
+    /// type, and it would otherwise mint one token for two rows, which is the duplicate-key crash a
+    /// keyed loop exists to avoid (#308). Both checks read <see cref="Items"/> live, not a snapshot,
+    /// so they stay correct under mutation this component was never told about.
+    /// </para>
+    /// </remarks>
+    private object RowKey(int index)
+    {
+        if (typeof(TItem).IsValueType)
+        {
+            return index;
+        }
+
+        var item = Items[index];
+        if (item is null || HasDuplicateReference(item, index))
+        {
+            return index;
+        }
+
+        return _rowTokens.GetValue(item, _ => new object());
+    }
+
+    // ponytail: O(n) scan per row (O(n^2) per render) — collections here are short, hand-built lists
+    // a user assembles by clicking "Add item", not bulk data. Switch to a single reference-identity
+    // counting pass over Items if that stops being true.
+    private bool HasDuplicateReference(TItem item, int index)
+    {
+        for (var i = 0; i < Items.Count; i++)
+        {
+            if (i != index && ReferenceEquals(Items[i], item))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private bool HasReachedMax => Configuration.MaxItems > 0 && Items.Count >= Configuration.MaxItems;
 
@@ -238,7 +317,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
             }
         }
 
-        if (_rowHeaders.TryGetValue(index, out var header))
+        if (_rowHeaders.TryGetValue(RowKey(index), out var header))
         {
             await FocusRestore.FocusSafelyAsync(header);
         }
@@ -265,16 +344,17 @@ public partial class CollectionFieldComponent<TModel, TItem>
         var upEnabled = index > 0;
         var downEnabled = index < Items.Count - 1;
 
+        var key = RowKey(index);
         var travelled = movedDown ? _moveDownButtons : _moveUpButtons;
         var travelledEnabled = movedDown ? downEnabled : upEnabled;
-        if (travelledEnabled && travelled.TryGetValue(index, out var preferred))
+        if (travelledEnabled && travelled.TryGetValue(key, out var preferred))
         {
             return preferred;
         }
 
         var counterpart = movedDown ? _moveUpButtons : _moveDownButtons;
         var counterpartEnabled = movedDown ? upEnabled : downEnabled;
-        return counterpartEnabled && counterpart.TryGetValue(index, out var fallback) ? fallback : null;
+        return counterpartEnabled && counterpart.TryGetValue(key, out var fallback) ? fallback : null;
     }
 
     /// <summary>
@@ -311,24 +391,27 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private bool DeleteButtonsRendered => Configuration.CanRemove && !HasReachedMin;
 
     /// <summary>
-    /// The delete button currently rendered at <paramref name="index"/>, or <see langword="null"/>
-    /// when that row no longer exists or delete is not rendered at all.
+    /// The delete button for the row currently at <paramref name="index"/>, or
+    /// <see langword="null"/> when that row no longer exists or delete is not rendered at all.
     /// </summary>
     /// <remarks>
-    /// ⚠️ <b>Staleness is handled by these two checks, not by pruning
-    /// <see cref="_deleteButtons"/>.</b> A <c>@ref</c> on a <i>component</i> is captured when that
-    /// component is created and is <b>not</b> re-run on later renders, so clearing the dictionary
-    /// per render permanently loses the references for rows that were merely retained — measured:
-    /// every removal then fell through to <b>Add</b>. Entries therefore outlive the rows they came
-    /// from, and correctness comes from asking what is rendered <i>now</i>: the index must still be
-    /// within <c>Items</c>, and delete must still be rendered at all (reaching <c>MinItems</c>
-    /// unmounts every one of them at once).
+    /// ⚠️ <b>Staleness is handled by these checks, not by pruning <see cref="_deleteButtons"/>.</b> A
+    /// <c>@ref</c> on a <i>component</i> is captured when that component is created and is
+    /// <b>not</b> re-run on later renders, so clearing the dictionary per render permanently loses
+    /// the references for rows that were merely retained — measured: every removal then fell through
+    /// to <b>Add</b>. Entries therefore outlive the rows they came from, and correctness comes from
+    /// asking what is rendered <i>now</i>: the index must still be within <c>Items</c>, delete must
+    /// still be rendered at all (reaching <c>MinItems</c> unmounts every one of them at once), and
+    /// the lookup goes through <see cref="RowKey"/> — computed from <b>today's</b>
+    /// <c>Items[index]</c> — rather than the index itself, so a row <c>@key</c> has moved to a new
+    /// position (#334) is still found by the button its OWN item was given, not by whatever button
+    /// used to occupy this slot.
     /// </remarks>
     private MudIconButton? DeleteButtonAt(int index) =>
         DeleteButtonsRendered
         && index >= 0
         && index < Items.Count
-        && _deleteButtons.TryGetValue(index, out var button)
+        && _deleteButtons.TryGetValue(RowKey(index), out var button)
             ? button
             : null;
 

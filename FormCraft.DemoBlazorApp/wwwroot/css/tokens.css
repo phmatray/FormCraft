@@ -1,147 +1,178 @@
 /* ==========================================================================
    FormCraft — design tokens
 
-   Colour discipline:
-     violet  = structure. Headings, primary actions, dark bands, links.
-     bind    = binding + validity ONLY. It marks where a line of C# is tied to
-               the control it produced, and where a field is valid. It is never
-               used for decoration. If you are reaching for it and nothing is
-               being bound or validated, reach for violet instead.
+   One dark stage, four colour roles:
+     violet = brand, structure, primary action (MudBlazor's default primary)
+     yellow = the live binding between a line of C# and the control it made
+     mint   = valid
+     coral  = error
+   Forms keep MudBlazor's light palette and sit on light panels, the way they
+   look in a visitor's own app. Everything around them is this dark stage.
    ========================================================================== */
 
 :root {
-    /* --- Core ramp (light) ------------------------------------------------ */
-    --fc-ink: #16141F;
-    --fc-ink-soft: #2A2637;
+    --fc-bg: #0A0B16;
+    --fc-bg-2: #10122A;
+    --fc-bg-3: #151838;
+    --fc-panel: #12142E;
+    --fc-line: #262A52;
+    --fc-line-2: #33386A;
+    --fc-text: #EEF0FF;
+    --fc-text-2: #BCC1E3;
+    --fc-muted: #8D93BE;
 
-    --fc-violet: #512BD4;          /* the .NET platform violet */
-    --fc-violet-hover: #4423B8;
-    --fc-violet-deep: #2C1866;     /* dark band ground */
-    --fc-violet-wash: #EFEAFC;     /* tint for quiet fills */
+    --fc-violet: #594AE2;
+    --fc-violet-2: #8F82F5;
+    --fc-violet-slab: #4536C9;
+    --fc-violet-ink: #B9B0FA;
+    --fc-violet-hover: #6B5DEB;
+    --fc-violet-deep: #1B1452;
+    --fc-on-violet-2: #E0DCFF;
+    --fc-violet-onwhite: #2E2291;
 
-    --fc-bind: #14A06B;            /* binding + valid, and nothing else */
-    --fc-bind-wash: #E3F5EE;
+    --fc-yellow: #FFD166;
+    --fc-mint: #3DDC97;
+    --fc-coral: #FF6F59;
 
-    --fc-focus: #7C4DFF;           /* keyboard focus ring, on light or dark */
+    --fc-tk-kw: #C3A6FF;
+    --fc-tk-ty: #5EEAD4;
+    --fc-tk-fn: #FFD166;
+    --fc-tk-str: #FFA48F;
+    --fc-tk-dir: #FF7AB6;
+    --fc-tk-attr: #8AB4FF;
+    --fc-tk-pun: #8D93BE;
+    --fc-tk-num: #F7A8FF;
+    --fc-tk-com: #6B7299;
 
-    --fc-paper: #F5F4F8;           /* page ground */
-    --fc-surface: #FFFFFF;
-    --fc-muted: #6A6580;
-    --fc-rule: #E1DFEA;            /* hairlines */
+    --fc-display: 'Sora', 'Helvetica Neue', sans-serif;
+    --fc-body: 'Onest', system-ui, sans-serif;
+    --fc-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    --fc-track: -.045em;
 
-    /* --- Typography ------------------------------------------------------- */
-    --fc-font-display: 'Bricolage Grotesque', 'Helvetica Neue', sans-serif;
-    --fc-font-body: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    --fc-font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --fc-ease: cubic-bezier(.16, 1, .3, 1);
+    --fc-maxw: 1240px;
+    --fc-gut: clamp(16px, 3.2vw, 40px);
 
-    /* Display sizes clamp so the hero never overflows a phone. */
-    --fc-size-display: clamp(2.4rem, 5.4vw, 4rem);
-    --fc-size-section: clamp(1.75rem, 3vw, 2.5rem);
-    --fc-size-eyebrow: 0.75rem;
-
-    /* --- Spacing rhythm --------------------------------------------------- */
-    --fc-band: clamp(3.5rem, 7vw, 6.5rem);   /* vertical padding between bands */
-    --fc-radius: 10px;
-    --fc-radius-lg: 16px;
-
-    /* --- Code surface (constant across themes: code reads as an artifact) -- */
-    --fc-code-bg: #1B1730;
-    --fc-code-fg: #D9D4EC;
-    --fc-code-dim: #8A82AD;
-    --fc-code-key: #C4A5FF;        /* keywords */
-    --fc-code-type: #7FD8C0;       /* types */
-    --fc-code-call: #FFCF8B;       /* method calls */
-    --fc-code-str: #F5A9B8;        /* strings */
+    color-scheme: dark;
 }
 
-/* Dark theme. MudBlazor stamps .mud-theme-dark on <body>; we also honour a
-   .fc-dark class so plain (non-Mud) markup can be styled before Mud boots. */
-body.mud-theme-dark,
-body.fc-dark {
-    --fc-ink: #E9E6F2;
-    --fc-ink-soft: #C3BEDA;
-
-    --fc-violet: #A78BFA;
-    --fc-violet-hover: #BFA6FF;
-    --fc-violet-deep: #1E1636;
-    --fc-violet-wash: #241C3D;
-
-    --fc-bind: #34D399;
-    --fc-bind-wash: #14301F;
-
-    --fc-focus: #A78BFA;
-
-    --fc-paper: #131120;
-    --fc-surface: #1C1930;
-    --fc-muted: #A29CBD;
-    --fc-rule: #322C4E;
-
-    /* Darker than the page ground so the code panel still reads as its own
-       artifact once the whole site goes dark. */
-    --fc-code-bg: #09070F;
-}
-
-/* ==========================================================================
-   Base typography
-   ========================================================================== */
-
-body {
-    font-family: var(--fc-font-body);
-    font-feature-settings: 'ss01', 'cv05';
-}
-
-.fc-display {
-    font-family: var(--fc-font-display);
-    font-weight: 800;
-    font-variation-settings: 'wdth' 100, 'opsz' 40;
-    letter-spacing: -0.03em;
-    line-height: 0.98;
-    color: var(--fc-ink);
-}
-
-.fc-section-title {
-    font-family: var(--fc-font-display);
-    font-weight: 700;
-    font-size: var(--fc-size-section);
-    letter-spacing: -0.02em;
-    line-height: 1.08;
-    color: var(--fc-ink);
+html body {
     margin: 0;
+    background: var(--fc-bg);
+    color: var(--fc-text);
+    font-family: var(--fc-body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    scrollbar-color: var(--fc-line-2) var(--fc-bg);
 }
 
-/* Eyebrow: mono, because every label on this site that names a *thing in the
-   API* is set in mono. It is a naming convention, not a texture. */
-.fc-eyebrow {
-    font-family: var(--fc-font-mono);
-    font-size: var(--fc-size-eyebrow);
-    font-weight: 500;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--fc-muted);
-    display: block;
+::selection { background: var(--fc-violet); color: #fff; }
+input, select, textarea { caret-color: var(--fc-violet); }
+.fc-shell a { color: var(--fc-violet-ink); text-underline-offset: 3px; }
+code, kbd, pre { font-family: var(--fc-mono); }
+.fc-num { font-variant-numeric: tabular-nums; }
+
+.fc-wrap {
+    max-width: var(--fc-maxw);
+    margin: 0 auto;
+    padding-left: var(--fc-gut);
+    padding-right: var(--fc-gut);
 }
+
+.fc-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+svg.fc-i {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex: none;
+}
+
+/* Headings: Sora, tight. */
+.fc-h1 {
+    font-family: var(--fc-display);
+    font-weight: 800;
+    font-size: clamp(2.3rem, 5.2vw, 4.6rem);
+    line-height: 1;
+    letter-spacing: var(--fc-track);
+    margin: 0;
+    text-wrap: balance;
+    color: var(--fc-text);
+}
+
+.fc-h2 {
+    font-family: var(--fc-display);
+    font-weight: 700;
+    font-size: clamp(1.9rem, 3.8vw, 3.2rem);
+    line-height: 1.04;
+    letter-spacing: var(--fc-track);
+    margin: 0;
+    text-wrap: balance;
+    max-width: 20ch;
+    color: var(--fc-text);
+}
+
+.fc-accent { color: var(--fc-violet-2); }
+.fc-accent--mint { color: var(--fc-mint); }
 
 .fc-lede {
-    font-family: var(--fc-font-body);
-    font-size: clamp(1rem, 1.6vw, 1.2rem);
-    line-height: 1.55;
-    color: var(--fc-muted);
-    max-width: 46ch;
+    font-size: clamp(1.05rem, 1.35vw, 1.2rem);
+    color: var(--fc-text-2);
+    margin: 0;
+    max-width: 58ch;
 }
 
-.fc-mono { font-family: var(--fc-font-mono); }
+.fc-lede code { color: var(--fc-tk-ty); }
 
-/* ==========================================================================
-   Quality floor: focus, skip link, motion
-   ========================================================================== */
+.fc-sub {
+    color: var(--fc-text-2);
+    font-size: 1.1rem;
+    max-width: 56ch;
+    margin: 18px 0 0;
+}
 
-/* Focus is structure, not validity, so the ring is violet — green stays reserved
-   for bindings. --fc-focus is a brighter violet than --fc-violet so one value
-   clears 3:1 against both the page ground and the dark code panel.
+/* Buttons */
+.fc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    height: 50px;
+    padding: 0 22px;
+    border-radius: 12px;
+    font: inherit;
+    font-weight: 600;
+    font-size: 16px;
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: transform .2s var(--fc-ease), background .2s, box-shadow .2s;
+}
 
-   MudBlazor ships `button:focus { outline: none }` at (0,1,1); a bare
-   `:focus-visible` at (0,1,0) loses to it, which left buttons with no visible
-   focus at all. The element-qualified selectors below match or beat it. */
+.fc-shell .fc-btn--primary {
+    background: var(--fc-violet);
+    color: #fff;
+    box-shadow: 0 10px 24px -14px rgba(0, 0, 0, .7);
+}
+
+.fc-shell .fc-btn--primary:hover { background: var(--fc-violet-hover); transform: translateY(-1px); }
+.fc-shell .fc-btn--ghost { color: var(--fc-text); border-color: var(--fc-line-2); background: transparent; }
+.fc-shell .fc-btn--ghost:hover { background: var(--fc-bg-3); }
+.fc-btn--sm { height: 40px; padding: 0 16px; font-size: 14.5px; border-radius: 10px; }
+
+/* Focus: yellow ring on the dark stage. MudBlazor ships `button:focus { outline: none }`,
+   so the element-qualified selectors are needed to win. */
 :focus-visible,
 a:focus-visible,
 button:focus-visible,
@@ -151,12 +182,10 @@ textarea:focus-visible,
 summary:focus-visible,
 [tabindex]:focus-visible,
 .mud-button-root:focus-visible,
-.mud-nav-link:focus-visible,
-.mud-icon-button:focus-visible,
-.mud-tab:focus-visible {
-    outline: 2px solid var(--fc-focus);
-    outline-offset: 2px;
-    border-radius: 3px;
+.mud-icon-button:focus-visible {
+    outline: 2px solid var(--fc-yellow);
+    outline-offset: 3px;
+    border-radius: 4px;
 }
 
 .fc-skip-link {
@@ -165,17 +194,83 @@ summary:focus-visible,
     top: -60px;
     z-index: 2000;
     padding: 0.65rem 1.1rem;
-    background: var(--fc-violet);
-    color: #fff;
-    font-family: var(--fc-font-mono);
-    font-size: 0.8rem;
-    border-radius: var(--fc-radius);
+    background: var(--fc-yellow);
+    color: #1B1300;
+    font-weight: 600;
+    border-radius: 10px;
     text-decoration: none;
     transition: top 0.15s ease;
 }
 
-.fc-skip-link:focus {
-    top: 8px;
+.fc-skip-link:focus { top: 8px; }
+
+/* Code: one span per line, hanging indent instead of horizontal scroll (see js/code.js). */
+.fc-code {
+    margin: 0;
+    padding: 18px 0 22px;
+    font-size: clamp(12px, 1.05vw, 13.5px);
+    line-height: 1.72;
+    color: #D9DCF5;
+    background: transparent;
+    counter-reset: ln;
+    overflow: visible;
+}
+
+.fc-code code { font: inherit; background: none; color: inherit; padding: 0; display: block; }
+
+.fc-code .cl {
+    display: block;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    counter-increment: ln;
+    padding: 0 20px 0 calc(4.6em + (var(--ind, 0) + 4) * 1ch);
+    text-indent: calc(-4.6em - (var(--ind, 0) + 4) * 1ch);
+    min-height: 1.72em;
+    transition: background .25s;
+}
+
+.fc-code .cl::before {
+    content: counter(ln);
+    display: inline-block;
+    width: 3.4em;
+    padding-right: 1.2em;
+    text-align: right;
+    color: #464C7C;
+    text-indent: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.fc-code--plain .cl { padding-left: calc(18px + (var(--ind, 0) + 4) * 1ch); text-indent: calc((var(--ind, 0) + 4) * -1ch); }
+.fc-code--plain .cl::before { display: none; }
+.fc-code .cl.is-sync { background: rgba(255, 209, 102, .09); }
+.fc-code .cl.is-sync::before { color: var(--fc-yellow); }
+
+.tk-kw { color: var(--fc-tk-kw); }
+.tk-ty { color: var(--fc-tk-ty); }
+.tk-fn { color: var(--fc-tk-fn); }
+.tk-str { color: var(--fc-tk-str); }
+.tk-dir, .tk-tag { color: var(--fc-tk-dir); }
+.tk-attr { color: var(--fc-tk-attr); }
+.tk-pun { color: var(--fc-tk-pun); }
+.tk-num { color: var(--fc-tk-num); }
+.tk-com { color: var(--fc-tk-com); font-style: italic; }
+
+/* MudBlazor components that land on the dark stage (outside the light form panels) read a
+   scoped dark palette: they are the same components, just told what ground they sit on. */
+.fc-mud-dark {
+    --mud-palette-surface: var(--fc-panel);
+    --mud-palette-background: var(--fc-bg);
+    --mud-palette-background-gray: var(--fc-bg-2);
+    --mud-palette-text-primary: var(--fc-text);
+    --mud-palette-text-secondary: var(--fc-text-2);
+    --mud-palette-text-disabled: var(--fc-muted);
+    --mud-palette-action-default: var(--fc-text-2);
+    --mud-palette-lines-default: var(--fc-line);
+    --mud-palette-lines-inputs: var(--fc-line-2);
+    --mud-palette-table-lines: var(--fc-line);
+    --mud-palette-divider: var(--fc-line);
+    --mud-palette-divider-light: var(--fc-line);
+    --mud-palette-primary: var(--fc-violet-2);
 }
 
 @media (prefers-reduced-motion: reduce) {

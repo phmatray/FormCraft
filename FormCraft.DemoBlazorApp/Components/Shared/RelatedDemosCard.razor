@@ -3,38 +3,29 @@
 
 @if (DemoIds is { Count: > 0 })
 {
-    <MudCard Elevation="1" Class="mt-4">
-        <MudCardContent>
-            <MudText Typo="Typo.h6" Class="mb-2 d-flex align-center">
-                <MudIcon Icon="@Icons.Material.Filled.Link" Class="me-2" Color="Color.Primary" />
-                Related Demos
-            </MudText>
-            <MudList T="DemoMetadata" Dense="true">
-                @foreach (var demoId in DemoIds)
+    <section class="fc-note fc-note--related" aria-labelledby="related-demos">
+        <h2 class="fc-note__title" id="related-demos">Related demos</h2>
+        <ul class="fc-related">
+            @foreach (var demoId in DemoIds)
+            {
+                var demo = DemoRegistry.GetDemo(demoId);
+                if (demo is null)
                 {
-                    var demo = DemoRegistry.GetDemo(demoId);
-                    if (demo != null)
-                    {
-                        var levelInfo = !string.IsNullOrEmpty(demo.Level)
-                            ? DemoRegistry.GetLevelInfo(demo.Level)
-                            : (Name: "", Icon: "", Color: Color.Default);
-
-                        <MudListItem T="DemoMetadata" Href="@($"/{demo.Id}")" Icon="@demo.Icon">
-                            <div class="d-flex align-center justify-space-between w-100">
-                                <MudText Typo="Typo.body2">@demo.Title</MudText>
-                                @if (!string.IsNullOrEmpty(demo.Level))
-                                {
-                                    <MudChip T="string" Size="Size.Small" Color="@levelInfo.Color" Variant="Variant.Outlined">
-                                        @levelInfo.Name
-                                    </MudChip>
-                                }
-                            </div>
-                        </MudListItem>
-                    }
+                    continue;
                 }
-            </MudList>
-        </MudCardContent>
-    </MudCard>
+
+                <li>
+                    <a href="@demo.Id">
+                        <span>@demo.Title</span>
+                        @if (!string.IsNullOrEmpty(demo.Level))
+                        {
+                            <LevelMeter Level="@demo.Level" />
+                        }
+                    </a>
+                </li>
+            }
+        </ul>
+    </section>
 }
 
 @code {

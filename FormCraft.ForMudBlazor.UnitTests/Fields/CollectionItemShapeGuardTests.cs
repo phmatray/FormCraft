@@ -52,6 +52,14 @@ public class CollectionItemShapeGuardTests
         // encode — widening the signature to include it would make the guard miss the real copies it
         // was built for (#258's CredentialsModel/VaultModel), so the escape hatch is the right tool.
         typeof(FieldConfigurationRefreshTests.EqualityItemModel),
+
+        // CollectionRowIdentityTests.StructItemModel (#334) — holds a `struct` item, and the struct
+        // IS the test: that suite proves a keyed collection loop renders and grows a value-typed
+        // TItem without throwing (RowKey falls back to a boxed index for it, since a struct boxes
+        // fresh on every access and has no reference-stable identity to hand a weak table). Every
+        // CollectionItemFixture model is a class, so adopting the fixture would stop the suite from
+        // exercising a value-typed TItem at all.
+        typeof(CollectionRowIdentityTests.StructItemModel),
     };
 
     [Fact]

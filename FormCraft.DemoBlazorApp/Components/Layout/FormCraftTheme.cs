@@ -6,34 +6,31 @@ namespace FormCraft.DemoBlazorApp.Components.Layout;
 /// The demo site's MudBlazor theme.
 /// </summary>
 /// <remarks>
-/// Values mirror the CSS custom properties in <c>wwwroot/css/tokens.css</c>. When one
-/// changes, change the other: MudBlazor components read these, hand-written markup reads
-/// the tokens, and the two sit side by side on every page.
-/// <para>
-/// Colour discipline: <see cref="Palette.Primary"/> is the .NET platform violet and carries
-/// structure. <see cref="Palette.Success"/> is the binding green, reserved for "this is bound"
-/// and "this is valid" — it is not a decorative accent.
-/// </para>
+/// Light only, on purpose. The site's own chrome is a dark stage drawn by
+/// <c>wwwroot/css/tokens.css</c>; MudBlazor renders the forms, and they sit on light panels so a
+/// visitor sees them the way they would look in their own app. Primary is MudBlazor's default
+/// violet (<c>#594AE2</c>), which the stage's accent (<c>--fc-violet</c>) matches. MudBlazor
+/// components that land on the dark stage read a scoped dark palette instead (<c>.fc-mud-dark</c>).
 /// </remarks>
 public static class FormCraftTheme
 {
     private static readonly string[] BodyFont =
-        ["IBM Plex Sans", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"];
+        ["Onest", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"];
 
     private static readonly string[] DisplayFont =
-        ["Bricolage Grotesque", "IBM Plex Sans", "Helvetica Neue", "sans-serif"];
+        ["Sora", "Onest", "Helvetica Neue", "sans-serif"];
 
     public static MudTheme Build() => new()
     {
         PaletteLight = new PaletteLight
         {
-            Primary = "#512BD4",
+            Primary = "#594AE2",
             PrimaryContrastText = "#FFFFFF",
             Secondary = "#2C1866",
             Tertiary = "#14A06B",
 
             Success = "#14A06B",
-            Info = "#512BD4",
+            Info = "#594AE2",
             Warning = "#B4690E",
             Error = "#C0304A",
 
@@ -59,40 +56,6 @@ public static class FormCraftTheme
             LinesInputs = "#CFCBDF",
             TableLines = "#E1DFEA"
         },
-        PaletteDark = new PaletteDark
-        {
-            Primary = "#A78BFA",
-            PrimaryContrastText = "#16141F",
-            Secondary = "#C4A5FF",
-            Tertiary = "#34D399",
-
-            Success = "#34D399",
-            Info = "#A78BFA",
-            Warning = "#E0A458",
-            Error = "#F0788F",
-
-            Background = "#131120",
-            BackgroundGray = "#0E0C18",
-            Surface = "#1C1930",
-
-            AppbarBackground = "#0E0C18",
-            AppbarText = "#E9E6F2",
-
-            DrawerBackground = "#1C1930",
-            DrawerText = "#C3BEDA",
-            DrawerIcon = "#A29CBD",
-
-            TextPrimary = "#E9E6F2",
-            TextSecondary = "#A29CBD",
-            TextDisabled = "#6A6580",
-
-            ActionDefault = "#A29CBD",
-            Divider = "#2E2947",
-            DividerLight = "#241C3D",
-            LinesDefault = "#2E2947",
-            LinesInputs = "#3D3660",
-            TableLines = "#2E2947"
-        },
         LayoutProperties = new LayoutProperties
         {
             DefaultBorderRadius = "10px",
@@ -101,7 +64,7 @@ public static class FormCraftTheme
         },
         Typography = new Typography
         {
-            // Body copy and every MudBlazor control: IBM Plex Sans.
+            // Body copy and every MudBlazor control: Onest.
             Default = new DefaultTypography
             {
                 FontFamily = BodyFont,
@@ -110,9 +73,7 @@ public static class FormCraftTheme
                 LineHeight = "1.55",
                 LetterSpacing = "0"
             },
-            // Headings step up to the display face. Bricolage Grotesque is drawn as an
-            // assembly of mismatched parts — apt for a library that assembles a UI from
-            // declared parts — so it earns the largest type on the page.
+            // Headings step up to the display face, Sora.
             H1 = new H1Typography
             {
                 FontFamily = DisplayFont,
