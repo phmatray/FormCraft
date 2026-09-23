@@ -670,6 +670,45 @@ public class TestReportingTests
             "the \"did not complete\" summary does not get its directory from ResultsDirectoryFor");
     }
 
+    /// <summary>
+    /// Guards the invariant #339 restores: a project's results directory has exactly one
+    /// definition (<c>ResultsDirectoryFor</c>), and every other reader of that path — the run, the
+    /// report guard, the "did not complete" summary, and any reader added later — goes through it
+    /// rather than composing <c>TestResultsDirectory / &lt;x&gt;</c> by hand. Structural rather than
+    /// a regex pinned to today's three callers, so a *fourth* hand-rolled derivation fails this test
+    /// on sight instead of waiting for someone to notice the comment no longer describes the code.
+    /// </summary>
+    [Fact]
+    public void BuildScript_Should_Derive_The_Results_Directory_In_Exactly_One_Place()
+    {
+        var build = WorkflowSource.BuildScript;
+
+        // Every `TestResultsDirectory / <something>` composition in the file, captured up to the
+        // first character that cannot appear inside one of the shapes below — a statement
+        // terminator, an argument separator, or the closing paren of the call it sits in.
+        var compositions = Regex.Matches(build, @"\bTestResultsDirectory\s*/\s*[^;,)\r\n]+")
+            .Select(match => match.Value.Trim())
+            .ToList();
+
+        // The only two shapes allowed to compose the path directly: ResultsDirectoryFor's own
+        // definition (the single source), and the two .Produces promises — which describe the
+        // shape of the directory on disk rather than resolve a path at runtime, so they are not the
+        // "derivation" this test is about (see Test_Target_Should_Promise_Its_Artifacts_Recursively).
+        string[] allowed =
+        [
+            "TestResultsDirectory / project.Name",
+            "TestResultsDirectory / \"**\" / report",
+            "TestResultsDirectory / \"**/*.log\"",
+        ];
+
+        var stray = compositions.Where(c => !allowed.Contains(c, StringComparer.Ordinal)).ToList();
+
+        // Shouldly prints the collection on failure, so this names the offending composition.
+        stray.ShouldBeEmpty(
+            "a project's results directory is composed somewhere other than ResultsDirectoryFor or "
+            + "the .Produces promises — route it through ResultsDirectoryFor instead (#339)");
+    }
+
     [Fact]
     public void Test_Target_Should_Promise_Its_Artifacts_Recursively()
     {
