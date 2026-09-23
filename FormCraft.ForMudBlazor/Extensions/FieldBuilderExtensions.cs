@@ -295,6 +295,15 @@ public static class MudBlazorFieldBuilderExtensions
     /// correctly-typed key instead.
     /// </para>
     /// <para>
+    /// <b>Whatever <paramref name="maskFactory"/> returns is bound as-is</b> (#317). The one
+    /// exception is a <see cref="MudBlazor.PatternMask"/> whose own <c>Mask</c> pattern is blank —
+    /// still read as "no mask", the same rule the pattern overload applies. It does not extend to
+    /// any other <see cref="MudBlazor.IMask"/>: a <c>BlockMask</c> computes its <c>Mask</c> string
+    /// lazily, on first use rather than at construction, so a fresh one reads as blank too without
+    /// being unconfigured — treating that the same as a blank <c>PatternMask</c> silently discarded
+    /// the mask and rendered the field unmasked.
+    /// </para>
+    /// <para>
     /// <b>Return the same type every time.</b> <c>MudMask.SetMask</c> preserves the user's text and
     /// caret only when the incoming mask matches the type it already holds; a factory that varied
     /// its return type would reset the field mid-edit, since a render happens on every keystroke.
