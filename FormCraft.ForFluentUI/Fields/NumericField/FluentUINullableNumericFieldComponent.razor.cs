@@ -18,8 +18,20 @@ public partial class FluentUINullableNumericFieldComponent<TModel, TValue> where
     /// </summary>
     private Dictionary<string, object> ExtraAttributes { get; } = [];
 
+    /// <summary>
+    /// <c>FluentNumberInput&lt;TValue?&gt;.Min</c> still has to be supplied a real value rather than
+    /// <c>null</c> when unconfigured: Fluent's own bounds check
+    /// (<c>Comparer&lt;TValue?&gt;.Default.Compare</c>) treats <c>null</c> as lower than any value, so
+    /// a <c>null</c> <c>Max</c> would compare as "exceeded" by every input and silently clamp every
+    /// entered value to <c>null</c> (decompiled under #348) — the razor binding falls back to
+    /// <see cref="NumericTypeDefaults{TValue}"/> for exactly that reason.
+    /// </summary>
     private TValue? Min { get; set; }
+
+    /// <inheritdoc cref="Min"/>
     private TValue? Max { get; set; }
+
+    /// <inheritdoc cref="Min"/>
     private TValue? Step { get; set; }
 
     /// <inheritdoc />
@@ -59,29 +71,6 @@ public partial class FluentUINullableNumericFieldComponent<TModel, TValue> where
         {
             _localValue = CurrentValue;
         }
-    }
-
-    /// <summary>
-    /// <c>FluentNumberInput&lt;TValue?&gt;.Min</c> still has to be supplied a real value rather than
-    /// <c>null</c> when unconfigured: Fluent's own bounds check
-    /// (<c>Comparer&lt;TValue?&gt;.Default.Compare</c>) treats <c>null</c> as lower than any value, so
-    /// a <c>null</c> <c>Max</c> would compare as "exceeded" by every input and silently clamp every
-    /// entered value to <c>null</c> (decompiled under #348) — see the sibling component for the same
-    /// reflection-based defaults. Resolved once per closed <c>TValue</c> into a <c>static readonly</c>
-    /// field rather than recomputed on every render, the same as the sibling component.
-    /// </summary>
-    private static readonly TValue TypeMinValue = ResolveTypeBound("MinValue");
-
-    /// <inheritdoc cref="TypeMinValue"/>
-    private static readonly TValue TypeMaxValue = ResolveTypeBound("MaxValue");
-
-    /// <inheritdoc cref="FluentUINumericFieldComponent{TModel, TValue}.DefaultStep"/>
-    private static readonly TValue DefaultStep = (TValue)Convert.ChangeType(1, typeof(TValue));
-
-    private static TValue ResolveTypeBound(string fieldName)
-    {
-        var field = typeof(TValue).GetField(fieldName);
-        return field != null ? (TValue)field.GetValue(null)! : default;
     }
 
     private async Task OnLocalValueChanged()

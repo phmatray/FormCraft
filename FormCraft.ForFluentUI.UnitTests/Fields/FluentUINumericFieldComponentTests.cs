@@ -142,4 +142,22 @@ public class FluentUINumericFieldComponentTests : FluentUITestBase
         input.Min.ShouldBe(int.MinValue);
         input.Max.ShouldBe(int.MaxValue);
     }
+
+    [Fact]
+    public void Unconfigured_Decimal_Step_Should_Use_The_Shared_Per_Type_Default()
+    {
+        // Arrange - #389: the shared NumericTypeDefaults<TValue> unifies onto MudBlazor's existing
+        // per-type Step (0.01 for decimal) rather than Fluent's old flat 1-for-everything default.
+        // Price is the nullable numeric field, so this also covers FluentUINullableNumericFieldComponent.
+        var config = FormBuilder<NumericTestModel>.Create()
+            .AddField(x => x.Price, f => f.WithLabel("Price"))
+            .Build();
+
+        // Act
+        var component = Render(new NumericTestModel(), config);
+
+        // Assert
+        var input = component.FindComponent<FluentNumberInput<decimal?>>().Instance;
+        input.Step.ShouldBe(0.01m);
+    }
 }
