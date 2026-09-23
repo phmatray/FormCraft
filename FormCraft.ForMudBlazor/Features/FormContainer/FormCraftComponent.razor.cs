@@ -343,7 +343,7 @@ public partial class FormCraftComponent<TModel>
                     Model,
                     field,
                     _editContext,
-                    () => FieldValueGetterCache<TModel>.GetOrCompile(field)(Model),
+                    () => GetCustomTemplateValue(field),
                     newValue => _ = UpdateFieldValue(field.FieldName, newValue),
                     EventCallback.Factory.Create<object>(this, newValue => UpdateFieldValue(field.FieldName, newValue)));
                 builder.AddContent(0, field.CustomTemplate(templateContext));
@@ -362,6 +362,49 @@ public partial class FormCraftComponent<TModel>
                 EventCallback.Factory.Create(this, () => HandleFieldDependencyChanged(field.FieldName))));
         };
     }
+
+    /// <summary>
+    /// Reads a custom-template field's value through the compiled getter the renderer and
+    /// validators already share (<see cref="FieldValueGetterCache{TModel}"/>, #312), instead of the
+    /// per-render <c>GetProperty</c>/<c>GetValue</c> reflection this replaced (#330).
+    /// <c>field.FieldName</c> is only the expression's last member (e.g. <c>"Value"</c> for
+    /// <c>x =&gt; x.Nested.Value</c>), so the old lookup against <typeparamref name="TModel"/> failed
+    /// — and the field rendered nothing — for anything but a direct top-level property. Reading
+    /// through the expression itself removes that failure mode for any reachable binding.
+    /// </summary>
+    /// <remarks>
+    /// A binding that still cannot be evaluated against the current model — most commonly a null
+    /// intermediate reference in a nested path — reports once per field via
+    /// <see cref="_formDiagnosticScope"/> and returns <c>null</c>, so the template still renders
+    /// instead of the exception reaching the render pipeline or the field staying invisible.
+    /// </remarks>
+    private object GetCustomTemplateValue(IFieldConfiguration<TModel, object> field)
+    {
+        try
+        {
+            return FieldValueGetterCache<TModel>.GetOrCompile(field)(Model);
+        }
+        catch
+        {
+            if (_formDiagnosticScope.ShouldWarnOnce(CustomTemplateFieldDiagnosticCategory, field.FieldName))
+            {
+                var displayName = string.IsNullOrWhiteSpace(field.Label) ? field.FieldName : field.Label;
+                DiagnosticLog.Warn(
+                    ServiceProvider,
+                    CustomTemplateFieldDiagnosticCategory,
+                    "Field '{Field}' has a custom template whose value could not be read from the " +
+                    "model, so it renders with no value instead of the whole form failing. Check " +
+                    "that its binding expression is reachable (e.g. no null intermediate in a " +
+                    "nested path).",
+                    displayName);
+            }
+
+            return null!;
+        }
+    }
+
+    /// <summary>Logger category for the unresolved-custom-template-field diagnostic (#330).</summary>
+    private const string CustomTemplateFieldDiagnosticCategory = "FormCraft.ForMudBlazor.CustomTemplateField";
 
     private async Task UpdateFieldValue(string fieldName, object? value)
     {

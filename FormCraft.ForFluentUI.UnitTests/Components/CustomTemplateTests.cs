@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace FormCraft.ForFluentUI.UnitTests.Components;
 
 /// <summary>
@@ -82,6 +84,46 @@ public class CustomTemplateTests : FluentUITestBase
         component.Find(".nested-template").TextContent.ShouldBe("Custom: deep");
     }
 
+    [Fact]
+    public void WithCustomTemplate_Should_Report_Once_And_Still_Render_When_The_Bound_Path_Is_Unreachable()
+    {
+        // Arrange - Nested is null, so evaluating x.Nested.Value against this model throws a
+        // NullReferenceException. The field must still render (with no value) instead of the
+        // exception reaching the render pipeline or the field disappearing, and the failure must be
+        // reported once (#330), not once per render.
+        var logs = new CapturingLoggerProvider();
+        Services.AddLogging(builder => builder.AddProvider(logs));
+
+        var model = new NestedPropertyModel { Nested = null };
+        var config = FormBuilder<NestedPropertyModel>
+            .Create()
+            .AddField(x => x.Nested!.Value, field => field
+                .WithLabel("Nested value")
+                .WithCustomTemplate(context => builder =>
+                {
+                    builder.OpenElement(0, "div");
+                    builder.AddAttribute(1, "class", "nested-template");
+                    builder.AddContent(2, $"Custom: {context.Value}");
+                    builder.CloseElement();
+                }))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<NestedPropertyModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+        component.Render();
+        component.Render();
+
+        // Assert - the template still renders, with no value rather than a crash...
+        component.Find(".nested-template").TextContent.ShouldBe("Custom: ");
+
+        // ...and the diagnostic fired exactly once, however many times the form re-renders.
+        var warnings = logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("Nested value");
+    }
+
     private class TestModel
     {
         public string Name { get; set; } = string.Empty;
@@ -95,5 +137,58 @@ public class CustomTemplateTests : FluentUITestBase
     private class NestedValue
     {
         public string Value { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Collects warning-level log messages so a diagnostic can be asserted on. This adapter has no
+    /// shared diagnostics infrastructure (unlike <c>FormCraft.ForMudBlazor</c>'s
+    /// <c>DiagnosticLog</c>/<c>CapturingLoggerProvider</c>) and this is the only test needing one, so
+    /// it stays local rather than starting a new shared TestSupport type for a single call site.
+    /// </summary>
+    private sealed class CapturingLoggerProvider : ILoggerProvider
+    {
+        private readonly List<string> _warnings = [];
+
+        public IReadOnlyList<string> Warnings
+        {
+            get
+            {
+                lock (_warnings)
+                {
+                    return _warnings.ToList();
+                }
+            }
+        }
+
+        public ILogger CreateLogger(string categoryName) => new CapturingLogger(_warnings);
+
+        public void Dispose()
+        {
+        }
+
+        private sealed class CapturingLogger(List<string> warnings) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Warning;
+
+            public void Log<TState>(
+                LogLevel logLevel,
+                EventId eventId,
+                TState state,
+                Exception? exception,
+                Func<TState, Exception?, string> formatter)
+            {
+                if (logLevel < LogLevel.Warning)
+                {
+                    return;
+                }
+
+                lock (warnings)
+                {
+                    warnings.Add(formatter(state, exception));
+                }
+            }
+        }
     }
 }

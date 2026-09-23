@@ -1,3 +1,6 @@
+using FormCraft.ForMudBlazor.UnitTests.TestSupport;
+using Microsoft.Extensions.Logging;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Components;
 
 /// <summary>
@@ -138,6 +141,46 @@ public class CustomTemplateTests : MudBlazorTestBase
 
         // Assert
         component.Find(".nested-template").TextContent.ShouldBe("Custom: deep");
+    }
+
+    [Fact]
+    public void WithCustomTemplate_Should_Report_Once_And_Still_Render_When_The_Bound_Path_Is_Unreachable()
+    {
+        // Arrange - Nested is null, so evaluating x.Nested.Value against this model throws a
+        // NullReferenceException. The field must still render (with no value) instead of the
+        // exception reaching the render pipeline or the field disappearing, and the failure must be
+        // reported once (#330), not once per render.
+        var logs = new CapturingLoggerProvider();
+        Services.AddLogging(builder => builder.AddProvider(logs));
+
+        var model = new NestedPropertyModel { Nested = null };
+        var config = FormBuilder<NestedPropertyModel>
+            .Create()
+            .AddField(x => x.Nested!.Value, field => field
+                .WithLabel("Nested value")
+                .WithCustomTemplate(context => builder =>
+                {
+                    builder.OpenElement(0, "div");
+                    builder.AddAttribute(1, "class", "nested-template");
+                    builder.AddContent(2, $"Custom: {context.Value}");
+                    builder.CloseElement();
+                }))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<NestedPropertyModel>>(parameters => parameters
+            .Add(p => p.Model, model)
+            .Add(p => p.Configuration, config));
+        component.Render();
+        component.Render();
+
+        // Assert - the template still renders, with no value rather than a crash...
+        component.Find(".nested-template").TextContent.ShouldBe("Custom: ");
+
+        // ...and the diagnostic fired exactly once, however many times the form re-renders.
+        var warnings = logs.Warnings;
+        warnings.Count.ShouldBe(1);
+        warnings[0].ShouldContain("Nested value");
     }
 
     private class TestModel
