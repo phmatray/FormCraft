@@ -112,12 +112,13 @@ public class ContactModel
     <MudPaper Class="pa-4">
         <MudText Typo="Typo.h4" Class="mb-4">Contact Form</MudText>
         
-        <FormCraftComponent TModel="ContactModel" 
-                           Model="@model" 
-                           Configuration="@formConfig"
-                           OnValidSubmit="@HandleSubmit"
-                           ShowSubmitButton="true"
-                           SubmitButtonText="Send Message" />
+        <FormCraftComponent
+            TModel="ContactModel"
+            Model="@model"
+            Configuration="@formConfig"
+            OnValidSubmit="@HandleSubmit"
+            ShowSubmitButton="true"
+            SubmitButtonText="Send Message" />
     </MudPaper>
 </MudContainer>
 ```

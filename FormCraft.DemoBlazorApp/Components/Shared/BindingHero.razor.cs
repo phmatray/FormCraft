@@ -1,152 +1,369 @@
-using FormCraft;
+using FormCraft.ForMudBlazor;
+using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace FormCraft.DemoBlazorApp.Components.Shared;
 
-/// <summary>
-/// The home page's opening statement: a FormCraft builder chain beside the form it produces.
-/// </summary>
-/// <remarks>
-/// Both halves are derived from <see cref="AllFields"/>, so the code on the left is exactly the
-/// code that built the form on the right — adding a field writes a line and renders a control in
-/// the same frame. The form is a real <c>FormCraftComponent</c>.
-/// </remarks>
 public partial class BindingHero
 {
-    /// <summary>The demo model. Deliberately small: the point is the mapping, not the model.</summary>
     public class Contact
     {
         public string Name { get; set; } = "";
         public string Email { get; set; } = "";
-        public string Phone { get; set; } = "";
-        public string Topic { get; set; } = "";
+        public string Topic { get; set; } = "general";
         public bool Consent { get; set; }
+
+        public override string ToString() =>
+            $"Contact {{ Name = \"{Name}\", Email = \"{Email}\", Topic = \"{Topic}\" }}";
     }
 
-    /// <summary>One coloured run of the displayed chain.</summary>
-    /// <param name="Text">The literal text.</param>
-    /// <param name="Kind">A CSS class: <c>t-call</c>, <c>t-str</c>, <c>t-prop</c>, or empty for plain.</param>
-    public sealed record Token(string Text, string Kind);
-
-    /// <summary>A field the visitor can add or remove, with the single line of C# that creates it.</summary>
-    /// <param name="Key">Stable id, used to tie the code line to the rendered control.</param>
-    /// <param name="Label">Name shown on the toggle.</param>
-    /// <param name="Tokens">The chain line, already split for colouring.</param>
-    public sealed record FieldSpec(string Key, string Label, IReadOnlyList<Token> Tokens);
-
-    // Every line below is a real FormCraft call. If you change one, change the matching
-    // arm of ApplyField so the panel keeps telling the truth.
-    private static readonly IReadOnlyList<FieldSpec> AllFields =
+    private static readonly SelectOption<string>[] Topics =
     [
-        new("name", "Name",
-        [
-            new(".", ""), new("AddRequiredTextField", "t-call"), new("(x => x.", ""),
-            new("Name", "t-prop"), new(", ", ""), new("\"Name\"", "t-str"), new(")", "")
-        ]),
-        new("email", "Email",
-        [
-            new(".", ""), new("AddEmailField", "t-call"), new("(x => x.", ""),
-            new("Email", "t-prop"), new(")", "")
-        ]),
-        new("phone", "Phone",
-        [
-            new(".", ""), new("AddPhoneField", "t-call"), new("(x => x.", ""),
-            new("Phone", "t-prop"), new(")", "")
-        ]),
-        // Kept to two short options so the line does not need a horizontal
-        // scrollbar in the hero panel.
-        new("topic", "Topic",
-        [
-            new(".", ""), new("AddDropdownField", "t-call"), new("(x => x.", ""),
-            new("Topic", "t-prop"), new(", ", ""), new("\"Topic\"", "t-str"), new(", ", ""),
-            new("(\"bug\", \"Bug\")", "t-str"), new(", ", ""), new("(\"idea\", \"Idea\")", "t-str"),
-            new(")", "")
-        ]),
-        new("consent", "Consent",
-        [
-            new(".", ""), new("AddCheckboxField", "t-call"), new("(x => x.", ""),
-            new("Consent", "t-prop"), new(", ", ""), new("\"Email me about releases\"", "t-str"), new(")", "")
-        ])
+        new("general", "General question"),
+        new("bug", "Bug report")
     ];
 
-    private readonly HashSet<string> _enabled = ["name", "email"];
+    /// <summary>
+    /// The file shown in the editor. It is the configuration <see cref="Build"/> really runs:
+    /// change one and change the other, or the hero stops telling the truth.
+    /// </summary>
+    private const string Source =
+        """
+        @page "/contact"
 
-    private Contact _model = new();
-    private IFormConfiguration<Contact>? _configuration;
-    private string? _active;
-    private string? _justAdded;
-    private bool _submitted;
+        <FormCraftComponent
+            TModel="Contact"
+            Model="@_contact"
+            Configuration="@_config"
+            OnValidSubmit="@Send" />
 
-    protected override void OnInitialized() => Rebuild();
+        @code {
+            private readonly Contact _contact = new();
 
-    private IEnumerable<FieldSpec> EnabledFields() =>
-        AllFields.Where(f => _enabled.Contains(f.Key));
+            private static readonly SelectOption<string>[] Topics =
+                [new("general", "General question"), new("bug", "Bug report")];
+
+            private readonly IFormConfiguration<Contact> _config =
+                FormBuilder<Contact>.Create()
+                    .AddField(x => x.Name, f => f
+                        .WithLabel("Name")
+                        .Required())
+                    .AddField(x => x.Email, f => f
+                        .WithLabel("Email")
+                        .Required()
+                        .WithEmailValidation())
+                    .AddField(x => x.Topic, f => f
+                        .WithLabel("Topic")
+                        .WithSelectOptions(Topics))
+                    .AddField(x => x.Consent, f => f
+                        .WithLabel("Reply by email"))
+                    .Build();
+
+            private void Send(Contact contact) => Console.WriteLine(contact);
+        }
+        """;
+
+    private static readonly string[] Lines = Source.Split('\n');
+
+    private static readonly int LineCount = Lines.Length;
 
     /// <summary>
-    /// 1-based position of the highlighted field among those currently rendered. The form's
-    /// controls are direct children in this same order, so this is what lets CSS light up the
-    /// control that belongs to the hovered line.
+    /// For each line, how many fields are complete once it is written: a field appears when the
+    /// line that closes its AddField statement does, i.e. the line before the next AddField or Build.
     /// </summary>
-    private int ActiveIndex()
+    private static readonly int[] FieldsAfterLine = BuildFieldTimeline();
+
+    private static int[] BuildFieldTimeline()
     {
-        if (_active is null)
+        var result = new int[Lines.Length];
+        var done = 0;
+        var open = false;
+        for (var i = 0; i < Lines.Length; i++)
         {
-            return 0;
+            if (Lines[i].Contains(".AddField(", StringComparison.Ordinal))
+            {
+                open = true;
+            }
+
+            var next = i + 1 < Lines.Length ? Lines[i + 1] : "";
+            if (open && (next.Contains(".AddField(", StringComparison.Ordinal) || next.Contains(".Build()", StringComparison.Ordinal)))
+            {
+                done++;
+                open = false;
+            }
+
+            result[i] = done;
         }
 
-        var index = EnabledFields().ToList().FindIndex(f => f.Key == _active);
-        return index < 0 ? 0 : index + 1;
+        return result;
     }
 
-    private void Toggle(string key)
+    private static readonly (string Title, string Detail)[] Phases =
+    [
+        ("Describe", "One <code>AddField</code> per field."),
+        ("Render", "Each field appears as its line is written."),
+        ("Validate", "Rules run on the server, against your model."),
+        ("Submit", "<code>OnValidSubmit</code> gets a typed <code>Contact</code>.")
+    ];
+
+    private readonly IFormConfiguration<Contact> _configuration = Build();
+
+    private static IFormConfiguration<Contact> Build() =>
+        FormBuilder<Contact>.Create()
+            .AddField(x => x.Name, f => f
+                .WithLabel("Name")
+                .Required())
+            .AddField(x => x.Email, f => f
+                .WithLabel("Email")
+                .Required()
+                .WithEmailValidation())
+            .AddField(x => x.Topic, f => f
+                .WithLabel("Topic")
+                .WithSelectOptions(Topics))
+            .AddField(x => x.Consent, f => f
+                .WithLabel("Reply by email"))
+            .Build();
+
+    private Contact _model = new();
+    private FormCraftComponent<Contact>? _form;
+    private ElementReference _codeHost;
+
+    private int _shownLines;
+    private int _shownFields;
+    private bool _showSubmit;
+    private int _phase = -1;
+    private string? _result;
+    private bool _resultIsError;
+    private bool _paused;
+    private int _run;
+    // The form is @key'd on this: a replay needs a fresh EditContext bound to the fresh model,
+    // or validation keeps reading the previous run's instance.
+    private int _formKey;
+
+    // A plain string, not an @if inside <style>: Razor reads a line starting with '#' there as a
+    // C# preprocessor directive.
+    private string SubmitRule => _showSubmit ? "" : "#fc-hero-form form > button { opacity: 0; pointer-events: none; }";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!_enabled.Remove(key))
+        if (!firstRender)
         {
-            _enabled.Add(key);
-            _justAdded = key;
-            _active = key;
-        }
-        else if (_active == key)
-        {
-            _active = null;
+            return;
         }
 
-        _submitted = false;
-        Rebuild();
+        var reduceMotion = false;
+        try
+        {
+            await JS.InvokeVoidAsync("formcraftCode.highlightUnder", _codeHost);
+            reduceMotion = await JS.InvokeAsync<bool>("formcraftPrefersReducedMotion");
+        }
+        catch (JSException)
+        {
+            // Unhighlighted source still reads; play the sequence regardless.
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
 
-        // No timer clears _justAdded any more, and none is needed: fcBindFlash runs for 0.9s and both
-        // ends of it are `background-color: transparent` with the default fill-mode, so a line that
-        // keeps the class is pixel-identical to one that never had it. The delay this replaces existed
-        // only to strip that inert class, and awaiting it meant StateHasChanged() could resume on a
-        // component the renderer had already disposed if the visitor navigated inside the window.
-        // The flash still replays on a re-add because the code lines are @key'd by field: toggling a
-        // field off destroys its element, so toggling it back on creates a fresh one.
+        if (reduceMotion)
+        {
+            await SkipAsync();
+        }
+        else
+        {
+            _ = PlayAsync();
+        }
     }
 
-    private void Rebuild()
+    /// <summary>Waits, honouring pause, and reports false once this run is superseded or the page is gone.</summary>
+    private async Task<bool> StepAsync(int milliseconds, int run)
     {
-        var builder = FormBuilder<Contact>.Create();
-
-        foreach (var field in EnabledFields())
+        while (_paused)
         {
-            builder = ApplyField(builder, field.Key);
+            if (!await DelayAsync(60) || run != _run)
+            {
+                return false;
+            }
         }
 
-        _configuration = builder.Build();
+        return await DelayAsync(milliseconds) && run == _run;
     }
 
-    private static FormBuilder<Contact> ApplyField(FormBuilder<Contact> builder, string key) => key switch
+    private async Task PlayAsync()
     {
-        "name" => builder.AddRequiredTextField(x => x.Name, "Name"),
-        "email" => builder.AddEmailField(x => x.Email),
-        "phone" => builder.AddPhoneField(x => x.Phone),
-        "topic" => builder.AddDropdownField(x => x.Topic, "Topic", ("bug", "Bug"), ("idea", "Idea")),
-        "consent" => builder.AddCheckboxField(x => x.Consent, "Email me about releases"),
-        _ => builder
-    };
+        var run = ++_run;
+        Reset();
+        _phase = 0;
+        StateHasChanged();
 
-    private void HandleSubmit(Contact model)
+        for (var i = 0; i < LineCount; i++)
+        {
+            if (!await StepAsync(string.IsNullOrWhiteSpace(Lines[i]) ? 60 : 150, run))
+            {
+                return;
+            }
+
+            _shownLines = i + 1;
+            await FollowAsync();
+            if (FieldsAfterLine[i] > _shownFields)
+            {
+                _shownFields = FieldsAfterLine[i];
+                _phase = 1;
+            }
+
+            StateHasChanged();
+        }
+
+        _showSubmit = true;
+        StateHasChanged();
+        if (!await StepAsync(700, run))
+        {
+            return;
+        }
+
+        // Validate: a good name, then a bad email, then the fix.
+        _phase = 2;
+        if (!await TypeAsync(v => _model.Name += v, "Ada Lovelace", run))
+        {
+            return;
+        }
+
+        NotifyChanged(nameof(Contact.Name));
+        if (!await TypeAsync(v => _model.Email += v, "ada@", run))
+        {
+            return;
+        }
+
+        NotifyChanged(nameof(Contact.Email));
+        StateHasChanged();
+        if (!await StepAsync(1400, run))
+        {
+            return;
+        }
+
+        if (!await TypeAsync(v => _model.Email += v, "analytical.io", run))
+        {
+            return;
+        }
+
+        NotifyChanged(nameof(Contact.Email));
+        StateHasChanged();
+        if (!await StepAsync(800, run))
+        {
+            return;
+        }
+
+        _phase = 3;
+        await SubmitAsync();
+        if (!await StepAsync(900, run))
+        {
+            return;
+        }
+
+        _phase = Phases.Length;
+        StateHasChanged();
+    }
+
+    private async Task<bool> TypeAsync(Action<string> append, string text, int run)
     {
-        _submitted = true;
-        _model = model;
+        foreach (var ch in text)
+        {
+            if (!await StepAsync(45, run))
+            {
+                return false;
+            }
+
+            append(ch.ToString());
+            StateHasChanged();
+        }
+
+        return true;
+    }
+
+    private async Task FollowAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("formcraftCode.follow", _codeHost, _shownLines);
+        }
+        catch (JSException)
+        {
+            // The editor just stays where it is.
+        }
+        catch (InvalidOperationException)
+        {
+            // Torn down mid-sequence.
+        }
+    }
+
+    /// <summary>Field-level validation, as if the visitor had just left the field.</summary>
+    private void NotifyChanged(string field)
+    {
+        var context = _form?.GetEditContext();
+        context?.NotifyFieldChanged(context.Field(field));
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_form is null)
+        {
+            return;
+        }
+
+        if (await _form.ValidateAsync())
+        {
+            HandleSubmit(_model);
+        }
+        else
+        {
+            _result = "Fix the highlighted fields. Nothing was sent.";
+            _resultIsError = true;
+        }
+
+        if (!IsDisposed)
+        {
+            StateHasChanged();
+        }
+    }
+
+    private void HandleSubmit(Contact contact)
+    {
+        _result = $"OnValidSubmit → {contact}";
+        _resultIsError = false;
+    }
+
+    private void Reset()
+    {
+        _model = new Contact();
+        _formKey++;
+        _shownLines = 0;
+        _shownFields = 0;
+        _showSubmit = false;
+        _result = null;
+        _resultIsError = false;
+    }
+
+    private void TogglePause() => _paused = !_paused;
+
+    private void Replay()
+    {
+        _paused = false;
+        _ = PlayAsync();
+    }
+
+    private async Task SkipAsync()
+    {
+        _run++;
+        _paused = false;
+        _shownLines = LineCount;
+        _shownFields = FieldsAfterLine[^1];
+        _showSubmit = true;
+        _model.Name = "Ada Lovelace";
+        _model.Email = "ada@analytical.io";
+        _phase = Phases.Length;
+        StateHasChanged();
+        await Task.Yield();
+        await SubmitAsync();
     }
 }

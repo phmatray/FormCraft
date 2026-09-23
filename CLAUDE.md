@@ -434,8 +434,10 @@ because it lives in core rather than in one of the two packages that need it.
   `FormCraft.ForMudBlazor.FocusRestore.FocusSafelyAsync(MudBaseButton?/ElementReference)` and
   `FormCraft.ForFluentUI.FocusRestore.FocusSafelyAsync(ElementReference)`. **The collection field's
   four controls (add, delete, move up, move down) carry this guarantee in *both* adapters**; the
-  upload Clear/chip-close controls have it only in MudBlazor — Fluent's file upload field has not
-  been audited for the same gap. Targets, MudBlazor upload: Clear and chip-close → the field's
+  upload Clear/chip-close controls have it only in MudBlazor — `FormCraft.ForFluentUI`'s file-upload
+  components render no self-unmounting or disabling control at all as of this issue (#385), so the
+  WCAG 2.4.3 gap MudBlazor had before #281/#318 does not currently exist there; a future removal
+  control must route through `FormCraft.ForFluentUI.FocusRestore` from the start. Targets, MudBlazor upload: Clear and chip-close → the field's
   **Browse** button, because it carries #262's `aria-describedby` so the requirement is announced
   exactly when removal makes the field unsatisfied. Targets, either adapter's collection field: row
   delete → the delete control taking the vacated slot, else the previous row's, else **Add**, else

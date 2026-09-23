@@ -436,7 +436,7 @@ public class WorkflowSourceTests
     [Fact]
     public void StepNamed_Should_Recognise_An_Unquoted_Step_Name()
     {
-        // deploy-docs.yml is the measured case: all ten of its step names are unquoted, and the old
+        // deploy-docs.yml is the measured case: every one of its step names is unquoted, and the old
         // `StartsWith("- name: '…'")` matcher could not find a single one of them — it would have
         // reported every step in that file as absent.
         var deployDocs = WorkflowSource.Stripped("deploy-docs.yml");

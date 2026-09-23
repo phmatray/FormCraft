@@ -1,12 +1,11 @@
-using FormCraft.ForMudBlazor.UnitTests.TestSupport;
 using Microsoft.Extensions.Logging;
 
-namespace FormCraft.ForMudBlazor.UnitTests.Components;
+namespace FormCraft.ForFluentUI.UnitTests.Components;
 
 /// <summary>
-/// Regression tests for WithCustomTemplate: templates configured through the
-/// typed builder API must actually render (they used to be silently dropped by
-/// FieldConfigurationWrapper and ignored by the render pipeline).
+/// Regression tests for WithCustomTemplate mirroring
+/// <c>FormCraft.ForMudBlazor.UnitTests.Components.CustomTemplateTests</c>: a custom template must
+/// render whatever its value expression can read, and never silently disappear (#330).
 /// </summary>
 /// <remarks>
 /// <b>#330 investigation (Task 1, Step 4).</b> <c>FormCraftComponent.razor.cs</c> has two other
@@ -15,8 +14,8 @@ namespace FormCraft.ForMudBlazor.UnitTests.Components;
 /// <item>
 /// <c>LogSubmissionAuditEventAsync</c> (audit logging, #321's security pipeline). It shares the
 /// same reflective, top-level-only lookup, but not this issue's <i>rendering</i> defect — a miss
-/// there degrades to a null audit value (<c>property?.GetValue(Model)?.ToString()</c>) rather than
-/// an invisible field. Left alone; out of scope for #330 and queued under #321.
+/// there degrades to a null audit value rather than an invisible field. Left alone; out of scope
+/// for #330 and queued under #321.
 /// </item>
 /// <item>
 /// <c>UpdateFieldValue</c> (the write-back). Explicitly out of scope per the issue's Non-goals —
@@ -26,7 +25,7 @@ namespace FormCraft.ForMudBlazor.UnitTests.Components;
 /// </list>
 /// Neither is touched by this fix.
 /// </remarks>
-public class CustomTemplateTests : MudBlazorTestBase
+public class CustomTemplateTests : FluentUITestBase
 {
     [Fact]
     public void WithCustomTemplate_Should_Render_Template_Content()
@@ -52,65 +51,7 @@ public class CustomTemplateTests : MudBlazorTestBase
             .Add(p => p.Configuration, config));
 
         // Assert
-        var custom = component.Find(".my-custom-template");
-        custom.TextContent.ShouldBe("Custom: John");
-    }
-
-    [Fact]
-    public void WithCustomTemplate_Should_Receive_Typed_Configuration()
-    {
-        // Arrange - the template context must expose the typed field configuration
-        var model = new TestModel { Name = "John" };
-        var config = FormBuilder<TestModel>
-            .Create()
-            .AddField(x => x.Name, field => field
-                .WithLabel("Display Name")
-                .WithCustomTemplate(context => builder =>
-                {
-                    builder.OpenElement(0, "span");
-                    builder.AddAttribute(1, "class", "template-label");
-                    builder.AddContent(2, context.Configuration.Label);
-                    builder.CloseElement();
-                }))
-            .Build();
-
-        // Act
-        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
-
-        // Assert
-        component.Find(".template-label").TextContent.ShouldBe("Display Name");
-    }
-
-    [Fact]
-    public async Task WithCustomTemplate_ValueChanged_Should_Update_Model()
-    {
-        // Arrange - templates must be able to push values back into the model
-        var model = new TestModel();
-        IFieldContext<TestModel, string>? captured = null;
-        var config = FormBuilder<TestModel>
-            .Create()
-            .AddField(x => x.Name, field => field
-                .WithLabel("Name")
-                .WithCustomTemplate(context => builder =>
-                {
-                    captured = context;
-                    builder.AddContent(0, "template");
-                }))
-            .Build();
-
-        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
-
-        captured.ShouldNotBeNull();
-
-        // Act
-        await component.InvokeAsync(() => captured!.ValueChanged.InvokeAsync("Jane"));
-
-        // Assert
-        model.Name.ShouldBe("Jane");
+        component.Find(".my-custom-template").TextContent.ShouldBe("Custom: John");
     }
 
     [Fact]
@@ -185,38 +126,6 @@ public class CustomTemplateTests : MudBlazorTestBase
     }
 
     [Fact]
-    public void WithCustomTemplate_Should_Not_Crash_For_A_Value_Typed_Field_When_Unresolvable()
-    {
-        // Arrange - the fallback path returns null from GetCustomTemplateValue for ANY TValue,
-        // including a value type like int, where a naive cast would throw. FieldConfigurationWrapper
-        // hands the object-typed value to the typed template through a pattern match
-        // (`_objectContext.Value is TValue typed ? typed : default!`), not a direct cast, so a null
-        // becomes the type's default (0 for int) rather than a NullReferenceException. Pinning this
-        // because the diagnostic's whole point is "still renders" - it must hold for value types too.
-        var model = new NestedIntModel { Nested = null };
-        var config = FormBuilder<NestedIntModel>
-            .Create()
-            .AddField(x => x.Nested!.Value, field => field
-                .WithLabel("Nested int")
-                .WithCustomTemplate(context => builder =>
-                {
-                    builder.OpenElement(0, "div");
-                    builder.AddAttribute(1, "class", "int-template");
-                    builder.AddContent(2, $"Int: {context.Value}");
-                    builder.CloseElement();
-                }))
-            .Build();
-
-        // Act
-        var component = Render<FormCraftComponent<NestedIntModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
-
-        // Assert
-        component.Find(".int-template").TextContent.ShouldBe("Int: 0");
-    }
-
-    [Fact]
     public void WithCustomTemplate_Should_Report_Each_Field_Separately_Even_When_FieldNames_Collide()
     {
         // Arrange - FieldName is only the expression's last member, so x => x.A.Value and
@@ -280,19 +189,62 @@ public class CustomTemplateTests : MudBlazorTestBase
         public string Value { get; set; } = string.Empty;
     }
 
-    private class NestedIntModel
-    {
-        public NestedIntValue? Nested { get; set; }
-    }
-
-    private class NestedIntValue
-    {
-        public int Value { get; set; }
-    }
-
     private class TwoNestedPathsModel
     {
         public NestedValue? A { get; set; }
         public NestedValue? B { get; set; }
+    }
+
+    /// <summary>
+    /// Collects warning-level log messages so a diagnostic can be asserted on. This adapter has no
+    /// shared diagnostics infrastructure (unlike <c>FormCraft.ForMudBlazor</c>'s
+    /// <c>DiagnosticLog</c>/<c>CapturingLoggerProvider</c>) and this is the only test needing one, so
+    /// it stays local rather than starting a new shared TestSupport type for a single call site.
+    /// </summary>
+    private sealed class CapturingLoggerProvider : ILoggerProvider
+    {
+        private readonly List<string> _warnings = [];
+
+        public IReadOnlyList<string> Warnings
+        {
+            get
+            {
+                lock (_warnings)
+                {
+                    return _warnings.ToList();
+                }
+            }
+        }
+
+        public ILogger CreateLogger(string categoryName) => new CapturingLogger(_warnings);
+
+        public void Dispose()
+        {
+        }
+
+        private sealed class CapturingLogger(List<string> warnings) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Warning;
+
+            public void Log<TState>(
+                LogLevel logLevel,
+                EventId eventId,
+                TState state,
+                Exception? exception,
+                Func<TState, Exception?, string> formatter)
+            {
+                if (logLevel < LogLevel.Warning)
+                {
+                    return;
+                }
+
+                lock (warnings)
+                {
+                    warnings.Add(formatter(state, exception));
+                }
+            }
+        }
     }
 }

@@ -19,10 +19,11 @@ var config = FormBuilder<MyModel>.Create()
 The Blazor component that renders the form.
 
 ```razor
-<FormCraftComponent TModel="MyModel" 
-                   Model="@model" 
-                   Configuration="@config"
-                   OnValidSubmit="@HandleSubmit" />
+<FormCraftComponent
+    TModel="MyModel"
+    Model="@model"
+    Configuration="@config"
+    OnValidSubmit="@HandleSubmit" />
 ```
 
 #### Parameters
@@ -506,10 +507,11 @@ var config = builder.Build();
 Handle individual field changes:
 
 ```csharp
-<FormCraftComponent TModel="MyModel" 
-                   Model="@model" 
-                   Configuration="@config"
-                   OnFieldChanged="@HandleFieldChange" />
+<FormCraftComponent
+    TModel="MyModel"
+    Model="@model"
+    Configuration="@config"
+    OnFieldChanged="@HandleFieldChange" />
 
 @code {
     private Task HandleFieldChange((string fieldName, object? value) args)
