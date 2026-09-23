@@ -33,25 +33,15 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
     {
         base.OnFieldConfigurationChanged();
 
-        // Get configuration from FileUploadConfiguration if available
-        var config = GetAttribute<FileUploadConfiguration>("FileUploadConfiguration");
-        if (config != null)
-        {
-            Accept = string.Join(",", config.AcceptedFileTypes ?? Array.Empty<string>());
-            MaxFiles = config.MaxFiles;
-            MaxFileSize = config.MaxFileSize;
-            ShowPreview = config.ShowPreview;
-            EnableDragDrop = config.EnableDragDrop;
-        }
-        else
-        {
-            // Fallback to individual attributes
-            Accept = GetAttribute<string>("Accept");
-            MaxFiles = GetAttribute("MaxFiles", 10);
-            MaxFileSize = GetAttribute<long?>("MaxFileSize");
-            ShowPreview = GetAttribute("ShowPreview", true);
-            EnableDragDrop = GetAttribute("EnableDragDrop", true);
-        }
+        // Resolved through the shared upload base (#340) rather than read here a second way, so
+        // this component and the single-file one cannot drift on what a constraint means.
+        var config = UploadConfiguration;
+        var attributes = Context.Field.AdditionalAttributes;
+        Accept = UploadConstraintResolver.ResolveAccept(config, attributes);
+        MaxFiles = UploadConstraintResolver.ResolveMaxFiles(config, attributes, "MaxFiles") ?? 10;
+        MaxFileSize = UploadConstraintResolver.ResolveMaxFileSize(config, attributes, "MaxFileSize");
+        ShowPreview = UploadConstraintResolver.ResolveShowPreview(config, attributes) ?? true;
+        EnableDragDrop = UploadConstraintResolver.ResolveEnableDragDrop(config, attributes) ?? true;
     }
 
     private void SetDragClass()

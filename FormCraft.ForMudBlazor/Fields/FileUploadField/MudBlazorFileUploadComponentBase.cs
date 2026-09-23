@@ -41,6 +41,14 @@ public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldCo
         NativeRequired.Resolve(Context.Field.AdditionalAttributes, IsRequired);
 
     /// <summary>
+    /// The <see cref="FileUploadConfiguration"/> <c>.AsFileUpload</c>/<c>.AsMultipleFileUpload</c>
+    /// write, resolved once here so both upload components read constraints through the same path
+    /// (#340) instead of each picking its own keys.
+    /// </summary>
+    protected FileUploadConfiguration? UploadConfiguration =>
+        UploadConstraintResolver.GetConfiguration(Context.Field.AdditionalAttributes);
+
+    /// <summary>
     /// Whether the component renders its own <c>&lt;MudText&gt;</c> label at all.
     /// </summary>
     /// <remarks>

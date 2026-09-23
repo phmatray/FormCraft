@@ -64,49 +64,36 @@ public abstract class FluentUIFileUploadComponentBase<TModel, TValue> : FluentUI
     // -------------------------------------------------------------------------------------------
     // Upload constraints.
     //
-    // These read the FileUploadConfiguration object that .AsFileUpload(...) and
-    // .AsMultipleFileUpload(...) actually write, falling back to the raw attribute keys the
-    // MudBlazor components accept. Reading only the raw keys - which an earlier draft of this
-    // adapter did - meant every constraint configured through the public builder API was silently
-    // ignored: .AsFileUpload(acceptedFileTypes: [".pdf"], maxFileSize: 2_000_000) rendered an
-    // upload that took any file up to the default cap, with no error. The keys are also NOT the
-    // ones the object uses (MaxFileSize/MaxFiles vs MaximumFileSize/MaximumFileCount), so guessing
-    // from the MudBlazor component's fallbacks alone reproduces the same silence.
-    //
-    // Centralised here rather than in each component for the reason this base class exists: two
-    // copies of a rule drift, and a constraint that applies to single uploads but not multiple
-    // ones is exactly the kind of divergence nobody notices until a user uploads a 500 MB file.
+    // Resolved through UploadConstraintResolver (#340) - the same path the MudBlazor adapter's
+    // upload components use - rather than read here a second way. Two independent readers is
+    // exactly how this drifted in the first place: an earlier draft of this adapter read only the
+    // raw attribute keys, which are also NOT the ones FileUploadConfiguration uses
+    // (MaxFileSize/MaxFiles vs MaximumFileSize/MaximumFileCount), so every constraint configured
+    // through the public builder API was silently ignored. The resolver additionally tolerates a
+    // raw key boxed as `int` where these properties are `long`/`int?` - GetAttribute<T>'s
+    // exact-type match would otherwise drop a hand-written `.WithAttribute("MaxFileSize", 5_000_000)`.
     // -------------------------------------------------------------------------------------------
 
     /// <summary>The configuration object the builder extensions write, when one was configured.</summary>
     private FileUploadConfiguration? UploadConfiguration =>
-        GetAttribute<FileUploadConfiguration>("FileUploadConfiguration");
+        UploadConstraintResolver.GetConfiguration(Context.Field.AdditionalAttributes);
 
     /// <summary>
     /// The <c>accept</c> list for the file input, as a comma-separated string, or <c>null</c> when
     /// every type is allowed.
     /// </summary>
-    protected string? AcceptedFileTypes
-    {
-        get
-        {
-            var configured = UploadConfiguration?.AcceptedFileTypes;
-            if (configured is { Length: > 0 })
-            {
-                return string.Join(",", configured);
-            }
-
-            return GetAttribute<string>("Accept");
-        }
-    }
+    protected string? AcceptedFileTypes =>
+        UploadConstraintResolver.ResolveAccept(UploadConfiguration, Context.Field.AdditionalAttributes);
 
     /// <summary>The largest accepted file in bytes. Defaults to 10 MB, matching MudBlazor.</summary>
     protected long MaximumFileSize =>
-        UploadConfiguration?.MaxFileSize
-        ?? GetAttribute("MaxFileSize", GetAttribute("MaximumFileSize", 10L * 1024 * 1024));
+        UploadConstraintResolver.ResolveMaxFileSize(
+            UploadConfiguration, Context.Field.AdditionalAttributes, "MaxFileSize", "MaximumFileSize")
+        ?? 10L * 1024 * 1024;
 
     /// <summary>The most files that may be chosen at once.</summary>
     protected int MaximumFileCount =>
-        UploadConfiguration?.MaxFiles
-        ?? GetAttribute("MaxFiles", GetAttribute("MaximumFileCount", 10));
+        UploadConstraintResolver.ResolveMaxFiles(
+            UploadConfiguration, Context.Field.AdditionalAttributes, "MaxFiles", "MaximumFileCount")
+        ?? 10;
 }
