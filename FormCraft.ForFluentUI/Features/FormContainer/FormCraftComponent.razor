@@ -72,15 +72,23 @@
         }
         else
         {
-            @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
-            {
-                if (ShouldShowField(field))
+            @* FormLayout reaches the DOM as a formcraft-layout-{value} class (#457), styled by
+               _content/FormCraft.ForFluentUI/css/formcraft-layout.css. Vertical keeps
+               display: contents so its fields stay direct flex items of the FluentStack above and
+               keep its 12px gap, with or without that stylesheet. *@
+            <div
+                class="@LayoutCssClass"
+                style="@(IsStackedLayout ? "display: contents" : null)">
+                @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
                 {
-                    <div>
-                        @RenderFieldWithMessages(field)
-                    </div>
+                    if (ShouldShowField(field))
+                    {
+                        <div>
+                            @RenderFieldWithMessages(field)
+                        </div>
+                    }
                 }
-            }
+            </div>
         }
 
         @* Collection (one-to-many) fields. Their item fields go through the same

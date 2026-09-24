@@ -117,6 +117,11 @@ public partial class FormCraftComponent<TModel>
     private IGroupedFormConfiguration<TModel>? GroupedConfiguration => Configuration as IGroupedFormConfiguration<TModel>;
     private ICollectionFormConfiguration<TModel>? CollectionConfiguration => Configuration as ICollectionFormConfiguration<TModel>;
 
+    /// <summary>
+    /// The <c>formcraft-layout-{value}</c> class the ungrouped-fields wrapper carries (#457).
+    /// </summary>
+    private string LayoutCssClass => $"formcraft-layout-{Configuration.Layout.ToString().ToLowerInvariant()}";
+
     protected override async Task OnInitializedAsync()
     {
         if (Model != null)
