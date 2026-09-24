@@ -8,17 +8,22 @@ namespace FormCraft.UnitTests.Forms.Lov;
 public class LovDataProviderFactoryTests
 {
     [Fact]
-    public void Create_Should_Return_A_LambdaLovDataProvider_When_DataProvider_Is_Set()
+    public async Task Create_Should_Return_A_Provider_That_Delegates_To_The_Configured_DataProvider()
     {
         var factory = new LovDataProviderFactory(A.Fake<IServiceProvider>());
+        var expected = new LovDataResult<Item>([new Item { Id = 1 }], 1);
         var config = new LovConfiguration<Item, int>
         {
-            DataProvider = (_, _) => Task.FromResult(new LovDataResult<Item>([new Item { Id = 1 }], 1))
+            DataProvider = (_, _) => Task.FromResult(expected)
         };
 
         var provider = factory.Create<Item, int>(config);
+        var result = await provider.GetItemsAsync(new LovQuery(), Xunit.TestContext.Current.CancellationToken);
 
+        // Not just the wrapper type: prove the configured delegate itself is what got wired in,
+        // not a coincidentally-typed stand-in.
         provider.ShouldBeOfType<LambdaLovDataProvider<Item>>();
+        result.ShouldBeSameAs(expected);
     }
 
     [Fact]

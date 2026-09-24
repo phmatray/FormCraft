@@ -31,18 +31,24 @@ public class AsMultiSelectLovTests
     }
 
     [Fact]
-    public void AllowMultipleSelection_Chained_Afterward_Should_Leave_SelectionMode_At_Multiple()
+    public void AllowMultipleSelection_With_A_Max_Should_Set_The_Modal_Title_And_Keep_SelectionMode_At_Multiple()
     {
+        // AsMultiSelectLov already calls the parameterless AllowMultipleSelection() before the
+        // configure callback runs, so re-calling it with no argument here would be a no-op that
+        // proves nothing beyond the test above. Passing maxSelections exercises the one branch
+        // (the ModalOptions.Title side effect) neither test covered.
         var config = FormBuilder<TaskModel>
             .Create()
             .AddField(x => x.AssignedEmployeeIds, field => field
                 .AsMultiSelectLov<TaskModel, int, Employee>(lov => lov
                     .WithDataSource(() => Employees)
                     .WithDisplay(e => e.Name)
-                    .AllowMultipleSelection()))
+                    .AllowMultipleSelection(5)))
             .Build();
 
-        GetLovConfiguration(config).SelectionMode.ShouldBe(LovSelectionMode.Multiple);
+        var lovConfig = GetLovConfiguration(config);
+        lovConfig.SelectionMode.ShouldBe(LovSelectionMode.Multiple);
+        lovConfig.ModalOptions.Title.ShouldBe("Select Items (max 5)");
     }
 
     // Note: the stored configuration is keyed by IEnumerable<int>, not int — see the type-level

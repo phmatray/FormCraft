@@ -34,6 +34,24 @@ public class LovColumnBuilderTests
     }
 
     [Fact]
+    public void AddColumn_Should_Derive_PropertyName_And_ValueSelector_From_The_Expression()
+    {
+        var config = FormBuilder<OrderModel>
+            .Create()
+            .AddField(x => x.CustomerId, field => field
+                .AsLov<OrderModel, int, CustomerDto>(lov => lov
+                    .WithDataSource(() => Customers)
+                    .WithKey(c => c.Id)
+                    .WithDisplay(c => c.Name)
+                    .AddColumn(c => c.Name, "Customer Name")))
+            .Build();
+
+        var column = GetLovConfiguration(config).Columns.Single();
+        column.PropertyName.ShouldBe(nameof(CustomerDto.Name));
+        column.ValueSelector(Customers[0]).ShouldBe("Acme");
+    }
+
+    [Fact]
     public void AddColumn_Without_Configure_Should_Keep_The_Defaults_Sortable_And_Filterable()
     {
         var config = FormBuilder<OrderModel>

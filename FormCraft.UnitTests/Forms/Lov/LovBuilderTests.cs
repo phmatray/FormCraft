@@ -100,6 +100,40 @@ public class LovBuilderTests
         lovConfig.SearchOptions.Enabled.ShouldBeFalse();
     }
 
+    [Fact]
+    public void DependsOn_Should_Register_A_Cascading_Dependency()
+    {
+        var config = FormBuilder<OrderModel>
+            .Create()
+            .AddField(x => x.CustomerId, field => field
+                .AsLov<OrderModel, int, CustomerDto>(lov => lov
+                    .WithDataSource(() => Customers)
+                    .WithKey(c => c.Id)
+                    .WithDisplay(c => c.Name)
+                    .DependsOn(x => x.RegionId, "regionId", clearOnChange: false)))
+            .Build();
+
+        var dependency = GetLovConfiguration(config).Dependencies.Single();
+        dependency.DependentPropertyName.ShouldBe(nameof(OrderModel.RegionId));
+        dependency.ContextKey.ShouldBe("regionId");
+        dependency.ClearOnChange.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void WithJsonConfig_Should_Set_The_JsonConfigId()
+    {
+        var config = FormBuilder<OrderModel>
+            .Create()
+            .AddField(x => x.CustomerId, field => field
+                .AsLov<OrderModel, int, CustomerDto>(lov => lov
+                    .WithJsonConfig("customers")
+                    .WithKey(c => c.Id)
+                    .WithDisplay(c => c.Name)))
+            .Build();
+
+        GetLovConfiguration(config).JsonConfigId.ShouldBe("customers");
+    }
+
     private static ILovConfiguration<CustomerDto, int> GetLovConfiguration(IFormConfiguration<OrderModel> config)
     {
         var field = config.Fields.Single(f => f.FieldName == nameof(OrderModel.CustomerId));
@@ -116,6 +150,7 @@ public class LovBuilderTests
     private class OrderModel
     {
         public int CustomerId { get; set; }
+        public int RegionId { get; set; }
         public string CustomerEmail { get; set; } = string.Empty;
         public bool AsyncActionRan { get; set; }
     }
