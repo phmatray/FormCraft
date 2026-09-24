@@ -150,7 +150,7 @@ public class FileUploadFieldRendererTests : CoreRendererTestBase
     {
         // Arrange
         var model = new TestModel();
-        var uploadConfig = new FileUploadConfiguration { MaxFiles = 5 };
+        var uploadConfig = new FileUploadConfiguration { MaxFiles = 5, AcceptedFileTypes = [".pdf"] };
 
         var attributes = new Dictionary<string, object>
         {
@@ -168,7 +168,8 @@ public class FileUploadFieldRendererTests : CoreRendererTestBase
         var cut = Render(_renderer.Render(context));
 
         // Assert - "multiple" comes from ActualFieldType, not FileUploadConfiguration.Multiple; this
-        // stub never reads FileUploadConfiguration for "accept" either, so it stays absent.
+        // stub never reads FileUploadConfiguration.AcceptedFileTypes either, so "accept" stays absent
+        // even though the config sets it - proving the config object itself is ignored, not just empty.
         cut.Find("input").HasAttribute("multiple").ShouldBeTrue();
         cut.Find("input").HasAttribute("accept").ShouldBeFalse();
     }
@@ -268,12 +269,14 @@ public class FileUploadFieldRendererTests : CoreRendererTestBase
         var context = A.Fake<IFieldRenderContext<TestModel>>();
         A.CallTo(() => context.Field).Returns(field);
         A.CallTo(() => context.CurrentValue).Returns(file);
+        A.CallTo(() => context.ActualFieldType).Returns(typeof(IBrowserFile));
 
         // Act
         var cut = Render(_renderer.Render(context));
 
-        // Assert - a successful upload (a real CurrentValue, no error key) still renders the same
-        // fixed markup: this stub reflects neither CurrentValue nor FileUploadErrors into the DOM.
+        // Assert - a successful single-file upload (a real CurrentValue, no error key) still renders
+        // the same fixed markup: this stub reflects neither CurrentValue nor FileUploadErrors into
+        // the DOM, and a single IBrowserFile field type stays non-multiple.
         cut.Find("label").TextContent.ShouldBe("Upload File");
         var input = cut.Find("input");
         input.GetAttribute("type").ShouldBe("file");

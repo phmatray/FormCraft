@@ -45,7 +45,9 @@ public class CoreRendererDisabledWhenTests : CoreRendererTestBase
 
         var cut = Render(RendererService.RenderField(model, field, default, default));
 
-        cut.Find("input").HasAttribute("disabled").ShouldBeTrue();
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("file");
+        input.HasAttribute("disabled").ShouldBeTrue();
     }
 
     [Fact]
@@ -59,7 +61,9 @@ public class CoreRendererDisabledWhenTests : CoreRendererTestBase
 
         var cut = Render(RendererService.RenderField(model, field, default, default));
 
-        cut.Find("input").HasAttribute("disabled").ShouldBeFalse();
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("file");
+        input.HasAttribute("disabled").ShouldBeFalse();
     }
 
     public class StringLockModel
