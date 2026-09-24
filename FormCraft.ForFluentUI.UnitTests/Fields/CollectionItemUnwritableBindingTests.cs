@@ -92,9 +92,10 @@ public class CollectionItemUnwritableBindingTests : FluentUITestBase
     }
 
     [Fact]
-    public async Task The_Edit_Should_Still_Be_Dropped_Not_Written()
+    public async Task The_Edit_Should_Still_Be_Dropped_Not_Written_And_Not_Notified()
     {
         // Arrange
+        EditContext? editContext = null;
         var model = new ParentModel { Lines = { new Line() } };
         var component = Render<FormCraftComponent<ParentModel>>(parameters => parameters
             .Add(p => p.Model, model)
@@ -102,7 +103,8 @@ public class CollectionItemUnwritableBindingTests : FluentUITestBase
                 .AddCollectionField(x => x.Lines, collection => collection
                     .WithItemForm(item => item
                         .AddField(x => x.Details!.Name, field => field.WithLabel("Name"))))
-                .Build()));
+                .Build())
+            .Add(p => p.OnEditContextCreated, (EditContext ctx) => editContext = ctx));
 
         // Act
         var field = component.FindComponent<FluentUITextFieldComponent<Line>>();
@@ -110,6 +112,7 @@ public class CollectionItemUnwritableBindingTests : FluentUITestBase
 
         // Assert - AC4: write semantics are unchanged by adding the diagnostic.
         model.Lines[0].Details.ShouldBeNull();
+        editContext!.IsModified(new FieldIdentifier(model, "Lines[0].Details.Name")).ShouldBeFalse();
     }
 
     public class ParentModel
