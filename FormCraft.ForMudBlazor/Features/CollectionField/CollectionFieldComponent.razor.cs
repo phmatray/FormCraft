@@ -154,7 +154,37 @@ public partial class CollectionFieldComponent<TModel, TItem>
         }
     }
 
-    private List<TItem> Items => Configuration.CollectionAccessor(Model);
+    /// <summary>
+    /// The collection this component renders, read through
+    /// <see cref="ICollectionFieldConfiguration{TModel, TItem}.CollectionAccessor"/>.
+    /// </summary>
+    /// <remarks>
+    /// Read on essentially the first line of this component's own markup (<c>Items.Count == 0</c>),
+    /// so a nested binding with a null intermediate (e.g. <c>x => x.Details.Items</c> where
+    /// <c>Details</c> is null) used to crash the component the instant it rendered — before
+    /// validation ever ran (#419). Mirrors <c>CollectionFieldValidator.TryReadCollection</c>'s
+    /// "unreadable collection validates as zero items" treatment on the validation path (#408), but
+    /// as a local <c>try</c>/<c>catch</c> rather than a call to the same helper:
+    /// <c>FieldValueGetterCache&lt;TModel&gt;.TryInvoke</c> is <c>internal</c> to <c>FormCraft</c>
+    /// core, and this assembly has no <c>InternalsVisibleTo</c> to it. Catches
+    /// <see cref="NullReferenceException"/> specifically — not <see cref="Exception"/> broadly, unlike
+    /// <c>TryReadCollection</c> — so a genuinely broken accessor, or a cancellation, still propagates
+    /// instead of being swallowed here.
+    /// </remarks>
+    private List<TItem> Items
+    {
+        get
+        {
+            try
+            {
+                return Configuration.CollectionAccessor(Model);
+            }
+            catch (NullReferenceException)
+            {
+                return new List<TItem>();
+            }
+        }
+    }
 
     /// <summary>
     /// This row's identity (#334) — a per-item weak token for a reference-type item that appears
