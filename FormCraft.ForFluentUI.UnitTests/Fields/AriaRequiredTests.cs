@@ -103,4 +103,38 @@ public class AriaRequiredTests : FluentUITestBase
         // Assert
         id.ShouldBe("formcraft-help-ProductName");
     }
+
+    [Fact]
+    public void A_Nested_Fields_Help_Text_Should_Render_With_A_Dot_Free_Id()
+    {
+        // Arrange - the actual render path (FormCraftComponent -> FieldHelpText.IdFor), not just the
+        // static call above, must agree: a nested field's FieldName is a dotted path (#437/#448) and
+        // an unescaped '.' in an id is the CSS class-selector delimiter (#449)
+        var config = FormBuilder<NestedHelpTextModel>.Create()
+            .AddField(x => x.Billing.Amount, f => f
+                .WithLabel("Amount")
+                .WithHelpText("In your local currency."))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<NestedHelpTextModel>>(p => p
+            .Add(c => c.Model, new NestedHelpTextModel())
+            .Add(c => c.Configuration, config));
+
+        // Assert
+        var help = component.Find(".formcraft-field-help");
+        help.Id.ShouldNotBeNullOrEmpty();
+        help.Id!.ShouldNotContain(".");
+        help.Id.ShouldBe(FieldHelpText.IdFor("Billing.Amount"));
+    }
+
+    private class NestedHelpTextModel
+    {
+        public BillingSection Billing { get; set; } = new();
+    }
+
+    private class BillingSection
+    {
+        public string Amount { get; set; } = string.Empty;
+    }
 }
