@@ -193,7 +193,9 @@ public class DocumentationSamplesTests
 
     [Theory]
     [InlineData(FormLayout.Vertical)]
+#pragma warning disable CS0618 // the obsolete Horizontal must still build a form (#457)
     [InlineData(FormLayout.Horizontal)]
+#pragma warning restore CS0618
     [InlineData(FormLayout.Grid)]
     [InlineData(FormLayout.Inline)]
     public void Readme_MultipleLayouts_Sample_Should_Build(FormLayout layout)
@@ -492,7 +494,7 @@ public class DocumentationSamplesTests
         // Mirrors docs/examples.md "Contact Form"
         var config = FormBuilder<ContactModel>
             .Create()
-            .WithLayout(FormLayout.Horizontal)
+            .WithLayout(FormLayout.Grid)
             .AddRequiredTextField(x => x.FirstName, "First Name", minLength: 2)
             .AddRequiredTextField(x => x.LastName, "Last Name", minLength: 2)
             .AddEmailField(x => x.Email)
@@ -517,7 +519,7 @@ public class DocumentationSamplesTests
             .Build();
 
         config.Fields.Count.ShouldBe(7);
-        config.Layout.ShouldBe(FormLayout.Horizontal);
+        config.Layout.ShouldBe(FormLayout.Grid);
         config.Fields.Single(f => f.FieldName == "City").Dependencies.Count.ShouldBe(1);
     }
 

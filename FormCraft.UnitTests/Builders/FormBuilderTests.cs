@@ -60,12 +60,12 @@ public class FormBuilderTests
         var builder = FormBuilder<TestModel>.Create();
 
         // Act
-        var result = builder.WithLayout(FormLayout.Horizontal);
+        var result = builder.WithLayout(FormLayout.Grid);
         var config = result.Build();
 
         // Assert
         result.ShouldBeSameAs(builder);
-        config.Layout.ShouldBe(FormLayout.Horizontal);
+        config.Layout.ShouldBe(FormLayout.Grid);
     }
 
     [Fact]
@@ -105,6 +105,7 @@ public class FormBuilderTests
         var builder = FormBuilder<TestModel>.Create();
 
         // Act
+#pragma warning disable CS0618 // deliberately exercising the obsolete ShowRequiredIndicator (#457)
         var result = builder.ShowRequiredIndicator(true, "**");
         var config = result.Build();
 
@@ -112,12 +113,14 @@ public class FormBuilderTests
         result.ShouldBeSameAs(builder);
         config.ShowRequiredIndicator.ShouldBeTrue();
         config.RequiredIndicator.ShouldBe("**");
+#pragma warning restore CS0618
     }
 
     [Fact]
     public void Build_Should_Return_FormConfiguration_With_All_Fields()
     {
         // Arrange & Act
+#pragma warning disable CS0618 // deliberately exercising the obsolete ShowRequiredIndicator (#457)
         var configuration = FormBuilder<TestModel>.Create()
             .WithLayout(FormLayout.Inline)
             .WithCssClass("test-form")
@@ -129,14 +132,17 @@ public class FormBuilderTests
             .AddField(x => x.Email, field => field
                 .WithLabel("Email"))
             .Build();
+#pragma warning restore CS0618
 
         // Assert
         configuration.ShouldNotBeNull();
         configuration.Layout.ShouldBe(FormLayout.Inline);
         configuration.CssClass.ShouldBe("test-form");
         configuration.ShowValidationSummary.ShouldBeTrue();
+#pragma warning disable CS0618 // deliberately exercising the obsolete ShowRequiredIndicator (#457)
         configuration.ShowRequiredIndicator.ShouldBeTrue();
         configuration.RequiredIndicator.ShouldBe("*");
+#pragma warning restore CS0618
         configuration.Fields.Count.ShouldBe(2);
         configuration.Fields.ShouldContain(f => f.FieldName == "Name");
         configuration.Fields.ShouldContain(f => f.FieldName == "Email");
@@ -223,6 +229,7 @@ public class FormBuilderTests
     public void Complex_Form_Building_Scenario()
     {
         // Arrange & Act
+#pragma warning disable CS0618 // deliberately exercising the obsolete ShowRequiredIndicator (#457)
         var configuration = FormBuilder<TestModel>.Create()
             .WithLayout(FormLayout.Vertical)
             .WithCssClass("registration-form")
@@ -257,6 +264,7 @@ public class FormBuilderTests
                 })
                 .WithOrder(5))
             .Build();
+#pragma warning restore CS0618
 
         // Assert
         configuration.ShouldNotBeNull();
@@ -301,11 +309,13 @@ public class FormBuilderTests
     public void FormBuilder_Should_Allow_Method_Chaining()
     {
         // Act
+#pragma warning disable CS0618 // deliberately exercising the obsolete ShowRequiredIndicator (#457)
         var result = FormBuilder<TestModel>.Create()
             .WithLayout(FormLayout.Grid)
             .WithCssClass("test-form")
             .ShowValidationSummary(false)
             .ShowRequiredIndicator(false);
+#pragma warning restore CS0618
 
         var config = result.Build();
 
@@ -313,7 +323,9 @@ public class FormBuilderTests
         config.Layout.ShouldBe(FormLayout.Grid);
         config.CssClass.ShouldBe("test-form");
         config.ShowValidationSummary.ShouldBeFalse();
+#pragma warning disable CS0618 // deliberately exercising the obsolete ShowRequiredIndicator (#457)
         config.ShowRequiredIndicator.ShouldBeFalse();
+#pragma warning restore CS0618
     }
 
     [Fact]
@@ -325,9 +337,11 @@ public class FormBuilderTests
         // Assert
         config.Layout.ShouldBe(FormLayout.Vertical); // Default layout
         config.CssClass.ShouldBeNull();
-        config.ShowValidationSummary.ShouldBeTrue(); // Default
+        config.ShowValidationSummary.ShouldBeFalse(); // Default: opt-in since #457
+#pragma warning disable CS0618 // deliberately exercising the obsolete ShowRequiredIndicator (#457)
         config.ShowRequiredIndicator.ShouldBeTrue(); // Default
         config.RequiredIndicator.ShouldBe("*"); // Default
+#pragma warning restore CS0618
         config.Fields.ShouldBeEmpty();
         config.FieldDependencies.ShouldBeEmpty();
     }

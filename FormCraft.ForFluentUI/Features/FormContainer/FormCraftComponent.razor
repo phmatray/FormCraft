@@ -16,7 +16,7 @@
 
    FormCraft validates server-side and documents that the browser produces no native validation
    bubbles. That guarantee is only as good as this attribute. *@
-<EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit" novalidate="novalidate">
+<EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit" novalidate="novalidate" class="@Configuration.CssClass">
 @*  ValidateCollections is ON as of #278 — and flipping it is the point, not an oversight.
 
     #279 introduced this flag set to `false` with the instruction "turn it on when this container
@@ -36,6 +36,11 @@
                           Configuration="@Configuration"
                           ValidateCollections="true"
                           @ref="_validator" />
+
+    @if (Configuration.ShowValidationSummary)
+    {
+        <Microsoft.AspNetCore.Components.Forms.ValidationSummary />
+    }
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
         @if (HasFieldGroups)
@@ -67,15 +72,23 @@
         }
         else
         {
-            @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
-            {
-                if (ShouldShowField(field))
+            @* FormLayout reaches the DOM as a formcraft-layout-{value} class (#457), styled by
+               _content/FormCraft.ForFluentUI/css/formcraft-layout.css. Vertical keeps
+               display: contents so its fields stay direct flex items of the FluentStack above and
+               keep its 12px gap, with or without that stylesheet. *@
+            <div
+                class="@LayoutCssClass"
+                style="@(IsStackedLayout ? "display: contents" : null)">
+                @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
                 {
-                    <div>
-                        @RenderFieldWithMessages(field)
-                    </div>
+                    if (ShouldShowField(field))
+                    {
+                        <div>
+                            @RenderFieldWithMessages(field)
+                        </div>
+                    }
                 }
-            }
+            </div>
         }
 
         @* Collection (one-to-many) fields. Their item fields go through the same
