@@ -226,15 +226,24 @@ Override default rendering with custom Blazor components:
 
 ### Form-Level Settings
 
-Configure layout and indicators per form on the builder:
+Configure layout per form on the builder:
 
 ```csharp
 FormBuilder<MyModel>.Create()
-    .WithLayout(FormLayout.Horizontal)
-    .ShowRequiredIndicator(true, "*")
+    .WithLayout(FormLayout.Grid)
     .ShowValidationSummary()
     // ... fields
     .Build();
+```
+
+`FormLayout.Horizontal` is `[Obsolete]` — it was never implemented and renders like
+`FormLayout.Vertical`. `ShowRequiredIndicator()` is also `[Obsolete]` — it is never rendered; add a
+visible asterisk to an individual required field with `.WithNativeRequired()` instead:
+
+```csharp
+.AddField(x => x.Email, field => field
+    .Required()
+    .WithNativeRequired())
 ```
 
 ### Localization
