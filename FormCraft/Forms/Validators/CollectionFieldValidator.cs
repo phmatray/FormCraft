@@ -87,8 +87,8 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
         // `=> _set.ToList()`) would otherwise have its count measured against a different snapshot
         // than the one actually validated (#344).
         var items = TryReadCollection(model);
-        var itemErrors = await ValidateItemsAsync(items, services);
-        return new CollectionValidationResult(BuildMessages(items, itemErrors), itemErrors);
+        var (itemErrors, evaluatedItemFields) = await ValidateItemsWithEvaluatedAsync(items, services);
+        return new CollectionValidationResult(BuildMessages(items, itemErrors), itemErrors, evaluatedItemFields);
     }
 
     /// <summary>
@@ -269,7 +269,7 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
     /// <c>async</c> is what makes it surface as a faulted task rather than a synchronous throw.
     /// </remarks>
     public async Task<List<CollectionItemError>> ValidateItemsAsync(TModel model, IServiceProvider services)
-        => await ValidateItemsAsync(TryReadCollection(model), services);
+        => (await ValidateItemsWithEvaluatedAsync(TryReadCollection(model), services)).Errors;
 
     /// <summary>
     /// Reads the collection through <see cref="ICollectionFieldConfiguration{TModel, TItem}.CollectionAccessor"/>,
@@ -305,13 +305,20 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
     /// <see cref="BuildMessages"/>; the public <see cref="ValidateItemsAsync(TModel, IServiceProvider)"/>
     /// overload keeps resolving its own, since external callers rely on that shape (#344).
     /// </summary>
-    private async Task<List<CollectionItemError>> ValidateItemsAsync(List<TItem>? items, IServiceProvider services)
+    /// <returns>
+    /// The failing cells (unchanged shape) alongside every <c>(ItemIndex, FieldName)</c> pair this
+    /// traversal ran a validator against, valid or not (#447) — collected in this same loop, rather
+    /// than derived separately afterwards, so the two can never drift apart.
+    /// </returns>
+    private async Task<(List<CollectionItemError> Errors, List<(int ItemIndex, string FieldName)> Evaluated)> ValidateItemsWithEvaluatedAsync(
+        List<TItem>? items, IServiceProvider services)
     {
         var errors = new List<CollectionItemError>();
+        var evaluated = new List<(int ItemIndex, string FieldName)>();
 
         if (items == null || _configuration.ItemFormConfiguration == null)
         {
-            return errors;
+            return (errors, evaluated);
         }
 
         // Resolve each field's getter once for the whole collection. The loop below is items × fields
@@ -331,6 +338,7 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
             for (var f = 0; f < fields.Count; f++)
             {
                 var field = fields[f];
+                evaluated.Add((i, field.FieldName));
 
                 // FieldValueGetterCache<TItem>.TryInvoke, not TryGetValue: the getter is already
                 // resolved above (getters[f]), and TryGetValue would re-resolve it from the field
@@ -352,6 +360,6 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
             }
         }
 
-        return errors;
+        return (errors, evaluated);
     }
 }
