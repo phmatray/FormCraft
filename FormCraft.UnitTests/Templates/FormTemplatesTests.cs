@@ -169,6 +169,30 @@ public class FormTemplatesTests
         exception.Message.ShouldContain("Username");
     }
 
+    [Fact]
+    public void LoginForm_Should_Not_Throw_When_Only_Password_Is_Present()
+    {
+        // Act - Email/Username/RememberMe are each independently absent, but Password alone
+        // still adds a field before the fieldsAdded == 0 guard runs, so this does NOT throw
+        // despite having none of the properties named in the exception message.
+        var config = FormTemplates.LoginForm<PasswordOnlyLoginModel>();
+
+        // Assert
+        config.Fields.Count.ShouldBe(1);
+        config.Fields.ShouldContain(f => f.FieldName == "Password");
+    }
+
+    [Fact]
+    public void LoginForm_Should_Prefer_Email_Over_Username_When_Both_Present()
+    {
+        // Act - Email and Username are checked via if/else if, so Email wins.
+        var config = FormTemplates.LoginForm<EmailAndUsernameLoginModel>();
+
+        // Assert
+        config.Fields.ShouldContain(f => f.FieldName == "Email");
+        config.Fields.ShouldNotContain(f => f.FieldName == "Username");
+    }
+
     #endregion
 
     #region AddressForm
@@ -211,6 +235,28 @@ public class FormTemplatesTests
 
         exception.Message.ShouldContain("AddressForm");
         exception.Message.ShouldContain("City");
+    }
+
+    [Fact]
+    public void AddressForm_Should_Prefer_Street_Over_AddressLine1_When_Both_Present()
+    {
+        // Act - Street and AddressLine1 are checked via if/else if, so Street wins.
+        var config = FormTemplates.AddressForm<StreetAndAddressLine1Model>();
+
+        // Assert
+        config.Fields.ShouldContain(f => f.FieldName == "Street");
+        config.Fields.ShouldNotContain(f => f.FieldName == "AddressLine1");
+    }
+
+    [Fact]
+    public void AddressForm_Should_Prefer_PostalCode_Over_ZipCode_When_Both_Present()
+    {
+        // Act - PostalCode and ZipCode are checked via if/else if, so PostalCode wins.
+        var config = FormTemplates.AddressForm<PostalCodeAndZipCodeModel>();
+
+        // Assert
+        config.Fields.ShouldContain(f => f.FieldName == "PostalCode");
+        config.Fields.ShouldNotContain(f => f.FieldName == "ZipCode");
     }
 
     #endregion
@@ -277,6 +323,17 @@ public class FormTemplatesTests
         public string Password { get; set; } = string.Empty;
     }
 
+    public class PasswordOnlyLoginModel
+    {
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public class EmailAndUsernameLoginModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+    }
+
     public class AddressModel
     {
         public string Street { get; set; } = string.Empty;
@@ -291,6 +348,18 @@ public class FormTemplatesTests
         public string AddressLine1 { get; set; } = string.Empty;
         public string AddressLine2 { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;
+        public string ZipCode { get; set; } = string.Empty;
+    }
+
+    public class StreetAndAddressLine1Model
+    {
+        public string Street { get; set; } = string.Empty;
+        public string AddressLine1 { get; set; } = string.Empty;
+    }
+
+    public class PostalCodeAndZipCodeModel
+    {
+        public string PostalCode { get; set; } = string.Empty;
         public string ZipCode { get; set; } = string.Empty;
     }
 
