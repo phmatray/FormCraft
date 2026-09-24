@@ -5,13 +5,18 @@
 
 @if (Configuration.IsVisible)
 {
+    // Forces one Items read before anything below asks HasReachedMax/HasReachedMin whether the
+    // binding is unreadable (#433) — those short-circuit before ever touching Items when MaxItems/
+    // MinItems are their 0 defaults, which would otherwise leave _bindingUnreadable one render stale
+    // whenever CanAdd/CanRemove are both false.
+    _ = Items;
     <MudPaper Class="pa-4 mb-4" Outlined="true">
         @* tabindex="-1" makes the header programmatically focusable without putting it in the tab
            order: it is the last-resort focus target when an action leaves the field with no button
            at all (#318). It carries the collection's label, so landing here is announced. *@
         <div class="d-flex justify-space-between align-center mb-3" @ref="_header" tabindex="-1">
             <MudText Typo="Typo.h6">@(Configuration.Label ?? Configuration.FieldName)</MudText>
-            @if (Configuration.CanAdd && !HasReachedMax)
+            @if (AddButtonRendered)
             {
                 <MudButton @ref="_addButton"
                            Variant="Variant.Outlined"
@@ -26,9 +31,24 @@
 
         @if (Items.Count == 0)
         {
-            <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mb-2">
-                @Configuration.EmptyText
-            </MudAlert>
+            @if (_bindingUnreadable)
+            {
+                @* Distinct from EmptyText (#433): a genuinely empty collection and one whose binding
+                   cannot currently be read must never look identical to the user. *@
+                <MudAlert
+                    Severity="Severity.Warning"
+                    Variant="Variant.Text"
+                    Dense="true"
+                    Class="mb-2">
+                    @UnreadableBindingMessage
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mb-2">
+                    @Configuration.EmptyText
+                </MudAlert>
+            }
         }
         else
         {
@@ -87,7 +107,7 @@
                                                    OnClick="@(() => MoveItemDown(index))"
                                                    aria-label="Move down" />
                                 }
-                                @if (Configuration.CanRemove && !HasReachedMin)
+                                @if (DeleteButtonsRendered)
                                 {
                                     @* Captured per row so a removal can focus the button that takes
                                        the vacated slot — keyed by RowKey, which follows the row's

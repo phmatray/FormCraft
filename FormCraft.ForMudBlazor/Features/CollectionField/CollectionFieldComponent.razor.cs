@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using FormCraft.Diagnostics;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
@@ -124,6 +125,14 @@ public partial class CollectionFieldComponent<TModel, TItem>
     public EventCallback OnCollectionChanged { get; set; }
 
     /// <summary>
+    /// Resolves the optional logger behind the unreadable-binding diagnostic (#433). May legitimately
+    /// be a provider with no logging stack registered — <see cref="FormDiagnosticLog.Warn"/> degrades
+    /// silently in that case.
+    /// </summary>
+    [Inject]
+    private IServiceProvider ServiceProvider { get; set; } = null!;
+
+    /// <summary>
     /// Gets or sets the parent form's EditContext, cascaded from the surrounding EditForm.
     /// When present, item field changes raise <see cref="EditContext.NotifyFieldChanged(in FieldIdentifier)"/>
     /// with a nested field identifier (e.g. <c>Items[0].ProductName</c>) on the root model, so
@@ -177,14 +186,55 @@ public partial class CollectionFieldComponent<TModel, TItem>
         {
             try
             {
-                return Configuration.CollectionAccessor(Model);
+                var items = Configuration.CollectionAccessor(Model);
+                _bindingUnreadable = false;
+                return items;
             }
             catch (NullReferenceException)
             {
+                _bindingUnreadable = true;
+
+                // Once per field (#433) — _itemFieldScope is rebuilt in OnParametersSet whenever this
+                // component is repointed at a different collection field, which resets the latch along
+                // with it, the same contract MudBlazor's ShrinkLabel diagnostics already rely on.
+                if (_itemFieldScope!.ShouldWarnOnce(UnreadableBindingDiagnosticCategory, Configuration.FieldName))
+                {
+                    var displayName = string.IsNullOrWhiteSpace(Configuration.Label) ? Configuration.FieldName : Configuration.Label;
+                    FormDiagnosticLog.Warn(
+                        ServiceProvider,
+                        UnreadableBindingDiagnosticCategory,
+                        "Collection field '{Field}' could not read its bound collection from the " +
+                        "model, so Add and Remove are disabled until the binding is reachable again. " +
+                        "Check that its binding expression is reachable (e.g. no null intermediate in " +
+                        "a nested path).",
+                        displayName);
+                }
+
                 return new List<TItem>();
             }
         }
     }
+
+    /// <summary>
+    /// Whether the last <see cref="Items"/> read hit the catch above — the binding is currently
+    /// unreadable (#433). Folded into <see cref="HasReachedMax"/>/<see cref="HasReachedMin"/> rather
+    /// than checked as a separate condition everywhere they gate Add/Remove, so every downstream
+    /// consumer (the markup's own conditions, <see cref="AddItem"/>/<see cref="RemoveItem"/>,
+    /// <see cref="DeleteButtonsRendered"/>, <see cref="DeleteButtonAt"/>) inherits it for free.
+    /// </summary>
+    private bool _bindingUnreadable;
+
+    /// <summary>Logger category for the unreadable-binding diagnostic (#433).</summary>
+    private const string UnreadableBindingDiagnosticCategory = "FormCraft.ForMudBlazor.CollectionUnreadableBinding";
+
+    /// <summary>
+    /// The user-facing message shown in place of <see cref="ICollectionFieldConfigurationBase.EmptyText"/>
+    /// while the binding is unreadable (#433) — distinct wording so a genuinely empty collection is
+    /// never mistaken for a broken one, or vice versa.
+    /// </summary>
+    private const string UnreadableBindingMessage =
+        "This field's data could not be read from the model right now, so items can't be added or " +
+        "removed.";
 
     /// <summary>
     /// This row's identity (#334) — a per-item weak token for a reference-type item that appears
@@ -242,9 +292,18 @@ public partial class CollectionFieldComponent<TModel, TItem>
         return false;
     }
 
-    private bool HasReachedMax => Configuration.MaxItems > 0 && Items.Count >= Configuration.MaxItems;
+    // _bindingUnreadable is checked first in both so an unreadable binding blocks Add/Remove exactly
+    // as reaching either limit already does, rather than as a third, separately-wired condition (#433).
+    private bool HasReachedMax => _bindingUnreadable || (Configuration.MaxItems > 0 && Items.Count >= Configuration.MaxItems);
 
-    private bool HasReachedMin => Configuration.MinItems > 0 && Items.Count <= Configuration.MinItems;
+    private bool HasReachedMin => _bindingUnreadable || (Configuration.MinItems > 0 && Items.Count <= Configuration.MinItems);
+
+    /// <summary>
+    /// Whether the <b>Add</b> button renders at all — the single source of truth the markup's own
+    /// <c>@if</c> reads too (#433), so <see cref="FocusAfterRemovalAsync"/> can tell a rendered Add
+    /// button from a stale <see cref="_addButton"/> reference left over from before it unmounted.
+    /// </summary>
+    private bool AddButtonRendered => Configuration.CanAdd && !HasReachedMax;
 
     private List<string> ValidationErrors { get; set; } = new();
 
@@ -337,6 +396,18 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// </param>
     private async Task FocusRowAsync(int index, bool? movedDown)
     {
+        // The row this index named may no longer exist by the time this runs: AddItem/MoveItemUp/
+        // MoveItemDown compute it from an Items read that can be stale by the time OnAfterRenderAsync
+        // processes it — most concretely, NotifyCollectionChanged awaiting a consumer's handler that
+        // makes the binding unreadable collapses Items to empty before this runs (#433). RowKey(index)
+        // below indexes Items directly and throws for an out-of-range index rather than returning
+        // null, so this has to be checked before either branch touches it.
+        if (index < 0 || index >= Items.Count)
+        {
+            await FocusRestore.FocusSafelyAsync(_header);
+            return;
+        }
+
         if (movedDown is { } down)
         {
             var target = EnabledMoveButtonAt(index, down);
@@ -405,7 +476,10 @@ public partial class CollectionFieldComponent<TModel, TItem>
             return;
         }
 
-        if (_addButton is not null)
+        // AddButtonRendered, not just a null check: _addButton is a component @ref, never cleared when
+        // the button it names unmounts, so a stale reference from before Add itself became unreadable-
+        // gated (#433) would otherwise be handed to FocusSafelyAsync as if it were still live.
+        if (AddButtonRendered && _addButton is not null)
         {
             await FocusRestore.FocusSafelyAsync(_addButton);
             return;
