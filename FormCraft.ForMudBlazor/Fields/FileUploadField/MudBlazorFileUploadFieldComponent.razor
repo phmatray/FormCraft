@@ -19,6 +19,7 @@
     Files="@CurrentValue"
     FilesChanged="@OnFileChanged"
     Accept="@Accept"
+    Disabled="@IsDisabled"
     Class="relative"
     InputClass="mud-file-upload-dragover"
     SelectedTemplate="@SuppressBuiltInFileList"
@@ -70,6 +71,7 @@
         Variant="@ButtonVariant"
         StartIcon="@Icons.Material.Filled.FolderOpen"
         Size="Size.Small"
+        Disabled="@IsDisabled"
         aria-describedby="@RequiredDescribedBy">
         Browse
     </MudButton>
@@ -80,7 +82,8 @@
             OnClick="@ClearAsync"
             Variant="@ButtonVariant"
             StartIcon="@Icons.Material.Filled.Clear"
-            Size="Size.Small">
+            Size="Size.Small"
+            Disabled="@IsDisabled">
             Clear
         </MudButton>
     }

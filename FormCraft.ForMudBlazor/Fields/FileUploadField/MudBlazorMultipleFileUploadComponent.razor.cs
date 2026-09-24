@@ -51,6 +51,14 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
 
     private void SetDragClass()
     {
+        // Same bypass as OpenFilePickerAsync (#482): @ondragenter is FormCraft's own MudPaper
+        // handler, not gated by MudFileUpload's Disabled. Without this, a disabled field still shows
+        // drag-hover feedback even though the actual drop is already blocked at the MudBlazor layer.
+        if (IsDisabled)
+        {
+            return;
+        }
+
         _dragging = true;
         _dragClass = $"{DefaultDragClass} mud-border-primary";
     }
@@ -62,7 +70,17 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
     }
 
     private Task OpenFilePickerAsync()
-        => _fileUpload?.OpenFilePickerAsync() ?? Task.CompletedTask;
+    {
+        // The Browse button's own Disabled binding stops a mouse/keyboard activation, but the
+        // MudPaper drop zone's @onclick calls this same method directly and carries no Disabled of
+        // its own (#482) — guarded here once so both paths are inert together.
+        if (IsDisabled)
+        {
+            return Task.CompletedTask;
+        }
+
+        return _fileUpload?.OpenFilePickerAsync() ?? Task.CompletedTask;
+    }
 
     private async Task ClearAsync()
     {
@@ -106,6 +124,13 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
 
     private async Task RemoveFile(IBrowserFile fileToRemove)
     {
+        // The chip's own OnClose is FormCraft's CustomContent, not part of MudFileUpload's render
+        // tree, so no Disabled binding reaches it (#482) — guarded here directly.
+        if (IsDisabled)
+        {
+            return;
+        }
+
         if (CurrentValue != null)
         {
             var fileList = CurrentValue.ToList();
