@@ -176,6 +176,12 @@ public partial class FormCraftComponent<TModel> where TModel : new()
     /// <exception cref="InvalidOperationException">
     /// Thrown when no <see cref="IEncryptionService"/> is registered (call <c>AddFormCraft()</c>).
     /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when an <c>EncryptedFields</c> entry cannot be resolved to a readable, settable
+    /// string property chain — typically a typo in the dotted-path key or a non-string entry
+    /// added by hand. See the "How It Works" section in <c>docs/security.md</c> for the expected
+    /// property path format.
+    /// </exception>
     public IReadOnlyDictionary<string, string?> GetEncryptedFieldValues() =>
         SecurityEnforcer.EncryptConfiguredFields(Model, Configuration?.Security);
 
