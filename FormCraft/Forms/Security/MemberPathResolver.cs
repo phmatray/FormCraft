@@ -74,6 +74,15 @@ internal static class MemberPathResolver
                 property = null; // e.g. a property hidden with `new`: report it like any other miss.
             }
 
+            // Type.GetProperty only looks at members declared directly on the queried type (or
+            // inherited through a class hierarchy) — it does not search the interfaces a type
+            // implements. So an interface-typed intermediate member that only *inherits* the target
+            // property from a base interface (#429) needs its own search across `GetInterfaces()`.
+            if (property is null && type.IsInterface)
+            {
+                property = ResolveFromBaseInterfaces(type, segments[i]);
+            }
+
             if (property is not { CanRead: true })
             {
                 throw new ArgumentException(
@@ -91,6 +100,47 @@ internal static class MemberPathResolver
         }
 
         return chain;
+    }
+
+    /// <summary>
+    /// Searches every interface <paramref name="interfaceType"/> inherits from (transitively, via
+    /// <see cref="Type.GetInterfaces"/>) for a public, instance property named <paramref name="name"/>.
+    /// </summary>
+    /// <remarks>
+    /// Two distinct base interfaces declaring a same-named property is treated the same as
+    /// <see cref="AmbiguousMatchException"/> above: fail closed (return <see langword="null"/>) rather
+    /// than guess. A diamond that converges on the *same* interface is not ambiguous —
+    /// <see cref="Type.GetInterfaces"/> already de-duplicates it to one entry.
+    /// </remarks>
+    private static PropertyInfo? ResolveFromBaseInterfaces(Type interfaceType, string name)
+    {
+        PropertyInfo? found = null;
+        foreach (var baseInterface in interfaceType.GetInterfaces())
+        {
+            PropertyInfo? candidate;
+            try
+            {
+                candidate = baseInterface.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
+            }
+            catch (AmbiguousMatchException)
+            {
+                return null;
+            }
+
+            if (candidate is null)
+            {
+                continue;
+            }
+
+            if (found is not null && found.DeclaringType != candidate.DeclaringType)
+            {
+                return null; // Two unrelated base interfaces both declare `name`: genuinely ambiguous.
+            }
+
+            found = candidate;
+        }
+
+        return found;
     }
 
     /// <summary>
