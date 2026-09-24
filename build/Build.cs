@@ -530,7 +530,7 @@ class Build : NukeBuild
             return currentTag.TrimStart('v');
         }
 
-        // Try to get version from MinVer or GitVersion
+        // Try to get version from MinVer
         var minVerVersion = EnvironmentInfo.GetVariable("MINVER_VERSION");
         if (!string.IsNullOrEmpty(minVerVersion))
         {
