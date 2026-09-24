@@ -192,6 +192,83 @@ public class CollectionItemsGetterNullIntermediateTests : FluentUITestBase
     }
 
     /// <summary>
+    /// #433 (found in review): a click can arrive after the model became unreadable but before this
+    /// field re-rendered to reflect it — e.g. an external mutation that does not itself trigger this
+    /// field's own re-render. <c>AddItem</c>'s OWN opening guard, not just the render-time gate, must
+    /// see the CURRENT state.
+    /// </summary>
+    /// <remarks>
+    /// Asserted on <see cref="CountingChildItem.ConstructedCount"/> — how many <c>new TItem()</c> calls
+    /// actually happened — rather than on how many times the accessor itself was invoked: the
+    /// post-click render this test doesn't otherwise touch reads <c>Items</c>/<c>Details</c> several
+    /// times on its own (the empty-state check, the Add gate, …), which would swamp a simple call
+    /// count. Construction is the one thing only <c>AddItem</c>'s own <c>Items.Add(new TItem())</c> can
+    /// cause. Before the fix, <c>HasReachedMax</c> read a stale (default <see langword="false"/>) latch
+    /// without touching <c>Items</c> at all (<c>MaxItems</c> is <c>0</c>, so the check short-circuits),
+    /// so <c>AddItem</c> proceeded to construct one item and append it to a throwaway list that the
+    /// very next <see cref="FluentUICollectionFieldComponent{TModel,TItem}.Items"/> read discarded.
+    /// </remarks>
+    [Fact]
+    public async Task Clicking_Add_After_An_External_Mutation_Should_Not_Append_To_A_Throwaway_List()
+    {
+        // Arrange - readable and empty, so Add renders.
+        CountingChildItem.ConstructedCount = 0;
+        var config = FormBuilder<CountingParentModel>.Create()
+            .AddCollectionField(x => x.Details!.Items, collection => collection
+                .WithLabel("Items")
+                .AllowAdd()
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field.WithLabel("Product"))))
+            .Build();
+        var model = new CountingParentModel { Details = new CountingDetailModel() };
+        var component = Render<FormCraftComponent<CountingParentModel>>(p => p
+            .Add(c => c.Model, model)
+            .Add(c => c.Configuration, config));
+        component.FindAll("[data-testid=formcraft-collection-add]").ShouldNotBeEmpty();
+
+        // Act - the model is mutated directly, without going through this field's own
+        // NotifyCollectionChanged/re-render, then the (still-rendered, now stale) Add control is
+        // clicked.
+        model.Details = null;
+        await component.InvokeAsync(() =>
+            component.Find("[data-testid=formcraft-collection-add]").Click());
+
+        // Assert - AddItem's own HasReachedMax check saw the mutation and returned before ever
+        // constructing a new item, let alone appending one to a list nobody keeps.
+        CountingChildItem.ConstructedCount.ShouldBe(0);
+    }
+
+    /// <summary>
+    /// Root model for the accessor-construction-counting regression above (#433, found in review) —
+    /// local to this one test, not shared, since no other suite here needs to count constructions.
+    /// </summary>
+    public class CountingParentModel
+    {
+        public CountingDetailModel? Details { get; set; }
+    }
+
+    public class CountingDetailModel
+    {
+        public List<CountingChildItem> Items { get; set; } = new();
+    }
+
+    /// <remarks>
+    /// Carries a second property beyond <c>ProductName</c> for the same reason <see cref="ChildItem"/>
+    /// does — see its own remarks.
+    /// </remarks>
+    public class CountingChildItem
+    {
+        /// <summary>How many times this type has been constructed since last reset by a test.</summary>
+        public static int ConstructedCount;
+
+        public CountingChildItem() => ConstructedCount++;
+
+        public string ProductName { get; set; } = string.Empty;
+
+        public int Quantity { get; set; }
+    }
+
+    /// <summary>
     /// Collects warning-level log messages so the unreadable-binding diagnostic (#433) can be
     /// asserted on. Local rather than shared: mirrors <c>CustomTemplateTests.CapturingLoggerProvider</c>
     /// exactly, since this project still has no shared <c>TestSupport</c> type for it.

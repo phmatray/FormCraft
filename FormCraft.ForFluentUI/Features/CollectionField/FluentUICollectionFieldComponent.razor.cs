@@ -178,13 +178,17 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
             {
                 _bindingUnreadable = true;
 
-                // Once per field (#433) - this component instance's lifetime is one collection field,
-                // so a plain bool suffices; there is no per-field diagnostic scope to rebuild on
-                // repoint here yet (see the .razor's own note on why FormCraft.ForMudBlazor's
-                // CollectionItemFieldScope has no Fluent counterpart).
-                if (!_hasWarnedUnreadableBinding)
+                // Once per field (#433), latched on the field's OWN name rather than a bare bool:
+                // FluentUICollectionFieldRenderer opens this component with no @key, so Blazor can
+                // reuse the same instance for a DIFFERENT collection field landing at the same tree
+                // position (the exact repoint MudBlazor's CollectionItemFieldScope/OnParametersSet
+                // exists to detect) - a bare "have I warned yet" bool would then never warn for that
+                // second field at all (found in review). No per-field diagnostic SCOPE type here yet
+                // (see the .razor's own note on why FormCraft.ForMudBlazor's CollectionItemFieldScope
+                // has no Fluent counterpart) - a name comparison is enough for one diagnostic.
+                if (_warnedUnreadableBindingFor != Configuration.FieldName)
                 {
-                    _hasWarnedUnreadableBinding = true;
+                    _warnedUnreadableBindingFor = Configuration.FieldName;
                     var displayName = string.IsNullOrWhiteSpace(Configuration.Label) ? Configuration.FieldName : Configuration.Label;
                     FormDiagnosticLog.Warn(
                         ServiceProvider,
@@ -210,8 +214,13 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
     /// </summary>
     private bool _bindingUnreadable;
 
-    /// <summary>Whether the unreadable-binding diagnostic has already fired for this component instance.</summary>
-    private bool _hasWarnedUnreadableBinding;
+    /// <summary>
+    /// The field name the unreadable-binding diagnostic has already fired for, or <see langword="null"/>
+    /// if it never has. Compared against <see cref="Configuration"/>'s CURRENT <c>FieldName</c> rather
+    /// than latched as a bare bool, so a component instance Blazor reuses for a different collection
+    /// field still warns once for THAT field too (#433, found in review).
+    /// </summary>
+    private string? _warnedUnreadableBindingFor;
 
     /// <summary>Logger category for the unreadable-binding diagnostic (#433).</summary>
     private const string UnreadableBindingDiagnosticCategory = "FormCraft.ForFluentUI.CollectionUnreadableBinding";
@@ -299,11 +308,41 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
         return false;
     }
 
-    // _bindingUnreadable is checked first in both so an unreadable binding blocks Add/Remove exactly
-    // as reaching either limit already does, rather than as a third, separately-wired condition (#433).
-    private bool HasReachedMax => _bindingUnreadable || (Configuration.MaxItems > 0 && Items.Count >= Configuration.MaxItems);
+    /// <summary>
+    /// Whether <see cref="Configuration"/>'s <c>MaxItems</c> has been reached, OR the binding is
+    /// currently unreadable (#433) — folded in here, rather than checked as a third, separately-wired
+    /// condition, so every existing consumer (<see cref="ShouldRenderAdd"/>, <see cref="AddItem"/>)
+    /// inherits it for free.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ <c>Items.Count</c> is read <b>unconditionally</b>, before the <c>MaxItems &gt; 0</c> check
+    /// that would otherwise short-circuit past it whenever <c>MaxItems</c> is its <c>0</c> default —
+    /// the common case. That read is what refreshes <see cref="_bindingUnreadable"/> for THIS call, not
+    /// whatever it was left at by whichever render or handler last happened to touch <see cref="Items"/>.
+    /// Without it, <see cref="AddItem"/>'s own opening guard could read a stale <c>false</c> and let
+    /// <c>Items.Add(new TItem())</c> perform the FIRST fresh read itself — appending to a throwaway
+    /// list the getter had no choice but to just-then materialise, the exact silent-no-op #433 reports,
+    /// reachable when the model becomes unreadable between this field's last render and a click that
+    /// was already in flight (found in review).
+    /// </remarks>
+    private bool HasReachedMax
+    {
+        get
+        {
+            var count = Items.Count;
+            return _bindingUnreadable || (Configuration.MaxItems > 0 && count >= Configuration.MaxItems);
+        }
+    }
 
-    private bool HasReachedMin => _bindingUnreadable || (Configuration.MinItems > 0 && Items.Count <= Configuration.MinItems);
+    /// <inheritdoc cref="HasReachedMax"/>
+    private bool HasReachedMin
+    {
+        get
+        {
+            var count = Items.Count;
+            return _bindingUnreadable || (Configuration.MinItems > 0 && count <= Configuration.MinItems);
+        }
+    }
 
     private bool DeleteTargetsRendered => Configuration.CanRemove && !HasReachedMin;
 

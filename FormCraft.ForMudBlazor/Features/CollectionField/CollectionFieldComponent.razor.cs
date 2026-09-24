@@ -292,11 +292,41 @@ public partial class CollectionFieldComponent<TModel, TItem>
         return false;
     }
 
-    // _bindingUnreadable is checked first in both so an unreadable binding blocks Add/Remove exactly
-    // as reaching either limit already does, rather than as a third, separately-wired condition (#433).
-    private bool HasReachedMax => _bindingUnreadable || (Configuration.MaxItems > 0 && Items.Count >= Configuration.MaxItems);
+    /// <summary>
+    /// Whether <see cref="Configuration"/>'s <c>MaxItems</c> has been reached, OR the binding is
+    /// currently unreadable (#433) — folded in here, rather than checked as a third, separately-wired
+    /// condition, so every existing consumer (<see cref="AddButtonRendered"/>, <see cref="AddItem"/>)
+    /// inherits it for free.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ <c>Items.Count</c> is read <b>unconditionally</b>, before the <c>MaxItems &gt; 0</c> check
+    /// that would otherwise short-circuit past it whenever <c>MaxItems</c> is its <c>0</c> default —
+    /// the common case. That read is what refreshes <see cref="_bindingUnreadable"/> for THIS call, not
+    /// whatever it was left at by whichever render or handler last happened to touch <see cref="Items"/>.
+    /// Without it, <see cref="AddItem"/>'s own opening guard could read a stale <c>false</c> and let
+    /// <c>Items.Add(new TItem())</c> perform the FIRST fresh read itself — appending to a throwaway
+    /// list the getter had no choice but to just-then materialise, the exact silent-no-op #433 reports,
+    /// reachable when the model becomes unreadable between this field's last render and a click that
+    /// was already in flight (found in review).
+    /// </remarks>
+    private bool HasReachedMax
+    {
+        get
+        {
+            var count = Items.Count;
+            return _bindingUnreadable || (Configuration.MaxItems > 0 && count >= Configuration.MaxItems);
+        }
+    }
 
-    private bool HasReachedMin => _bindingUnreadable || (Configuration.MinItems > 0 && Items.Count <= Configuration.MinItems);
+    /// <inheritdoc cref="HasReachedMax"/>
+    private bool HasReachedMin
+    {
+        get
+        {
+            var count = Items.Count;
+            return _bindingUnreadable || (Configuration.MinItems > 0 && count <= Configuration.MinItems);
+        }
+    }
 
     /// <summary>
     /// Whether the <b>Add</b> button renders at all — the single source of truth the markup's own
