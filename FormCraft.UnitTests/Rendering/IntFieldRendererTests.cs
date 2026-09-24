@@ -539,6 +539,7 @@ public class IntFieldRendererTests : CoreRendererTestBase
         // no literal text), unlike every other value in this file which stringifies.
         var input = cut.Find("input");
         input.HasAttribute("value").ShouldBeTrue();
+        input.GetAttribute("value").ShouldBeNullOrEmpty();
         cut.Find("label").TextContent.ShouldBe("Boolean as Int");
     }
 
