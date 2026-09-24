@@ -53,9 +53,13 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
     // Last-writer stamps for field-change writes (#443). A field-change handler takes its stamp when
     // it STARTS (before reading the value), so the stamp orders the reads, not the writes. A full
-    // pass records _writeVersion when it starts and, at its deferred flush, leaves alone every
-    // identifier stamped later. A counter rather than a timestamp: one circuit is single-threaded,
-    // so ordering is all that matters.
+    // pass RESERVES its own stamp the same way, up front (#445 - a plain read of the counter is not
+    // enough, see the reservation comment in ValidateModelAsync), and at its deferred flush leaves
+    // alone every identifier a handler stamped later while also recording its own reserved stamp for
+    // every identifier it just evaluated, so a handler parked since before the pass started cannot
+    // resurrect a stale result once it resumes, and one still running when the pass flushes still
+    // wins once IT resumes. A counter rather than a timestamp: one circuit is single-threaded, so
+    // ordering is all that matters.
     // ponytail: entries are never pruned — overlapping passes each need their own view. The map is
     // bounded by every identifier ever written (collection row indices included), not by the form's
     // current shape; prune stamps older than the oldest in-flight pass if that ever matters. A kept
@@ -110,7 +114,22 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         // immediately before this list is flushed, at the bottom of the method, instead of running
         // unconditionally up front.
         var pendingMessages = new List<(FieldIdentifier Identifier, string Message)>();
-        var passStartedAt = _writeVersion;
+        // Every ordinary-field and item-cell identifier this pass actually evaluated, valid or not
+        // (#445) - the flush below stamps all of them so a field-changed handler parked since before
+        // this pass started cannot overwrite a "now valid" result with its own stale one. The
+        // collection's own flat-set identifier is deliberately never added here (see the flush
+        // block's exemption further down).
+        var evaluatedIdentifiers = new HashSet<FieldIdentifier>();
+        // Reserves this pass's own stamp up front (#445, review finding) rather than merely reading
+        // the counter: a handler that starts DURING this pass - after this line, before the flush -
+        // must take a stamp greater than passStartedAt and WIN once it resumes, exactly like #443
+        // already guarantees. Taking flushStamp separately, later, at the flush instead broke that:
+        // a flush stamp taken after the pass's own awaits is always greater than such a handler's
+        // stamp too, so the flush would refuse a genuinely newer write it has no business refusing.
+        // Reusing one pre-incremented value for both the "newer than" threshold and the value
+        // written at flush closes that gap, and - being pre-incremented - it is also unique, so it
+        // can never equal a handler's own stamp the way a plain read of _writeVersion could.
+        var passStartedAt = ++_writeVersion;
 
         foreach (var field in Configuration.Fields)
         {
@@ -119,6 +138,9 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             {
                 continue;
             }
+
+            var fieldIdentifier = _editContext.Field(field.FieldName);
+            evaluatedIdentifiers.Add(fieldIdentifier);
 
             // TryGetValue rather than GetOrCompile(field)(model) directly (#397): a nested binding
             // with a null intermediate would otherwise throw out of the whole validation pass instead
@@ -134,7 +156,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                 var result = await validator.ValidateAsync(model, value!, ServiceProvider);
                 if (!result.IsValid)
                 {
-                    pendingMessages.Add((_editContext.Field(field.FieldName), result.ErrorMessage!));
+                    pendingMessages.Add((fieldIdentifier, result.ErrorMessage!));
                 }
             }
         }
@@ -171,9 +193,10 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                 // and FieldValidationMessage can display them natively.
                 foreach (var itemError in result.ItemErrors)
                 {
-                    pendingMessages.Add((
-                        CreateCollectionItemFieldIdentifier(collectionField.FieldName, itemError.ItemIndex, itemError.FieldName),
-                        itemError.Message));
+                    var itemIdentifier = CreateCollectionItemFieldIdentifier(
+                        collectionField.FieldName, itemError.ItemIndex, itemError.FieldName);
+                    evaluatedIdentifiers.Add(itemIdentifier);
+                    pendingMessages.Add((itemIdentifier, itemError.Message));
                 }
             }
         }
@@ -196,6 +219,22 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         foreach (var (identifier, message) in carried.Concat(fresh))
         {
             _messageStore.Add(identifier, message);
+        }
+
+        // Stamp every identifier this pass just wrote fresh - including ones it evaluated and found
+        // valid, which never enter pendingMessages at all (#445). A field-changed handler that took
+        // its own stamp before passStartedAt and is still awaiting must lose the TryWrite race for
+        // any of these identifiers once it resumes; one started AFTER passStartedAt must still win
+        // (#443) once IT resumes, which is exactly why this reuses passStartedAt itself rather than
+        // taking a fresh, later stamp here - see the reservation comment above. Carried identifiers
+        // are skipped - they already carry a handler's own newer stamp from #443, and this flush did
+        // not write them.
+        foreach (var identifier in evaluatedIdentifiers)
+        {
+            if (!newer.Contains(identifier))
+            {
+                _writtenAt[identifier] = passStartedAt;
+            }
         }
 
         // The collection's flat set came from this pass (it carries the count rules, which exist
