@@ -26,7 +26,7 @@
    `.WithAttribute("Required", true)` as an opt-in that emits a genuine `required`. On a page where
    the script missed, that input was browser-enforced — the native validation bubbles this library
    documents itself as never producing. *@
-<EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit" novalidate="novalidate">
+<EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit" novalidate="novalidate" class="@Configuration.CssClass">
     <DynamicFormValidator TModel="TModel" Configuration="@Configuration" @ref="_validator" />
     
     @if (GroupedConfiguration != null && GroupedConfiguration.UseFieldGroups && GroupedConfiguration.FieldGroups.Any())

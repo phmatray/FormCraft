@@ -16,7 +16,7 @@
 
    FormCraft validates server-side and documents that the browser produces no native validation
    bubbles. That guarantee is only as good as this attribute. *@
-<EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit" novalidate="novalidate">
+<EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit" novalidate="novalidate" class="@Configuration.CssClass">
 @*  ValidateCollections is ON as of #278 — and flipping it is the point, not an oversight.
 
     #279 introduced this flag set to `false` with the instruction "turn it on when this container
