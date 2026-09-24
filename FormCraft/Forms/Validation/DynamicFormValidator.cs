@@ -51,6 +51,15 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
     private EditContext? _editContext;
     private ValidationMessageStore? _messageStore;
 
+    // Last-writer stamps for field-change writes (#443). A full pass records _writeVersion when it
+    // starts and, at its deferred flush, leaves alone every identifier stamped later. A counter
+    // rather than a timestamp: one circuit is single-threaded, so ordering is all that matters.
+    // ponytail: entries are never pruned — overlapping passes each need their own view. The map is
+    // bounded by every identifier ever written (collection row indices included), not by the form's
+    // current shape; prune stamps older than the oldest in-flight pass if that ever matters.
+    private long _writeVersion;
+    private readonly Dictionary<FieldIdentifier, long> _writtenAt = [];
+
     protected override void OnInitialized()
     {
         var editContext = CascadedEditContext ?? throw new InvalidOperationException(
@@ -98,6 +107,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         // immediately before this list is flushed, at the bottom of the method, instead of running
         // unconditionally up front.
         var pendingMessages = new List<(FieldIdentifier Identifier, string Message)>();
+        var passStartedAt = _writeVersion;
 
         foreach (var field in Configuration.Fields)
         {
@@ -166,9 +176,21 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         }
 
         // The pass completed with no throw: only now is it safe to clear the previous pass's
-        // messages and flush this pass's in their place.
+        // messages and flush this pass's in their place — except for identifiers a field-change
+        // handler rewrote while this pass was awaiting (#443). Those carry a result newer than, or
+        // as new as, this pass's own snapshot, so they are carried over rather than clobbered.
+        var newer = _writtenAt
+            .Where(entry => entry.Value > passStartedAt)
+            .Select(entry => entry.Key)
+            .ToHashSet();
+        // Materialised before Clear(): the store's indexer returns its live inner list.
+        var carried = newer
+            .SelectMany(identifier => _messageStore![identifier].Select(message => (identifier, message)))
+            .ToList();
+        var fresh = pendingMessages.Where(pending => !newer.Contains(pending.Identifier));
+
         _messageStore!.Clear();
-        foreach (var (identifier, message) in pendingMessages)
+        foreach (var (identifier, message) in carried.Concat(fresh))
         {
             _messageStore.Add(identifier, message);
         }
@@ -296,6 +318,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
             _messageStore!.Clear(e.FieldIdentifier);
             _messageStore.Add(e.FieldIdentifier, messages);
+            MarkWritten(e.FieldIdentifier);
 
             _editContext.NotifyValidationStateChanged();
         }
@@ -339,6 +362,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         // cell's previous message in place instead of a blank, "valid" cell.
         _messageStore!.Clear(fieldIdentifier);
         _messageStore.Add(fieldIdentifier, itemErrors.Select(error => error.Message));
+        MarkWritten(fieldIdentifier);
 
         // Keep the collection's own flat message set (what a ValidationSummary shows) in agreement
         // with the nested identifier just updated above - otherwise a corrected cell's line
@@ -384,7 +408,18 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         {
             _messageStore.Add(collectionIdentifier, message);
         }
+
+        // ponytail: the flat identifier is coarse — stamping it means a full pass in flight keeps
+        // this refreshed set and drops its own flat lines for OTHER rows until the next pass. Not
+        // stamping it would instead resurrect this cell's stale line. Per-line stamps if it matters.
+        MarkWritten(collectionIdentifier);
     }
+
+    /// <summary>
+    /// Records that a field-change handler wrote <paramref name="identifier" />'s messages, so a
+    /// full <see cref="ValidateModelAsync" /> pass already in flight does not overwrite them (#443).
+    /// </summary>
+    private void MarkWritten(FieldIdentifier identifier) => _writtenAt[identifier] = ++_writeVersion;
 
     public void Dispose()
     {

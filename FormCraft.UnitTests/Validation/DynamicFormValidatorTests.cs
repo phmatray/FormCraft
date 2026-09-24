@@ -351,6 +351,34 @@ public class DynamicFormValidatorTests : BunitContext
     }
 
     [Fact]
+    public async Task ValidateModelAsync_Should_Not_Clobber_A_Field_Update_That_Landed_During_The_Pass()
+    {
+        // Arrange - Email is validated first and fails; Name's async validator then parks the pass
+        // on a gate, so the pass has computed (but not flushed) Email's stale message (#443).
+        var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var model = new TestModel();
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Email, field => field.Required("Email is required"))
+            .AddField(x => x.Name, field => field.WithAsyncValidator(_ => gate.Task, "Name rejected"))
+            .Build();
+        var validator = RenderValidator(editContext, config);
+
+        var pass = validator.Instance.ValidateModelAsync();
+
+        // Act - the user fixes Email while the pass is parked; HandleFieldChanged clears its message.
+        model.Email = "ada@example.com";
+        editContext.NotifyFieldChanged(editContext.Field(nameof(TestModel.Email)));
+        editContext.GetValidationMessages(editContext.Field(nameof(TestModel.Email))).ShouldBeEmpty();
+
+        gate.SetResult(true);
+        await pass;
+
+        // Assert - the pass's flush must not resurrect the stale "Email is required".
+        editContext.GetValidationMessages(editContext.Field(nameof(TestModel.Email))).ShouldBeEmpty();
+    }
+
+    [Fact]
     public void OnInitialized_Should_Throw_Without_A_Cascading_EditContext()
     {
         // Arrange - the component is only meaningful inside an EditForm, and says so.
