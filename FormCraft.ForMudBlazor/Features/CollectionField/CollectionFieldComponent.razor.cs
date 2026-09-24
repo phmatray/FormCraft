@@ -176,9 +176,9 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// as a local <c>try</c>/<c>catch</c> rather than a call to the same helper:
     /// <c>FieldValueGetterCache&lt;TModel&gt;.TryInvoke</c> is <c>internal</c> to <c>FormCraft</c>
     /// core, and this assembly has no <c>InternalsVisibleTo</c> to it. Catches
-    /// <see cref="NullReferenceException"/> specifically — not <see cref="Exception"/> broadly, unlike
-    /// <c>TryReadCollection</c> — so a genuinely broken accessor, or a cancellation, still propagates
-    /// instead of being swallowed here.
+    /// <see cref="NullReferenceException"/> specifically — the same narrowing #425 gave
+    /// <c>TryInvoke</c> itself, which is what <c>TryReadCollection</c> calls, so a genuinely broken
+    /// accessor, or a cancellation, still propagates on both paths instead of being swallowed here.
     /// </remarks>
     private List<TItem> Items
     {
@@ -322,7 +322,11 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // user building a list wants to stay. Moving focus anyway would push them into the new row's
         // header (tabindex="-1", outside the tab order), forcing a Shift+Tab back to Add for every
         // subsequent row: a regression in the common case, in the name of a failure that did not
-        // happen (#318).
+        // happen (#318). The other way in is _bindingUnreadable (#433): the NotifyCollectionChanged
+        // just above can synchronously run a consumer's own handler that nulls this field's nested
+        // intermediate, so Items.Count below can be 0 even though an item really was just added to
+        // what was, until that handler ran, a readable list. FocusRowAsync's own bounds check is what
+        // keeps that -1 from reaching RowKey.
         if (!HasReachedMax)
         {
             return;
