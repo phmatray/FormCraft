@@ -90,6 +90,36 @@ public class EncryptedFieldHelperTests
         model.Address.City.ShouldBe("ENC:Brussels");
     }
 
+    [Fact]
+    public void EncryptFields_Should_Resolve_A_Property_Inherited_Through_A_Base_Interface()
+    {
+        // #429: Contact is declared IContact, and Email lives on the base interface IHasEmail that
+        // IContact inherits from, not on IContact itself. This exercises the same fallback as
+        // SecurityBuilderTests' Build()-time test, but through the runtime encrypt path directly.
+        var model = new InterfaceModel { Contact = new Contact { Email = "a@b.com" } };
+
+        EncryptedFieldHelper.EncryptFields(model, Security("Contact.Email"), _encryptionService);
+
+        model.Contact.Email.ShouldBe("ENC:a@b.com");
+    }
+
+    [Fact]
+    public void EncryptFields_Should_Still_Fail_Closed_When_Two_Unrelated_Base_Interfaces_Declare_The_Same_Property()
+    {
+        // The base-interface fallback added for #429 must not turn a genuinely ambiguous name into a
+        // guess: IAmbiguousContact inherits `Email` from two unrelated interfaces (IHasEmailA,
+        // IHasEmailB) that only happen to share the name. C# itself refuses to compile a direct
+        // `x => x.Contact.Email` lambda over such a type (CS0229), so this is only reachable through
+        // a dotted path added directly to EncryptedFields — which is exactly how a mutable
+        // IFormSecurity.EncryptedFields set can carry one. This must still fail closed, the same way
+        // an AmbiguousMatchException on a `new`-hidden class property already does (#426) — the
+        // Out-of-scope note on #429 is explicit that this diamond case stays untouched.
+        var model = new AmbiguousInterfaceModel { Contact = new AmbiguousContact() };
+
+        Should.Throw<ArgumentException>(() =>
+            EncryptedFieldHelper.EncryptFields(model, Security("Contact.Email"), _encryptionService));
+    }
+
     private static FormSecurity Security(params string[] paths)
     {
         var security = new FormSecurity();
@@ -109,5 +139,48 @@ public class EncryptedFieldHelperTests
     private class TestAddress
     {
         public string City { get; set; } = string.Empty;
+    }
+
+    private interface IHasEmail
+    {
+        string Email { get; set; }
+    }
+
+    private interface IContact : IHasEmail
+    {
+    }
+
+    private class Contact : IContact
+    {
+        public string Email { get; set; } = "";
+    }
+
+    private class InterfaceModel
+    {
+        public IContact Contact { get; set; } = new Contact();
+    }
+
+    private interface IHasEmailA
+    {
+        string Email { get; set; }
+    }
+
+    private interface IHasEmailB
+    {
+        string Email { get; set; }
+    }
+
+    private interface IAmbiguousContact : IHasEmailA, IHasEmailB
+    {
+    }
+
+    private class AmbiguousContact : IAmbiguousContact
+    {
+        public string Email { get; set; } = "";
+    }
+
+    private class AmbiguousInterfaceModel
+    {
+        public IAmbiguousContact Contact { get; set; } = new AmbiguousContact();
     }
 }
