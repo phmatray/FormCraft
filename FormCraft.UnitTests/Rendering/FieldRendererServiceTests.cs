@@ -160,6 +160,29 @@ public class FieldRendererServiceTests
     }
 
     [Fact]
+    public void RenderField_Should_Propagate_An_Exception_From_A_Genuinely_Faulting_Accessor()
+    {
+        // Arrange - unlike the null-intermediate case above, this getter is genuinely broken. Before
+        // #425 the read was swallowed and the field rendered as if its value were null.
+        var model = new FaultingModel();
+        var field = new FieldConfiguration<FaultingModel, string?>(x => x.Faulting);
+
+        var mockRenderer = A.Fake<IFieldRenderer>();
+        A.CallTo(() => mockRenderer.CanRender(typeof(string), A<IFieldConfiguration<object, object>>._))
+            .Returns(true);
+
+        var service = new FieldRendererService(new[] { mockRenderer }, _serviceProvider);
+        var onValueChanged = EventCallback.Factory.Create<object?>(this, _ => { });
+        var onDependencyChanged = EventCallback.Factory.Create(this, () => { });
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => service.RenderField(model,
+            new FieldConfigurationWrapper<FaultingModel, string?>(field),
+            onValueChanged,
+            onDependencyChanged));
+    }
+
+    [Fact]
     public void RenderField_Should_Try_Multiple_Renderers_Until_Compatible_Found()
     {
         // Arrange
@@ -622,6 +645,11 @@ public class FieldRendererServiceTests
         Active,
         Inactive,
         Pending
+    }
+
+    public class FaultingModel
+    {
+        public string? Faulting => throw new InvalidOperationException("boom");
     }
 
     public class NestedModel
