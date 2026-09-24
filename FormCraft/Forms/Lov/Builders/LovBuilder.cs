@@ -24,12 +24,26 @@ namespace FormCraft;
 /// </example>
 public class LovBuilder<TModel, TValue, TItem> where TModel : new()
 {
-    private readonly FieldBuilder<TModel, TValue> _fieldBuilder;
+    // Nullable because AsMultiSelectLov (#467) cannot bind this to FieldBuilder<TModel, TValue>:
+    // TValue here is the scalar per-item key, while the multi-select field is bound to
+    // FieldBuilder<TModel, IEnumerable<TValue>> — a genuinely different, unrelated closed type.
+    // That path uses the parameterless constructor below and attaches via AttachTo(...) instead.
+    private readonly FieldBuilder<TModel, TValue>? _fieldBuilder;
     private readonly LovConfiguration<TItem, TValue> _configuration = new();
 
     internal LovBuilder(FieldBuilder<TModel, TValue> fieldBuilder)
     {
         _fieldBuilder = fieldBuilder;
+    }
+
+    /// <summary>
+    /// For a caller (AsMultiSelectLov) that will attach this builder's configuration to a
+    /// <see cref="FieldBuilder{TModel, TBound}"/> whose bound value type differs from
+    /// <typeparamref name="TValue"/> — use <see cref="AttachTo{TBound}"/> to finish, not
+    /// <see cref="Build"/>.
+    /// </summary>
+    internal LovBuilder()
+    {
     }
 
     #region Data Source Configuration
@@ -422,12 +436,37 @@ public class LovBuilder<TModel, TValue, TItem> where TModel : new()
     /// Completes the LOV configuration and returns to the field builder.
     /// </summary>
     /// <returns>The FieldBuilder instance for continued configuration.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when this builder was constructed without a bound <see cref="FieldBuilder{TModel, TValue}"/>
+    /// (the multi-select path) — call <see cref="AttachTo{TBound}"/> instead.
+    /// </exception>
     public FieldBuilder<TModel, TValue> Build()
     {
-        // Store the configuration in the field's additional attributes
-        _fieldBuilder.WithAttribute("LovConfiguration", _configuration);
-        _fieldBuilder.WithAttribute("LovItemType", typeof(TItem));
-        return _fieldBuilder;
+        if (_fieldBuilder is null)
+        {
+            throw new InvalidOperationException(
+                $"This {nameof(LovBuilder<,,>)} was not constructed with a bound field builder; " +
+                $"call {nameof(AttachTo)} instead.");
+        }
+
+        return AttachTo(_fieldBuilder);
+    }
+
+    /// <summary>
+    /// Attaches this builder's configuration to a <paramref name="fieldBuilder"/> whose bound
+    /// value type (<typeparamref name="TBound"/>) may differ from this builder's own
+    /// <typeparamref name="TValue"/> — the seam <c>AsMultiSelectLov</c> (#467) uses to bind the
+    /// scalar per-item key (<typeparamref name="TValue"/>) while returning a
+    /// <c>FieldBuilder&lt;TModel, IEnumerable&lt;TValue&gt;&gt;</c>.
+    /// </summary>
+    /// <typeparam name="TBound">The bound value type of the target field builder.</typeparam>
+    /// <param name="fieldBuilder">The field builder to attach the LOV configuration to.</param>
+    /// <returns>The same <paramref name="fieldBuilder"/>, for method chaining.</returns>
+    internal FieldBuilder<TModel, TBound> AttachTo<TBound>(FieldBuilder<TModel, TBound> fieldBuilder)
+    {
+        fieldBuilder.WithAttribute("LovConfiguration", _configuration);
+        fieldBuilder.WithAttribute("LovItemType", typeof(TItem));
+        return fieldBuilder;
     }
 
     private static string GetPropertyName<T, TProp>(Expression<Func<T, TProp>> expression)
