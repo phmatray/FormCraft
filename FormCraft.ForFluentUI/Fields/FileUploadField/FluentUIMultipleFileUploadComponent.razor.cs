@@ -27,6 +27,22 @@ public partial class FluentUIMultipleFileUploadComponent<TModel>
     /// </summary>
     private string? TooManyFilesError { get; set; }
 
+    /// <summary>
+    /// Resets <see cref="TooManyFilesError"/> when this instance is handed a different field or a
+    /// different configuration object for the same field (#416). It is derived from the last
+    /// selection ATTEMPT rather than from the configuration itself, so unlike
+    /// <c>AcceptedFileTypes</c>/<c>MaximumFileSize</c>/<c>MaximumFileCount</c> on the base class -
+    /// computed getters re-evaluated on every access - it is state this hook must clear by hand or a
+    /// stale error from the previous field keeps rendering, naming a limit that may not even apply to
+    /// the new field.
+    /// </summary>
+    protected override void OnFieldConfigurationChanged()
+    {
+        base.OnFieldConfigurationChanged();
+
+        TooManyFilesError = null;
+    }
+
     private async Task HandleFilesChangedAsync(InputFileChangeEventArgs args)
     {
         // GetMultipleFiles THROWS when the selection exceeds the cap rather than truncating, and an
