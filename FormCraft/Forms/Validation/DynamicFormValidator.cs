@@ -51,6 +51,18 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
     private EditContext? _editContext;
     private ValidationMessageStore? _messageStore;
 
+    // Last-writer stamps for field-change writes (#443). A field-change handler takes its stamp when
+    // it STARTS (before reading the value), so the stamp orders the reads, not the writes. A full
+    // pass records _writeVersion when it starts and, at its deferred flush, leaves alone every
+    // identifier stamped later. A counter rather than a timestamp: one circuit is single-threaded,
+    // so ordering is all that matters.
+    // ponytail: entries are never pruned — overlapping passes each need their own view. The map is
+    // bounded by every identifier ever written (collection row indices included), not by the form's
+    // current shape; prune stamps older than the oldest in-flight pass if that ever matters. A kept
+    // cell message can also briefly outlive a row removed mid-pass; the next pass clears it.
+    private long _writeVersion;
+    private readonly Dictionary<FieldIdentifier, long> _writtenAt = [];
+
     protected override void OnInitialized()
     {
         var editContext = CascadedEditContext ?? throw new InvalidOperationException(
@@ -98,6 +110,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         // immediately before this list is flushed, at the bottom of the method, instead of running
         // unconditionally up front.
         var pendingMessages = new List<(FieldIdentifier Identifier, string Message)>();
+        var passStartedAt = _writeVersion;
 
         foreach (var field in Configuration.Fields)
         {
@@ -134,7 +147,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             foreach (var collectionField in collectionConfig.CollectionFields)
             {
                 // Hidden collections must not block submission with invisible errors - mirrors the
-                // ordinary-field guard above (:102). ICollectionFieldConfigurationBase exposes only
+                // ordinary-field guard above. ICollectionFieldConfigurationBase exposes only
                 // the static IsVisible flag (no VisibilityCondition), and both adapters' render
                 // loops gate rendering on exactly this flag, so there is nothing else to mirror
                 // (#342).
@@ -166,11 +179,37 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         }
 
         // The pass completed with no throw: only now is it safe to clear the previous pass's
-        // messages and flush this pass's in their place.
+        // messages and flush this pass's in their place — except for identifiers a field-change
+        // handler rewrote while this pass was awaiting (#443). Those carry a result newer than, or
+        // as new as, this pass's own snapshot, so they are carried over rather than clobbered.
+        var newer = _writtenAt
+            .Where(entry => entry.Value > passStartedAt)
+            .Select(entry => entry.Key)
+            .ToHashSet();
+        // Materialised before Clear(): the store's indexer returns its live inner list.
+        var carried = newer
+            .SelectMany(identifier => _messageStore![identifier].Select(message => (identifier, message)))
+            .ToList();
+        var fresh = pendingMessages.Where(pending => !newer.Contains(pending.Identifier));
+
         _messageStore!.Clear();
-        foreach (var (identifier, message) in pendingMessages)
+        foreach (var (identifier, message) in carried.Concat(fresh))
         {
             _messageStore.Add(identifier, message);
+        }
+
+        // The collection's flat set came from this pass (it carries the count rules, which exist
+        // nowhere else), so re-apply each carried cell's newer lines to it - otherwise the flat set
+        // would contradict the cell it summarises.
+        foreach (var identifier in newer)
+        {
+            if (ValidateCollections && TryResolveCell(identifier.FieldName, out var collectionField, out var itemIndex, out var itemFieldName))
+            {
+                var cellErrors = _messageStore[identifier]
+                    .Select(message => new CollectionItemError(itemIndex, itemFieldName, message))
+                    .ToList();
+                RefreshCollectionFlatMessages(collectionField, itemIndex, itemFieldName, cellErrors);
+            }
         }
 
         _editContext.NotifyValidationStateChanged();
@@ -254,6 +293,9 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
     private async void HandleFieldChanged(object? sender, FieldChangedEventArgs e)
     {
+        // Taken before anything is read, so it orders this handler's read against a full pass's.
+        var stamp = ++_writeVersion;
+
         try
         {
             // Nested collection item identifiers (Items[0].ProductName) are validated
@@ -261,7 +303,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             var nestedMatch = CollectionItemFieldPattern.Match(e.FieldIdentifier.FieldName);
             if (ValidateCollections && nestedMatch.Success)
             {
-                await ValidateCollectionItemFieldAsync(e.FieldIdentifier, nestedMatch);
+                await ValidateCollectionItemFieldAsync(e.FieldIdentifier, stamp);
                 return;
             }
 
@@ -279,10 +321,9 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             // a null intermediate must not crash a single field's re-validation on change.
             FieldValueGetterCache<TModel>.TryGetValue(fieldConfig, model, out var value);
 
-            // Clear existing messages for this field only
-            _messageStore!.Clear(e.FieldIdentifier);
-
-            // Validate the specific field
+            // Run every validator BEFORE clearing (#443): a throwing validator is swallowed by the
+            // catch below, and clearing first would leave the field blank — silently "valid".
+            var messages = new List<string>();
             foreach (var validator in fieldConfig.Validators)
             {
                 // A failed read (TryGetValue above) is treated as null, which validators already
@@ -291,11 +332,14 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                 var result = await validator.ValidateAsync(model, value!, ServiceProvider);
                 if (!result.IsValid)
                 {
-                    _messageStore.Add(e.FieldIdentifier, result.ErrorMessage!);
+                    messages.Add(result.ErrorMessage!);
                 }
             }
 
-            _editContext.NotifyValidationStateChanged();
+            if (TryWrite(e.FieldIdentifier, stamp, messages))
+            {
+                _editContext.NotifyValidationStateChanged();
+            }
         }
         catch
         {
@@ -303,42 +347,24 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         }
     }
 
-    private async Task ValidateCollectionItemFieldAsync(FieldIdentifier fieldIdentifier, System.Text.RegularExpressions.Match nestedMatch)
+    private async Task ValidateCollectionItemFieldAsync(FieldIdentifier fieldIdentifier, long stamp)
     {
-        if (Configuration is not ICollectionFormConfiguration<TModel> collectionConfig)
-        {
-            return;
-        }
-
-        var collectionFieldName = nestedMatch.Groups["collection"].Value;
-        // TryParse, not Parse: the regex guarantees digits but not that they fit in an int, and an
-        // OverflowException here would be swallowed by HandleFieldChanged's catch — after the message
-        // store was cleared and before NotifyValidationStateChanged ran, leaving a stale UI.
-        if (!int.TryParse(nestedMatch.Groups["index"].Value, out var itemIndex))
-        {
-            return;
-        }
-        var itemFieldName = nestedMatch.Groups["field"].Value;
-
-        var collectionField = collectionConfig.CollectionFields
-            .FirstOrDefault(f => f.FieldName == collectionFieldName);
-        if (collectionField == null)
+        if (!TryResolveCell(fieldIdentifier.FieldName, out var collectionField, out var itemIndex, out var itemFieldName))
         {
             return;
         }
 
         var model = (TModel)_editContext!.Model;
 
-        // Clear existing messages for this nested field only, then re-validate it
-        // so stale errors disappear as soon as the user corrects the value.
-        _messageStore!.Clear(fieldIdentifier);
-
         // Validate just this cell. This used to validate the whole collection and filter the result
         // down to the matching item/field, which runs items × fields validators per keystroke (#329).
         var itemErrors = await ValidateCollectionCellAsync(model, collectionField, itemIndex, itemFieldName);
-        foreach (var itemError in itemErrors)
+
+        // Write only now that validation succeeded (#443), so a throwing validator leaves the
+        // cell's previous message in place instead of a blank, "valid" cell.
+        if (!TryWrite(fieldIdentifier, stamp, itemErrors.Select(error => error.Message)))
         {
-            _messageStore.Add(fieldIdentifier, itemError.Message);
+            return;
         }
 
         // Keep the collection's own flat message set (what a ValidationSummary shows) in agreement
@@ -347,6 +373,40 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         RefreshCollectionFlatMessages(collectionField, itemIndex, itemFieldName, itemErrors);
 
         _editContext.NotifyValidationStateChanged();
+    }
+
+    /// <summary>
+    /// Resolves a nested item identifier (<c>Items[0].ProductName</c>) to its collection field,
+    /// row index and item field name.
+    /// </summary>
+    private bool TryResolveCell(
+        string fieldName,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out ICollectionFieldConfigurationBase? collectionField,
+        out int itemIndex,
+        out string itemFieldName)
+    {
+        collectionField = null;
+        itemIndex = 0;
+        itemFieldName = string.Empty;
+
+        var match = CollectionItemFieldPattern.Match(fieldName);
+        if (!match.Success || Configuration is not ICollectionFormConfiguration<TModel> collectionConfig)
+        {
+            return false;
+        }
+
+        // TryParse, not Parse: the regex guarantees digits but not that they fit in an int, and an
+        // OverflowException here would be swallowed by HandleFieldChanged's catch, silently skipping
+        // the cell's re-validation.
+        if (!int.TryParse(match.Groups["index"].Value, out itemIndex))
+        {
+            return false;
+        }
+
+        itemFieldName = match.Groups["field"].Value;
+        var collectionFieldName = match.Groups["collection"].Value;
+        collectionField = collectionConfig.CollectionFields.FirstOrDefault(f => f.FieldName == collectionFieldName);
+        return collectionField != null;
     }
 
     /// <summary>
@@ -385,6 +445,31 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         {
             _messageStore.Add(collectionIdentifier, message);
         }
+    }
+
+    /// <summary>
+    /// Replaces <paramref name="identifier" />'s messages and records <paramref name="stamp" />, so
+    /// a full <see cref="ValidateModelAsync" /> pass already in flight does not overwrite them (#443).
+    /// Refused when a handler that started later has already written this identifier - two
+    /// handlers for one field may finish out of order.
+    /// </summary>
+    /// <remarks>
+    /// Only the cell and ordinary-field identifiers are stamped, never a collection's flat set: that
+    /// set also carries the count rules (min/max items), which no cell write recomputes, so a pass's
+    /// flush must keep ownership of it and re-apply carried cells instead.
+    /// </remarks>
+    /// <returns><c>true</c> if the write happened.</returns>
+    private bool TryWrite(FieldIdentifier identifier, long stamp, IEnumerable<string> messages)
+    {
+        if (_writtenAt.TryGetValue(identifier, out var existing) && existing > stamp)
+        {
+            return false;
+        }
+
+        _messageStore!.Clear(identifier);
+        _messageStore.Add(identifier, messages);
+        _writtenAt[identifier] = stamp;
+        return true;
     }
 
     public void Dispose()
