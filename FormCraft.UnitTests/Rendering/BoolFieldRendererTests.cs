@@ -45,10 +45,13 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("checkbox");
+        input.HasAttribute("checked").ShouldBeTrue();
+        cut.Find("label").TextContent.ShouldBe("Test Checkbox");
     }
 
     [Fact]
@@ -60,10 +63,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("checked").ShouldBeTrue();
+        cut.Find("label").TextContent.ShouldBe("Active");
     }
 
     [Fact]
@@ -75,10 +79,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, false);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - a false boolean HTML attribute is omitted entirely, not rendered as "false".
+        cut.Find("input").HasAttribute("checked").ShouldBeFalse();
+        cut.Find("label").TextContent.ShouldBe("Inactive");
     }
 
     [Fact]
@@ -90,11 +95,10 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, null);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
-        // Logic test: null should be handled as false in the renderer
+        // Assert: null should be handled as false in the renderer - no checked attribute rendered.
+        cut.Find("input").HasAttribute("checked").ShouldBeFalse();
     }
 
     [Fact]
@@ -106,10 +110,13 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        var input = cut.Find("input");
+        input.HasAttribute("checked").ShouldBeTrue();
+        input.HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("label").TextContent.ShouldBe("Enable Feature");
     }
 
     [Fact]
@@ -121,10 +128,13 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - this stub never renders a help-text element for a checkbox, empty or not.
+        var input = cut.Find("input");
+        input.HasAttribute("checked").ShouldBeTrue();
+        input.HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("label").TextContent.ShouldBe("Test");
     }
 
     [Fact]
@@ -136,10 +146,10 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("disabled").ShouldBeTrue();
     }
 
     [Fact]
@@ -151,10 +161,10 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("disabled").ShouldBeFalse();
     }
 
     [Fact]
@@ -166,11 +176,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, false);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
-        // The render fragment creation should succeed regardless of the checkbox state
+        // Assert - the render fragment succeeds regardless of the checkbox state.
+        cut.Find("input").HasAttribute("checked").ShouldBeFalse();
+        cut.Find("label").TextContent.ShouldBe("Test");
     }
 
     [Fact]
@@ -182,10 +192,10 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Enable Advanced Settings & Features");
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockField(
@@ -245,10 +255,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - this stub ignores AdditionalAttributes entirely; the checkbox still renders.
+        cut.Find("input").HasAttribute("checked").ShouldBeTrue();
+        cut.Find("label").TextContent.ShouldBe("Switch Mode");
     }
 
     [Fact]
@@ -264,10 +275,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("checked").ShouldBeTrue();
+        cut.Find("label").TextContent.ShouldBe("Custom Labels");
     }
 
     [Fact]
@@ -279,10 +291,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContextForNullableModel(model, field, null);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("checked").ShouldBeFalse();
+        cut.Find("label").TextContent.ShouldBe("Three State");
     }
 
     [Fact]
@@ -294,10 +307,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, false);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("checked").ShouldBeFalse();
+        cut.Find("label").TextContent.ShouldBe("Accept Terms");
     }
 
     [Fact]
@@ -312,10 +326,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("checked").ShouldBeTrue();
+        cut.Find("label").TextContent.ShouldBe("Inline Checkbox");
     }
 
     [Fact]
@@ -331,10 +346,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("checked").ShouldBeTrue();
+        cut.Find("label").TextContent.ShouldBe("Accessible Checkbox");
     }
 
     [Fact]
@@ -349,10 +365,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("checked").ShouldBeTrue();
+        cut.Find("label").TextContent.ShouldBe("ReadOnly Checkbox");
     }
 
     [Fact]
@@ -368,10 +385,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("checked").ShouldBeTrue();
+        cut.Find("label").TextContent.ShouldBe("Colored Checkbox");
     }
 
     [Fact]
@@ -386,10 +404,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("checked").ShouldBeTrue();
+        cut.Find("label").TextContent.ShouldBe("Dense Checkbox");
     }
 
     [Fact]
@@ -404,10 +423,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("checked").ShouldBeTrue();
+        cut.Find("label").TextContent.ShouldBe("Sized Checkbox");
     }
 
     [Fact]
@@ -422,10 +442,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - the wrapper's class comes from the stub itself, not from AdditionalAttributes.
+        cut.Find("div").ClassName.ShouldBe("test-bool-field");
+        cut.Find("input").HasAttribute("checked").ShouldBeTrue();
     }
 
     [Fact]
@@ -440,10 +461,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("checked").ShouldBeTrue();
+        cut.Find("label").TextContent.ShouldBe("Tooltip Checkbox");
     }
 
     [Fact]
@@ -455,10 +477,12 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "true"); // String value
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - a non-bool CLR value is stringified rather than treated as a boolean attribute.
+        var input = cut.Find("input");
+        input.HasAttribute("checked").ShouldBeTrue();
+        input.GetAttribute("checked").ShouldBe("true");
     }
 
     [Fact]
@@ -470,10 +494,12 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 1); // 1 should be true
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - an int isn't special-cased as a boolean attribute; it's rendered as its literal text.
+        var input = cut.Find("input");
+        input.HasAttribute("checked").ShouldBeTrue();
+        input.GetAttribute("checked").ShouldBe("1");
     }
 
     [Fact]
@@ -492,10 +518,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("checked").ShouldBeTrue();
+        cut.Find("label").TextContent.ShouldBe("Complex Checkbox");
     }
 
     [Fact]
@@ -512,10 +539,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, false);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("checked").ShouldBeFalse();
+        cut.Find("label").TextContent.ShouldBe("Validated Checkbox");
     }
 
     [Fact]
@@ -527,10 +555,11 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("");
+        cut.Find("input").HasAttribute("checked").ShouldBeTrue();
     }
 
     [Fact]
@@ -543,10 +572,10 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe(longLabel);
     }
 
     [Fact]
@@ -558,10 +587,10 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Enable <Features> & \"Options\" 'Now'");
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockFieldWithAttributes(

@@ -55,15 +55,19 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
     public void Render_Should_Return_RenderFragment_For_DatePicker()
     {
         // Arrange
-        var model = new TestModel { BirthDate = new DateTime(1990, 1, 1) };
+        var birthDate = new DateTime(1990, 1, 1);
+        var model = new TestModel { BirthDate = birthDate };
         var field = CreateMockField("Birth Date");
-        var context = CreateContext(model, field, new DateTime(1990, 1, 1));
+        var context = CreateContext(model, field, birthDate);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Birth Date");
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("datetime-local");
+        input.GetAttribute("value").ShouldBe(birthDate.ToString());
     }
 
     [Fact]
@@ -76,10 +80,11 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, testDate);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(testDate.ToString());
+        cut.Find("label").TextContent.ShouldBe("Event Date");
     }
 
     [Fact]
@@ -91,10 +96,11 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, DateTime.MinValue);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(DateTime.MinValue.ToString());
+        cut.Find("label").TextContent.ShouldBe("Start Date");
     }
 
     [Fact]
@@ -106,10 +112,11 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, DateTime.MaxValue);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(DateTime.MaxValue.ToString());
+        cut.Find("label").TextContent.ShouldBe("End Date");
     }
 
     [Fact]
@@ -121,11 +128,11 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, null);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
-        // Logic test: null DateTime should be handled gracefully
+        // Assert: a null DateTime renders no "value" attribute at all.
+        cut.Find("input").HasAttribute("value").ShouldBeFalse();
+        cut.Find("label").TextContent.ShouldBe("Optional Date");
     }
 
     [Fact]
@@ -138,70 +145,82 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, (DateTime?)testDate);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(testDate.ToString());
+        cut.Find("label").TextContent.ShouldBe("Birth Date");
     }
 
     [Fact]
     public void Render_Should_Handle_All_Field_Properties()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var eventDate = DateTime.Today;
+        var model = new TestModel { BirthDate = eventDate };
         var field = CreateMockField("Event Date", "Select the date of the event", true, true);
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, eventDate);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Event Date");
+        var input = cut.Find("input");
+        input.GetAttribute("value").ShouldBe(eventDate.ToString());
+        input.HasAttribute("disabled").ShouldBeTrue();
+        cut.Find(".help-text").TextContent.ShouldBe("Select the date of the event");
     }
 
     [Fact]
     public void Render_Should_Handle_Empty_HelpText()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockField("Date", "");
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Date");
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("div.test-datetime-field").QuerySelector(".help-text").ShouldBeNull();
     }
 
     [Fact]
     public void Render_Should_Handle_Required_Field()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockField("Required Date", isRequired: true);
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Required Date");
     }
 
     [Fact]
     public void Render_Should_Handle_Disabled_Field()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockField("Disabled Date", isDisabled: true);
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("disabled").ShouldBeTrue();
     }
 
     [Fact]
@@ -214,10 +233,11 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Today");
     }
 
     [Fact]
@@ -230,10 +250,11 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, dateTimeWithTime);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(dateTimeWithTime.ToString());
+        cut.Find("label").TextContent.ShouldBe("Date with Time");
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockField(
@@ -274,123 +295,137 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
     public void Render_Should_Handle_DateOnly_Type()
     {
         // Arrange
-        var model = new TestModel { BirthDate = new DateTime(2024, 6, 15) };
+        var dateValue = new DateTime(2024, 6, 15);
+        var model = new TestModel { BirthDate = dateValue };
         var field = CreateMockField("Date Only");
-        var context = CreateContextWithType(model, field, new DateTime(2024, 6, 15), typeof(DateOnly));
+        var context = CreateContextWithType(model, field, dateValue, typeof(DateOnly));
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - ActualFieldType only carries metadata; CurrentValue is still stringified as-is.
+        cut.Find("input").GetAttribute("value").ShouldBe(dateValue.ToString());
+        cut.Find("label").TextContent.ShouldBe("Date Only");
     }
 
     [Fact]
     public void Render_Should_Handle_Min_Date_Constraint()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Constrained Date", new Dictionary<string, object>
         {
             { "MinDate", new DateTime(2020, 1, 1) }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - this stub ignores AdditionalAttributes entirely; MinDate never reaches the DOM.
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Constrained Date");
     }
 
     [Fact]
     public void Render_Should_Handle_Max_Date_Constraint()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Max Date", new Dictionary<string, object>
         {
             { "MaxDate", new DateTime(2030, 12, 31) }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Max Date");
     }
 
     [Fact]
     public void Render_Should_Handle_Date_Format_Attribute()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Formatted Date", new Dictionary<string, object>
         {
             { "DateFormat", "yyyy-MM-dd" }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - the stub always renders the raw ToString(), ignoring any DateFormat attribute.
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Formatted Date");
     }
 
     [Fact]
     public void Render_Should_Handle_Culture_Attribute()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Localized Date", new Dictionary<string, object>
         {
             { "Culture", "fr-FR" }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Localized Date");
     }
 
     [Fact]
     public void Render_Should_Handle_Editable_Mode()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Editable Date", new Dictionary<string, object>
         {
             { "Editable", true }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Editable Date");
     }
 
     [Fact]
     public void Render_Should_Handle_ReadOnly_State()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("ReadOnly Date", new Dictionary<string, object>
         {
             { "ReadOnly", true }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("ReadOnly Date");
     }
 
     [Fact]
@@ -405,10 +440,14 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, null);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - the placeholder comes from Field.Placeholder, not this AdditionalAttributes key;
+        // that property is unconfigured (a fake default of "") so the rendered attribute is empty.
+        var input = cut.Find("input");
+        input.HasAttribute("value").ShouldBeFalse();
+        input.GetAttribute("placeholder").ShouldBe(string.Empty);
+        cut.Find("label").TextContent.ShouldBe("Date with Placeholder");
     }
 
     [Fact]
@@ -420,10 +459,11 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "2024-06-15"); // String representation
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - the stub stringifies whatever it is given; it does not parse dates.
+        cut.Find("input").GetAttribute("value").ShouldBe("2024-06-15");
+        cut.Find("label").TextContent.ShouldBe("String Date");
     }
 
     [Fact]
@@ -435,10 +475,11 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "not a date");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - no validation happens at render time.
+        cut.Find("input").GetAttribute("value").ShouldBe("not a date");
+        cut.Find("label").TextContent.ShouldBe("Invalid Date");
     }
 
     [Fact]
@@ -451,10 +492,11 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, leapDate);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(leapDate.ToString());
+        cut.Find("label").TextContent.ShouldBe("Leap Year Date");
     }
 
     [Fact]
@@ -467,144 +509,160 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, utcDate);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(utcDate.ToString());
+        cut.Find("label").TextContent.ShouldBe("UTC Date");
     }
 
     [Fact]
     public void Render_Should_Handle_DatePickerMode_Attribute()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Picker Mode", new Dictionary<string, object>
         {
             { "PickerMode", "Month" }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Picker Mode");
     }
 
     [Fact]
     public void Render_Should_Handle_Clearable_Attribute()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Clearable Date", new Dictionary<string, object>
         {
             { "Clearable", true }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Clearable Date");
     }
 
     [Fact]
     public void Render_Should_Handle_CSS_Classes()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Styled Date", new Dictionary<string, object>
         {
             { "class", "date-picker-custom mt-4" }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - the wrapper's class comes from the stub itself, not from AdditionalAttributes.
+        cut.Find("div").ClassName.ShouldBe("test-datetime-field");
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
     }
 
     [Fact]
     public void Render_Should_Handle_ARIA_Attributes()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Accessible Date", new Dictionary<string, object>
         {
             { "aria-label", "Select event date" },
             { "aria-describedby", "date-help" }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Accessible Date");
     }
 
     [Fact]
     public void Render_Should_Handle_Dense_Mode()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Dense Date", new Dictionary<string, object>
         {
             { "Dense", true }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Dense Date");
     }
 
     [Fact]
     public void Render_Should_Handle_Variant_Attribute()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Outlined Date", new Dictionary<string, object>
         {
             { "Variant", "Outlined" }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Outlined Date");
     }
 
     [Fact]
     public void Render_Should_Handle_Margin_Attribute()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Date with Margin", new Dictionary<string, object>
         {
             { "Margin", "Dense" }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Date with Margin");
     }
 
     [Fact]
     public void Render_Should_Handle_Multiple_Attributes()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Complex Date", new Dictionary<string, object>
         {
             { "MinDate", new DateTime(2020, 1, 1) },
@@ -614,49 +672,54 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
             { "Dense", true },
             { "class", "custom-date" }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Complex Date");
     }
 
     [Fact]
     public void Render_Should_Handle_First_Day_Of_Week()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Week Start", new Dictionary<string, object>
         {
             { "FirstDayOfWeek", DayOfWeek.Monday }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Week Start");
     }
 
     [Fact]
     public void Render_Should_Handle_Disabled_Dates_Function()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockFieldWithAttributes("Disabled Dates", new Dictionary<string, object>
         {
             { "IsDateDisabled", new Func<DateTime, bool>(date => date.DayOfWeek == DayOfWeek.Sunday) }
         });
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - a Func-valued attribute doesn't break rendering; the stub ignores it.
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
+        cut.Find("label").TextContent.ShouldBe("Disabled Dates");
     }
 
     [Fact]
@@ -669,10 +732,11 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, oldDate);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(oldDate.ToString());
+        cut.Find("label").TextContent.ShouldBe("Old Date");
     }
 
     [Fact]
@@ -685,25 +749,28 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, futureDate);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(futureDate.ToString());
+        cut.Find("label").TextContent.ShouldBe("Future Date");
     }
 
     [Fact]
     public void Render_Should_Handle_Empty_Label()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockField("");
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("");
+        cut.Find("input").GetAttribute("value").ShouldBe(today.ToString());
     }
 
     [Fact]
@@ -711,30 +778,32 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
     {
         // Arrange
         var longLabel = new string('A', 500);
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockField(longLabel);
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe(longLabel);
     }
 
     [Fact]
     public void Render_Should_Handle_Special_Characters_In_Label()
     {
         // Arrange
-        var model = new TestModel { BirthDate = DateTime.Today };
+        var today = DateTime.Today;
+        var model = new TestModel { BirthDate = today };
         var field = CreateMockField("Date <Field> & \"Time\" 'Selection'");
-        var context = CreateContext(model, field, DateTime.Today);
+        var context = CreateContext(model, field, today);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Date <Field> & \"Time\" 'Selection'");
     }
 
     [Fact]
@@ -746,10 +815,11 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 12345); // Integer value
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - no type validation happens; the value is stringified as given.
+        cut.Find("input").GetAttribute("value").ShouldBe("12345");
+        cut.Find("label").TextContent.ShouldBe("Test");
     }
 
     [Fact]
@@ -761,10 +831,11 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, new object());
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe("System.Object");
+        cut.Find("label").TextContent.ShouldBe("Test");
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockFieldWithAttributes(

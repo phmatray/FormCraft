@@ -50,60 +50,8 @@ public class LambdaLovDataProvider<TItem> : ILovDataProvider<TItem>
         Func<TItem, string, bool>? searchPredicate = null)
     {
         return new LambdaLovDataProvider<TItem>(
-            (query, ct) =>
-            {
-                IEnumerable<TItem> items = collectionFactory();
-
-                // Apply search filter
-                if (!string.IsNullOrWhiteSpace(query.SearchText) && searchPredicate != null)
-                {
-                    var searchText = query.SearchText;
-                    items = items.Where(item => searchPredicate(item, searchText));
-                }
-
-                // Apply context filters (for cascading)
-                foreach (var kvp in query.Context)
-                {
-                    if (kvp.Value != null)
-                    {
-                        var property = typeof(TItem).GetProperty(kvp.Key);
-                        if (property != null)
-                        {
-                            var filterValue = kvp.Value;
-                            items = items.Where(item =>
-                            {
-                                var propValue = property.GetValue(item);
-                                return propValue != null && propValue.Equals(filterValue);
-                            });
-                        }
-                    }
-                }
-
-                // Materialize for count before sorting/paging
-                var itemsList = items.ToList();
-                var totalCount = itemsList.Count;
-
-                // Apply sorting
-                IEnumerable<TItem> sortedItems = itemsList;
-                foreach (var sort in query.SortDefinitions)
-                {
-                    var property = typeof(TItem).GetProperty(sort.PropertyName);
-                    if (property != null)
-                    {
-                        sortedItems = sort.Descending
-                            ? sortedItems.OrderByDescending(item => property.GetValue(item))
-                            : sortedItems.OrderBy(item => property.GetValue(item));
-                    }
-                }
-
-                // Apply pagination
-                var pagedItems = sortedItems
-                    .Skip(query.StartIndex)
-                    .Take(query.Count)
-                    .ToList();
-
-                return Task.FromResult(new LovDataResult<TItem>(pagedItems, totalCount));
-            },
+            (query, ct) => Task.FromResult(
+                LovDataResult<TItem>.FromCollection(collectionFactory(), query, searchPredicate)),
             (key, ct) =>
             {
                 var item = collectionFactory()

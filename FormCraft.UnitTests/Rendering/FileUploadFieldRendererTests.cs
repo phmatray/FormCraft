@@ -94,10 +94,15 @@ public class FileUploadFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => context.CurrentValue).Returns(null);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Test Upload");
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("file");
+        input.HasAttribute("disabled").ShouldBeFalse();
+        input.HasAttribute("multiple").ShouldBeFalse();
+        input.HasAttribute("accept").ShouldBeFalse();
     }
 
     [Fact]
@@ -130,11 +135,13 @@ public class FileUploadFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => context.ActualFieldType).Returns(typeof(IBrowserFile));
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
-        // The actual validation of the configuration is done within the render method
+        // Assert - this stub never reads the FileUploadConfiguration attribute; "accept" stays absent.
+        cut.Find("label").TextContent.ShouldBe("Upload Document");
+        var input = cut.Find("input");
+        input.HasAttribute("multiple").ShouldBeFalse();
+        input.HasAttribute("accept").ShouldBeFalse();
     }
 
     [Fact]
@@ -157,10 +164,10 @@ public class FileUploadFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => context.ActualFieldType).Returns(typeof(IReadOnlyList<IBrowserFile>));
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - "multiple" comes from ActualFieldType, not FileUploadConfiguration.Multiple.
+        cut.Find("input").HasAttribute("multiple").ShouldBeTrue();
         uploadConfig.Multiple.ShouldBeTrue();
     }
 
@@ -181,10 +188,12 @@ public class FileUploadFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => context.CurrentValue).Returns(existingFile);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - this stub never reads CurrentValue; an existing file has no effect on the markup.
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("file");
+        input.HasAttribute("multiple").ShouldBeFalse();
     }
 
     [Fact]
@@ -204,10 +213,13 @@ public class FileUploadFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => context.CurrentValue).Returns(files);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - "multiple" is driven by ActualFieldType, which isn't stubbed here, so it stays
+        // absent even though CurrentValue itself is a file list.
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("file");
+        input.HasAttribute("multiple").ShouldBeFalse();
     }
 
     [Fact]
@@ -230,12 +242,11 @@ public class FileUploadFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => context.CurrentValue).Returns(null);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
-        // Note: Actual validation of the error attributes would require rendering the component
-        // which is beyond the scope of unit tests - this would be covered by integration tests
+        // Assert - this stub never surfaces FileUploadErrors in the DOM; base markup still renders.
+        cut.Find("label").TextContent.ShouldBe("Upload File");
+        cut.Find("input").GetAttribute("type").ShouldBe("file");
     }
 
     [Fact]
@@ -257,10 +268,11 @@ public class FileUploadFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => context.CurrentValue).Returns(file);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Upload File");
+        cut.Find("input").GetAttribute("type").ShouldBe("file");
         additionalAttributes.ShouldNotContainKey("FileUploadErrors");
     }
 

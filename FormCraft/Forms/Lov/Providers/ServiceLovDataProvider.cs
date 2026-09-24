@@ -99,7 +99,7 @@ public class LovDataProviderFactory : ILovDataProviderFactory
         {
             return new LambdaLovDataProvider<TItem>(
                 configuration.DataProvider,
-                null);
+                configuration.GetByKeyProvider);
         }
 
         // Priority 2: Service type from DI

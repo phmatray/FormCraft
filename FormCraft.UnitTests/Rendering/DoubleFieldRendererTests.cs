@@ -53,15 +53,21 @@ public class DoubleFieldRendererTests : CoreRendererTestBase
     public void Render_Should_Create_MudNumericField_With_Correct_Attributes()
     {
         // Arrange
-        var model = new TestModel { Temperature = 3.14159 };
+        var temperature = 3.14159;
+        var model = new TestModel { Temperature = temperature };
         var field = CreateMockField("Temperature", "Enter temperature in Celsius", true);
-        var context = CreateContext(model, field, 3.14159, typeof(double));
+        var context = CreateContext(model, field, temperature, typeof(double));
 
         // Act
-        var fragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        fragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Temperature");
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("number");
+        input.GetAttribute("step").ShouldBe("any");
+        input.GetAttribute("value").ShouldBe(temperature.ToString());
+        cut.Find(".help-text").TextContent.ShouldBe("Enter temperature in Celsius");
     }
 
     [Fact]
@@ -73,25 +79,29 @@ public class DoubleFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, null, typeof(double));
 
         // Act
-        var fragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        fragment.ShouldNotBeNull();
+        // Assert - a null value renders no "value" attribute, and empty help text renders no div.
+        cut.Find("label").TextContent.ShouldBe("Measurement");
+        cut.Find("input").HasAttribute("value").ShouldBeFalse();
+        cut.Find("div.test-double-field").QuerySelector(".help-text").ShouldBeNull();
     }
 
     [Fact]
     public void Render_Should_Handle_Nullable_Double_Field()
     {
         // Arrange
-        var model = new TestModel { OptionalMeasurement = 2.71828 };
+        var measurement = 2.71828;
+        var model = new TestModel { OptionalMeasurement = measurement };
         var field = CreateMockField("Optional Measurement");
-        var context = CreateContext(model, field, 2.71828, typeof(double?));
+        var context = CreateContext(model, field, measurement, typeof(double?));
 
         // Act
-        var fragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        fragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Optional Measurement");
+        cut.Find("input").GetAttribute("value").ShouldBe(measurement.ToString());
     }
 
     [Fact]
@@ -103,10 +113,11 @@ public class DoubleFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, null, typeof(double?));
 
         // Act
-        var fragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        fragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Optional Measurement");
+        cut.Find("input").HasAttribute("value").ShouldBeFalse();
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockField(
