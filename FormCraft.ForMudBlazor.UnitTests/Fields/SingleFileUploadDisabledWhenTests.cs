@@ -66,6 +66,20 @@ public class SingleFileUploadDisabledWhenTests : MudBlazorTestBase
         JSInterop.Invocations.Count(i => i.Identifier.Contains("openFilePicker", StringComparison.Ordinal)).ShouldBe(1);
     }
 
+    [Fact]
+    public void A_Condition_True_With_A_File_Already_Present_Should_Disable_Clear()
+    {
+        // Arrange - Clear only renders once a file is present, so this is the one fact the earlier
+        // tests (starting empty) cannot exercise.
+        var model = new LockModel { Mode = "locked", Resume = new StubBrowserFile() };
+
+        // Act
+        var component = RenderForm(model);
+
+        // Assert
+        ClearButton(component).Disabled.ShouldBeTrue();
+    }
+
     private IRenderedComponent<FormCraftComponent<LockModel>> RenderForm(LockModel model)
     {
         var config = FormBuilder<LockModel>.Create()
@@ -84,6 +98,9 @@ public class SingleFileUploadDisabledWhenTests : MudBlazorTestBase
     private static MudButton BrowseButton(IRenderedComponent<FormCraftComponent<LockModel>> component) =>
         component.FindComponents<MudButton>().Single(b => b.Markup.Contains("Browse")).Instance;
 
+    private static MudButton ClearButton(IRenderedComponent<FormCraftComponent<LockModel>> component) =>
+        component.FindComponents<MudButton>().Single(b => b.Markup.Contains("Clear")).Instance;
+
     /// <summary>Model whose <see cref="Mode"/> drives whether <see cref="Resume"/> is disabled.</summary>
     public class LockModel
     {
@@ -92,5 +109,20 @@ public class SingleFileUploadDisabledWhenTests : MudBlazorTestBase
 
         /// <summary>The field under test.</summary>
         public IBrowserFile? Resume { get; set; }
+    }
+
+    private sealed class StubBrowserFile : IBrowserFile
+    {
+        public string Name => "resume.pdf";
+
+        public DateTimeOffset LastModified => DateTimeOffset.UnixEpoch;
+
+        public long Size => 1024;
+
+        public string ContentType => "application/pdf";
+
+        public Stream OpenReadStream(
+            long maxAllowedSize = 512000,
+            CancellationToken cancellationToken = default) => new MemoryStream();
     }
 }

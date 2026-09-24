@@ -51,6 +51,14 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
 
     private void SetDragClass()
     {
+        // Same bypass as OpenFilePickerAsync (#482): @ondragenter is FormCraft's own MudPaper
+        // handler, not gated by MudFileUpload's Disabled. Without this, a disabled field still shows
+        // drag-hover feedback even though the actual drop is already blocked at the MudBlazor layer.
+        if (IsDisabled)
+        {
+            return;
+        }
+
         _dragging = true;
         _dragClass = $"{DefaultDragClass} mud-border-primary";
     }
