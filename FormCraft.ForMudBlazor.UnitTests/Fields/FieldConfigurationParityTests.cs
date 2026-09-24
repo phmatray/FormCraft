@@ -377,7 +377,7 @@ public class FieldConfigurationParityTests : MudBlazorTestBase
         typeof(MudBlazorDateTimeFieldComponent<>),
         typeof(MudBlazorTimeOnlyFieldComponent<>),
         typeof(MudBlazorLookupFieldComponent<,>),
-        typeof(MudBlazorLovFieldComponent<,,>),
+        typeof(MudBlazorLovFieldComponent<,,,>),
         typeof(MudBlazorFileUploadFieldComponent<>),
         typeof(MudBlazorMultipleFileUploadComponent<>),
     };

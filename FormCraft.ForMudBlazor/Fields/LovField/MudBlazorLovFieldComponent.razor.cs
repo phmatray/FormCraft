@@ -7,9 +7,13 @@ namespace FormCraft.ForMudBlazor;
 /// Displays a text field with a lookup button that opens a modal table for selection.
 /// </summary>
 /// <typeparam name="TModel">The model type.</typeparam>
-/// <typeparam name="TValue">The type of the selected value.</typeparam>
+/// <typeparam name="TValue">
+/// The field's bound value type: the key itself for <c>AsLov</c>, <c>IEnumerable&lt;TKey&gt;</c> for
+/// <c>AsMultiSelectLov</c> (#480).
+/// </typeparam>
+/// <typeparam name="TKey">The per-item key type produced by the LOV configuration's value selector.</typeparam>
 /// <typeparam name="TItem">The type of items in the LOV.</typeparam>
-public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
+public partial class MudBlazorLovFieldComponent<TModel, TValue, TKey, TItem>
 {
     private ILovDataProvider<TItem>? _dataProvider;
     private readonly List<TItem> _selectedItems = [];
@@ -18,7 +22,7 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
     /// <summary>
     /// Gets the LOV configuration.
     /// </summary>
-    protected ILovConfiguration<TItem, TValue>? LovConfig { get; private set; }
+    protected ILovConfiguration<TItem, TKey>? LovConfig { get; private set; }
 
     /// <summary>
     /// Suppresses the ShrinkLabel diagnostic (#181) for LOV fields.
@@ -94,7 +98,7 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
         DisplayText = null;
         _isLoading = false;
 
-        LovConfig = GetAttribute<ILovConfiguration<TItem, TValue>>("LovConfiguration");
+        LovConfig = GetAttribute<ILovConfiguration<TItem, TKey>>("LovConfiguration");
 
         if (LovConfig == null)
         {
@@ -118,7 +122,7 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
 
         if (ServiceProvider.GetService(typeof(ILovDataProviderFactory)) is ILovDataProviderFactory factory)
         {
-            _dataProvider = factory.Create<TItem, TValue>(LovConfig);
+            _dataProvider = factory.Create<TItem, TKey>(LovConfig);
         }
         else if (LovConfig.DataProvider != null)
         {
@@ -194,7 +198,7 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
 
         try
         {
-            var parameters = new DialogParameters<LovSelectionDialog<TItem, TValue>>
+            var parameters = new DialogParameters<LovSelectionDialog<TItem, TKey>>
             {
                 { x => x.LovConfig, LovConfig },
                 { x => x.DataProvider, _dataProvider },
@@ -211,7 +215,7 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
                 BackdropClick = LovConfig.ModalOptions.CloseOnBackdropClick
             };
 
-            var dialog = await DialogService.ShowAsync<LovSelectionDialog<TItem, TValue>>(
+            var dialog = await DialogService.ShowAsync<LovSelectionDialog<TItem, TKey>>(
                 LovConfig.ModalOptions.Title,
                 parameters,
                 options);
@@ -245,10 +249,8 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
 
         if (IsMultiSelect)
         {
-            // For multi-select, we'd need to handle IEnumerable<TValue>
-            // This is a simplified implementation
+            // TValue is the field's bound IEnumerable<TKey> (AsMultiSelectLov), which List<TKey> satisfies.
             var values = items.Select(LovConfig.ValueSelector).ToList();
-            // Note: This cast may need adjustment based on actual TValue type
             var typedValues = (TValue)(object)values;
             SetValueWithoutNotification(typedValues);
             await NotifyValueChangedAsync(typedValues);
@@ -258,7 +260,8 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TItem>
             var item = items.FirstOrDefault();
             if (item != null)
             {
-                var value = LovConfig.ValueSelector(item);
+                // Single-select binds the key itself, so TValue is TKey (or its nullable form).
+                var value = (TValue)(object)LovConfig.ValueSelector(item)!;
                 // Update our own state first so the display text and the
                 // adornment reflect the selection immediately
                 SetValueWithoutNotification(value);
