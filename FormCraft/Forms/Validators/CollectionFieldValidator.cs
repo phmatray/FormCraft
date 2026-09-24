@@ -292,7 +292,7 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
     /// site.
     /// </remarks>
     /// <param name="model">The parent model instance.</param>
-    /// <returns>The collection on success; <see langword="null"/> when the read fails.</returns>
+    /// <returns>The collection on success; <see langword="null"/> when a null intermediate makes it unreachable.</returns>
     private List<TItem>? TryReadCollection(TModel model)
     {
         FieldValueGetterCache<TModel>.TryInvoke(_configuration.CollectionAccessor, model, out var value);

@@ -95,7 +95,7 @@ public static class FieldValueGetterCache<TModel>
     /// </remarks>
     /// <param name="field">The field configuration whose value expression to read.</param>
     /// <param name="model">The model instance to read the value from.</param>
-    /// <param name="value">The read value on success; <see langword="null"/> when the read fails.</param>
+    /// <param name="value">The read value on success; <see langword="null"/> when a null intermediate makes it unreachable.</param>
     /// <returns><see langword="true"/> if the value was read successfully; otherwise <see langword="false"/>.</returns>
     public static bool TryGetValue(IFieldConfiguration<TModel, object> field, TModel model, out object? value)
         => TryInvoke(GetOrCompile(field), model, out value);
