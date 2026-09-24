@@ -24,10 +24,16 @@ public static class EncryptionServiceExtensions
     /// May be null, in which case an empty dictionary is returned.
     /// </param>
     /// <returns>
-    /// A dictionary keyed by field name containing the encrypted values. Only string
-    /// properties listed in <see cref="IFormSecurity.EncryptedFields"/> are included;
-    /// null or empty values are passed through unencrypted.
+    /// A dictionary keyed by the paths listed in <see cref="IFormSecurity.EncryptedFields"/>
+    /// (<c>"SSN"</c>, or <c>"Address.City"</c> for a nested field) containing the encrypted values;
+    /// null or empty values — including a nested field under a null parent — are passed through
+    /// unencrypted as null or empty.
     /// </returns>
+    /// <exception cref="ArgumentException">
+    /// A listed path does not resolve to a readable <see cref="string"/> property of
+    /// <typeparamref name="TModel"/>. It fails closed rather than silently omitting a field the
+    /// caller believes is encrypted (#423).
+    /// </exception>
     /// <example>
     /// <code>
     /// var encrypted = encryptionService.EncryptConfiguredFields(model, configuration.Security);
@@ -48,16 +54,19 @@ public static class EncryptionServiceExtensions
             return result;
         }
 
-        foreach (var fieldName in security.EncryptedFields)
+        // Resolve every path first so an unresolvable entry fails closed before anything is encrypted.
+        var chains = security.EncryptedFields
+            .Select(path => (Path: path, Chain: MemberPathResolver.ResolveStringProperty(typeof(TModel), path)))
+            .ToList();
+
+        foreach (var (path, chain) in chains)
         {
-            var property = typeof(TModel).GetProperty(fieldName);
-            if (property?.PropertyType == typeof(string) && property.CanRead)
-            {
-                var value = property.GetValue(model) as string;
-                result[fieldName] = string.IsNullOrEmpty(value)
-                    ? value
-                    : encryptionService.Encrypt(value);
-            }
+            var value = MemberPathResolver.TryGetOwner(model, chain, out var owner)
+                ? chain[^1].GetValue(owner) as string
+                : null;
+            result[path] = string.IsNullOrEmpty(value)
+                ? value
+                : encryptionService.Encrypt(value);
         }
 
         return result;
