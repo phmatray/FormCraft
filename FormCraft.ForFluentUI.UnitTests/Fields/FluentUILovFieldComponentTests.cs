@@ -128,6 +128,66 @@ public class FluentUILovFieldComponentTests : FluentUITestBase
             .Add(c => c.Configuration, config));
     }
 
+    [Fact]
+    public async Task A_Multi_Select_Lov_Should_Write_Every_Selected_Key()
+    {
+        // Arrange - AsMultiSelectLov binds IEnumerable<int> while its key selector yields int (#480):
+        // before the renderer resolved TValue from the bound type, only the first pick was written.
+        var model = new BasketModel();
+        var component = RenderMultiSelectLov(model);
+        await component.Find("[data-testid=formcraft-lov-open]").ClickAsync(new());
+
+        // Act - pick Widget, then Doohickey
+        await component.FindAll("[data-testid=formcraft-lov-row]")[0].ClickAsync(new());
+        await component.FindAll("[data-testid=formcraft-lov-row]")[2].ClickAsync(new());
+
+        // Assert
+        model.ProductIds.ShouldBe([10, 30]);
+    }
+
+    [Fact]
+    public async Task A_Multi_Select_Lov_Should_Show_No_Type_Name_And_Write_An_Empty_List_Once_Emptied()
+    {
+        // Arrange
+        var model = new BasketModel();
+        var component = RenderMultiSelectLov(model);
+
+        // Assert - the bound collection's ToString() ("System.Int32[]") is not display text
+        component.FindComponent<FluentTextInput>().Instance.Value.ShouldBeNullOrEmpty();
+
+        // Act - pick one row, then remove its chip
+        await component.Find("[data-testid=formcraft-lov-open]").ClickAsync(new());
+        await component.FindAll("[data-testid=formcraft-lov-row]")[0].ClickAsync(new());
+        await component.Find("[data-testid=formcraft-lov-chip-remove]").ClickAsync(new());
+
+        // Assert - an empty list, not null, as the MudBlazor component writes
+        model.ProductIds.ShouldNotBeNull();
+        model.ProductIds.ShouldBeEmpty();
+    }
+
+    private IRenderedComponent<FormCraftComponent<BasketModel>> RenderMultiSelectLov(BasketModel model)
+    {
+        var config = FormBuilder<BasketModel>.Create()
+            .AddField(x => x.ProductIds, f => f
+                .WithLabel("Products")
+                .AsMultiSelectLov<BasketModel, int, Product>(lov => lov
+                    .WithKey(p => p.Id)
+                    .WithDisplay(p => p.Name)
+                    .WithDataSource(() => AllProducts)
+                    .AddColumn(p => p.Name, "Name")))
+            .Build();
+        return Render<FormCraftComponent<BasketModel>>(p => p
+            .Add(c => c.Model, model)
+            .Add(c => c.Configuration, config));
+    }
+
+    /// <summary>Model with a multi-select LOV.</summary>
+    public class BasketModel
+    {
+        /// <summary>The LOV-selected keys.</summary>
+        public IEnumerable<int> ProductIds { get; set; } = [];
+    }
+
     /// <summary>Model with a LOV-selected foreign key.</summary>
     public class OrderModel
     {
