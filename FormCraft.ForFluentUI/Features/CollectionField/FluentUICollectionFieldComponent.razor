@@ -56,12 +56,13 @@
             @for (var i = 0; i < Items.Count; i++)
             {
                 var index = i;
-                var key = RowKey(index);
-                @* #401 (porting #334): the row's ROOT element is keyed on the item's own identity -
-                   a weak token, never the item itself. Keying on `Items[index]` was tried and
-                   reverted on the MudBlazor side (#298/#308): Blazor matches keys by Equals, not by
-                   reference, and TItem is constrained only to `new()`, so a record/struct row
-                   comparing equal to another was a duplicate key. *@
+                var key = _rowIdentity.KeyFor(Items, index);
+                @* #401 (porting #334), moved into core as CollectionRowIdentity (#422): the row's
+                   ROOT element is keyed on the item's own identity - a weak token, never the item
+                   itself. Keying on `Items[index]` was tried and reverted on the MudBlazor side
+                   (#298/#308): Blazor matches keys by Equals, not by reference, and TItem is
+                   constrained only to `new()`, so a record/struct row comparing equal to another was
+                   a duplicate key. *@
                 <FluentCard Class="formcraft-collection-item" data-testid="formcraft-collection-item" @key="key">
                     @* tabindex="-1" so a row can take focus without joining the tab order: it is
                        where focus goes when the acting control leaves no usable target - after Add
