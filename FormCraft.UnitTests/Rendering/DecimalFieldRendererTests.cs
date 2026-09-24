@@ -52,15 +52,21 @@ public class DecimalFieldRendererTests : CoreRendererTestBase
     public void Render_Should_Create_MudNumericField_With_Correct_Attributes()
     {
         // Arrange
-        var model = new TestModel { Price = 123.45m };
+        var price = 123.45m;
+        var model = new TestModel { Price = price };
         var field = CreateMockField("Price", "Enter the price", true);
-        var context = CreateContext(model, field, 123.45m, typeof(decimal));
+        var context = CreateContext(model, field, price, typeof(decimal));
 
         // Act
-        var fragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        fragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Price");
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("number");
+        input.GetAttribute("step").ShouldBe("0.01");
+        input.GetAttribute("value").ShouldBe(price.ToString());
+        cut.Find(".help-text").TextContent.ShouldBe("Enter the price");
     }
 
     [Fact]
@@ -72,25 +78,29 @@ public class DecimalFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, null, typeof(decimal));
 
         // Act
-        var fragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        fragment.ShouldNotBeNull();
+        // Assert - a null value renders no "value" attribute, and empty help text renders no div.
+        cut.Find("label").TextContent.ShouldBe("Amount");
+        cut.Find("input").HasAttribute("value").ShouldBeFalse();
+        cut.Find("div.test-decimal-field").QuerySelector(".help-text").ShouldBeNull();
     }
 
     [Fact]
     public void Render_Should_Handle_Nullable_Decimal_Field()
     {
         // Arrange
-        var model = new TestModel { OptionalAmount = 99.99m };
+        var amount = 99.99m;
+        var model = new TestModel { OptionalAmount = amount };
         var field = CreateMockField("Optional Amount");
-        var context = CreateContext(model, field, 99.99m, typeof(decimal?));
+        var context = CreateContext(model, field, amount, typeof(decimal?));
 
         // Act
-        var fragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        fragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Optional Amount");
+        cut.Find("input").GetAttribute("value").ShouldBe(amount.ToString());
     }
 
     [Fact]
@@ -102,10 +112,11 @@ public class DecimalFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, null, typeof(decimal?));
 
         // Act
-        var fragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        fragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Optional Amount");
+        cut.Find("input").HasAttribute("value").ShouldBeFalse();
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockField(

@@ -44,10 +44,15 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Test Value");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Test Label");
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("text");
+        input.GetAttribute("value").ShouldBe("Test Value");
+        input.GetAttribute("placeholder").ShouldBe("Test placeholder");
+        cut.Find(".help-text").TextContent.ShouldBe("Test help text");
     }
 
     [Fact]
@@ -65,10 +70,12 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Option1");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - this stub never branches on the "Options" attribute; it always renders a text input.
+        cut.Find("input").GetAttribute("type").ShouldBe("text");
+        cut.Find("input").GetAttribute("value").ShouldBe("Option1");
+        cut.Find("label").TextContent.ShouldBe("Test Label");
     }
 
     [Fact]
@@ -80,10 +87,11 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, null);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert: a null CurrentValue renders no "value" attribute at all.
+        cut.Find("input").HasAttribute("value").ShouldBeFalse();
+        cut.Find("label").TextContent.ShouldBe("Test Label");
     }
 
     [Fact]
@@ -95,10 +103,12 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert: an empty (non-null) string still renders the attribute, just with an empty value.
+        var input = cut.Find("input");
+        input.HasAttribute("value").ShouldBeTrue();
+        input.GetAttribute("value").ShouldBe(string.Empty);
     }
 
     [Fact]
@@ -110,11 +120,11 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Test");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
-        // Logic test: since no Options key exists, it should render as TextField
+        // Assert: since no Options key exists, it renders as a plain text field.
+        cut.Find("input").GetAttribute("type").ShouldBe("text");
+        cut.Find("input").GetAttribute("value").ShouldBe("Test");
     }
 
     [Fact]
@@ -130,11 +140,11 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Option1");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
-        // Logic test: since Options key exists, it should render as SelectField
+        // Assert: this stub renders the same plain text field either way - it never reads Options.
+        cut.Find("input").GetAttribute("type").ShouldBe("text");
+        cut.Find("input").GetAttribute("value").ShouldBe("Option1");
     }
 
     [Fact]
@@ -146,10 +156,15 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Test");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Test Label");
+        var input = cut.Find("input");
+        input.GetAttribute("value").ShouldBe("Test");
+        input.GetAttribute("placeholder").ShouldBe("Enter value");
+        input.HasAttribute("disabled").ShouldBeTrue();
+        cut.Find(".help-text").TextContent.ShouldBe("Helper text");
     }
 
     [Fact]
@@ -161,10 +176,12 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Test");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("");
+        cut.Find("input").GetAttribute("placeholder").ShouldBe(string.Empty);
+        cut.Find("div.test-string-field").QuerySelector(".help-text").ShouldBeNull();
     }
 
     [Fact]
@@ -176,10 +193,12 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Test");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("type").ShouldBe("text");
+        cut.Find("input").GetAttribute("value").ShouldBe("Test");
+        cut.Find("label").TextContent.ShouldBe("Test Label");
     }
 
     [Fact]
@@ -197,10 +216,12 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Option2");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("type").ShouldBe("text");
+        cut.Find("input").GetAttribute("value").ShouldBe("Option2");
+        cut.Find("label").TextContent.ShouldBe("Multi-Select");
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockField(
@@ -266,10 +287,11 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, longString);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(longString);
+        cut.Find("label").TextContent.ShouldBe("Long String Test");
     }
 
     [Fact]
@@ -282,10 +304,11 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, specialString);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - the value round-trips through HTML encoding intact.
+        cut.Find("input").GetAttribute("value").ShouldBe(specialString);
+        cut.Find("label").TextContent.ShouldBe("Special Characters");
     }
 
     [Fact]
@@ -297,10 +320,13 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Test");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - this stub ignores AdditionalAttributes entirely; no maxlength reaches the DOM.
+        var input = cut.Find("input");
+        input.GetAttribute("value").ShouldBe("Test");
+        input.HasAttribute("maxlength").ShouldBeFalse();
+        cut.Find("label").TextContent.ShouldBe("MaxLength");
     }
 
     [Fact]
@@ -312,10 +338,12 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "test@example.com");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        var input = cut.Find("input");
+        input.GetAttribute("value").ShouldBe("test@example.com");
+        input.HasAttribute("pattern").ShouldBeFalse();
     }
 
     [Fact]
@@ -328,10 +356,12 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, multilineText);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - the stub always renders a single-line <input>, never a <textarea>.
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("text");
+        input.GetAttribute("value").ShouldBe(multilineText);
     }
 
     [Fact]
@@ -343,10 +373,11 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Test");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - the wrapper's class comes from the stub itself, not from AdditionalAttributes.
+        cut.Find("div").ClassName.ShouldBe("test-string-field");
+        cut.Find("input").GetAttribute("value").ShouldBe("Test");
     }
 
     [Fact]
@@ -358,10 +389,12 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "secret123");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - the input's type is hardcoded to "text"; AdditionalAttributes can't override it.
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("text");
+        input.GetAttribute("value").ShouldBe("secret123");
     }
 
     [Fact]
@@ -373,10 +406,12 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "user@domain.com");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("text");
+        input.GetAttribute("value").ShouldBe("user@domain.com");
     }
 
     [Fact]
@@ -388,10 +423,13 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "readonly value");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - "readonly" isn't the same as IsDisabled, and this stub ignores AdditionalAttributes.
+        var input = cut.Find("input");
+        input.GetAttribute("value").ShouldBe("readonly value");
+        input.HasAttribute("disabled").ShouldBeFalse();
+        input.HasAttribute("readonly").ShouldBeFalse();
     }
 
     [Fact]
@@ -404,10 +442,11 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, unicodeString);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(unicodeString);
+        cut.Find("label").TextContent.ShouldBe("Unicode Test");
     }
 
     [Fact]
@@ -419,10 +458,11 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Test");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - a null AdditionalAttributes value doesn't break rendering.
+        cut.Find("input").GetAttribute("type").ShouldBe("text");
+        cut.Find("input").GetAttribute("value").ShouldBe("Test");
     }
 
     [Fact]
@@ -435,10 +475,11 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Test");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - malformed data in AdditionalAttributes doesn't break rendering.
+        cut.Find("input").GetAttribute("type").ShouldBe("text");
+        cut.Find("input").GetAttribute("value").ShouldBe("Test");
     }
 
     [Fact]
@@ -448,22 +489,22 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var model1 = new TestModel { Name = "" };
         var field1 = CreateMockField("Empty");
         var context1 = CreateContext(model1, field1, "");
-        var result1 = _renderer.Render(context1);
-        result1.ShouldNotBeNull();
+        var cut1 = Render(_renderer.Render(context1));
+        cut1.Find("input").GetAttribute("value").ShouldBe("");
 
         // Whitespace only
         var model2 = new TestModel { Name = "   " };
         var field2 = CreateMockField("Whitespace");
         var context2 = CreateContext(model2, field2, "   ");
-        var result2 = _renderer.Render(context2);
-        result2.ShouldNotBeNull();
+        var cut2 = Render(_renderer.Render(context2));
+        cut2.Find("input").GetAttribute("value").ShouldBe("   ");
 
-        // Tab and newline characters
+        // Tab and newline characters - HTML parsing normalizes a bare "\r" to "\n".
         var model3 = new TestModel { Name = "\t\n\r" };
         var field3 = CreateMockField("Control Chars");
         var context3 = CreateContext(model3, field3, "\t\n\r");
-        var result3 = _renderer.Render(context3);
-        result3.ShouldNotBeNull();
+        var cut3 = Render(_renderer.Render(context3));
+        cut3.Find("input").GetAttribute("value").ShouldBe("\t\n\n");
     }
 
     [Fact]
@@ -481,10 +522,12 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Duplicate");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - duplicate option values don't affect this stub's rendering.
+        cut.Find("input").GetAttribute("type").ShouldBe("text");
+        cut.Find("input").GetAttribute("value").ShouldBe("Duplicate");
+        cut.Find("label").TextContent.ShouldBe("Duplicate Values");
     }
 
     [Fact]
@@ -499,10 +542,12 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Option500");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - a 1000-entry Options collection doesn't affect this stub's rendering.
+        cut.Find("input").GetAttribute("type").ShouldBe("text");
+        cut.Find("input").GetAttribute("value").ShouldBe("Option500");
+        cut.Find("label").TextContent.ShouldBe("Large Collection");
     }
 
     [Fact]
@@ -537,10 +582,12 @@ public class StringFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "Test");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - the wrapper's class is the stub's own, ignoring the "class" key in attributes.
+        cut.Find("div").ClassName.ShouldBe("test-string-field");
+        cut.Find("input").GetAttribute("value").ShouldBe("Test");
+        cut.Find("label").TextContent.ShouldBe("Multiple Attributes");
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockFieldWithAttribute(
