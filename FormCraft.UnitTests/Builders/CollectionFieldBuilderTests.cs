@@ -248,6 +248,49 @@ public class CollectionFieldBuilderTests
         collectionField.ItemFormConfiguration!.Fields.Count.ShouldBe(3);
     }
 
+    [Fact]
+    public void AddCollectionField_Should_Not_Throw_For_A_Nested_Path_On_A_Model_With_No_Top_Level_Items()
+    {
+        // Arrange & Act - NestedOnlyModel declares no top-level Items property, so this only
+        // constructs at all once CollectionSetter is built from the full member chain (#420).
+        var config = FormBuilder<NestedOnlyModel>.Create()
+            .AddCollectionField(x => x.Details.Items)
+            .Build();
+
+        // Assert
+        var collectionConfig = (ICollectionFormConfiguration<NestedOnlyModel>)config;
+        var field = (CollectionFieldConfiguration<NestedOnlyModel, OrderItemModel>)collectionConfig.CollectionFields[0];
+        var model = new NestedOnlyModel();
+        var items = new List<OrderItemModel> { new() { ProductName = "Widget" } };
+
+        field.CollectionSetter(model, items);
+
+        model.Details.Items.ShouldBeSameAs(items);
+    }
+
+    [Fact]
+    public void AddCollectionField_Should_Write_The_Nested_Property_Not_An_Unrelated_Top_Level_Items()
+    {
+        // Arrange & Act - DecoyModel also declares a top-level Items of a compatible type; the
+        // setter must target the nested one bound by the expression, not the decoy (#420).
+        var config = FormBuilder<DecoyModel>.Create()
+            .AddCollectionField(x => x.Details.Items)
+            .Build();
+
+        var collectionConfig = (ICollectionFormConfiguration<DecoyModel>)config;
+        var field = (CollectionFieldConfiguration<DecoyModel, OrderItemModel>)collectionConfig.CollectionFields[0];
+        var model = new DecoyModel();
+        var decoyReference = model.Items;
+        var items = new List<OrderItemModel> { new() { ProductName = "Widget" } };
+
+        // Act
+        field.CollectionSetter(model, items);
+
+        // Assert
+        model.Details.Items.ShouldBeSameAs(items);
+        model.Items.ShouldBeSameAs(decoyReference);
+    }
+
     // Test models matching the owner's proposed API
     public class OrderModel
     {
@@ -262,5 +305,24 @@ public class CollectionFieldBuilderTests
         public int Quantity { get; set; } = 1;
         public decimal UnitPrice { get; set; } = 0m;
         public decimal TotalPrice => Quantity * UnitPrice;
+    }
+
+    // Models for #420: a nested collection binding (x => x.Details.Items) on a TModel with no
+    // top-level Items of its own, and a sibling with a same-named, same-typed decoy.
+    public class NestedOnlyModel
+    {
+        public OrderDetailModel Details { get; set; } = new();
+    }
+
+    public class DecoyModel
+    {
+        public List<OrderItemModel> Items { get; set; } = new();
+
+        public OrderDetailModel Details { get; set; } = new();
+    }
+
+    public class OrderDetailModel
+    {
+        public List<OrderItemModel> Items { get; set; } = new();
     }
 }

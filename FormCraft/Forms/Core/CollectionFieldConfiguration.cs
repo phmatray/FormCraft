@@ -72,11 +72,16 @@ public class CollectionFieldConfiguration<TModel, TItem> : ICollectionFieldConfi
         // Compile the accessor
         CollectionAccessor = collectionExpression.Compile();
 
-        // Build the setter
-        var parameter = Expression.Parameter(typeof(TModel), "model");
+        // Build the setter by assigning through the SAME member-access chain the accessor reads
+        // (memberExpression, with every intermediate hop such as `.Details` preserved), rather than
+        // rebuilding only the outermost property against TModel directly. Reusing the expression's
+        // own parameter here - instead of introducing a second one and substituting it through the
+        // chain - is sufficient: every node inside memberExpression already refers to
+        // collectionExpression.Parameters[0], so binding the new lambda to that same parameter
+        // instance makes the assignment valid without an ExpressionVisitor rewrite (#420).
         var valueParameter = Expression.Parameter(typeof(List<TItem>), "value");
-        var property = Expression.Property(parameter, memberExpression.Member.Name);
-        var assign = Expression.Assign(property, valueParameter);
-        CollectionSetter = Expression.Lambda<Action<TModel, List<TItem>>>(assign, parameter, valueParameter).Compile();
+        var assign = Expression.Assign(memberExpression, valueParameter);
+        CollectionSetter = Expression.Lambda<Action<TModel, List<TItem>>>(
+            assign, collectionExpression.Parameters[0], valueParameter).Compile();
     }
 }
