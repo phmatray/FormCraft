@@ -288,15 +288,15 @@ public class DynamicFormValidatorTests : BunitContext
 
         RenderValidator(editContext, config);
 
-        // Act - FieldName is the expression's last member ("Value"), not the dotted path
-        // (FieldConfiguration.cs), so that is what HandleFieldChanged matches on. Validators complete
+        // Act - FieldName is the expression's full dotted path ("Nested.Value") since #437, so that
+        // is what HandleFieldChanged matches on. Validators complete
         // synchronously, so the async void handler completes synchronously too; asserting immediately
         // is deterministic (see CollectionValidationPassTests).
         Should.NotThrow(() =>
-            editContext.NotifyFieldChanged(new FieldIdentifier(model, "Value")));
+            editContext.NotifyFieldChanged(new FieldIdentifier(model, "Nested.Value")));
 
         // Assert - the failed read is validated as null, not silently skipped (review finding, #397).
-        editContext.GetValidationMessages(new FieldIdentifier(model, "Value"))
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Nested.Value"))
             .ShouldContain("Nested value is required");
     }
 
