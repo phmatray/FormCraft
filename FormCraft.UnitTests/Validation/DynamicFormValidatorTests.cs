@@ -498,6 +498,61 @@ public class DynamicFormValidatorTests : BunitContext
     }
 
     [Fact]
+    public async Task ValidateModelAsync_Should_Not_Refuse_A_Field_Changed_Handler_Still_Running_When_The_Pass_Flushes()
+    {
+        // Arrange - review finding on #445: a flush stamp taken AFTER the pass's own awaits complete
+        // is always greater than the stamp of a handler that started DURING the pass, so such a
+        // handler's genuinely newer result would lose the TryWrite race it should win (#443). Email
+        // fails fast on an empty value; a fixed value parks on its OWN gate so the handler can be
+        // caught mid-flight. Name's validator parks the PASS itself, opening the window in which the
+        // handler starts.
+        var gatePass = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var gateHandler = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var model = new TestModel();
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Email, field => field.WithAsyncValidator(
+                async value =>
+                {
+                    if (string.IsNullOrEmpty(value))
+                    {
+                        return false;
+                    }
+
+                    await gateHandler.Task;
+                    return true;
+                },
+                "Email is required"))
+            .AddField(x => x.Name, field => field.WithAsyncValidator(_ => gatePass.Task, "Name rejected"))
+            .Build();
+        var validator = RenderValidator(editContext, config);
+        var email = editContext.Field(nameof(TestModel.Email));
+
+        // Act - the pass evaluates Email (fails fast on "") then parks on Name.
+        var pass = validator.Instance.ValidateModelAsync();
+
+        // While the pass is parked, the user fixes Email; the handler takes a stamp AFTER
+        // passStartedAt, reads the fixed value and parks on its own gate.
+        model.Email = "ada@example.com";
+        editContext.NotifyFieldChanged(email);
+
+        // The pass now completes and flushes - Email's message is still what the pass itself
+        // observed, since it read Email before the fix.
+        gatePass.SetResult(true);
+        var isValid = await pass;
+        isValid.ShouldBeFalse();
+        editContext.GetValidationMessages(email).ShouldContain("Email is required");
+
+        // The handler resumes and finds the fixed value valid.
+        gateHandler.SetResult(true);
+        await Task.Delay(50, Xunit.TestContext.Current.CancellationToken);
+
+        // Assert - the handler started after the pass did, so it must win once it resumes; it must
+        // not be refused by a flush stamp taken later than its own.
+        editContext.GetValidationMessages(email).ShouldBeEmpty();
+    }
+
+    [Fact]
     public void OnInitialized_Should_Throw_Without_A_Cascading_EditContext()
     {
         // Arrange - the component is only meaningful inside an EditForm, and says so.
