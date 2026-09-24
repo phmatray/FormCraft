@@ -75,16 +75,23 @@ public static class FieldValueGetterCache<TModel>
 
     /// <summary>
     /// Invokes the field's compiled value getter against <paramref name="model"/>, returning
-    /// <see langword="false"/> instead of throwing when the read fails.
+    /// <see langword="false"/> instead of throwing when a null intermediate makes the value unreachable.
     /// </summary>
     /// <remarks>
-    /// The most common failure is a null intermediate in a nested <c>ValueExpression</c> path (e.g.
+    /// <para>
+    /// The case handled is a null intermediate in a nested <c>ValueExpression</c> path (e.g.
     /// <c>x =&gt; x.Nested.Value</c> when <c>Nested</c> is <see langword="null"/>) — nothing stops a
     /// caller from binding a field this way, and before this method existed the three callers that did
     /// not already guard their own read (#330 guards the two adapters' custom-template reads) let that
-    /// exception escape straight through rendering or validation (#397). Catches <see cref="Exception"/>,
-    /// not a narrower type, since the read invokes an arbitrary compiled expression that can fail for
-    /// any reason a delegate call can.
+    /// exception escape straight through rendering or validation (#397).
+    /// </para>
+    /// <para>
+    /// Catches <see cref="NullReferenceException"/> only — the exact shape a null intermediate
+    /// produces. Every other exception, including <see cref="OperationCanceledException"/>, propagates
+    /// to the caller (#425). A broader catch reported a genuinely faulting accessor as an ordinary null
+    /// value, which every caller validates as legitimate — for a collection with the default
+    /// <c>MinItems = 0</c>, a broken read then passed validation silently.
+    /// </para>
     /// </remarks>
     /// <param name="field">The field configuration whose value expression to read.</param>
     /// <param name="model">The model instance to read the value from.</param>
@@ -95,8 +102,9 @@ public static class FieldValueGetterCache<TModel>
 
     /// <summary>
     /// Invokes an already-resolved getter — typically hoisted out of <see cref="GetOrCompile"/> once
-    /// for a whole traversal — with the same catch-and-report-<see langword="false"/> policy as
-    /// <see cref="TryGetValue"/>.
+    /// for a whole traversal — with the same policy as <see cref="TryGetValue"/>: a
+    /// <see cref="NullReferenceException"/> (null intermediate) is reported as <see langword="false"/>,
+    /// every other exception propagates.
     /// </summary>
     /// <remarks>
     /// <see cref="TryGetValue"/> itself is the common case (one field, one read) and calls this.
@@ -117,7 +125,7 @@ public static class FieldValueGetterCache<TModel>
             value = getter(model);
             return true;
         }
-        catch (Exception)
+        catch (NullReferenceException)
         {
             value = null;
             return false;

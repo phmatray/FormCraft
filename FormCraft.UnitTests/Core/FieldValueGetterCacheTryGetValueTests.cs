@@ -34,6 +34,32 @@ public class FieldValueGetterCacheTryGetValueTests
         value.ShouldBeNull();
     }
 
+    [Fact]
+    public void TryGetValue_Should_Propagate_An_Exception_From_A_Genuinely_Faulting_Accessor()
+    {
+        // Arrange - a getter that is broken, not merely unreachable behind a null intermediate.
+        // Before #425 TryInvoke caught Exception broadly, so this read came back as (false, null)
+        // and every caller validated it as an ordinary null value.
+        var field = new FieldConfigurationWrapper<FaultingModel, string>(
+            new FieldConfiguration<FaultingModel, string>(x => x.Faulting));
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() =>
+            FieldValueGetterCache<FaultingModel>.TryGetValue(field, new FaultingModel(), out _));
+    }
+
+    [Fact]
+    public void TryGetValue_Should_Propagate_An_OperationCanceledException()
+    {
+        // Arrange - a cancellation must stay a cancellation, not become a fabricated null value (#425).
+        var field = new FieldConfigurationWrapper<FaultingModel, string>(
+            new FieldConfiguration<FaultingModel, string>(x => x.Cancelled));
+
+        // Act & Assert
+        Should.Throw<OperationCanceledException>(() =>
+            FieldValueGetterCache<FaultingModel>.TryGetValue(field, new FaultingModel(), out _));
+    }
+
     private class TestModel
     {
         public NestedModel? Nested { get; set; }
@@ -42,5 +68,12 @@ public class FieldValueGetterCacheTryGetValueTests
     private class NestedModel
     {
         public string Value { get; set; } = string.Empty;
+    }
+
+    private class FaultingModel
+    {
+        public string Faulting => throw new InvalidOperationException("boom");
+
+        public string Cancelled => throw new OperationCanceledException();
     }
 }
