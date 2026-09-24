@@ -5,6 +5,11 @@
 
 @if (Configuration.IsVisible)
 {
+    // Forces one Items read before anything below asks HasReachedMax/HasReachedMin whether the
+    // binding is unreadable (#433) — those short-circuit before ever touching Items when MaxItems/
+    // MinItems are their 0 defaults, which would otherwise leave _bindingUnreadable one render stale
+    // whenever CanAdd/CanRemove are both false.
+    _ = Items;
     <FluentCard Class="formcraft-collection">
         @* tabindex="-1" makes the header programmatically focusable without joining the tab order:
            it is the last-resort focus target when a removal leaves the field with no control at all
@@ -31,11 +36,25 @@
 
         @if (Items.Count == 0)
         {
-            <FluentMessageBar Intent="MessageBarIntent.Info"
-                              AllowDismiss="false"
-                              data-testid="formcraft-collection-empty">
-                @Configuration.EmptyText
-            </FluentMessageBar>
+            @if (_bindingUnreadable)
+            {
+                @* Distinct from EmptyText (#433): a genuinely empty collection and one whose binding
+                   cannot currently be read must never look identical to the user. *@
+                <FluentMessageBar
+                    Intent="MessageBarIntent.Warning"
+                    AllowDismiss="false"
+                    data-testid="formcraft-collection-unreadable">
+                    @UnreadableBindingMessage
+                </FluentMessageBar>
+            }
+            else
+            {
+                <FluentMessageBar Intent="MessageBarIntent.Info"
+                                  AllowDismiss="false"
+                                  data-testid="formcraft-collection-empty">
+                    @Configuration.EmptyText
+                </FluentMessageBar>
+            }
         }
         else
         {
@@ -78,7 +97,7 @@
                                         &#8595;
                                     </FluentButton>
                                 }
-                            @if (Configuration.CanRemove && !HasReachedMin)
+                            @if (DeleteTargetsRendered)
                             {
                                 @* The id is deterministic per index (#383), so a removal can focus
                                    the control that takes the vacated slot - it is recomputed from

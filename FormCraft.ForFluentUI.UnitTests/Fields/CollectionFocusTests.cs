@@ -337,6 +337,67 @@ public class CollectionFocusTests : FocusAssertingTestBase
         public List<MixedItem> Second { get; set; } = new();
     }
 
+    /// <summary>
+    /// #433: the "binding transitions from readable to unreadable while a row is focused" case
+    /// CLAUDE.md calls out explicitly, mirroring
+    /// <c>FormCraft.ForMudBlazor.UnitTests.Fields.CollectionFocusTests</c>'s own version. Approximated
+    /// through this component's own removal path — the only keyboard-reachable route, since nothing
+    /// here can query which element the browser currently has focus on — by having a sibling model
+    /// change (raised the same way <c>FormCraftComponent.HandleCollectionChanged</c> already raises
+    /// <c>EditContext.OnValidationStateChanged</c> on every collection edit) null the nested
+    /// intermediate mid-removal.
+    /// </summary>
+    [Fact]
+    public async Task Removing_A_Row_That_Makes_The_Binding_Unreadable_Should_Fall_Back_To_The_Header()
+    {
+        // Arrange - three readable rows.
+        var config = FormBuilder<CollectionItemsGetterNullIntermediateTests.ParentModel>.Create()
+            .AddCollectionField(x => x.Details!.Items, collection => collection
+                .WithLabel("Items")
+                .AllowAdd()
+                .AllowRemove()
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field.WithLabel("Product"))))
+            .Build();
+        var model = new CollectionItemsGetterNullIntermediateTests.ParentModel
+        {
+            Details = new CollectionItemsGetterNullIntermediateTests.DetailModel
+            {
+                Items =
+                [
+                    new() { ProductName = "a" },
+                    new() { ProductName = "b" },
+                    new() { ProductName = "c" },
+                ],
+            },
+        };
+
+        var component = Render<FormCraftComponent<CollectionItemsGetterNullIntermediateTests.ParentModel>>(p => p
+            .Add(c => c.Model, model)
+            .Add(c => c.Configuration, config)
+            .Add(c => c.OnEditContextCreated, EventCallback.Factory.Create<EditContext>(
+                this, ctx => ctx.OnValidationStateChanged += (_, _) => model.Details = null)));
+
+        var field = component
+            .FindComponent<FluentUICollectionFieldComponent<
+                CollectionItemsGetterNullIntermediateTests.ParentModel,
+                CollectionItemsGetterNullIntermediateTests.ChildItem>>();
+        var headerId = field.Instance.HeaderTarget.Id;
+        var focusesBefore = FocusCount();
+
+        // Act - the removal's own NotifyCollectionChanged -> HandleCollectionChanged ->
+        // EditContext.NotifyValidationStateChanged fires the hook above mid-removal, so the binding is
+        // unreadable by the time OnAfterRenderAsync moves focus.
+        await component.InvokeAsync(() => component.FindAll(DeleteSelector)[0].Click());
+
+        // Assert - every delete control AND Add are gone (both fold in _bindingUnreadable), and focus
+        // landed on the header rather than a stale reference to a control that has unmounted.
+        component.FindAll(DeleteSelector).ShouldBeEmpty();
+        component.FindAll(AddSelector).ShouldBeEmpty();
+        FocusCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementId().ShouldBe(headerId);
+    }
+
     private (IRenderedComponent<FormCraftComponent<MixedItemModel>> Component,
         IRenderedComponent<FluentUICollectionFieldComponent<MixedItemModel, MixedItem>> Field) RenderCollection(
         int rows,
