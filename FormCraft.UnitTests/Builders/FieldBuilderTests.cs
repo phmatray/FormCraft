@@ -435,12 +435,35 @@ public class FieldBuilderTests
         field.IsReadOnly.ShouldBeFalse();
     }
 
+    [Fact]
+    public void DependsOn_A_Nested_Field_Should_Key_The_Dependency_By_That_Fields_Own_FieldName()
+    {
+        // The adapters look a changed field's dependencies up by its FieldName, which is the full
+        // dotted path since #437 - so the dependency must be keyed by the same path, or a nested
+        // DependsOn silently never fires. Qualifying it also stops Home.Country and Work.Country
+        // from sharing one dependency list.
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Address.Country)
+            .AddField(x => x.City, field => field.DependsOn(x => x.Address.Country, (m, _) => m.City = string.Empty))
+            .Build();
+
+        var dependency = config.Fields.First(f => f.FieldName == "City").Dependencies.ShouldHaveSingleItem();
+        dependency.DependentFieldName.ShouldBe("Address.Country");
+        config.FieldDependencies.ShouldContainKey(config.Fields.First().FieldName);
+    }
+
     public class TestModel
     {
         public string Name { get; set; } = string.Empty;
+        public AddressModel Address { get; set; } = new();
         public string Email { get; set; } = string.Empty;
         public string Country { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+    }
+
+    public class AddressModel
+    {
+        public string Country { get; set; } = string.Empty;
     }
 }

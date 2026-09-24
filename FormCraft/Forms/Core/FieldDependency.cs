@@ -50,8 +50,13 @@ public class FieldDependency<TModel, TDependsOn> : IFieldDependency<TModel>
     {
         _dependsOnExpression = dependsOnExpression;
 
-        var memberExpression = dependsOnExpression.Body as MemberExpression;
-        DependentFieldName = memberExpression?.Member.Name ?? throw new ArgumentException("Invalid expression");
+        var memberExpression = dependsOnExpression.Body as MemberExpression
+            ?? throw new ArgumentException("Invalid expression");
+
+        // The same full dotted path FieldConfiguration.FieldName carries (#437): the adapters look a
+        // changed field's dependencies up by that FieldName, so a last-member key would never match
+        // a nested field.
+        DependentFieldName = MemberPathResolver.GetDottedPath(dependsOnExpression) ?? memberExpression.Member.Name;
     }
 
     /// <inheritdoc />

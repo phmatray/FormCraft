@@ -9,6 +9,28 @@ public class FieldGroupBuilderTests
         public string? Email { get; set; }
         public string? Phone { get; set; }
         public string? Department { get; set; }
+        public AddressModel Address { get; set; } = new();
+    }
+
+    private class AddressModel
+    {
+        public string? City { get; set; }
+    }
+
+    [Fact]
+    public void AddField_With_A_Nested_Expression_Should_Record_The_Fields_Own_FieldName()
+    {
+        // The adapters place a field in a group by matching group.FieldNames against the field's
+        // FieldName, which is the full dotted path since #437 - recording only the last member
+        // would drop a nested field out of its group into the ungrouped section.
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddFieldGroup(group => group.AddField(x => x.Address.City))
+            .Build();
+
+        var fieldGroup = ((IGroupedFormConfiguration<TestModel>)config).FieldGroups.ShouldHaveSingleItem();
+        fieldGroup.FieldNames.ShouldBe(new[] { "Address.City" });
+        fieldGroup.FieldNames.ShouldContain(config.Fields.ShouldHaveSingleItem().FieldName);
     }
 
     [Theory]
