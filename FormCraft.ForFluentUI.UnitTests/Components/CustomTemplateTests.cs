@@ -1,3 +1,4 @@
+using FormCraft.ForFluentUI.UnitTests.TestSupport;
 using Microsoft.Extensions.Logging;
 
 namespace FormCraft.ForFluentUI.UnitTests.Components;
@@ -310,75 +311,4 @@ public class CustomTemplateTests : FluentUITestBase
         public NestedValue? B { get; set; }
     }
 
-    /// <summary>
-    /// Collects warning-level log messages so a diagnostic can be asserted on. The production
-    /// warning path now goes through the shared <c>FormCraft.Diagnostics.FormDiagnosticLog</c>
-    /// (#398), but this project has no shared <c>CapturingLoggerProvider</c> test double of its
-    /// own — unlike <c>FormCraft.ForMudBlazor.UnitTests</c>'s <c>TestSupport</c> one — and this is
-    /// the only test needing one, so it stays local rather than starting a new shared TestSupport
-    /// type for a single call site.
-    /// </summary>
-    private sealed class CapturingLoggerProvider : ILoggerProvider
-    {
-        private readonly List<(string Category, string Message)> _entries = [];
-
-        public IReadOnlyList<string> Warnings
-        {
-            get
-            {
-                lock (_entries)
-                {
-                    return _entries.Select(entry => entry.Message).ToList();
-                }
-            }
-        }
-
-        /// <summary>
-        /// The same warnings, each paired with the logger category it was emitted under — the
-        /// category is what a developer mutes, so an assertion that the custom-template diagnostic
-        /// still logs under its own category (rather than colliding with MudBlazor's, #398) needs
-        /// this rather than <see cref="Warnings"/> alone.
-        /// </summary>
-        public IReadOnlyList<(string Category, string Message)> Entries
-        {
-            get
-            {
-                lock (_entries)
-                {
-                    return _entries.ToList();
-                }
-            }
-        }
-
-        public ILogger CreateLogger(string categoryName) => new CapturingLogger(categoryName, _entries);
-
-        public void Dispose()
-        {
-        }
-
-        private sealed class CapturingLogger(string category, List<(string Category, string Message)> entries) : ILogger
-        {
-            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-
-            public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Warning;
-
-            public void Log<TState>(
-                LogLevel logLevel,
-                EventId eventId,
-                TState state,
-                Exception? exception,
-                Func<TState, Exception?, string> formatter)
-            {
-                if (logLevel < LogLevel.Warning)
-                {
-                    return;
-                }
-
-                lock (entries)
-                {
-                    entries.Add((category, formatter(state, exception)));
-                }
-            }
-        }
-    }
 }
