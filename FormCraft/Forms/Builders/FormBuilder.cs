@@ -165,7 +165,7 @@ public class FormBuilder<TModel> where TModel : new()
     /// <returns>The FormBuilder instance for method chaining.</returns>
     /// <example>
     /// <code>
-    /// builder.WithLayout(FormLayout.Horizontal);
+    /// builder.WithLayout(FormLayout.Grid);
     /// </code>
     /// </example>
     public FormBuilder<TModel> WithLayout(FormLayout layout)
@@ -196,6 +196,7 @@ public class FormBuilder<TModel> where TModel : new()
     /// Configures whether to display a validation summary showing all form errors.
     /// </summary>
     /// <param name="show">True to show the validation summary, false to hide it. Default is true.</param>
+    /// <remarks>Without this call, or with <c>false</c>, the form renders no validation summary.</remarks>
     /// <returns>The FormBuilder instance for method chaining.</returns>
     /// <example>
     /// <code>
@@ -214,12 +215,15 @@ public class FormBuilder<TModel> where TModel : new()
     /// </summary>
     /// <param name="show">True to show required indicators, false to hide them. Default is true.</param>
     /// <param name="indicator">The text/symbol to display for required fields. Default is "*".</param>
+    /// <remarks>Never rendered. A plain <c>.Required(...)</c> field is announced through
+    /// <c>aria-required</c> instead; <c>.WithNativeRequired()</c> restores the visible asterisk.</remarks>
     /// <returns>The FormBuilder instance for method chaining.</returns>
     /// <example>
     /// <code>
     /// builder.ShowRequiredIndicator(true, "•");
     /// </code>
     /// </example>
+    [Obsolete("Use .WithNativeRequired() on the field instead — this setting is never rendered.")]
     public FormBuilder<TModel> ShowRequiredIndicator(bool show = true, string indicator = "*")
     {
         EnsureNotBuilt();

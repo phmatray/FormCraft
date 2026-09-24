@@ -252,12 +252,12 @@ public class ContactFormTemplateTests
         // Act
         var config = builder
             .AsRegistrationForm()
-            .WithLayout(FormLayout.Horizontal)
+            .WithLayout(FormLayout.Grid)
             .Build();
 
         // Assert
         config.ShouldNotBeNull();
-        config.Layout.ShouldBe(FormLayout.Horizontal);
+        config.Layout.ShouldBe(FormLayout.Grid);
         config.Fields.Count().ShouldBe(5);
     }
 

@@ -114,6 +114,17 @@ public partial class FormCraftComponent<TModel> where TModel : new()
         GroupedConfiguration is { UseFieldGroups: true } grouped && grouped.FieldGroups.Count > 0;
 
     /// <summary>
+    /// The <c>formcraft-layout-{value}</c> class the ungrouped-fields wrapper carries (#457).
+    /// </summary>
+    private string LayoutCssClass => $"formcraft-layout-{Configuration.Layout.ToString().ToLowerInvariant()}";
+
+    /// <summary>
+    /// Whether the layout stacks fields one per row — <c>Vertical</c>, and the obsolete
+    /// <c>Horizontal</c> that was never implemented and renders like it.
+    /// </summary>
+    private bool IsStackedLayout => Configuration.Layout is not (FormLayout.Inline or FormLayout.Grid);
+
+    /// <summary>
     /// Maps FormCraft's integer <c>CardElevation</c> onto Fluent's five-bucket
     /// <see cref="CardShadow"/>.
     /// </summary>

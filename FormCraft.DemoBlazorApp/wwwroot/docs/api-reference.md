@@ -373,14 +373,14 @@ Sets the form layout style.
 
 ```csharp
 FormBuilder<MyModel>.Create()
-    .WithLayout(FormLayout.Horizontal)
+    .WithLayout(FormLayout.Grid)
     // ... fields
     .Build();
 ```
 
 Available layouts:
 - `FormLayout.Vertical` (default)
-- `FormLayout.Horizontal`
+- `FormLayout.Horizontal` — `[Obsolete]`, never implemented; renders like `FormLayout.Vertical`
 - `FormLayout.Inline`
 - `FormLayout.Grid`
 

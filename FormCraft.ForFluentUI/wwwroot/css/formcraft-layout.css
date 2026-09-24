@@ -1,0 +1,20 @@
+/* FormLayout for FormCraft's ungrouped fields (#457). Link it from the host page:
+   <link href="_content/FormCraft.ForFluentUI/css/formcraft-layout.css" rel="stylesheet" />
+   formcraft-layout-vertical needs no rule: its wrapper renders display: contents, so the fields
+   stay direct items of the surrounding FluentStack. That FluentStack aligns its items to the
+   start, so the Grid and Inline wrappers claim the full width themselves; otherwise a grid sized to
+   its content fits a single column. */
+.formcraft-layout-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    width: 100%;
+    align-items: flex-start;
+}
+
+.formcraft-layout-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    width: 100%;
+}

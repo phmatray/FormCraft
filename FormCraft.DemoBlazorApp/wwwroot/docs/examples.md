@@ -21,7 +21,7 @@ public class ContactModel
 // Form configuration
 var config = FormBuilder<ContactModel>
     .Create()
-    .WithLayout(FormLayout.Horizontal)
+    .WithLayout(FormLayout.Grid)
     .AddRequiredTextField(x => x.FirstName, "First Name", minLength: 2)
     .AddRequiredTextField(x => x.LastName, "Last Name", minLength: 2)
     .AddEmailField(x => x.Email)

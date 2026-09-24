@@ -365,18 +365,28 @@ The default validation messages are localisable. English and French ship, and ad
 ### Layouts
 
 ```csharp
-// Vertical Layout (default)
+// Vertical (default): one field per row
 .WithLayout(FormLayout.Vertical)
 
-// Horizontal Layout
-.WithLayout(FormLayout.Horizontal)
-
-// Grid Layout
+// Grid: responsive columns, as many 240px-wide columns as fit
 .WithLayout(FormLayout.Grid)
 
-// Inline Layout
+// Inline: fields flow side by side and wrap
 .WithLayout(FormLayout.Inline)
 ```
+
+The layout reaches the page as a `formcraft-layout-{vertical|grid|inline}` class on the form's
+fields. `Grid` and `Inline` are styled by a stylesheet each adapter ships; link the one for your
+adapter from your host page:
+
+```html
+<link href="_content/FormCraft.ForMudBlazor/css/formcraft-layout.css" rel="stylesheet" />
+<!-- or -->
+<link href="_content/FormCraft.ForFluentUI/css/formcraft-layout.css" rel="stylesheet" />
+```
+
+`FormLayout.Horizontal` is `[Obsolete]`: it was never implemented (every field component draws its
+own label, leaving no seam to put it beside the input) and renders like `Vertical`. Use `Grid`.
 
 Column counts are configured per field group rather than at the form level:
 
