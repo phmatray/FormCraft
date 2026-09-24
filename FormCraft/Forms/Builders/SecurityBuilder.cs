@@ -16,12 +16,23 @@ public class SecurityBuilder<TModel> where TModel : new()
     }
 
     /// <summary>
-    /// Enables encryption for a specific field.
+    /// Enables encryption for a specific field, stored in <see cref="IFormSecurity.EncryptedFields"/>
+    /// under its full dotted path (<c>x =&gt; x.Address.City</c> → <c>"Address.City"</c>).
     /// </summary>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="fieldExpression"/> is not a chain of public, readable properties on
+    /// <typeparamref name="TModel"/> ending in a <see cref="string"/>. Encryption fails closed: a field
+    /// that could not be reached would otherwise stay in plaintext without any error (#423).
+    /// </exception>
     public SecurityBuilder<TModel> EncryptField<TValue>(Expression<Func<TModel, TValue>> fieldExpression)
     {
-        var fieldName = GetFieldName(fieldExpression);
-        _security.EncryptedFields.Add(fieldName);
+        ArgumentNullException.ThrowIfNull(fieldExpression);
+        var path = MemberPathResolver.GetDottedPath(fieldExpression)
+            ?? throw new ArgumentException(
+                $"EncryptField expects a member access on the model, such as x => x.Address.City; got '{fieldExpression}'.",
+                nameof(fieldExpression));
+        MemberPathResolver.ResolveStringProperty(typeof(TModel), path);
+        _security.EncryptedFields.Add(path);
         return this;
     }
 
@@ -67,14 +78,5 @@ public class SecurityBuilder<TModel> where TModel : new()
     {
         _formBuilder.SetSecurity(_security);
         return _formBuilder;
-    }
-
-    private static string GetFieldName<TValue>(Expression<Func<TModel, TValue>> expression)
-    {
-        if (expression.Body is MemberExpression memberExpression)
-        {
-            return memberExpression.Member.Name;
-        }
-        throw new ArgumentException("Expression must be a member expression");
     }
 }
