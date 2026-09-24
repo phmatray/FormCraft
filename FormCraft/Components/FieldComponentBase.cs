@@ -230,9 +230,11 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
     protected bool IsReadOnly => Context.Field.IsReadOnly;
 
     /// <summary>
-    /// Gets whether the field is disabled.
+    /// Gets whether the field is disabled: the <c>DisabledWhen</c> condition evaluated against the
+    /// current model when one is set (it takes precedence), otherwise the static <c>Disabled</c> flag.
+    /// Read during render, so the condition is re-evaluated on every render pass (#476).
     /// </summary>
-    protected bool IsDisabled => Context.Field.IsDisabled;
+    protected bool IsDisabled => Context.Field.DisabledCondition?.Invoke(Context.Model) ?? Context.Field.IsDisabled;
 
     /// <summary>
     /// Gets an attribute value from the field's additional attributes.
