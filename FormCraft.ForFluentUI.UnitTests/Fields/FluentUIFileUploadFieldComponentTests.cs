@@ -151,6 +151,65 @@ public class FluentUIFileUploadFieldComponentTests : FluentUITestBase
     }
 
     [Fact]
+    public void A_Single_Member_Required_File_Field_Should_Keep_Its_Hint_Id_Byte_For_Byte_Unchanged()
+    {
+        // Arrange & Act - the overwhelmingly common case has no '.' to sanitize, so #449's fix must
+        // leave it exactly as it was: formcraft-{FieldName}-required-{guid8}
+        var component = RenderSingleFileField(f => f.WithLabel("Resume").Required("Resume is required"));
+
+        // Assert
+        var hint = component.Find("[data-testid=formcraft-upload-required-hint]");
+        hint.Id.ShouldNotBeNullOrEmpty();
+        hint.Id!.ShouldMatch("^formcraft-Resume-required-[0-9a-f]{8}$");
+    }
+
+    [Fact]
+    public void A_Nested_Required_File_Field_Should_Have_A_Dot_Free_Hint_Id()
+    {
+        // Arrange - a nested binding's FieldName is a dotted path ("Applicant.Resume", #437/#448).
+        // A '.' is a valid HTML id character but the CSS class-selector delimiter, so an unescaped
+        // one silently breaks a consumer's own #id.Class-shaped stylesheet selector (#449).
+        var config = FormBuilder<NestedUploadModel>.Create()
+            .AddField(x => x.Applicant.Resume, f => f.WithLabel("Resume").Required("Resume is required"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<NestedUploadModel>>(p => p
+            .Add(c => c.Model, new NestedUploadModel())
+            .Add(c => c.Configuration, config));
+
+        // Assert - the dot is sanitized, but the rest of the format (guid suffix included) is intact
+        var hint = component.Find("[data-testid=formcraft-upload-required-hint]");
+        hint.Id.ShouldNotBeNullOrEmpty();
+        hint.Id!.ShouldNotContain(".");
+        hint.Id.ShouldMatch("^formcraft-Applicant-Resume-required-[0-9a-f]{8}$");
+        component.Find($"[aria-describedby~='{hint.Id}']").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Two_Renders_Of_The_Same_Nested_Required_Upload_Field_Should_Not_Share_A_Hint_Id()
+    {
+        // Arrange - the trailing guid is what makes two renders of the same field distinct
+        // (CLAUDE.md #262); sanitizing the dotted FieldName segment must not disturb it (#449).
+        var config = FormBuilder<NestedUploadModel>.Create()
+            .AddField(x => x.Applicant.Resume, f => f.WithLabel("Resume").Required("Resume is required"))
+            .Build();
+
+        // Act - two independent renders of the same configuration
+        var first = Render<FormCraftComponent<NestedUploadModel>>(p => p
+            .Add(c => c.Model, new NestedUploadModel())
+            .Add(c => c.Configuration, config));
+        var second = Render<FormCraftComponent<NestedUploadModel>>(p => p
+            .Add(c => c.Model, new NestedUploadModel())
+            .Add(c => c.Configuration, config));
+
+        // Assert
+        var firstId = first.Find("[data-testid=formcraft-upload-required-hint]").Id;
+        var secondId = second.Find("[data-testid=formcraft-upload-required-hint]").Id;
+        firstId.ShouldNotBe(secondId);
+    }
+
+    [Fact]
     public void A_Single_File_Field_Should_Have_Only_A_Browse_Button_Before_File_Selection()
     {
         // Arrange & Act - confirm the audit finding: no self-unmounting or disabling controls exist.
@@ -206,5 +265,16 @@ public class FluentUIFileUploadFieldComponentTests : FluentUITestBase
 
         /// <summary>Several files, typed as core's <c>.AsMultipleFileUpload(...)</c> declares them.</summary>
         public IReadOnlyList<IBrowserFile> Documents { get; set; } = [];
+    }
+
+    /// <summary>Model with a nested upload field, so its <c>FieldName</c> is a dotted path (#449).</summary>
+    private class NestedUploadModel
+    {
+        public ApplicantSection Applicant { get; set; } = new();
+    }
+
+    private class ApplicantSection
+    {
+        public IBrowserFile? Resume { get; set; }
     }
 }
