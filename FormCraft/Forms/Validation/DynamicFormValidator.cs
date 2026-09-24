@@ -92,8 +92,12 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
     {
         var model = (TModel)_editContext!.Model;
 
-        // Clear all existing custom validation messages
-        _messageStore!.Clear();
+        // Build the new message set locally first, without touching _messageStore, so a throw
+        // anywhere in this pass (a faulting accessor, a throwing validator) leaves the store
+        // exactly as the previous successful pass left it (#440). _messageStore.Clear() moves to
+        // immediately before this list is flushed, at the bottom of the method, instead of running
+        // unconditionally up front.
+        var pendingMessages = new List<(FieldIdentifier Identifier, string Message)>();
 
         foreach (var field in Configuration.Fields)
         {
@@ -117,7 +121,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                 var result = await validator.ValidateAsync(model, value!, ServiceProvider);
                 if (!result.IsValid)
                 {
-                    _messageStore.Add(_editContext.Field(field.FieldName), result.ErrorMessage!);
+                    pendingMessages.Add((_editContext.Field(field.FieldName), result.ErrorMessage!));
                 }
             }
         }
@@ -146,7 +150,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
                 foreach (var error in result.Messages)
                 {
-                    _messageStore.Add(_editContext.Field(collectionField.FieldName), error);
+                    pendingMessages.Add((_editContext.Field(collectionField.FieldName), error));
                 }
 
                 // Additionally attach per-item errors to nested field identifiers
@@ -154,11 +158,19 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                 // and FieldValidationMessage can display them natively.
                 foreach (var itemError in result.ItemErrors)
                 {
-                    _messageStore.Add(
+                    pendingMessages.Add((
                         CreateCollectionItemFieldIdentifier(collectionField.FieldName, itemError.ItemIndex, itemError.FieldName),
-                        itemError.Message);
+                        itemError.Message));
                 }
             }
+        }
+
+        // The pass completed with no throw: only now is it safe to clear the previous pass's
+        // messages and flush this pass's in their place.
+        _messageStore!.Clear();
+        foreach (var (identifier, message) in pendingMessages)
+        {
+            _messageStore.Add(identifier, message);
         }
 
         _editContext.NotifyValidationStateChanged();
