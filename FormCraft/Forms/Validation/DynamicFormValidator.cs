@@ -423,11 +423,28 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             return;
         }
 
+        // Mirrors the ordinary-field guard above (#447, review finding on this same PR): a cell
+        // whose collection is already hidden when this handler starts must not be validated at all.
+        // Not sufficient alone - see the re-check below, for the same reason the ordinary-field
+        // guard needs its own post-await re-check.
+        if (!collectionField.IsVisible)
+        {
+            return;
+        }
+
         var model = (TModel)_editContext!.Model;
 
         // Validate just this cell. This used to validate the whole collection and filter the result
         // down to the matching item/field, which runs items × fields validators per keystroke (#329).
         var itemErrors = await ValidateCollectionCellAsync(model, collectionField, itemIndex, itemFieldName);
+
+        // Re-checked here, not just above: the awaited cell validator is exactly where the owning
+        // collection can be hidden while this handler is parked, same as an ordinary field's
+        // VisibilityCondition can flip mid-await.
+        if (!collectionField.IsVisible)
+        {
+            return;
+        }
 
         // Write only now that validation succeeded (#443), so a throwing validator leaves the
         // cell's previous message in place instead of a blank, "valid" cell.
