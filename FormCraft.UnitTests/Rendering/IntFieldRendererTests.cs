@@ -48,10 +48,14 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 25);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Age");
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("number");
+        input.GetAttribute("value").ShouldBe("25");
+        cut.Find("div.test-int-field").QuerySelector(".help-text").ShouldBeNull();
     }
 
     [Fact]
@@ -63,10 +67,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 42);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe("42");
+        cut.Find("label").TextContent.ShouldBe("Age");
     }
 
     [Fact]
@@ -78,10 +83,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 0);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe("0");
+        cut.Find("label").TextContent.ShouldBe("Count");
     }
 
     [Fact]
@@ -93,10 +99,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, -10);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe("-10");
+        cut.Find("label").TextContent.ShouldBe("Temperature");
     }
 
     [Fact]
@@ -108,11 +115,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, null);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
-        // Logic test: null should be handled as 0 in the renderer
+        // Assert: a null CurrentValue renders no "value" attribute at all.
+        cut.Find("input").HasAttribute("value").ShouldBeFalse();
+        cut.Find("label").TextContent.ShouldBe("Count");
     }
 
     [Fact]
@@ -124,10 +131,14 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 25);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Age");
+        var input = cut.Find("input");
+        input.GetAttribute("value").ShouldBe("25");
+        input.HasAttribute("disabled").ShouldBeTrue();
+        cut.Find(".help-text").TextContent.ShouldBe("Enter your age in years");
     }
 
     [Fact]
@@ -139,10 +150,12 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 25);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("label").TextContent.ShouldBe("Age");
+        cut.Find("input").GetAttribute("value").ShouldBe("25");
+        cut.Find("div.test-int-field").QuerySelector(".help-text").ShouldBeNull();
     }
 
     [Fact]
@@ -154,10 +167,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 25);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe("25");
+        cut.Find("label").TextContent.ShouldBe("Age");
     }
 
     [Fact]
@@ -169,10 +183,10 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 25);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").HasAttribute("disabled").ShouldBeTrue();
     }
 
     [Fact]
@@ -184,10 +198,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, int.MaxValue);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(int.MaxValue.ToString());
+        cut.Find("label").TextContent.ShouldBe("Large Number");
     }
 
     [Fact]
@@ -199,10 +214,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, int.MinValue);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(int.MinValue.ToString());
+        cut.Find("label").TextContent.ShouldBe("Minimum Number");
     }
 
     [Fact]
@@ -214,10 +230,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 30);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe("30");
+        cut.Find("div.test-int-field").QuerySelector(".help-text").ShouldBeNull();
     }
 
     private IFieldConfiguration<TestModel, object> CreateMockField(
@@ -280,10 +297,14 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 25);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - this stub ignores AdditionalAttributes entirely; min/max never reach the DOM.
+        var input = cut.Find("input");
+        input.GetAttribute("value").ShouldBe("25");
+        input.HasAttribute("min").ShouldBeFalse();
+        input.HasAttribute("max").ShouldBeFalse();
+        cut.Find("label").TextContent.ShouldBe("Constrained Age");
     }
 
     [Fact]
@@ -298,10 +319,13 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 20);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - unlike the decimal/double renderers, this stub never emits a "step" attribute.
+        var input = cut.Find("input");
+        input.GetAttribute("value").ShouldBe("20");
+        input.HasAttribute("step").ShouldBeFalse();
+        cut.Find("label").TextContent.ShouldBe("Step Input");
     }
 
     [Fact]
@@ -313,10 +337,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "25"); // String representation
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe("25");
+        cut.Find("label").TextContent.ShouldBe("Age");
     }
 
     [Fact]
@@ -328,10 +353,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, "invalid_number");
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - the renderer performs no validation; it stringifies whatever value it is given.
+        cut.Find("input").GetAttribute("value").ShouldBe("invalid_number");
+        cut.Find("label").TextContent.ShouldBe("Age");
     }
 
     [Fact]
@@ -340,13 +366,15 @@ public class IntFieldRendererTests : CoreRendererTestBase
         // Arrange
         var model = new TestModel { Age = 25 };
         var field = CreateMockField("Age");
-        var context = CreateContext(model, field, 25.7); // Decimal should be truncated
+        var value = 25.7; // Decimal should be truncated
+        var context = CreateContext(model, field, value);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - no truncation happens at render time; the raw value is stringified as-is.
+        cut.Find("input").GetAttribute("value").ShouldBe(value.ToString());
+        cut.Find("label").TextContent.ShouldBe("Age");
     }
 
     [Fact]
@@ -358,10 +386,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContextForByteModel(model, field, (byte)255);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe("255");
+        cut.Find("label").TextContent.ShouldBe("Byte Value");
     }
 
     [Fact]
@@ -373,10 +402,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContextForShortModel(model, field, (short)32767);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe("32767");
+        cut.Find("label").TextContent.ShouldBe("Short Value");
     }
 
     [Fact]
@@ -388,10 +418,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContextForLongModel(model, field, 9223372036854775807L);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe(long.MaxValue.ToString());
+        cut.Find("label").TextContent.ShouldBe("Long Value");
     }
 
     [Fact]
@@ -403,10 +434,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, long.MaxValue); // Value larger than int
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - the stub does not clamp or validate; it renders the value it was given.
+        cut.Find("input").GetAttribute("value").ShouldBe(long.MaxValue.ToString());
+        cut.Find("label").TextContent.ShouldBe("Age");
     }
 
     [Fact]
@@ -421,10 +453,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 25);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - the wrapper's class comes from the stub itself, not from AdditionalAttributes.
+        cut.Find("div").ClassName.ShouldBe("test-int-field");
+        cut.Find("input").GetAttribute("value").ShouldBe("25");
     }
 
     [Fact]
@@ -439,10 +472,14 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 0);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - the placeholder comes from Field.Placeholder, not this AdditionalAttributes key;
+        // that property is unconfigured (a fake default of "") so the rendered attribute is empty.
+        var input = cut.Find("input");
+        input.GetAttribute("value").ShouldBe("0");
+        input.GetAttribute("placeholder").ShouldBe(string.Empty);
+        cut.Find("label").TextContent.ShouldBe("Age With Placeholder");
     }
 
     [Fact]
@@ -460,10 +497,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 25);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe("25");
+        cut.Find("label").TextContent.ShouldBe("Fully Constrained");
     }
 
     [Fact]
@@ -479,10 +517,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, -5);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
         // Assert
-        renderFragment.ShouldNotBeNull();
+        cut.Find("input").GetAttribute("value").ShouldBe("-5");
+        cut.Find("label").TextContent.ShouldBe("Negative Range");
     }
 
     [Fact]
@@ -494,10 +533,13 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, true); // true should convert to 1
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - a real bool CurrentValue renders "value" as a boolean HTML attribute (present,
+        // no literal text), unlike every other value in this file which stringifies.
+        var input = cut.Find("input");
+        input.HasAttribute("value").ShouldBeTrue();
+        cut.Find("label").TextContent.ShouldBe("Boolean as Int");
     }
 
     [Fact]
@@ -514,10 +556,11 @@ public class IntFieldRendererTests : CoreRendererTestBase
         var context = CreateContext(model, field, 25);
 
         // Act
-        var renderFragment = _renderer.Render(context);
+        var cut = Render(_renderer.Render(context));
 
-        // Assert
-        renderFragment.ShouldNotBeNull();
+        // Assert - null-valued AdditionalAttributes don't break rendering; the stub ignores them.
+        cut.Find("input").GetAttribute("value").ShouldBe("25");
+        cut.Find("label").TextContent.ShouldBe("Null Attributes");
     }
 
     [Fact]
