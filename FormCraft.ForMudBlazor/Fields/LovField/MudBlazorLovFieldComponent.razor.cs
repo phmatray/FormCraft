@@ -343,7 +343,9 @@ public partial class MudBlazorLovFieldComponent<TModel, TValue, TKey, TItem>
         if (chip.Value != null)
         {
             _selectedItems.Remove(chip.Value);
-            await ApplySelection(_selectedItems);
+            // A copy: ApplySelection clears _selectedItems before re-adding `items`, so passing the
+            // live list would empty the whole selection instead of removing one chip (#475).
+            await ApplySelection(_selectedItems.ToList());
         }
     }
 
