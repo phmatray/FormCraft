@@ -31,7 +31,7 @@ namespace FormCraft;
 /// <see cref="Convert.ChangeType(object, Type)"/> before assigning — the same coercion both
 /// adapters' <c>UpdateFieldValue</c> used to perform themselves against a <c>PropertyInfo</c> found
 /// by <c>typeof(TModel).GetProperty(fieldName)</c>. That lookup only ever resolved a direct
-/// top-level property (<c>fieldName</c> is the expression's last member — #330's own root cause,
+/// top-level property (<c>fieldName</c> was, before #437, the expression's last member — #330's own root cause,
 /// mirrored on the write side by #396), so moving the coercion here — sourced from the resolved
 /// member's actual type instead of a name-based reflection lookup — is what makes it work for any
 /// depth of member-access chain instead of only a top-level one, with identical behaviour for the
