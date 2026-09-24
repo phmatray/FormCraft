@@ -173,8 +173,8 @@ public class FormTemplatesTests
     public void LoginForm_Should_Not_Throw_When_Only_Password_Is_Present()
     {
         // Act - Email/Username/RememberMe are each independently absent, but Password alone
-        // still adds a field before the fieldsAdded == 0 guard runs, so this does NOT throw
-        // despite having none of the properties named in the exception message.
+        // still adds a field before the fieldsAdded == 0 guard runs, so this does NOT throw even
+        // though the model lacks the Email-or-Username property the guard's message leads with.
         var config = FormTemplates.LoginForm<PasswordOnlyLoginModel>();
 
         // Assert

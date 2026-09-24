@@ -459,7 +459,7 @@ public class FluentFormBuilderExtensionsTests
         var field = config.Fields.First(f => f.FieldName == "Notes");
         field.Label.ShouldBe("Notes");
         field.IsRequired.ShouldBeTrue();
-        field.Validators.Count.ShouldBe(1);
+        field.Validators.ShouldHaveSingleItem().ErrorMessage.ShouldBe("This field is required.");
         field.Placeholder.ShouldBeNullOrEmpty();
     }
 
