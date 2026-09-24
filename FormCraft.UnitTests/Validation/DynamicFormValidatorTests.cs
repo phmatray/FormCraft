@@ -301,6 +301,56 @@ public class DynamicFormValidatorTests : BunitContext
     }
 
     [Fact]
+    public async Task HandleFieldChanged_Should_Keep_A_Fields_Prior_Message_When_Its_Validator_Throws()
+    {
+        // Arrange - a first pass leaves "Name is bad" in the store (#443).
+        // A raw IFieldValidator, not WithValidator(Func<...>): CustomValidator catches its own
+        // delegate's exception and turns it into a message, which would hide the bug.
+        var faulty = new ThrowsWhenArmedValidator<TestModel>("Name is bad");
+        var model = new TestModel();
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field.WithValidator(faulty))
+            .Build();
+        var validator = RenderValidator(editContext, config);
+        (await validator.Instance.ValidateModelAsync()).ShouldBeFalse();
+
+        // Act - the validator now throws; HandleFieldChanged's outer catch swallows it.
+        faulty.Armed = true;
+        editContext.NotifyFieldChanged(editContext.Field(nameof(TestModel.Name)));
+
+        // Assert - the throw must not leave the field cleared and silently "valid".
+        editContext.GetValidationMessages(editContext.Field(nameof(TestModel.Name)))
+            .ShouldContain("Name is bad");
+    }
+
+    [Fact]
+    public async Task ValidateCollectionItemFieldAsync_Should_Keep_A_Cells_Prior_Message_When_Its_Validator_Throws()
+    {
+        // Arrange - the collection-cell path had the same clear-before-validate shape (#443).
+        var faulty = new ThrowsWhenArmedValidator<ItemModel>("Item name is bad");
+        var model = new TestModel { Items = [new ItemModel()] };
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.Name, field => field.WithValidator(faulty))))
+            .Build();
+        var validator = RenderValidator(editContext, config);
+        (await validator.Instance.ValidateModelAsync()).ShouldBeFalse();
+        var cell = new FieldIdentifier(model, "Items[0].Name");
+        editContext.GetValidationMessages(cell).ShouldContain("Item name is bad");
+
+        // Act
+        faulty.Armed = true;
+        editContext.NotifyFieldChanged(cell);
+
+        // Assert
+        editContext.GetValidationMessages(cell).ShouldContain("Item name is bad");
+    }
+
+    [Fact]
     public void OnInitialized_Should_Throw_Without_A_Cascading_EditContext()
     {
         // Arrange - the component is only meaningful inside an EditForm, and says so.
@@ -323,6 +373,18 @@ public class DynamicFormValidatorTests : BunitContext
             .AddCascadingValue(editContext)
             .Add(p => p.Configuration, configuration));
 
+    private sealed class ThrowsWhenArmedValidator<TModel>(string message) : IFieldValidator<TModel, string>
+    {
+        public bool Armed { get; set; }
+
+        public string? ErrorMessage { get; set; } = message;
+
+        public Task<ValidationResult> ValidateAsync(TModel model, string value, IServiceProvider services)
+            => Armed
+                ? throw new InvalidOperationException("validator bug")
+                : Task.FromResult(ValidationResult.Failure(ErrorMessage!));
+    }
+
     public class TestModel
     {
         public string Name { get; set; } = string.Empty;
@@ -330,6 +392,8 @@ public class DynamicFormValidatorTests : BunitContext
         public string Email { get; set; } = string.Empty;
 
         public NestedModel? Nested { get; set; }
+
+        public List<ItemModel> Items { get; set; } = [];
 
         public string Faulting => throw new InvalidOperationException("boom");
 
