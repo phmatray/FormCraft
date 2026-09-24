@@ -13,12 +13,16 @@ namespace FormCraft;
 /// <c>formcraft-help-Billing</c> AND class <c>Amount</c>", not the single element they typed it for.
 /// </para>
 /// <para>
-/// <b>Why <c>.</c> → <c>-</c> stays injective.</b> Every character <see cref="ToCssSafeId"/> sees
-/// other than a <c>.</c> separator comes from a C# member name, and a C# identifier can never itself
-/// contain a literal <c>-</c> — it is not a permitted identifier character. So no real
-/// <c>FieldName</c> can already contain a <c>-</c>, and replacing every <c>.</c> with one cannot make
-/// two different dotted paths collide: <c>"a.b"</c> and <c>"a-b"</c> can never both occur as actual
-/// field names, because the second is not a legal dotted member path to begin with.
+/// <b>Why <c>.</c> → <c>-</c> stays injective.</b> Every <c>FieldName</c> this library itself produces
+/// (<c>MemberPathResolver.GetDottedPath</c>, or a bare <c>MemberExpression.Member.Name</c>) is built
+/// from C# member names joined by <c>.</c>, and a C# identifier can never itself contain a literal
+/// <c>-</c> — it is not a permitted identifier character. So along every path this library builds a
+/// <c>FieldName</c>, replacing every <c>.</c> with a <c>-</c> cannot make two different dotted paths
+/// collide: <c>"a.b"</c> and <c>"a-b"</c> can never both occur as field names produced this way,
+/// because the second is not a legal dotted member path to begin with. (<c>FieldName</c> is a plain
+/// settable <see langword="string"/> on the underlying configuration types, so this is a guarantee
+/// about how the library constructs it, not one the type system enforces against a hand-built
+/// <c>IFieldConfiguration</c> that assigns something else entirely.)
 /// </para>
 /// </remarks>
 public static class IdSanitizer
