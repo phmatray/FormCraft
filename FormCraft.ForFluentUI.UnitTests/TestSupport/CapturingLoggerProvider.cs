@@ -6,10 +6,9 @@ namespace FormCraft.ForFluentUI.UnitTests.TestSupport;
 /// Collects warning-level log messages so a diagnostic can be asserted on.
 /// </summary>
 /// <remarks>
-/// Two private copies of this already exist (<c>ShrinkLabelDiagnosticsTests</c> and
-/// <c>ShrinkLabelDiagnosticCollectorTests</c>); this is the shared one, added rather than making a
-/// third. The existing copies are deliberately left alone here — folding them in is #205's job, and
-/// rewriting two unrelated suites inside a security fix would bury the change that matters.
+/// Three private copies of this exist in <c>CustomTemplateTests</c>,
+/// <c>CollectionItemUnwritableBindingTests</c>, and <c>CollectionItemsGetterNullIntermediateTests</c>.
+/// This consolidated version is shared to avoid duplication and divergence (#454).
 /// <para>
 /// The list is lock-guarded because a diagnostic may be emitted from a render that bUnit runs on its
 /// own dispatcher thread, and an unsynchronised <see cref="List{T}"/> can tear under that.
