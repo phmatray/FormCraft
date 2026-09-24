@@ -26,8 +26,13 @@
    `.WithAttribute("Required", true)` as an opt-in that emits a genuine `required`. On a page where
    the script missed, that input was browser-enforced — the native validation bubbles this library
    documents itself as never producing. *@
-<EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit" novalidate="novalidate">
+<EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit" novalidate="novalidate" class="@Configuration.CssClass">
     <DynamicFormValidator TModel="TModel" Configuration="@Configuration" @ref="_validator" />
+
+    @if (Configuration.ShowValidationSummary)
+    {
+        <Microsoft.AspNetCore.Components.Forms.ValidationSummary />
+    }
     
     @if (GroupedConfiguration != null && GroupedConfiguration.UseFieldGroups && GroupedConfiguration.FieldGroups.Any())
     {
@@ -85,17 +90,20 @@
     }
     else
     {
-        @* Render fields without groups (original behavior) *@
-        @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
-        {
-            if (ShouldShowField(field))
+        @* Render fields without groups. FormLayout reaches the DOM as a formcraft-layout-{value}
+           class (#457), styled by _content/FormCraft.ForMudBlazor/css/formcraft-layout.css. *@
+        <div class="@LayoutCssClass">
+            @foreach (var field in Configuration.Fields.OrderBy(f => f.Order))
             {
-                <div class="mb-4">
-                    @RenderField(field)
-                    <FieldValidationMessage FieldName="@field.FieldName" />
-                </div>
+                if (ShouldShowField(field))
+                {
+                    <div class="mb-4">
+                        @RenderField(field)
+                        <FieldValidationMessage FieldName="@field.FieldName" />
+                    </div>
+                }
             }
-        }
+        </div>
     }
 
     @* Render collection fields *@

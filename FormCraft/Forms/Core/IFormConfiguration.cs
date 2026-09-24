@@ -17,7 +17,9 @@ public interface IFormConfiguration<TModel> where TModel : new()
     Dictionary<string, List<IFieldDependency<TModel>>> FieldDependencies { get; }
 
     /// <summary>
-    /// Gets or sets the layout style for the form (Vertical, Horizontal, Inline, or Grid).
+    /// Gets or sets the layout style for the form (Vertical, Inline, or Grid). Rendered as a
+    /// <c>formcraft-layout-{value}</c> class on the ungrouped-fields wrapper, styled by the adapter's
+    /// <c>css/formcraft-layout.css</c>.
     /// </summary>
     FormLayout Layout { get; set; }
 
@@ -28,17 +30,22 @@ public interface IFormConfiguration<TModel> where TModel : new()
 
     /// <summary>
     /// Gets or sets whether to display a validation summary showing all form errors.
+    /// Defaults to <c>false</c>; opt in with <c>FormBuilder.ShowValidationSummary()</c>.
     /// </summary>
     bool ShowValidationSummary { get; set; }
 
     /// <summary>
     /// Gets or sets whether to show indicators (like asterisks) next to required fields.
     /// </summary>
+    /// <remarks>Never rendered. A plain <c>.Required(...)</c> field is announced through
+    /// <c>aria-required</c> instead; <c>.WithNativeRequired()</c> restores the visible asterisk.</remarks>
+    [Obsolete("Use .WithNativeRequired() on the field instead — this setting is never rendered.")]
     bool ShowRequiredIndicator { get; set; }
 
     /// <summary>
     /// Gets or sets the text/symbol to display for required field indicators.
     /// </summary>
+    [Obsolete("Use .WithNativeRequired() on the field instead — this setting is never rendered.")]
     string RequiredIndicator { get; set; }
 
     /// <summary>
@@ -58,8 +65,11 @@ public enum FormLayout
     Vertical,
 
     /// <summary>
-    /// Fields are arranged in two columns with labels on the left and inputs on the right.
+    /// Intended as labels on the left and inputs on the right — never implemented, renders like
+    /// <see cref="Vertical"/>.
     /// </summary>
+    [Obsolete("Horizontal is not implemented — every field component draws its own label with no " +
+        "CSS seam to split it from the input. Use FormLayout.Grid instead.")]
     Horizontal,
 
     /// <summary>
@@ -121,12 +131,14 @@ public class FormConfiguration<TModel> : IGroupedFormConfiguration<TModel>, ICol
     public string? CssClass { get; set; }
 
     /// <inheritdoc />
-    public bool ShowValidationSummary { get; set; } = true;
+    public bool ShowValidationSummary { get; set; }
 
     /// <inheritdoc />
+    [Obsolete("Use .WithNativeRequired() on the field instead — this setting is never rendered.")]
     public bool ShowRequiredIndicator { get; set; } = true;
 
     /// <inheritdoc />
+    [Obsolete("Use .WithNativeRequired() on the field instead — this setting is never rendered.")]
     public string RequiredIndicator { get; set; } = "*";
 
     /// <inheritdoc />
