@@ -157,6 +157,27 @@ public class DynamicFormValidatorTests : BunitContext
     }
 
     [Fact]
+    public async Task ValidateModelAsync_Should_Propagate_An_Exception_From_A_Genuinely_Faulting_Accessor()
+    {
+        // Arrange - a genuinely broken getter, not a null intermediate. Before #425 the read was
+        // swallowed and validated as null, so a field with no Required() rule passed silently.
+        var model = new TestModel();
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Faulting, field => field.WithLabel("Faulting"))
+            .Build();
+
+        var validator = RenderValidator(editContext, config);
+
+        // Act & Assert
+        await Should.ThrowAsync<InvalidOperationException>(async () =>
+            await validator.Instance.ValidateModelAsync());
+    }
+
+    // No propagation sibling for HandleFieldChanged (#425): its own outer catch guards the async-void
+    // boundary, where an escaping exception would crash the Blazor circuit, so it swallows a genuine
+    // fault by design. The read it performs is proven to propagate at the TryGetValue seam instead.
+    [Fact]
     public void HandleFieldChanged_Should_Not_Throw_For_A_Nested_Binding_With_A_Null_Intermediate()
     {
         // Arrange - the field-changed path (a single field's re-validation) reads the same cache
@@ -213,6 +234,8 @@ public class DynamicFormValidatorTests : BunitContext
         public string Email { get; set; } = string.Empty;
 
         public NestedModel? Nested { get; set; }
+
+        public string Faulting => throw new InvalidOperationException("boom");
     }
 
     public class NestedModel
