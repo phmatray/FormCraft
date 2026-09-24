@@ -209,6 +209,67 @@ public class DynamicFormValidatorTests : BunitContext
         editContext.GetValidationMessages().ShouldContain("Name is required");
     }
 
+    [Fact]
+    public async Task ValidateModelAsync_Should_Not_Lose_Prior_Messages_When_The_Collection_Loop_Throws()
+    {
+        // Arrange - same shape as the field-loop version above (#440), but this time the second
+        // pass's throw originates in the collection loop, proving the fix covers both loops that
+        // feed the one deferred flush.
+        var model = new TestModel();
+        var editContext = new EditContext(model);
+        var requiredOnlyConfig = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field.Required("Name is required"))
+            .Build();
+
+        var validator = RenderValidator(editContext, requiredOnlyConfig);
+
+        var firstPassIsValid = await validator.Instance.ValidateModelAsync();
+        firstPassIsValid.ShouldBeFalse();
+        editContext.GetValidationMessages().ShouldContain("Name is required");
+
+        // Act - swap in a config whose only field is a collection with a genuinely faulting
+        // accessor. The Required field is deliberately absent, for the same reason as above.
+        var faultingCollectionConfig = FormBuilder<TestModel>.Create()
+            .AddCollectionField(x => x.FaultingItems, collection => collection
+                .WithLabel("Faulting Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.Name, field => field.WithLabel("Name"))))
+            .Build();
+        validator.Instance.Configuration = faultingCollectionConfig;
+
+        await Should.ThrowAsync<InvalidOperationException>(async () =>
+            await validator.Instance.ValidateModelAsync());
+
+        // Assert - the collection-loop throw must not wipe the message store either.
+        editContext.GetValidationMessages().ShouldContain("Name is required");
+    }
+
+    [Fact]
+    public async Task ValidateModelAsync_Should_Clear_A_Stale_Message_When_The_Field_Becomes_Valid_On_A_Later_Pass()
+    {
+        // Arrange - Acceptance Criterion 2 (#440): a pass that completes without throwing must
+        // still clear every stale message the previous pass left, not just skip clearing because
+        // nothing new failed this time. Same config, same instance, both passes - no swap needed.
+        var model = new TestModel();
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field.Required("Name is required"))
+            .Build();
+        var validator = RenderValidator(editContext, config);
+
+        var firstPassIsValid = await validator.Instance.ValidateModelAsync();
+        firstPassIsValid.ShouldBeFalse();
+        editContext.GetValidationMessages().ShouldContain("Name is required");
+
+        // Act - the field is now satisfied.
+        model.Name = "Ada";
+        var secondPassIsValid = await validator.Instance.ValidateModelAsync();
+
+        // Assert - the first pass's stale message must be gone, not merely un-repeated.
+        secondPassIsValid.ShouldBeTrue();
+        editContext.GetValidationMessages().ShouldBeEmpty();
+    }
+
     // No propagation sibling for HandleFieldChanged (#425): its own outer catch guards the async-void
     // boundary, where an escaping exception would crash the Blazor circuit, so it swallows a genuine
     // fault by design. The read it performs is proven to propagate at the TryGetValue seam instead.
@@ -271,10 +332,23 @@ public class DynamicFormValidatorTests : BunitContext
         public NestedModel? Nested { get; set; }
 
         public string Faulting => throw new InvalidOperationException("boom");
+
+        // A settable property, unlike Faulting above: CollectionFieldConfiguration's constructor
+        // compiles a setter delegate too, and Expression.Assign refuses a get-only member.
+        public List<ItemModel> FaultingItems
+        {
+            get => throw new InvalidOperationException("boom");
+            set { }
+        }
     }
 
     public class NestedModel
     {
         public string Value { get; set; } = string.Empty;
+    }
+
+    public class ItemModel
+    {
+        public string Name { get; set; } = string.Empty;
     }
 }
