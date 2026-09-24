@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using FormCraft.ForFluentUI.UnitTests.TestSupport;
 
 namespace FormCraft.ForFluentUI.UnitTests.Fields;
 
@@ -135,58 +136,5 @@ public class CollectionItemUnwritableBindingTests : FluentUITestBase
     public class LineExtra
     {
         public string Note { get; set; } = string.Empty;
-    }
-
-    /// <summary>
-    /// Collects warning-level log messages so the unwritable-item-field-binding diagnostic (#450) can
-    /// be asserted on. Local rather than shared: mirrors
-    /// <c>CollectionItemsGetterNullIntermediateTests.CapturingLoggerProvider</c> exactly, since this
-    /// project still has no shared <c>TestSupport</c> type for it.
-    /// </summary>
-    private sealed class CapturingLoggerProvider : ILoggerProvider
-    {
-        private readonly List<(string Category, string Message)> _entries = [];
-
-        public IReadOnlyList<string> Warnings
-        {
-            get
-            {
-                lock (_entries)
-                {
-                    return _entries.Select(entry => entry.Message).ToList();
-                }
-            }
-        }
-
-        public ILogger CreateLogger(string categoryName) => new CapturingLogger(categoryName, _entries);
-
-        public void Dispose()
-        {
-        }
-
-        private sealed class CapturingLogger(string category, List<(string Category, string Message)> entries) : ILogger
-        {
-            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-
-            public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Warning;
-
-            public void Log<TState>(
-                LogLevel logLevel,
-                EventId eventId,
-                TState state,
-                Exception? exception,
-                Func<TState, Exception?, string> formatter)
-            {
-                if (logLevel < LogLevel.Warning)
-                {
-                    return;
-                }
-
-                lock (entries)
-                {
-                    entries.Add((category, formatter(state, exception)));
-                }
-            }
-        }
     }
 }
