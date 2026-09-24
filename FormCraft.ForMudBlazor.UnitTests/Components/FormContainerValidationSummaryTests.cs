@@ -46,6 +46,7 @@ public class FormContainerValidationSummaryTests : MudBlazorTestBase
 
         // Assert
         component.FindComponents<ValidationSummary>().ShouldBeEmpty();
+        component.FindAll("ul.validation-errors").ShouldBeEmpty();
     }
 
     public class SummaryModel

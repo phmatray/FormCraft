@@ -47,6 +47,10 @@ public class FormContainerLayoutTests : FluentUITestBase
 
     [Theory]
     [InlineData(FormLayout.Vertical, "display: contents")]
+#pragma warning disable CS0618 // the obsolete Horizontal must still render like Vertical (#457)
+    [InlineData(FormLayout.Horizontal, "display: contents")]
+#pragma warning restore CS0618
+    [InlineData(FormLayout.Inline, null)]
     [InlineData(FormLayout.Grid, null)]
     public void Only_A_Stacked_Layout_Should_Dissolve_Its_Wrapper_Into_The_FluentStack(
         FormLayout layout, string? expectedStyle)

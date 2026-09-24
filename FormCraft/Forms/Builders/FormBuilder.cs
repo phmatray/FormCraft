@@ -195,8 +195,8 @@ public class FormBuilder<TModel> where TModel : new()
     /// <summary>
     /// Configures whether to display a validation summary showing all form errors.
     /// </summary>
-    /// <param name="show">True to show the validation summary, false to hide it. Default is true.
-    /// The form itself shows none until this is called.</param>
+    /// <param name="show">True to show the validation summary, false to hide it. Default is true.</param>
+    /// <remarks>Without this call, or with <c>false</c>, the form renders no validation summary.</remarks>
     /// <returns>The FormBuilder instance for method chaining.</returns>
     /// <example>
     /// <code>
@@ -215,6 +215,8 @@ public class FormBuilder<TModel> where TModel : new()
     /// </summary>
     /// <param name="show">True to show required indicators, false to hide them. Default is true.</param>
     /// <param name="indicator">The text/symbol to display for required fields. Default is "*".</param>
+    /// <remarks>Never rendered. A plain <c>.Required(...)</c> field is announced through
+    /// <c>aria-required</c> instead; <c>.WithNativeRequired()</c> restores the visible asterisk.</remarks>
     /// <returns>The FormBuilder instance for method chaining.</returns>
     /// <example>
     /// <code>

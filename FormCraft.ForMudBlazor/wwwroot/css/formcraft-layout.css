@@ -1,15 +1,16 @@
 /* FormLayout for FormCraft's ungrouped fields (#457). Link it from the host page:
    <link href="_content/FormCraft.ForMudBlazor/css/formcraft-layout.css" rel="stylesheet" />
-   formcraft-layout-vertical needs no rule: it is the default block layout. */
+   formcraft-layout-vertical needs no rule: it is the default block layout. Each field already
+   carries mb-4, so the row gap is left to that margin rather than doubled. */
 .formcraft-layout-inline {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 0 1rem;
     align-items: flex-start;
 }
 
 .formcraft-layout-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1rem;
+    gap: 0 1rem;
 }
