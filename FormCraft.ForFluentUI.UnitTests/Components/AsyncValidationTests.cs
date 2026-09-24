@@ -97,7 +97,7 @@ public class AsyncValidationTests : FluentUITestBase
     }
 
     [Fact]
-    public void Validation_Error_Should_Clear_When_Field_Becomes_Valid()
+    public async Task Validation_Error_Should_Clear_When_Field_Becomes_Valid()
     {
         // Arrange
         var model = new TestModel();
@@ -118,7 +118,7 @@ public class AsyncValidationTests : FluentUITestBase
 
         // Act - fix the field
         var nameInput = component.FindComponent<FluentTextInput>();
-        component.InvokeAsync(() => nameInput.Instance.ValueChanged.InvokeAsync("John"));
+        await component.InvokeAsync(() => nameInput.Instance.ValueChanged.InvokeAsync("John"));
 
         // Assert - the stale error must clear without another submit
         component.WaitForAssertion(() =>
