@@ -9,7 +9,11 @@ namespace FormCraft.ForFluentUI;
 /// plus a browsable, searchable grid of candidate rows.
 /// </summary>
 /// <typeparam name="TModel">The form's model type.</typeparam>
-/// <typeparam name="TValue">The type of the selected value.</typeparam>
+/// <typeparam name="TValue">
+/// The field's bound value type: the key itself for <c>AsLov</c>, <c>IEnumerable&lt;TKey&gt;</c> for
+/// <c>AsMultiSelectLov</c> (#480).
+/// </typeparam>
+/// <typeparam name="TKey">The per-item key type produced by the LOV configuration's value selector.</typeparam>
 /// <typeparam name="TItem">The type of the rows in the LOV.</typeparam>
 /// <remarks>
 /// The picker is an inline panel rather than a modal, for the reason spelled out on
@@ -17,7 +21,7 @@ namespace FormCraft.ForFluentUI;
 /// nothing without a <c>FluentDialogProvider</c> the host application must add, and a browse button
 /// that silently does nothing is a worse outcome than a different presentation.
 /// </remarks>
-public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
+public partial class FluentUILovFieldComponent<TModel, TValue, TKey, TItem>
 {
     private readonly List<TItem> _rows = [];
     private readonly List<TItem> _selectedItems = [];
@@ -30,7 +34,7 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
     private IServiceProvider ServiceProvider { get; set; } = null!;
 
     /// <summary>The resolved LOV configuration.</summary>
-    private ILovConfiguration<TItem, TValue>? LovConfig { get; set; }
+    private ILovConfiguration<TItem, TKey>? LovConfig { get; set; }
 
     /// <summary>The text shown in the read-only display.</summary>
     private string DisplayText { get; set; } = string.Empty;
@@ -70,7 +74,7 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
         _isOpen = false;
         _isLoading = false;
 
-        LovConfig = GetAttribute<ILovConfiguration<TItem, TValue>>("LovConfiguration")
+        LovConfig = GetAttribute<ILovConfiguration<TItem, TKey>>("LovConfiguration")
             ?? throw new InvalidOperationException(
                 "LovConfiguration is required. Use the .AsLov() extension method to configure the field.");
 
@@ -234,12 +238,14 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TItem>
 
         var values = _selectedItems.Select(LovConfig.ValueSelector).ToList();
 
-        if (!IsMultiSelect)
+        // TValue is the field's bound type: IEnumerable<TKey> for AsMultiSelectLov, which the
+        // List<TKey> satisfies; the key itself for single-select (#480).
+        if (IsMultiSelect && values is TValue typedList)
         {
-            return values[0];
+            return typedList;
         }
 
-        return values is TValue typedList ? typedList : values[0];
+        return (TValue?)(object?)values[0];
     }
 
     /// <summary>

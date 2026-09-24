@@ -293,7 +293,7 @@ public class FieldConfigurationParityTests : FluentUITestBase
         typeof(FluentUIMultiSelectFieldComponent<,>),
         typeof(FluentUIAutocompleteFieldComponent<,>),
         typeof(FluentUILookupFieldComponent<,>),
-        typeof(FluentUILovFieldComponent<,,>),
+        typeof(FluentUILovFieldComponent<,,,>),
         typeof(FluentUIMultipleFileUploadComponent<>),
     };
 
