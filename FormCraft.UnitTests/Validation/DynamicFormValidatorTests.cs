@@ -379,6 +379,75 @@ public class DynamicFormValidatorTests : BunitContext
     }
 
     [Fact]
+    public async Task ValidateModelAsync_Should_Keep_A_Count_Rule_Error_When_A_Cell_Edit_Lands_During_The_Pass()
+    {
+        // Arrange - MaxItems is broken, and the count rule lives ONLY in the collection's flat set.
+        // Item 0's Name parks the pass on a gate (review finding on #443).
+        var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var model = new TestModel { Items = [new ItemModel(), new ItemModel()] };
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithMaxItems(1)
+                .WithItemForm(item => item
+                    .AddField(x => x.Name, field => field.WithAsyncValidator(_ => gate.Task, "Name rejected"))
+                    .AddField(x => x.Code, field => field.WithLabel("Code"))))
+            .Build();
+        var validator = RenderValidator(editContext, config);
+
+        var pass = validator.Instance.ValidateModelAsync();
+
+        // Act - a cell edit on another item field lands while the pass is parked.
+        editContext.NotifyFieldChanged(new FieldIdentifier(model, "Items[0].Code"));
+        gate.SetResult(true);
+        var isValid = await pass;
+
+        // Assert - the pass's own count-rule error must survive its flush.
+        isValid.ShouldBeFalse();
+        editContext.GetValidationMessages(editContext.Field(nameof(TestModel.Items))).ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public async Task HandleFieldChanged_Should_Not_Let_An_Older_Edit_Overwrite_A_Newer_One()
+    {
+        // Arrange - "slow" parks its validator; any other value completes at once (#443). Inline
+        // continuations, so SetResult resumes the parked handler before it returns wherever the
+        // test thread has no synchronization context; the delay below covers the case where it does.
+        var gate = new TaskCompletionSource<bool>();
+        var model = new TestModel();
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field.WithAsyncValidator(
+                async value =>
+                {
+                    if (value == "slow")
+                    {
+                        await gate.Task;
+                    }
+
+                    return value.Length > 0;
+                },
+                "Name rejected"))
+            .Build();
+        RenderValidator(editContext, config);
+        var name = editContext.Field(nameof(TestModel.Name));
+
+        // Act - an older edit parks, a newer one finishes first, then the older one resumes.
+        model.Name = "slow";
+        editContext.NotifyFieldChanged(name);
+        model.Name = string.Empty;
+        editContext.NotifyFieldChanged(name);
+        editContext.GetValidationMessages(name).ShouldContain("Name rejected");
+
+        gate.SetResult(true);
+        await Task.Delay(50, Xunit.TestContext.Current.CancellationToken);
+
+        // Assert - the stale "slow is valid" result must not clear the current value's error.
+        editContext.GetValidationMessages(name).ShouldContain("Name rejected");
+    }
+
+    [Fact]
     public void OnInitialized_Should_Throw_Without_A_Cascading_EditContext()
     {
         // Arrange - the component is only meaningful inside an EditForm, and says so.
@@ -442,5 +511,7 @@ public class DynamicFormValidatorTests : BunitContext
     public class ItemModel
     {
         public string Name { get; set; } = string.Empty;
+
+        public string Code { get; set; } = string.Empty;
     }
 }
