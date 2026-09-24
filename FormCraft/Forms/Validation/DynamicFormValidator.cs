@@ -54,8 +54,10 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
     // Last-writer stamps for field-change writes (#443). A field-change handler takes its stamp when
     // it STARTS (before reading the value), so the stamp orders the reads, not the writes. A full
     // pass records _writeVersion when it starts and, at its deferred flush, leaves alone every
-    // identifier stamped later. A counter rather than a timestamp: one circuit is single-threaded,
-    // so ordering is all that matters.
+    // identifier stamped later - and (#445) also takes its OWN fresh stamp at that same flush and
+    // records it for every identifier it just wrote, so a handler that started earlier and is still
+    // parked cannot resurrect a stale result once it resumes. A counter rather than a timestamp: one
+    // circuit is single-threaded, so ordering is all that matters.
     // ponytail: entries are never pruned — overlapping passes each need their own view. The map is
     // bounded by every identifier ever written (collection row indices included), not by the form's
     // current shape; prune stamps older than the oldest in-flight pass if that ever matters. A kept

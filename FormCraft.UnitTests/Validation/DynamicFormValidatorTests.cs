@@ -454,7 +454,12 @@ public class DynamicFormValidatorTests : BunitContext
         // direction of #443's HandleFieldChanged_Should_Not_Let_An_Older_Edit_Overwrite_A_Newer_One):
         // a field-changed handler takes its stamp and starts reading "", then a full pass runs to
         // completion against a fixed value BEFORE the handler resumes.
-        var gate = new TaskCompletionSource<bool>();
+        // RunContinuationsAsynchronously (review finding, #445): without it, SetResult below can run
+        // the parked handler's whole continuation - including TryWrite - inline on the test thread,
+        // making the Delay afterwards redundant rather than a genuine synchronization point. With it,
+        // the continuation always resumes on the thread pool, so the Delay is what actually orders
+        // the assertion after the handler's write attempt.
+        var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var model = new TestModel();
         var editContext = new EditContext(model);
         var config = FormBuilder<TestModel>.Create()
