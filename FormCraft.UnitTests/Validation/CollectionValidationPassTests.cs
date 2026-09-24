@@ -293,6 +293,134 @@ public class CollectionValidationPassTests : BunitContext
             .ShouldBe(["Extras message"]);
     }
 
+    [Fact]
+    public void Editing_A_Row_Should_Not_Collide_Between_Two_Nested_Collections_Sharing_A_Last_Segment()
+    {
+        // Arrange - Billing.Items and Shipping.Items both end in "Items". Before #428,
+        // CollectionFieldConfiguration.FieldName reported only the last segment for both, so
+        // HandleFieldChanged's by-name lookup (DynamicFormValidator.cs, the collection group in
+        // CollectionItemFieldPattern) could not tell them apart and would silently validate
+        // whichever collection happened to be registered first.
+        var model = new NestedTwoListModel
+        {
+            Billing = { Items = { new OrderItem { ProductName = "" } } },
+            Shipping = { Items = { new OrderItem { ProductName = "" } } }
+        };
+        var editContext = new EditContext(model);
+        var configuration = FormBuilder<NestedTwoListModel>
+            .Create()
+            .AddCollectionField(x => x.Billing.Items, collection => collection
+                .WithLabel("Billing Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field
+                        .WithLabel("Product")
+                        .Required("Billing message"))))
+            .AddCollectionField(x => x.Shipping.Items, collection => collection
+                .WithLabel("Shipping Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field
+                        .WithLabel("Product")
+                        .Required("Shipping message"))))
+            .Build();
+
+        Render<DynamicFormValidator<NestedTwoListModel>>(parameters => parameters
+            .AddCascadingValue(editContext)
+            .Add(p => p.Configuration, configuration));
+
+        // Act - the field-changed notification a keystroke raises for each row's own cell. This is
+        // the path that reaches CollectionItemFieldPattern and the FieldName-keyed lookup at issue.
+        editContext.NotifyFieldChanged(new FieldIdentifier(model, "Billing.Items[0].ProductName"));
+        editContext.NotifyFieldChanged(new FieldIdentifier(model, "Shipping.Items[0].ProductName"));
+
+        // Assert - each cell reports its OWN collection's message, not the other's.
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Billing.Items[0].ProductName"))
+            .ShouldBe(["Billing message"]);
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Shipping.Items[0].ProductName"))
+            .ShouldBe(["Shipping message"]);
+    }
+
+    [Fact]
+    public async Task ValidateModelAsync_Should_Attach_Nested_Item_Messages_To_The_Qualified_Identifier()
+    {
+        // Arrange - same two nested collections as above, but this time through the full-pass
+        // (submit) path rather than the field-changed (keystroke) path. ValidateModelAsync attaches
+        // per-item errors via CreateCollectionItemFieldIdentifier(collectionField.FieldName, ...)
+        // (DynamicFormValidator.cs), a DIFFERENT call site from HandleFieldChanged's regex lookup -
+        // the sibling test above never exercises it (verification-gap review on #428). Both adapters'
+        // FieldValidationMessage looks messages up under this exact qualified identifier
+        // ("Billing.Items[0].ProductName"), so a full-pass validation that stored them under the
+        // bare last segment ("Items[0].ProductName") instead would leave a submit's errors
+        // unreachable by the control that is supposed to display them.
+        var model = new NestedTwoListModel
+        {
+            Billing = { Items = { new OrderItem { ProductName = "" } } },
+            Shipping = { Items = { new OrderItem { ProductName = "" } } }
+        };
+        var editContext = new EditContext(model);
+        var configuration = FormBuilder<NestedTwoListModel>
+            .Create()
+            .AddCollectionField(x => x.Billing.Items, collection => collection
+                .WithLabel("Billing Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field
+                        .WithLabel("Product")
+                        .Required("Billing message"))))
+            .AddCollectionField(x => x.Shipping.Items, collection => collection
+                .WithLabel("Shipping Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field
+                        .WithLabel("Product")
+                        .Required("Shipping message"))))
+            .Build();
+
+        var validator = Render<DynamicFormValidator<NestedTwoListModel>>(parameters => parameters
+            .AddCascadingValue(editContext)
+            .Add(p => p.Configuration, configuration));
+
+        // Act - the full pass a submit runs, NOT NotifyFieldChanged.
+        await validator.Instance.ValidateModelAsync();
+
+        // Assert - each row's error lands on ITS OWN qualified nested identifier.
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Billing.Items[0].ProductName"))
+            .ShouldBe(["Billing message"]);
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Shipping.Items[0].ProductName"))
+            .ShouldBe(["Shipping message"]);
+    }
+
+    [Fact]
+    public async Task ValidateModelAsync_Should_Use_Each_Nested_Collections_Own_MinItems_Not_The_Others()
+    {
+        // Arrange - Billing and Shipping are two DIFFERENT nested collections sharing the last
+        // segment "Items", each with its own MinItems (Acceptance Criterion 2 names
+        // MinItems/MaxItems explicitly, alongside ItemFormConfiguration which the test above covers).
+        // Both empty, so both collections' own rule must fire against their own configured minimum.
+        var model = new NestedTwoListModel();
+        var editContext = new EditContext(model);
+        var configuration = FormBuilder<NestedTwoListModel>
+            .Create()
+            .AddCollectionField(x => x.Billing.Items, collection => collection
+                .WithLabel("Billing Items")
+                .WithMinItems(2))
+            .AddCollectionField(x => x.Shipping.Items, collection => collection
+                .WithLabel("Shipping Items")
+                .WithMinItems(1))
+            .Build();
+
+        var validator = Render<DynamicFormValidator<NestedTwoListModel>>(parameters => parameters
+            .AddCascadingValue(editContext)
+            .Add(p => p.Configuration, configuration));
+
+        // Act
+        await validator.Instance.ValidateModelAsync();
+
+        // Assert - each collection's own MinItems fires against its own configured value, not the
+        // other's.
+        editContext.GetValidationMessages(editContext.Field("Billing.Items"))
+            .ShouldContain(m => m.Contains("at least 2"));
+        editContext.GetValidationMessages(editContext.Field("Shipping.Items"))
+            .ShouldContain(m => m.Contains("at least 1"));
+    }
+
     private static IFormConfiguration<OrderModel> BuildConfiguration(CountingValidator counter) =>
         FormBuilder<OrderModel>
             .Create()
@@ -343,6 +471,17 @@ public class CollectionValidationPassTests : BunitContext
         public List<OrderItem> Items { get; set; } = [];
 
         public List<OrderItem> Extras { get; set; } = [];
+    }
+
+    public class NestedTwoListModel
+    {
+        public OrderSection Billing { get; set; } = new();
+        public OrderSection Shipping { get; set; } = new();
+    }
+
+    public class OrderSection
+    {
+        public List<OrderItem> Items { get; set; } = [];
     }
 
     public class OrderItem

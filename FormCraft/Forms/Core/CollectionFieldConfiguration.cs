@@ -66,8 +66,15 @@ public class CollectionFieldConfiguration<TModel, TItem> : ICollectionFieldConfi
         var memberExpression = collectionExpression.Body as MemberExpression
             ?? throw new ArgumentException("Expression must be a property access expression.", nameof(collectionExpression));
 
-        FieldName = memberExpression.Member.Name;
-        Label = FieldName;
+        // Qualify by the FULL member-access chain (e.g. "Billing.Items"), not just the last segment,
+        // so two collection fields bound through different nested paths that happen to share a last
+        // segment (x => x.Billing.Items and x => x.Shipping.Items) no longer collide under the one
+        // name DynamicFormValidator looks a collection field up by (#428). A single, non-nested path
+        // is one segment, so it produces exactly the string it always has. MemberPathResolver already
+        // does this walk for #423's security paths (FormSecurityEnforcer.BuildAuditKey, #406, is
+        // itself a one-line call to it) - reuse it here rather than a third copy of the same walk.
+        FieldName = MemberPathResolver.GetDottedPath(collectionExpression) ?? memberExpression.Member.Name;
+        Label = memberExpression.Member.Name;
 
         // Compile the accessor
         CollectionAccessor = collectionExpression.Compile();

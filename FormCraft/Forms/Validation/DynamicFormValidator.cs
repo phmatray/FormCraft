@@ -231,9 +231,13 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
     private FieldIdentifier CreateCollectionItemFieldIdentifier(string collectionFieldName, int itemIndex, string itemFieldName)
         => new(_editContext!.Model, $"{collectionFieldName}[{itemIndex}].{itemFieldName}");
 
-    // Matches nested collection item field names such as "Items[0].ProductName".
+    // Matches nested collection item field names such as "Items[0].ProductName" - including a
+    // dotted, nested collection FieldName such as "Billing.Items[0].ProductName" (#428: FieldName is
+    // now qualified by its full member-access chain, not just its last segment, so the collection
+    // group here must accept the same dots or a nested collection's per-keystroke item validation
+    // would silently stop matching).
     private static readonly System.Text.RegularExpressions.Regex CollectionItemFieldPattern =
-        new(@"^(?<collection>[A-Za-z_]\w*)\[(?<index>\d+)\]\.(?<field>[A-Za-z_]\w*)$",
+        new(@"^(?<collection>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\[(?<index>\d+)\]\.(?<field>[A-Za-z_]\w*)$",
             System.Text.RegularExpressions.RegexOptions.Compiled);
 
     private async void HandleFieldChanged(object? sender, FieldChangedEventArgs e)
