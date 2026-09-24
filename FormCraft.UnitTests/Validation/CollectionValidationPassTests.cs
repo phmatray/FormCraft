@@ -293,6 +293,52 @@ public class CollectionValidationPassTests : BunitContext
             .ShouldBe(["Extras message"]);
     }
 
+    [Fact]
+    public void Editing_A_Row_Should_Not_Collide_Between_Two_Nested_Collections_Sharing_A_Last_Segment()
+    {
+        // Arrange - Billing.Items and Shipping.Items both end in "Items". Before #428,
+        // CollectionFieldConfiguration.FieldName reported only the last segment for both, so
+        // HandleFieldChanged's by-name lookup (DynamicFormValidator.cs, the collection group in
+        // CollectionItemFieldPattern) could not tell them apart and would silently validate
+        // whichever collection happened to be registered first.
+        var model = new NestedTwoListModel
+        {
+            Billing = { Items = { new OrderItem { ProductName = "" } } },
+            Shipping = { Items = { new OrderItem { ProductName = "" } } }
+        };
+        var editContext = new EditContext(model);
+        var configuration = FormBuilder<NestedTwoListModel>
+            .Create()
+            .AddCollectionField(x => x.Billing.Items, collection => collection
+                .WithLabel("Billing Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field
+                        .WithLabel("Product")
+                        .Required("Billing message"))))
+            .AddCollectionField(x => x.Shipping.Items, collection => collection
+                .WithLabel("Shipping Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field
+                        .WithLabel("Product")
+                        .Required("Shipping message"))))
+            .Build();
+
+        Render<DynamicFormValidator<NestedTwoListModel>>(parameters => parameters
+            .AddCascadingValue(editContext)
+            .Add(p => p.Configuration, configuration));
+
+        // Act - the field-changed notification a keystroke raises for each row's own cell. This is
+        // the path that reaches CollectionItemFieldPattern and the FieldName-keyed lookup at issue.
+        editContext.NotifyFieldChanged(new FieldIdentifier(model, "Billing.Items[0].ProductName"));
+        editContext.NotifyFieldChanged(new FieldIdentifier(model, "Shipping.Items[0].ProductName"));
+
+        // Assert - each cell reports its OWN collection's message, not the other's.
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Billing.Items[0].ProductName"))
+            .ShouldBe(["Billing message"]);
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Shipping.Items[0].ProductName"))
+            .ShouldBe(["Shipping message"]);
+    }
+
     private static IFormConfiguration<OrderModel> BuildConfiguration(CountingValidator counter) =>
         FormBuilder<OrderModel>
             .Create()
@@ -343,6 +389,17 @@ public class CollectionValidationPassTests : BunitContext
         public List<OrderItem> Items { get; set; } = [];
 
         public List<OrderItem> Extras { get; set; } = [];
+    }
+
+    public class NestedTwoListModel
+    {
+        public OrderSection Billing { get; set; } = new();
+        public OrderSection Shipping { get; set; } = new();
+    }
+
+    public class OrderSection
+    {
+        public List<OrderItem> Items { get; set; } = [];
     }
 
     public class OrderItem
