@@ -43,7 +43,7 @@ public class StringFieldRenderer : FieldRendererBase<string>
             builder.AddAttribute(sequence++, "type", "text");
             builder.AddAttribute(sequence++, "value", Context.CurrentValue);
             builder.AddAttribute(sequence++, "placeholder", Context.Field.Placeholder);
-            builder.AddAttribute(sequence++, "disabled", Context.Field.IsDisabled);
+            builder.AddAttribute(sequence++, "disabled", Context.Field.DisabledCondition?.Invoke(Context.Model) ?? Context.Field.IsDisabled);
             builder.CloseElement();
 
             if (!string.IsNullOrEmpty(Context.Field.HelpText))

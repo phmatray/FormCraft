@@ -57,7 +57,7 @@ public class FileUploadFieldRenderer : IFieldRenderer
 
             builder.OpenElement(sequence++, "input");
             builder.AddAttribute(sequence++, "type", "file");
-            builder.AddAttribute(sequence++, "disabled", Context.Field.IsDisabled);
+            builder.AddAttribute(sequence++, "disabled", Context.Field.DisabledCondition?.Invoke(Context.Model) ?? Context.Field.IsDisabled);
 
             // Check if field type supports multiple files
             var isMultiple = Context.ActualFieldType == typeof(IReadOnlyList<IBrowserFile>) ||

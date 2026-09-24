@@ -42,7 +42,7 @@ public class BoolFieldRenderer : FieldRendererBase<bool>
             builder.OpenElement(sequence++, "input");
             builder.AddAttribute(sequence++, "type", "checkbox");
             builder.AddAttribute(sequence++, "checked", Context.CurrentValue);
-            builder.AddAttribute(sequence++, "disabled", Context.Field.IsDisabled);
+            builder.AddAttribute(sequence++, "disabled", Context.Field.DisabledCondition?.Invoke(Context.Model) ?? Context.Field.IsDisabled);
             builder.CloseElement();
 
             builder.OpenElement(sequence++, "label");

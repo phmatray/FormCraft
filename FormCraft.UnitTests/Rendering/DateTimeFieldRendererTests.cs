@@ -269,6 +269,7 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => field.HelpText).Returns(helpText ?? string.Empty);
         A.CallTo(() => field.IsRequired).Returns(isRequired);
         A.CallTo(() => field.IsDisabled).Returns(isDisabled);
+        A.CallTo(() => field.DisabledCondition).Returns(null);
         A.CallTo(() => field.AdditionalAttributes).Returns(new Dictionary<string, object>());
 
         return field;
@@ -848,6 +849,7 @@ public class DateTimeFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => field.HelpText).Returns(string.Empty);
         A.CallTo(() => field.IsRequired).Returns(false);
         A.CallTo(() => field.IsDisabled).Returns(false);
+        A.CallTo(() => field.DisabledCondition).Returns(null);
         A.CallTo(() => field.AdditionalAttributes).Returns(attributes);
 
         return field;
