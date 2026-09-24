@@ -177,29 +177,6 @@ public class FormCraftComponentTests : BunitContext
         submitButton.TextContent.ShouldContain("Submit");
     }
 
-    [Fact(Skip = "MudBlazor component interactions require more complex setup")]
-    public void FormCraftComponent_Should_Update_Model_Values()
-    {
-        // This test would require a full integration test setup with real MudBlazor components
-        // and proper EditContext handling, which is beyond the scope of a unit test.
-        // The functionality is tested through integration tests in the demo application.
-
-        // Arrange
-        var model = new TestModel { Name = "Initial" };
-        var config = FormBuilder<TestModel>.Create()
-            .AddField(x => x.Name, field => field
-                .WithLabel("Name"))
-            .Build();
-
-        // Act
-        var component = Render<FormCraftComponent<TestModel>>(parameters => parameters
-            .Add(p => p.Model, model)
-            .Add(p => p.Configuration, config));
-
-        // Would need complex setup to test two-way binding
-        // This is better tested via integration/E2E tests
-    }
-
     [Fact]
     public void FormCraftComponent_Should_Include_DynamicFormValidator()
     {
