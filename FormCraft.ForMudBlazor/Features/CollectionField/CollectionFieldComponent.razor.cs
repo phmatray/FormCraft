@@ -367,9 +367,9 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // MoveItemDown compute it from an Items read that can be stale by the time OnAfterRenderAsync
         // processes it — most concretely, NotifyCollectionChanged awaiting a consumer's handler that
         // makes the binding unreadable collapses Items to empty before this runs (#433).
-        // _rowIdentity.KeyFor(Items, index)
-        // below indexes Items directly and throws for an out-of-range index rather than returning
-        // null, so this has to be checked before either branch touches it.
+        // _rowIdentity.KeyFor(Items, index) below indexes Items directly and throws for an
+        // out-of-range index rather than returning null, so this has to be checked before either
+        // branch touches it.
         if (index < 0 || index >= Items.Count)
         {
             await FocusRestore.FocusSafelyAsync(_header);

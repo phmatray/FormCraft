@@ -83,7 +83,7 @@ public sealed class CollectionRowIdentity
 
     // ponytail: O(n) scan per row (O(n^2) per render) — collections here are short, hand-built lists
     // a user assembles by clicking "Add item", not bulk data. Switch to a single reference-identity
-    // counting pass over Items if that stops being true.
+    // counting pass over items if that stops being true.
     private static bool HasDuplicateReference<TItem>(IReadOnlyList<TItem> items, TItem item, int index)
     {
         for (var i = 0; i < items.Count; i++)

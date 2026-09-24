@@ -105,9 +105,9 @@
                                 @if (DeleteButtonsRendered)
                                 {
                                     @* Captured per row so a removal can focus the button that takes
-                                       the vacated slot — keyed by RowKey, which follows the row's
-                                       item across a move rather than staying pinned to a position
-                                       (#318, #334). *@
+                                       the vacated slot — keyed by row identity (_rowIdentity.KeyFor),
+                                       which follows the row's item across a move rather than staying
+                                       pinned to a position (#318, #334, #422). *@
                                     <MudIconButton @ref="_deleteButtons[key]"
                                                    Icon="@Icons.Material.Filled.Delete"
                                                    Size="Size.Small"
