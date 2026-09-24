@@ -26,7 +26,9 @@ public interface IFieldConfiguration<TModel, TValue>
 {
     /// <summary>
     /// Gets the name of the property on the model that this field represents.
-    /// This corresponds to the property name extracted from the ValueExpression.
+    /// This is the full dotted member path extracted from the ValueExpression — <c>"Name"</c> for
+    /// <c>x =&gt; x.Name</c>, <c>"Billing.Amount"</c> for <c>x =&gt; x.Billing.Amount</c> (#437) — so two
+    /// nested fields sharing a last member never share an identity.
     /// </summary>
     string FieldName { get; }
 

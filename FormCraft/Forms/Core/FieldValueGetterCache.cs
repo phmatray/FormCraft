@@ -43,7 +43,7 @@ namespace FormCraft;
 /// equivalent one private to <see cref="FieldRendererService" />; #312 retired it in favour of this
 /// one rather than leave two mechanisms for one concept. Both adapters' custom-template paths route
 /// through here too since #330 — before that they read the value with per-render
-/// <c>GetProperty</c>/<c>GetValue</c> reflection keyed on <c>FieldName</c>, which is only the
+/// <c>GetProperty</c>/<c>GetValue</c> reflection keyed on <c>FieldName</c>, which was then only the
 /// expression's last member (e.g. <c>"Value"</c> for <c>x =&gt; x.Nested.Value</c>) and so silently
 /// failed to resolve — and therefore rendered nothing — for any binding but a direct top-level
 /// property. Because every path keys off the same configuration instance, a field that is rendered
