@@ -50,24 +50,24 @@
             @for (var i = 0; i < Items.Count; i++)
             {
                 var index = i;
-                var key = RowKey(index);
+                var key = _rowIdentity.KeyFor(Items, index);
                 @* #334: the row's ROOT element is keyed on the item's own identity — a weak token,
                    never the item itself. #298 tried `@key="Items[index]"` and reverted it: Blazor
                    matches keys by Equals, not by reference, and TItem is constrained only to `new()`.
                    For a record or struct item type — or any class overriding Equals — two rows with
                    equal content were a duplicate key, and RenderTreeDiffBuilder threw
-                   "More than one sibling ... has the same key value". `RowKey` sidesteps that
-                   entirely: a reference-type item gets a fresh, reference-compared token from
-                   ConditionalWeakTable, so two equal-by-value rows still get two different keys, and
-                   the token follows its item across an add/remove/reorder — even one this component
-                   was never told about, since `Items` IS the caller's own model list. A value-typed
-                   item — which boxes fresh on every access, so has no reference-stable identity to
-                   hand the weak table — falls back to the boxed index, which reconciles identically
-                   to today's unkeyed loop.
+                   "More than one sibling ... has the same key value". `CollectionRowIdentity.KeyFor`
+                   (#422, moved from this component's own `RowKey`) sidesteps that entirely: a
+                   reference-type item gets a fresh, reference-compared token from ConditionalWeakTable,
+                   so two equal-by-value rows still get two different keys, and the token follows its
+                   item across an add/remove/reorder — even one this component was never told about,
+                   since `Items` IS the caller's own model list. A value-typed item — which boxes fresh
+                   on every access, so has no reference-stable identity to hand the weak table — falls
+                   back to the boxed index, which reconciles identically to today's unkeyed loop.
 
                    The row's CHROME below (header, reorder/delete buttons) is deliberately keyed the
                    SAME way, and the focus-restore dictionaries (_rowHeaders, _deleteButtons, etc.)
-                   are keyed by that same RowKey rather than by plain index — see their doc comments.
+                   are keyed by that same identity rather than by plain index — see their doc comments.
                    A `@ref` on a component fires only once, at creation, so once the row's subtree can
                    MOVE with its item instead of staying pinned to a position, an index-keyed
                    dictionary would go stale the moment a row moved; keying the dictionaries by the

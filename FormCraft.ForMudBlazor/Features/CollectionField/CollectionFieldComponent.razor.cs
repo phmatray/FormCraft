@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using FormCraft.Diagnostics;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
@@ -26,12 +25,12 @@ public partial class CollectionFieldComponent<TModel, TItem>
     where TItem : new()
 {
     /// <summary>
-    /// Each row's delete button, by <see cref="RowKey"/> — the focus targets for a removal (#318).
+    /// Each row's delete button, by <see cref="CollectionRowIdentity.KeyFor{TItem}"/> — the focus targets for a removal (#318).
     /// </summary>
     /// <remarks>
     /// Keyed by row IDENTITY rather than held as a single reference because these controls are
     /// rendered per row: a removal has to focus the button that takes the vacated slot, which is a
-    /// different one each time. Keyed by <see cref="RowKey"/> — not by plain index — since #334: the
+    /// different one each time. Keyed by row identity — not by plain index — since #334: the
     /// row's own <c>@key</c> can now move a surviving row's whole subtree (buttons included) to a
     /// different index, and a component's <c>@ref</c> fires only once, at creation, so an
     /// index-keyed dictionary would go stale the moment a row moved. Entries deliberately outlive the
@@ -40,14 +39,14 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// </remarks>
     private readonly Dictionary<object, MudIconButton> _deleteButtons = new();
 
-    /// <summary>Each row's reorder buttons, by <see cref="RowKey"/>. Same capture rules as <see cref="_deleteButtons"/>.</summary>
+    /// <summary>Each row's reorder buttons, by row identity. Same capture rules as <see cref="_deleteButtons"/>.</summary>
     private readonly Dictionary<object, MudIconButton> _moveUpButtons = new();
 
     /// <inheritdoc cref="_moveUpButtons"/>
     private readonly Dictionary<object, MudIconButton> _moveDownButtons = new();
 
     /// <summary>
-    /// Each row's header element, by <see cref="RowKey"/> — the focus target when a row has no usable
+    /// Each row's header element, by row identity — the focus target when a row has no usable
     /// control to take focus. Element references, unlike component references, are re-captured every
     /// render, so keying them by row identity costs nothing extra; it is done anyway so every focus
     /// dictionary in this component shares one lookup key.
@@ -55,21 +54,11 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private readonly Dictionary<object, ElementReference> _rowHeaders = new();
 
     /// <summary>
-    /// Weak per-item tokens, minted once per item instance and reused for its lifetime — the
-    /// mechanism behind <see cref="RowKey"/> (#334).
+    /// Tracks each row's identity for <c>@key</c> and the focus dictionaries below — moved into core
+    /// as <see cref="CollectionRowIdentity"/> (#334, #401, #422) so this adapter and
+    /// <c>FormCraft.ForFluentUI</c> share one implementation instead of two identical copies.
     /// </summary>
-    /// <remarks>
-    /// A <see cref="ConditionalWeakTable{TKey,TValue}"/> compares KEYS by reference, never by
-    /// <c>Equals</c> — the property #308's reverted <c>@key="Items[index]"</c> was missing. That
-    /// attempt keyed on the item itself, so two rows whose items compared EQUAL (a <c>record</c>, a
-    /// <c>struct</c>, or any <c>Equals</c>-overriding class) collided into Blazor's duplicate-key
-    /// render exception. A token is a fresh, unique <see cref="object"/> minted once per item
-    /// instance and never compared by value, so two equal-by-value rows still get two different
-    /// tokens. Weak, and never written to by this component's own Add/Remove/Move: it stays correct
-    /// even when <see cref="Items"/> — the CALLER's list — is mutated from outside, and an item that
-    /// leaves the list is collected normally once nothing else references it.
-    /// </remarks>
-    private readonly ConditionalWeakTable<object, object> _rowTokens = new();
+    private readonly CollectionRowIdentity _rowIdentity = new();
 
     /// <summary>The <b>Add</b> button, when one is rendered — the second focus target in the chain.</summary>
     private MudButton? _addButton;
@@ -237,62 +226,6 @@ public partial class CollectionFieldComponent<TModel, TItem>
         "removed.";
 
     /// <summary>
-    /// This row's identity (#334) — a per-item weak token for a reference-type item that appears
-    /// only once in <see cref="Items"/>; a boxed <paramref name="index"/> otherwise. Used both as the
-    /// row's <c>@key</c> and as the lookup key for every focus dictionary above, so "the button now
-    /// at index N" and "the button for the row Blazor rendered at N" always name the same object.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// The boxed-<c>int</c> fallback is not a cop-out: Blazor's keyed reconciliation compares keys
-    /// with <c>Equals</c>/<c>GetHashCode</c> (<c>EqualityComparer&lt;object&gt;.Default</c>), and a
-    /// boxed <see cref="int"/> compares by VALUE across renders — so a loop whose length does not
-    /// change out from under a given index reconciles identically to an unkeyed one. That is exactly
-    /// what a value-typed <typeparamref name="TItem"/> gets: it boxes fresh on every access, so no
-    /// reference-stable identity exists to hand <see cref="_rowTokens"/>, and today's positional
-    /// behaviour is preserved rather than approximated.
-    /// </para>
-    /// <para>
-    /// The other fallback case is the SAME item object instance appearing more than once in
-    /// <see cref="Items"/> right now (<see cref="HasDuplicateReference"/>) — legal for a reference
-    /// type, and it would otherwise mint one token for two rows, which is the duplicate-key crash a
-    /// keyed loop exists to avoid (#308). Both checks read <see cref="Items"/> live, not a snapshot,
-    /// so they stay correct under mutation this component was never told about.
-    /// </para>
-    /// </remarks>
-    private object RowKey(int index)
-    {
-        if (typeof(TItem).IsValueType)
-        {
-            return index;
-        }
-
-        var item = Items[index];
-        if (item is null || HasDuplicateReference(item, index))
-        {
-            return index;
-        }
-
-        return _rowTokens.GetValue(item, _ => new object());
-    }
-
-    // ponytail: O(n) scan per row (O(n^2) per render) — collections here are short, hand-built lists
-    // a user assembles by clicking "Add item", not bulk data. Switch to a single reference-identity
-    // counting pass over Items if that stops being true.
-    private bool HasDuplicateReference(TItem item, int index)
-    {
-        for (var i = 0; i < Items.Count; i++)
-        {
-            if (i != index && ReferenceEquals(Items[i], item))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
     /// Whether <see cref="Configuration"/>'s <c>MaxItems</c> has been reached, OR the binding is
     /// currently unreadable (#433) — folded in here, rather than checked as a third, separately-wired
     /// condition, so every existing consumer (<see cref="AddButtonRendered"/>, <see cref="AddItem"/>)
@@ -356,7 +289,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // just above can synchronously run a consumer's own handler that nulls this field's nested
         // intermediate, so Items.Count below can be 0 even though an item really was just added to
         // what was, until that handler ran, a readable list. FocusRowAsync's own bounds check is what
-        // keeps that -1 from reaching RowKey.
+        // keeps that -1 from reaching _rowIdentity.KeyFor.
         if (!HasReachedMax)
         {
             return;
@@ -433,7 +366,8 @@ public partial class CollectionFieldComponent<TModel, TItem>
         // The row this index named may no longer exist by the time this runs: AddItem/MoveItemUp/
         // MoveItemDown compute it from an Items read that can be stale by the time OnAfterRenderAsync
         // processes it — most concretely, NotifyCollectionChanged awaiting a consumer's handler that
-        // makes the binding unreadable collapses Items to empty before this runs (#433). RowKey(index)
+        // makes the binding unreadable collapses Items to empty before this runs (#433).
+        // _rowIdentity.KeyFor(Items, index)
         // below indexes Items directly and throws for an out-of-range index rather than returning
         // null, so this has to be checked before either branch touches it.
         if (index < 0 || index >= Items.Count)
@@ -452,7 +386,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
             }
         }
 
-        if (_rowHeaders.TryGetValue(RowKey(index), out var header))
+        if (_rowHeaders.TryGetValue(_rowIdentity.KeyFor(Items, index), out var header))
         {
             await FocusRestore.FocusSafelyAsync(header);
         }
@@ -479,7 +413,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
         var upEnabled = index > 0;
         var downEnabled = index < Items.Count - 1;
 
-        var key = RowKey(index);
+        var key = _rowIdentity.KeyFor(Items, index);
         var travelled = movedDown ? _moveDownButtons : _moveUpButtons;
         var travelledEnabled = movedDown ? downEnabled : upEnabled;
         if (travelledEnabled && travelled.TryGetValue(key, out var preferred))
@@ -540,7 +474,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// to <b>Add</b>. Entries therefore outlive the rows they came from, and correctness comes from
     /// asking what is rendered <i>now</i>: the index must still be within <c>Items</c>, delete must
     /// still be rendered at all (reaching <c>MinItems</c> unmounts every one of them at once), and
-    /// the lookup goes through <see cref="RowKey"/> — computed from <b>today's</b>
+    /// the lookup goes through <see cref="CollectionRowIdentity.KeyFor{TItem}"/> — computed from <b>today's</b>
     /// <c>Items[index]</c> — rather than the index itself, so a row <c>@key</c> has moved to a new
     /// position (#334) is still found by the button its OWN item was given, not by whatever button
     /// used to occupy this slot.
@@ -549,7 +483,7 @@ public partial class CollectionFieldComponent<TModel, TItem>
         DeleteButtonsRendered
         && index >= 0
         && index < Items.Count
-        && _deleteButtons.TryGetValue(RowKey(index), out var button)
+        && _deleteButtons.TryGetValue(_rowIdentity.KeyFor(Items, index), out var button)
             ? button
             : null;
 
