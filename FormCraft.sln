@@ -34,7 +34,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build-config", "build-confi
 	ProjectSection(SolutionItems) = preProject
 		global.json = global.json
 		NuGet.config = NuGet.config
-		GitVersion.yml = GitVersion.yml
 		renovate.json = renovate.json
 		release-please-config.json = release-please-config.json
 		.release-please-manifest.json = .release-please-manifest.json

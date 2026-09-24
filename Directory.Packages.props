@@ -40,9 +40,7 @@
     <!-- Code quality -->
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="Markdig" Version="1.4.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Http" Version="2.3.13" />
     <!-- Versioning -->
-    <PackageVersion Include="GitVersion.MsBuild" Version="6.8.2" />
     <PackageVersion Include="MinVer" Version="8.0.0" />
   </ItemGroup>
   <!-- .NET 8.0 packages -->
