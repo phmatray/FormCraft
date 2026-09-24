@@ -62,12 +62,17 @@ public static class LovFieldBuilderExtensions
     /// </example>
     public static FieldBuilder<TModel, IEnumerable<TValue>> AsMultiSelectLov<TModel, TValue, TItem>(
         this FieldBuilder<TModel, IEnumerable<TValue>> builder,
-        Action<LovBuilder<TModel, IEnumerable<TValue>, TItem>> configure)
+        Action<LovBuilder<TModel, TValue, TItem>> configure)
         where TModel : new()
     {
-        var lovBuilder = new LovBuilder<TModel, IEnumerable<TValue>, TItem>(builder);
+        // LovBuilder<TModel, TValue, TItem> here is parameterized by the scalar per-item key
+        // type (TValue), not IEnumerable<TValue> — see #467. The field this extension returns
+        // is still bound to IEnumerable<TValue>, so the two are stitched together through
+        // AttachTo, which stores the same LovConfiguration<TItem, TValue> regardless of the
+        // bound field's own value type.
+        var lovBuilder = new LovBuilder<TModel, TValue, TItem>();
         lovBuilder.AllowMultipleSelection();
         configure(lovBuilder);
-        return lovBuilder.Build();
+        return lovBuilder.AttachTo(builder);
     }
 }
