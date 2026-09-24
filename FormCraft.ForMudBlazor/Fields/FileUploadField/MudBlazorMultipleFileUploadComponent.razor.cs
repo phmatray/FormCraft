@@ -62,7 +62,17 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
     }
 
     private Task OpenFilePickerAsync()
-        => _fileUpload?.OpenFilePickerAsync() ?? Task.CompletedTask;
+    {
+        // The Browse button's own Disabled binding stops a mouse/keyboard activation, but the
+        // MudPaper drop zone's @onclick calls this same method directly and carries no Disabled of
+        // its own (#482) — guarded here once so both paths are inert together.
+        if (IsDisabled)
+        {
+            return Task.CompletedTask;
+        }
+
+        return _fileUpload?.OpenFilePickerAsync() ?? Task.CompletedTask;
+    }
 
     private async Task ClearAsync()
     {
@@ -106,6 +116,13 @@ public partial class MudBlazorMultipleFileUploadComponent<TModel>
 
     private async Task RemoveFile(IBrowserFile fileToRemove)
     {
+        // The chip's own OnClose is FormCraft's CustomContent, not part of MudFileUpload's render
+        // tree, so no Disabled binding reaches it (#482) — guarded here directly.
+        if (IsDisabled)
+        {
+            return;
+        }
+
         if (CurrentValue != null)
         {
             var fileList = CurrentValue.ToList();
