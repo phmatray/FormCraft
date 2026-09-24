@@ -65,7 +65,7 @@ public class LovBuilder<TModel, TValue, TItem> where TModel : new()
             _configuration.Columns.Count > 0
                 ? _configuration.Columns.Any(column =>
                     column.ValueSelector(item)?.ToString()?.Contains(text, StringComparison.OrdinalIgnoreCase) == true)
-                : _configuration.DisplaySelector(item).Contains(text, StringComparison.OrdinalIgnoreCase);
+                : _configuration.DisplaySelector(item)?.Contains(text, StringComparison.OrdinalIgnoreCase) == true;
 
         _configuration.DataProvider = (query, _) => Task.FromResult(
             LovDataResult<TItem>.FromCollection(collectionFactory(), query, DefaultSearchPredicate));
