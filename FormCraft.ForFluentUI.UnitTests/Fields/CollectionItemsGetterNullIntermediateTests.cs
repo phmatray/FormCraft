@@ -43,17 +43,12 @@ public class CollectionItemsGetterNullIntermediateTests : FluentUITestBase
     }
 
     /// <summary>
-    /// The top-level <c>Items</c> property exists only so
-    /// <see cref="CollectionFieldConfiguration{TModel, TItem}"/>'s setter-building step — which
-    /// resolves a property by the expression's last member name against <see cref="ParentModel"/>
-    /// directly, not the full nested chain — finds a same-named, same-typed property to bind. This
-    /// test never calls <c>CollectionSetter</c>, so which property it actually targets is irrelevant
-    /// (mirrors <c>CollectionFieldValidatorTests.OrderModel</c>, #408).
+    /// Models a nested collection scenario. <see cref="Details"/> is nullable to test the render
+    /// guard for null-intermediate bindings. The structure mirrors
+    /// <c>CollectionFieldValidatorTests.OrderModel</c> (#408).
     /// </summary>
     public class ParentModel
     {
-        public List<ChildItem> Items { get; set; } = new();
-
         public DetailModel? Details { get; set; }
     }
 

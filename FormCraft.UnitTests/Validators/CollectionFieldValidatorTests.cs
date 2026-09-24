@@ -352,6 +352,86 @@ public class CollectionFieldValidatorTests
         errors.ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task ValidateAllAsync_Should_Propagate_An_Exception_From_A_Genuinely_Faulting_Collection_Accessor()
+    {
+        // Arrange - a broken collection getter, not a null intermediate. Before #425 it was read as
+        // "zero items", which with the default MinItems=0 validated as passing.
+        var validator = new CollectionFieldValidator<OrderModel, OrderItemModel>(
+            new CollectionFieldConfiguration<OrderModel, OrderItemModel>(x => x.FaultingItems));
+
+        // Act & Assert
+        await Should.ThrowAsync<InvalidOperationException>(() =>
+            validator.ValidateAllAsync(new OrderModel(), A.Fake<IServiceProvider>()));
+    }
+
+    [Fact]
+    public async Task ValidateItemFieldAsync_Should_Propagate_An_Exception_From_A_Genuinely_Faulting_Collection_Accessor()
+    {
+        // Arrange
+        var config = new CollectionFieldConfiguration<OrderModel, OrderItemModel>(x => x.FaultingItems)
+        {
+            ItemFormConfiguration = FormBuilder<OrderItemModel>.Create()
+                .AddField(x => x.ProductName, field => field.Required("Product name is required"))
+                .Build()
+        };
+        var validator = new CollectionFieldValidator<OrderModel, OrderItemModel>(config);
+
+        // Act & Assert
+        await Should.ThrowAsync<InvalidOperationException>(() =>
+            validator.ValidateItemFieldAsync(new OrderModel(), 0, "ProductName", A.Fake<IServiceProvider>()));
+    }
+
+    [Fact]
+    public async Task ValidateItemsAsync_TModel_Overload_Should_Propagate_An_Exception_From_A_Genuinely_Faulting_Collection_Accessor()
+    {
+        // Arrange
+        var config = new CollectionFieldConfiguration<OrderModel, OrderItemModel>(x => x.FaultingItems)
+        {
+            ItemFormConfiguration = FormBuilder<OrderItemModel>.Create()
+                .AddField(x => x.ProductName, field => field.Required("Product name is required"))
+                .Build()
+        };
+        var validator = new CollectionFieldValidator<OrderModel, OrderItemModel>(config);
+
+        // Act & Assert
+        await Should.ThrowAsync<InvalidOperationException>(() =>
+            validator.ValidateItemsAsync(new OrderModel(), A.Fake<IServiceProvider>()));
+    }
+
+    [Fact]
+    public async Task ValidateAllAsync_Should_Propagate_An_Exception_From_A_Genuinely_Faulting_Item_Field_Accessor()
+    {
+        // Arrange - the collection reads fine; one item field's getter is broken. This goes through
+        // the per-item traversal's hoisted-getter TryInvoke rather than TryReadCollection (#425).
+        var validator = new CollectionFieldValidator<OrderModel, OrderItemModel>(CreateFaultingItemFieldConfig());
+        var model = new OrderModel { Items = new List<OrderItemModel> { new() } };
+
+        // Act & Assert
+        await Should.ThrowAsync<InvalidOperationException>(() =>
+            validator.ValidateAllAsync(model, A.Fake<IServiceProvider>()));
+    }
+
+    [Fact]
+    public async Task ValidateItemFieldAsync_Should_Propagate_An_Exception_From_A_Genuinely_Faulting_Item_Field_Accessor()
+    {
+        // Arrange - same broken item field, through the single-cell path's TryGetValue (#425).
+        var validator = new CollectionFieldValidator<OrderModel, OrderItemModel>(CreateFaultingItemFieldConfig());
+        var model = new OrderModel { Items = new List<OrderItemModel> { new() } };
+
+        // Act & Assert
+        await Should.ThrowAsync<InvalidOperationException>(() =>
+            validator.ValidateItemFieldAsync(model, 0, "Faulting", A.Fake<IServiceProvider>()));
+    }
+
+    private static CollectionFieldConfiguration<OrderModel, OrderItemModel> CreateFaultingItemFieldConfig()
+        => new(x => x.Items)
+        {
+            ItemFormConfiguration = FormBuilder<OrderItemModel>.Create()
+                .AddField(x => x.Faulting, field => field.Required("Faulting is required"))
+                .Build()
+        };
+
     private CollectionFieldConfiguration<OrderModel, OrderItemModel> CreateCollectionConfig(
         int minItems = 0, int maxItems = 0)
     {
@@ -387,6 +467,14 @@ public class CollectionFieldValidatorTests
         // finds a same-named, same-typed property to bind - the tests using this nested path never
         // call CollectionSetter, so which property it actually targets is irrelevant to them.
         public OrderDetailModel? Details { get; set; }
+
+        // A genuinely broken collection getter (#425). The no-op setter exists only because
+        // CollectionFieldConfiguration's constructor derives CollectionSetter from the same member.
+        public List<OrderItemModel> FaultingItems
+        {
+            get => throw new InvalidOperationException("boom");
+            set { }
+        }
     }
 
     public class OrderDetailModel
@@ -401,6 +489,9 @@ public class CollectionFieldValidatorTests
         public decimal UnitPrice { get; set; } = 0m;
         public decimal TotalPrice => Quantity * UnitPrice;
         public NestedOrderDetail? Nested { get; set; }
+
+        // A genuinely broken item field getter (#425) - only read by tests that bind it.
+        public string Faulting => throw new InvalidOperationException("boom");
     }
 
     public class NestedOrderDetail

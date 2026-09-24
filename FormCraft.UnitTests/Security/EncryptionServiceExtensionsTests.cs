@@ -120,6 +120,22 @@ public class EncryptionServiceExtensionsTests
     }
 
     [Fact]
+    public void EncryptConfiguredFields_Should_Resolve_A_Property_Inherited_Through_A_Base_Interface()
+    {
+        // #429: Contact is declared IContact, and Email lives on the base interface IHasEmail that
+        // IContact inherits from, not on IContact itself.
+        var model = new InterfaceModel { Contact = new Contact { Email = "a@b.com" } };
+        var configuration = FormBuilder<InterfaceModel>.Create()
+            .WithSecurity(security => security.EncryptField(x => x.Contact.Email))
+            .Build();
+
+        var result = _encryptionService.EncryptConfiguredFields(model, configuration);
+
+        result["Contact.Email"].ShouldBe("enc(a@b.com)");
+        model.Contact.Email.ShouldBe("a@b.com");
+    }
+
+    [Fact]
     public void EncryptConfiguredFields_Should_Use_Security_From_Form_Configuration_Overload()
     {
         // Arrange
@@ -160,5 +176,24 @@ public class EncryptionServiceExtensionsTests
     private class TestAddress
     {
         public string City { get; set; } = string.Empty;
+    }
+
+    private interface IHasEmail
+    {
+        string Email { get; set; }
+    }
+
+    private interface IContact : IHasEmail
+    {
+    }
+
+    private class Contact : IContact
+    {
+        public string Email { get; set; } = "";
+    }
+
+    private class InterfaceModel
+    {
+        public IContact Contact { get; set; } = new Contact();
     }
 }

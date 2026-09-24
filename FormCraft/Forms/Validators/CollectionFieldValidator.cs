@@ -263,11 +263,10 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
     /// <c>async</c> historically defended against an exception from a misbehaving accessor escaping
     /// this method call synchronously instead of completing the returned <see cref="Task" /> as
     /// faulted (#344) - a caller awaiting elsewhere in a <c>try</c>/<c>catch</c> (or collecting the
-    /// task for <see cref="Task.WhenAll(Task[])" />) would see it differently otherwise. The accessor
-    /// read itself is now guarded by <see cref="TryReadCollection" /> (#408) for the null-intermediate
-    /// case specifically, but <c>async</c> stays as a defence for any other misbehaving accessor -
-    /// <see cref="TryReadCollection" /> deliberately does not widen into a general try/catch (see its
-    /// own remarks).
+    /// task for <see cref="Task.WhenAll(Task[])" />) would see it differently otherwise.
+    /// <see cref="TryReadCollection" /> (#408) absorbs only the null-intermediate case; any other
+    /// accessor fault, or a cancellation, propagates out of it (#425) - so that path is live, and
+    /// <c>async</c> is what makes it surface as a faulted task rather than a synchronous throw.
     /// </remarks>
     public async Task<List<CollectionItemError>> ValidateItemsAsync(TModel model, IServiceProvider services)
         => await ValidateItemsAsync(TryReadCollection(model), services);
@@ -283,18 +282,17 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
     /// try/catch: <see cref="ICollectionFieldConfiguration{TModel, TItem}.CollectionAccessor"/> is
     /// <c>Func&lt;TModel, List&lt;TItem&gt;&gt;</c>, which converts to <c>TryInvoke</c>'s
     /// <c>Func&lt;TModel, object&gt;</c> parameter by ordinary delegate covariance (<c>List&lt;TItem&gt;</c>
-    /// is a reference type). <c>TryInvoke</c> deliberately catches <see cref="Exception"/> broadly,
-    /// matching <see cref="FieldValueGetterCache{TModel}.TryGetValue"/>'s own rationale (#397) and
-    /// #408's own spec: the read invokes an arbitrary compiled expression that can fail for any reason
-    /// a delegate call can, and narrowing the catch to only the null-intermediate case is a design
-    /// change to that shared, already-reviewed helper - not something this one call site should
-    /// silently redecide. A failed read comes back as <see langword="null"/>, which every caller here
-    /// already treats as zero items via its existing null-coalescing/null-check logic - no new
-    /// "unreadable collection" error shape is introduced. One private helper here rather than the
-    /// same three lines duplicated at each call site.
+    /// is a reference type). <c>TryInvoke</c> catches only <see cref="NullReferenceException"/> - the
+    /// null-intermediate case (#425 narrowed it from <see cref="Exception"/>). An unreachable
+    /// collection comes back as <see langword="null"/>, which every caller here already treats as zero
+    /// items via its existing null-coalescing/null-check logic - no new "unreadable collection" error
+    /// shape is introduced. Every other exception - a genuinely faulting accessor, a cancellation -
+    /// propagates through this method to its callers, rather than validating as an empty, passing
+    /// collection. One private helper here rather than the same three lines duplicated at each call
+    /// site.
     /// </remarks>
     /// <param name="model">The parent model instance.</param>
-    /// <returns>The collection on success; <see langword="null"/> when the read fails.</returns>
+    /// <returns>The collection on success; <see langword="null"/> when a null intermediate makes it unreachable.</returns>
     private List<TItem>? TryReadCollection(TModel model)
     {
         FieldValueGetterCache<TModel>.TryInvoke(_configuration.CollectionAccessor, model, out var value);
