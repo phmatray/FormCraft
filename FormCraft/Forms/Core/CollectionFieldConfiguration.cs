@@ -70,8 +70,10 @@ public class CollectionFieldConfiguration<TModel, TItem> : ICollectionFieldConfi
         // so two collection fields bound through different nested paths that happen to share a last
         // segment (x => x.Billing.Items and x => x.Shipping.Items) no longer collide under the one
         // name DynamicFormValidator looks a collection field up by (#428). A single, non-nested path
-        // is one segment, so it produces exactly the string it always has.
-        FieldName = BuildQualifiedFieldName(memberExpression);
+        // is one segment, so it produces exactly the string it always has. MemberPathResolver already
+        // does this walk for #423's security paths (FormSecurityEnforcer.BuildAuditKey, #406, is
+        // itself a one-line call to it) - reuse it here rather than a third copy of the same walk.
+        FieldName = MemberPathResolver.GetDottedPath(collectionExpression) ?? memberExpression.Member.Name;
         Label = memberExpression.Member.Name;
 
         // Compile the accessor
@@ -88,25 +90,5 @@ public class CollectionFieldConfiguration<TModel, TItem> : ICollectionFieldConfi
         var assign = Expression.Assign(memberExpression, valueParameter);
         CollectionSetter = Expression.Lambda<Action<TModel, List<TItem>>>(
             assign, collectionExpression.Parameters[0], valueParameter).Compile();
-    }
-
-    /// <summary>
-    /// Walks a member-access chain (e.g. the <c>Items</c> in <c>x => x.Billing.Items</c>, whose
-    /// <see cref="MemberExpression.Expression"/> is itself the <c>Billing</c> member) and joins every
-    /// hop's member name with <c>.</c>, in root-to-leaf order (<c>"Billing.Items"</c>). Mirrors
-    /// <c>FormSecurityEnforcer.BuildAuditKey</c> (#406) — same shape, same reason: a lookup keyed on
-    /// only the last segment collides for two differently-nested paths sharing it.
-    /// </summary>
-    private static string BuildQualifiedFieldName(MemberExpression memberExpression)
-    {
-        var segments = new Stack<string>();
-        Expression? current = memberExpression;
-        while (current is MemberExpression member)
-        {
-            segments.Push(member.Member.Name);
-            current = member.Expression;
-        }
-
-        return string.Join(".", segments);
     }
 }
