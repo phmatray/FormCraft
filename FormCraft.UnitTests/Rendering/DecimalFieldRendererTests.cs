@@ -132,6 +132,7 @@ public class DecimalFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => field.Placeholder).Returns(string.Empty);
         A.CallTo(() => field.IsRequired).Returns(isRequired);
         A.CallTo(() => field.IsDisabled).Returns(isDisabled);
+        A.CallTo(() => field.DisabledCondition).Returns(null);
         A.CallTo(() => field.AdditionalAttributes).Returns(new Dictionary<string, object>());
 
         return field;

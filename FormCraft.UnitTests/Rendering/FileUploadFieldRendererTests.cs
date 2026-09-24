@@ -85,6 +85,7 @@ public class FileUploadFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => field.AdditionalAttributes).Returns(new Dictionary<string, object>());
         A.CallTo(() => field.IsRequired).Returns(false);
         A.CallTo(() => field.IsDisabled).Returns(false);
+        A.CallTo(() => field.DisabledCondition).Returns(null);
         A.CallTo(() => field.IsReadOnly).Returns(false);
 
         var context = A.Fake<IFieldRenderContext<TestModel>>();

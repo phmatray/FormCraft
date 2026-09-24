@@ -208,6 +208,7 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => field.Label).Returns(label);
         A.CallTo(() => field.HelpText).Returns(helpText ?? string.Empty);
         A.CallTo(() => field.IsDisabled).Returns(isDisabled);
+        A.CallTo(() => field.DisabledCondition).Returns(null);
         A.CallTo(() => field.AdditionalAttributes).Returns(new Dictionary<string, object>());
 
         return field;
@@ -602,6 +603,7 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => field.Label).Returns(label);
         A.CallTo(() => field.HelpText).Returns(string.Empty);
         A.CallTo(() => field.IsDisabled).Returns(false);
+        A.CallTo(() => field.DisabledCondition).Returns(null);
         A.CallTo(() => field.IsRequired).Returns(false);
         A.CallTo(() => field.AdditionalAttributes).Returns(attributes);
 
@@ -617,6 +619,7 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => field.Label).Returns(label);
         A.CallTo(() => field.HelpText).Returns(string.Empty);
         A.CallTo(() => field.IsDisabled).Returns(false);
+        A.CallTo(() => field.DisabledCondition).Returns(null);
         A.CallTo(() => field.IsRequired).Returns(isRequired);
         A.CallTo(() => field.AdditionalAttributes).Returns(new Dictionary<string, object>());
 
@@ -630,6 +633,7 @@ public class BoolFieldRendererTests : CoreRendererTestBase
         A.CallTo(() => field.Label).Returns(label);
         A.CallTo(() => field.HelpText).Returns(string.Empty);
         A.CallTo(() => field.IsDisabled).Returns(false);
+        A.CallTo(() => field.DisabledCondition).Returns(null);
         A.CallTo(() => field.IsRequired).Returns(false);
         A.CallTo(() => field.AdditionalAttributes).Returns(new Dictionary<string, object>());
 
