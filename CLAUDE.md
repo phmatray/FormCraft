@@ -191,10 +191,10 @@ build/                          # NUKE build automation
 The entire API is built around method chaining with immutable configuration:
 ```csharp
 FormBuilder<TModel>.Create()
-    .AddField(x => x.Property, field => field.ConfigureField())
-    .AddFieldGroup(group => group.ConfigureGroup())
+    .AddField(x => x.Property, field => field.WithLabel("Name").Required())
+    .AddFieldGroup(group => group.WithGroupName("Contact").WithColumns(2))
     .WithLayout(FormLayout.Grid)
-    .WithSecurity(security => security.ConfigureSecurity())
+    .WithSecurity(security => security.EncryptField(x => x.SSN).EnableCsrfProtection())
     .Build() // Returns immutable IFormConfiguration<TModel>
 ```
 
@@ -237,10 +237,9 @@ public interface IFieldValidator<TModel, TValue>
 #### 4. Observer Pattern (Field Dependencies)
 Reactive field updates based on dependencies:
 ```csharp
-.AddField(x => x.TotalPrice)
-    .DependsOn(x => x.Quantity, x => x.Price)
-    .WithValueProvider((model, services) => model.Quantity * model.Price)
-    .WithVisibilityProvider(model => model.Quantity > 0)
+.AddField(x => x.TotalPrice, field => field
+    .DependsOn(x => x.Quantity, (model, quantity) => model.TotalPrice = quantity * model.Price)
+    .VisibleWhen(model => model.Quantity > 0))
 ```
 
 **Dependency Types:**
@@ -311,11 +310,11 @@ because it lives in core rather than in one of the two packages that need it.
 #### Security Features (v2.0.0+)
 ```csharp
 .WithSecurity(security => security
-    .EncryptField(x => x.SSN, algorithm: "AES256")
+    .EncryptField(x => x.SSN)
     .EncryptField(x => x.CreditCard)
     .EnableCsrfProtection()
-    .WithRateLimit(maxRequests: 5, window: TimeSpan.FromMinutes(1))
-    .EnableAuditLogging(logger => logger.LogToDatabase()))
+    .WithRateLimit(5, TimeSpan.FromMinutes(1))
+    .EnableAuditLogging(cfg => cfg.LogFieldChanges = true))
 ```
 
 ### Important Conventions
@@ -604,32 +603,34 @@ public static class FormExtensions
 #### Implementing Field Dependencies
 ```csharp
 // Conditional visibility
-.AddField(x => x.State)
-    .DependsOn(x => x.Country)
-    .WithVisibilityProvider(model => model.Country == "USA")
+.AddField(x => x.State, field => field
+    .VisibleWhen(model => model.Country == "USA"))
 
-// Calculated values
-.AddField(x => x.Total)
-    .DependsOn(x => x.Quantity, x => x.Price, x => x.TaxRate)
-    .WithValueProvider((model, _) => 
-        model.Quantity * model.Price * (1 + model.TaxRate))
-    .ReadOnly()
+// Calculated values (chain one .DependsOn(...) call per dependency)
+.AddField(x => x.Total, field => field
+    .DependsOn(x => x.Quantity, (model, quantity) =>
+        model.Total = quantity * model.Price * (1 + model.TaxRate))
+    .DependsOn(x => x.Price, (model, price) =>
+        model.Total = model.Quantity * price * (1 + model.TaxRate))
+    .DependsOn(x => x.TaxRate, (model, taxRate) =>
+        model.Total = model.Quantity * model.Price * (1 + taxRate))
+    .ReadOnly())
 ```
 
 #### Form Templates
 ```csharp
 // Use predefined templates
-var form = FormTemplates.CreateLoginForm<LoginModel>();
-var form = FormTemplates.CreateRegistrationForm<UserModel>();
+var form = FormTemplates.LoginForm<LoginModel>();
+var form = FormTemplates.RegistrationForm<UserModel>();
 
-// Create custom template
+// Create custom template — FormCraft has no built-in wizard/multi-step layout;
+// a "template" is just a static method that returns a configured FormBuilder<T>
 public static class MyTemplates
 {
-    public static FormBuilder<T> CreateWizardForm<T>() where T : new()
+    public static FormBuilder<T> CreateGridForm<T>() where T : new()
     {
         return FormBuilder<T>.Create()
-            .WithLayout(FormLayout.Wizard)
-            .WithNavigation(nav => nav.EnableStepIndicator());
+            .WithLayout(FormLayout.Grid);
     }
 }
 ```
@@ -641,18 +642,17 @@ public static class MyTemplates
 .WithSecurity(security => security
     // Field-level encryption
     .EncryptField(x => x.SSN)
-    .EncryptField(x => x.CreditCard, algorithm: "AES256")
+    .EncryptField(x => x.CreditCard)
     
     // CSRF protection
     .EnableCsrfProtection()
-    .WithCsrfTokenProvider(customProvider)
     
     // Rate limiting
     .WithRateLimit(5, TimeSpan.FromMinutes(1))
     
-    // Audit logging
-    .EnableAuditLogging()
-    .WithAuditLogger(customLogger))
+    // Audit logging — the Action<AuditLogConfiguration> callback is the only
+    // audit-logging configuration surface today; there is no custom logger hook
+    .EnableAuditLogging(cfg => cfg.LogFieldChanges = true))
 ```
 
 #### Field Groups with Layouts
@@ -661,28 +661,23 @@ public static class MyTemplates
     .WithGroupName("Contact Information")
     .WithColumns(2)
     .ShowInCard(elevation: 2)
-    .Collapsible(defaultExpanded: true)
     .AddField(x => x.Email)
     .AddField(x => x.Phone)
-    .AddField(x => x.Address, field => field.FullWidth()))
+    .AddField(x => x.Address))
 ```
 
 #### Async Operations
 ```csharp
-// Async validation
-.WithAsyncValidator(async (value, services) => {
-    var api = services.GetRequiredService<IApiService>();
-    var isUnique = await api.CheckUniqueAsync(value);
-    return isUnique 
-        ? ValidationResult.Success()
-        : ValidationResult.Error("Value must be unique");
-})
+// Async validation — a bare Func<TValue, Task<bool>> plus a separate error message,
+// not a ValidationResult-returning function
+.WithAsyncValidator(
+    async value => await apiService.CheckUniqueAsync(value),
+    "Value must be unique")
 
-// Async value provider
-.WithAsyncValueProvider(async (model, services) => {
-    var api = services.GetRequiredService<IApiService>();
-    return await api.GetDefaultValueAsync(model.Id);
-})
+// FormCraft has no separate async-value-provider method — a value computed from an
+// async source is set inside a DependsOn async callback instead
+.DependsOn(x => x.Id, async (model, id) =>
+    model.DefaultValue = await apiService.GetDefaultValueAsync(id))
 ```
 
 ### Versioning and Release Process
