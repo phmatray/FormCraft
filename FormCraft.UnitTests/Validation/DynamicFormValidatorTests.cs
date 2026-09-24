@@ -288,16 +288,40 @@ public class DynamicFormValidatorTests : BunitContext
 
         RenderValidator(editContext, config);
 
-        // Act - FieldName is the expression's last member ("Value"), not the dotted path
-        // (FieldConfiguration.cs), so that is what HandleFieldChanged matches on. Validators complete
+        // Act - FieldName is the expression's full dotted path ("Nested.Value") since #437, so that
+        // is what HandleFieldChanged matches on. Validators complete
         // synchronously, so the async void handler completes synchronously too; asserting immediately
         // is deterministic (see CollectionValidationPassTests).
         Should.NotThrow(() =>
-            editContext.NotifyFieldChanged(new FieldIdentifier(model, "Value")));
+            editContext.NotifyFieldChanged(new FieldIdentifier(model, "Nested.Value")));
 
         // Assert - the failed read is validated as null, not silently skipped (review finding, #397).
-        editContext.GetValidationMessages(new FieldIdentifier(model, "Value"))
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Nested.Value"))
             .ShouldContain("Nested value is required");
+    }
+
+    [Fact]
+    public void HandleFieldChanged_Should_Run_The_Changed_Nested_Fields_Own_Validator_Not_A_Same_Suffix_Siblings()
+    {
+        // Arrange - two nested fields sharing a last segment. Before #437 both were named "Value",
+        // so the FieldName lookup always resolved to Billing (registered first): editing Shipping ran
+        // Billing's validator and filed its message under the identifier both fields shared.
+        var model = new TestModel();
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Billing.Value, field => field.WithValidator(_ => false, "Billing is bad"))
+            .AddField(x => x.Shipping.Value, field => field.WithValidator(_ => false, "Shipping is bad"))
+            .Build();
+
+        RenderValidator(editContext, config);
+
+        // Act - validators complete synchronously, so the async void handler does too.
+        editContext.NotifyFieldChanged(new FieldIdentifier(model, "Shipping.Value"));
+
+        // Assert
+        editContext.GetValidationMessages(new FieldIdentifier(model, "Shipping.Value"))
+            .ShouldBe(new[] { "Shipping is bad" });
+        editContext.GetValidationMessages().ShouldNotContain("Billing is bad");
     }
 
     [Fact]
@@ -594,6 +618,10 @@ public class DynamicFormValidatorTests : BunitContext
         public string Email { get; set; } = string.Empty;
 
         public NestedModel? Nested { get; set; }
+
+        public NestedModel Billing { get; set; } = new();
+
+        public NestedModel Shipping { get; set; } = new();
 
         public List<ItemModel> Items { get; set; } = [];
 

@@ -250,7 +250,7 @@ public class CollectionFieldValidatorTests
         // Assert - item 0's failed read is validated as null, not silently skipped: its Required()
         // nested field still reports invalid (review finding, #397). Item 1's ProductName error still
         // surfaces even though item 0's nested read failed.
-        errors.ShouldContain(e => e.ItemIndex == 0 && e.FieldName == "Value");
+        errors.ShouldContain(e => e.ItemIndex == 0 && e.FieldName == "Nested.Value"); // full path since #437
         errors.ShouldContain(e => e.ItemIndex == 1 && e.FieldName == "ProductName");
     }
 
@@ -274,12 +274,12 @@ public class CollectionFieldValidatorTests
         var services = A.Fake<IServiceProvider>();
 
         // Act
-        var errors = await validator.ValidateItemFieldAsync(model, 0, "Value", services);
+        var errors = await validator.ValidateItemFieldAsync(model, 0, "Nested.Value", services);
 
         // Assert - the failed read is validated as null, not silently skipped: the Required() field
         // still reports invalid (review finding, #397). An empty-errors assertion alone would also
         // pass a regression that skips validating a field whose read failed.
-        errors.ShouldContain(e => e.FieldName == "Value" && e.Message == "Nested value is required");
+        errors.ShouldContain(e => e.FieldName == "Nested.Value" && e.Message == "Nested value is required");
     }
 
     [Fact]

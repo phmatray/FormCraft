@@ -325,9 +325,10 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
     // dotted, nested collection FieldName such as "Billing.Items[0].ProductName" (#428: FieldName is
     // now qualified by its full member-access chain, not just its last segment, so the collection
     // group here must accept the same dots or a nested collection's per-keystroke item validation
-    // would silently stop matching).
+    // would silently stop matching). The item field group accepts dots for the same reason on the
+    // scalar side (#437): an item bound to item => item.Details.Name reports as "Items[0].Details.Name".
     private static readonly System.Text.RegularExpressions.Regex CollectionItemFieldPattern =
-        new(@"^(?<collection>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\[(?<index>\d+)\]\.(?<field>[A-Za-z_]\w*)$",
+        new(@"^(?<collection>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\[(?<index>\d+)\]\.(?<field>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)$",
             System.Text.RegularExpressions.RegexOptions.Compiled);
 
     private async void HandleFieldChanged(object? sender, FieldChangedEventArgs e)

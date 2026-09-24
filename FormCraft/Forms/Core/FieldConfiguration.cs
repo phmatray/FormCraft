@@ -86,8 +86,16 @@ public class FieldConfiguration<TModel, TValue> : IFieldConfiguration<TModel, TV
     {
         ValueExpression = valueExpression;
 
-        var memberExpression = valueExpression.Body as MemberExpression;
-        FieldName = memberExpression?.Member.Name ?? throw new ArgumentException("Invalid expression");
-        Label = FieldName;
+        var memberExpression = valueExpression.Body as MemberExpression
+            ?? throw new ArgumentException("Invalid expression");
+
+        // Qualify the identity by the FULL member-access chain ("Billing.Amount"), not just the last
+        // member, so two fields bound through different nested paths sharing a last segment
+        // (x => x.Billing.Amount and x => x.Shipping.Amount) no longer collide under the name
+        // DynamicFormValidator and FieldContext's FieldIdentifier key a field by (#437, the scalar
+        // sibling of #428). A non-nested path is one segment, so its FieldName is unchanged. The
+        // default Label stays the bare member: it is display text, not identity.
+        FieldName = MemberPathResolver.GetDottedPath(valueExpression) ?? memberExpression.Member.Name;
+        Label = memberExpression.Member.Name;
     }
 }

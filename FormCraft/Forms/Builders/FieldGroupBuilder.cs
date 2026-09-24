@@ -37,10 +37,11 @@ public class FieldGroupBuilder<TModel> where TModel : new()
         // Add field through the form builder with configuration
         _formBuilder.AddField(expression, fieldConfig);
 
-        // Get the field name from the expression
+        // Record the field's own FieldName - its full dotted path since #437 - because that is what
+        // the adapters match group membership against.
         if (expression.Body is MemberExpression memberExpression)
         {
-            _fieldGroup.FieldNames.Add(memberExpression.Member.Name);
+            _fieldGroup.FieldNames.Add(MemberPathResolver.GetDottedPath(expression) ?? memberExpression.Member.Name);
         }
 
         return this;

@@ -236,7 +236,7 @@ public partial class FormCraftComponent<TModel>
     /// Reads a custom-template field's value through the compiled getter the renderer and
     /// validators already share (<see cref="FieldValueGetterCache{TModel}"/>, #312), instead of the
     /// per-render <c>GetProperty</c>/<c>GetValue</c> reflection this replaced (#330).
-    /// <c>field.FieldName</c> is only the expression's last member (e.g. <c>"Value"</c> for
+    /// <c>field.FieldName</c> was, before #437, only the expression's last member (e.g. <c>"Value"</c> for
     /// <c>x =&gt; x.Nested.Value</c>), so the old lookup against <typeparamref name="TModel"/> failed
     /// — and the field rendered nothing — for anything but a direct top-level property. Reading
     /// through the expression itself removes that failure mode for any reachable binding.
@@ -248,7 +248,7 @@ public partial class FormCraftComponent<TModel>
     /// instead of the exception reaching the render pipeline or the field staying invisible.
     /// <para>
     /// ⚠️ The latch key is the field's <b>expression text</b>, not <c>field.FieldName</c> —
-    /// <c>FieldName</c> is only the value expression's last member (#330's own defect), so two
+    /// <c>FieldName</c> was, before #437, only the value expression's last member (#330's own defect), so two
     /// different nested bindings that happen to end in the same member name (<c>x =&gt; x.A.Value</c>
     /// and <c>x =&gt; x.B.Value</c> both report <c>"Value"</c>) would otherwise share one latch slot:
     /// whichever field failed first would silently suppress the other's warning forever, the same

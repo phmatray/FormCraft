@@ -141,10 +141,8 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
     /// </summary>
     private void LoadValueFromModel()
     {
-        var property = Context.Model?.GetType().GetProperty(Context.Field.FieldName);
-        if (property != null && Context.Model != null)
+        if (TryReadModelValue(out var value))
         {
-            var value = property.GetValue(Context.Model);
             // Note: when TValue is a nullable value type (e.g. int?), a null model
             // value falls through to default(TValue), which IS null - null is
             // preserved rather than coerced to zero (#150).
@@ -175,14 +173,35 @@ public abstract class FieldComponentBase<TModel, TValue> : ComponentBase, IField
         // Settled state: reload whenever the model diverged from what we display.
         // This is how external mutations (dependency callbacks, programmatic
         // model changes) reach the UI.
-        var property = Context.Model?.GetType().GetProperty(Context.Field.FieldName);
-        if (property != null && Context.Model != null)
+        if (TryReadModelValue(out var modelValue))
         {
-            var modelValue = property.GetValue(Context.Model);
             var typedModelValue = modelValue is TValue typed ? typed : default;
             return !EqualityComparer<TValue>.Default.Equals(_currentValue, typedModelValue);
         }
         return false;
+    }
+
+    /// <summary>
+    /// Reads the field's current value from the model through its binding expression — the compiled
+    /// getter rendering and validation already share — so a nested binding such as
+    /// <c>x =&gt; x.Billing.Amount</c> reaches its own member. The flat
+    /// <c>GetProperty(Context.Field.FieldName)</c> this replaced read a same-named top-level member
+    /// instead while <c>FieldName</c> was the last member only, and nothing at all once it became the
+    /// full dotted path (#437).
+    /// </summary>
+    /// <returns>
+    /// <see langword="false"/> when there is no model or a null intermediate makes the value
+    /// unreachable; callers then fall back exactly as a failed property lookup always did.
+    /// </returns>
+    private bool TryReadModelValue(out object? value)
+    {
+        if (Context.Model is null)
+        {
+            value = null;
+            return false;
+        }
+
+        return FieldValueGetterCache<TModel>.TryGetValue(Context.Field, Context.Model, out value);
     }
 
     /// <summary>

@@ -151,7 +151,7 @@ public class FieldDependencyTests
 
         // Assert
         capturedPostalCode.ShouldBe("12345");
-        dependency.DependentFieldName.ShouldBe("PostalCode");
+        dependency.DependentFieldName.ShouldBe("Address.PostalCode"); // full path since #437
     }
 
     [Fact]

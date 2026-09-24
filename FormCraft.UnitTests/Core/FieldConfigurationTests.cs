@@ -52,8 +52,40 @@ public class FieldConfigurationTests
         // Act
         var config = new FieldConfiguration<TestModel, string>(expression);
 
+        // Assert: the identity is the full member path (#437), the default label stays the member.
+        config.FieldName.ShouldBe("Address.City");
+        config.Label.ShouldBe("City");
+    }
+
+    [Fact]
+    public void FieldName_Should_Not_Collide_Between_Two_Differently_Nested_Fields_Sharing_A_Last_Segment()
+    {
+        // Act
+        var billing = new FieldConfiguration<TwoSectionModel, decimal>(x => x.Billing.Amount);
+        var shipping = new FieldConfiguration<TwoSectionModel, decimal>(x => x.Shipping.Amount);
+
         // Assert
-        config.FieldName.ShouldBe("City"); // Only the final property name is used
+        billing.FieldName.ShouldBe("Billing.Amount");
+        shipping.FieldName.ShouldBe("Shipping.Amount");
+        billing.Label.ShouldBe("Amount");
+        shipping.Label.ShouldBe("Amount");
+    }
+
+    [Fact]
+    public void FieldName_Should_Qualify_A_Three_Level_Nested_Path()
+    {
+        var config = new FieldConfiguration<ThreeLevelModel, decimal>(x => x.A.B.Amount);
+
+        config.FieldName.ShouldBe("A.B.Amount");
+    }
+
+    [Fact]
+    public void FieldName_Should_Stay_The_Bare_Member_For_A_Non_Nested_Field()
+    {
+        var config = new FieldConfiguration<TestModel, string>(x => x.Name);
+
+        config.FieldName.ShouldBe("Name");
+        config.Label.ShouldBe("Name");
     }
 
     [Fact]
@@ -206,5 +238,31 @@ public class FieldConfigurationTests
     public class AddressModel
     {
         public string City { get; set; } = string.Empty;
+    }
+
+    public class TwoSectionModel
+    {
+        public AmountSection Billing { get; set; } = new();
+        public AmountSection Shipping { get; set; } = new();
+    }
+
+    public class AmountSection
+    {
+        public decimal Amount { get; set; }
+    }
+
+    public class ThreeLevelModel
+    {
+        public LevelA A { get; set; } = new();
+    }
+
+    public class LevelA
+    {
+        public LevelB B { get; set; } = new();
+    }
+
+    public class LevelB
+    {
+        public decimal Amount { get; set; }
     }
 }
