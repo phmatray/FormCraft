@@ -374,7 +374,8 @@ because it lives in core rather than in one of the two packages that need it.
   an attribute whose last write is null — returning `null` for optional fields drops
   `aria-required` entirely instead of leaving it `"false"` (measured; it turned five assertions red)
 - **File upload is covered too, but NOT via `Required` on `MudFileUpload`** (#262). Its
-  `<input type="file">` carries `tabindex="-1"` at `opacity-0` behind a custom drop zone, so
+  `<input type="file">` carries `tabindex="-1"` and stays hidden behind a custom drop zone (unhidden as a
+  transparent `mud-file-upload-dragover` overlay only while a drag is over the zone), so
   annotating that input satisfies a DOM assertion while reaching no user who navigates by focus.
   Both upload components mark the requirement on two reachable channels instead: a visible `*` in
   the field's own `<MudText>` label, and `aria-describedby` on the **Browse** `MudButton` pointing

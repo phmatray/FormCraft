@@ -19,21 +19,26 @@
     Files="@CurrentValue"
     FilesChanged="@OnFileChanged"
     Accept="@Accept"
-    Hidden="@false"
+    Class="relative"
+    InputClass="mud-file-upload-dragover"
     SelectedTemplate="@SuppressBuiltInFileList"
-    InputClass="absolute mud-width-full mud-height-full overflow-hidden z-10 opacity-0"
     ErrorText="@string.Empty"
     tabindex="-1"
     aria-label="@FileInputAccessibleName"
-    @ondrop="@ClearDragClass"
-    @ondragenter="@SetDragClass"
-    @ondragleave="@ClearDragClass"
-    @ondragend="@ClearDragClass">
+    Hidden="@(!_dragging)"
+    OnDrop="@ClearDragClass"
+    OnDragLeave="@ClearDragClass"
+    OnDragEnd="@ClearDragClass">
     <CustomContent>
+        @* Entering the zone unhides the capture input for the drop (see _dragging); the click that
+           "or click" promises opens the picker here, as Browse does. *@
         <MudPaper
             Height="@GetHeight()"
             Outlined="true"
-            Class="@_dragClass">
+            Class="@_dragClass"
+            Style="cursor: pointer"
+            @ondragenter="@SetDragClass"
+            @onclick="@OpenFilePickerAsync">
             <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mud-height-full">
                 <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="Size.Large" Color="Color.Secondary" />
                 <MudText Typo="Typo.h6" Align="Align.Center">

@@ -50,6 +50,57 @@ public class FileUploadFileListTests : FocusAssertingTestBase
     }
 
     [Fact]
+    public void Both_Uploads_Should_Hide_The_Native_Input_At_Rest()
+    {
+        // The native <input type="file"> used to be laid over the drop zone with `Hidden="false"` and
+        // an InputClass ending in `opacity-0` — a utility MudBlazor 9 does not define — so the
+        // browser's "Choose file" control showed through above every drop zone. It is now hidden
+        // outright, and only unhidden (as a transparent overlay) while a drag is over the zone.
+        var single = RenderStandaloneSingleUpload(new TestModel())
+            .FindComponent<MudFileUpload<IBrowserFile>>().Instance;
+        var multiple = RenderStandaloneMultipleUpload(new TestModel())
+            .FindComponent<MudFileUpload<IReadOnlyList<IBrowserFile>>>().Instance;
+
+        single.Hidden.ShouldBeTrue();
+        multiple.Hidden.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Dragging_Over_The_Drop_Zone_Should_Unhide_The_Capture_Input_Until_The_Drop()
+    {
+        // MudBlazor unhides its capture input on drag only when there is no CustomContent, so a file
+        // dropped on FormCraft's zone would have landed on a plain <div> — the browser opens it.
+        foreach (var component in new IRenderedComponent<IComponent>[]
+                 {
+                     RenderStandaloneSingleUpload(new TestModel()),
+                     RenderStandaloneMultipleUpload(new TestModel()),
+                 })
+        {
+            component.Find("input[type=file]").HasAttribute("hidden").ShouldBeTrue();
+
+            component.Find(".mud-file-upload .mud-paper").DragEnter();
+            var input = component.Find("input[type=file]");
+            input.HasAttribute("hidden").ShouldBeFalse();
+            input.ClassList.ShouldContain("mud-file-upload-dragover");
+
+            input.Drop();
+            component.Find("input[type=file]").HasAttribute("hidden").ShouldBeTrue();
+        }
+    }
+
+    [Fact]
+    public void Clicking_The_Drop_Zone_Should_Open_The_File_Picker()
+    {
+        // "Drag and drop file here or click": the click used to land on the overlaid input. With the
+        // input hidden, the drop zone opens the picker itself, as the Browse button does.
+        RenderStandaloneSingleUpload(new TestModel()).Find(".mud-file-upload .mud-paper").Click();
+        JSInterop.Invocations.Count(i => i.Identifier.Contains("openFilePicker", StringComparison.Ordinal)).ShouldBe(1);
+
+        RenderStandaloneMultipleUpload(new TestModel()).Find(".mud-file-upload .mud-paper").Click();
+        JSInterop.Invocations.Count(i => i.Identifier.Contains("openFilePicker", StringComparison.Ordinal)).ShouldBe(2);
+    }
+
+    [Fact]
     public void Two_Selected_Files_Should_Render_Exactly_Two_Close_Buttons()
     {
         // Inverted from Task 1's characterisation (was 4: FormCraft's own 2 + MudBlazor's duplicate

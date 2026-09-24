@@ -356,7 +356,7 @@ public class AriaRequiredTests : MudBlazorTestBase
         // <input type="file"> is NOT the element being annotated:
         //
         //   MudFileUpload does accept Required and would emit aria-required on its <input
-        //   type="file">. But FormCraft renders that input with `tabindex="-1"` and `opacity-0`
+        //   type="file">. But FormCraft renders that input hidden, with `tabindex="-1"`,
         //   beneath a custom drop zone, so it is deliberately OUT of the tab order: a screen-reader
         //   user never lands on the element the annotation would sit on, and the affordance they do
         //   reach is a MudButton that takes no such attribute. Annotating the hidden input would
@@ -702,7 +702,7 @@ public class AriaRequiredTests : MudBlazorTestBase
         //   under the drop zone, in different words from the developer's message.
         //   Pinned by Clearing_A_Standalone_Required_Upload_Should_Not_Surface_MudBlazors_Own_Error.
         //
-        // The annotation would have landed on an opacity-0, tabindex="-1" input nobody reaches, so
+        // The annotation would have landed on a hidden, tabindex="-1" input nobody reaches, so
         // the trade was a real wrong message for a speculative benefit. The label marker and the
         // button's aria-describedby remain the mechanism, and they are enough.
         var config = FormBuilder<TestModel>
