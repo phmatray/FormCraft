@@ -37,7 +37,7 @@ public partial class FluentForm
             new() { Feature = "Email Fields", Usage = "Email with built-in validation", Example = ".AddEmailField(x => x.Email)" },
             new() { Feature = "Numeric Fields", Usage = "Numbers with min/max constraints", Example = ".AddNumericField(x => x.Age, \"Age\", 16, 100)" },
             new() { Feature = "Field Dependencies", Usage = "Conditional visibility/updates", Example = ".VisibleWhen(m => !string.IsNullOrEmpty(m.Country))" },
-            new() { Feature = "Layout Control", Usage = "Form layout configuration", Example = ".WithLayout(FormLayout.Horizontal)" }
+            new() { Feature = "Layout Control", Usage = "Form layout configuration", Example = ".WithLayout(FormLayout.Grid)" }
         ],
         CodeExamples =
         [
@@ -70,7 +70,7 @@ public partial class FluentForm
         // Much simpler form creation using fluent methods
         _formConfiguration = FormBuilder<ContactModel>
             .Create()
-            .WithLayout(FormLayout.Horizontal)
+            .WithLayout(FormLayout.Grid)
             .AddRequiredTextField(x => x.FirstName, "First Name", "Enter your first name", 2)
             .AddRequiredTextField(x => x.LastName, "Last Name", "Enter your last name", 2)
             .AddEmailField(x => x.Email)
@@ -183,7 +183,7 @@ public partial class FluentForm
         const string code = @"// Much simpler form creation using fluent methods
 _formConfiguration = FormBuilder<ContactModel>
     .Create()
-    .WithLayout(FormLayout.Horizontal)
+    .WithLayout(FormLayout.Grid)
     .AddRequiredTextField(x => x.FirstName, ""First Name"", ""Enter your first name"", 2)
     .AddRequiredTextField(x => x.LastName, ""Last Name"", ""Enter your last name"", 2)
     .AddEmailField(x => x.Email)

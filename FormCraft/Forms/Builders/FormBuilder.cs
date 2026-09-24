@@ -165,7 +165,7 @@ public class FormBuilder<TModel> where TModel : new()
     /// <returns>The FormBuilder instance for method chaining.</returns>
     /// <example>
     /// <code>
-    /// builder.WithLayout(FormLayout.Horizontal);
+    /// builder.WithLayout(FormLayout.Grid);
     /// </code>
     /// </example>
     public FormBuilder<TModel> WithLayout(FormLayout layout)
@@ -195,7 +195,8 @@ public class FormBuilder<TModel> where TModel : new()
     /// <summary>
     /// Configures whether to display a validation summary showing all form errors.
     /// </summary>
-    /// <param name="show">True to show the validation summary, false to hide it. Default is true.</param>
+    /// <param name="show">True to show the validation summary, false to hide it. Default is true.
+    /// The form itself shows none until this is called.</param>
     /// <returns>The FormBuilder instance for method chaining.</returns>
     /// <example>
     /// <code>
@@ -220,6 +221,7 @@ public class FormBuilder<TModel> where TModel : new()
     /// builder.ShowRequiredIndicator(true, "•");
     /// </code>
     /// </example>
+    [Obsolete("Use .WithNativeRequired() on the field instead — this setting is never rendered.")]
     public FormBuilder<TModel> ShowRequiredIndicator(bool show = true, string indicator = "*")
     {
         EnsureNotBuilt();
