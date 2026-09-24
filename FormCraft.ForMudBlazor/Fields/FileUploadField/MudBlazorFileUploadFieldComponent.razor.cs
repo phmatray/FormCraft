@@ -8,6 +8,11 @@ public partial class MudBlazorFileUploadFieldComponent<TModel>
     private MudFileUpload<IBrowserFile>? _fileUpload;
     private string _dragClass = DefaultDragClass;
 
+    // While a drag is over the drop zone, MudBlazor's hidden capture input is unhidden above it
+    // (InputClass mud-file-upload-dragover, MudBlazor's own rule: absolute, full size, transparent) so the drop lands
+    // on a real <input type="file">. MudBlazor only does this itself without CustomContent.
+    private bool _dragging;
+
     private const string DefaultDragClass = "relative rounded-lg border-2 border-dashed pa-4 mud-width-full mud-height-full d-flex justify-center align-center";
 
     /// <summary>
@@ -56,11 +61,13 @@ public partial class MudBlazorFileUploadFieldComponent<TModel>
 
     private void SetDragClass()
     {
+        _dragging = true;
         _dragClass = $"{DefaultDragClass} mud-border-primary";
     }
 
     private void ClearDragClass()
     {
+        _dragging = false;
         _dragClass = DefaultDragClass;
     }
 

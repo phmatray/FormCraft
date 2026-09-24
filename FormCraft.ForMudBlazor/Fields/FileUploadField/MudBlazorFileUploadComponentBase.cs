@@ -19,7 +19,7 @@ namespace FormCraft.ForMudBlazor;
 /// </para>
 /// <para>
 /// <b>Why not the hidden input.</b> Both components render <c>MudFileUpload</c>'s real
-/// <c>&lt;input type="file"&gt;</c> at <c>opacity-0</c> with <c>tabindex="-1"</c> beneath a custom
+/// <c>&lt;input type="file"&gt;</c> hidden, with <c>tabindex="-1"</c>, beneath a custom
 /// drop zone, deliberately out of the tab order. Binding <c>Required</c> there would emit
 /// <c>aria-required</c> on an element no keyboard or screen-reader user ever reaches — the
 /// "forwarded but inert" failure this library's parity tests exist to catch — and it is measurably
