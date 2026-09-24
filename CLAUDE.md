@@ -245,7 +245,11 @@ Reactive field updates based on dependencies:
 **Dependency Types:**
 - Value dependencies - Auto-calculate field values
 - Visibility dependencies - Show/hide fields conditionally
-- Validation dependencies - Conditional validation rules
+
+Conditional *validation* (e.g. "required only when Country is US") is not a `DependsOn` dependency —
+it is a custom `IFieldValidator<TModel, TValue>` that reads other properties directly off `model` in
+`ValidateAsync(model, value, services)`; see `RequiredWhenUsValidator` in README.md's "Conditional
+fields" section.
 
 #### 5. Adapter Pattern (UI Framework Integration)
 Framework-agnostic core with UI-specific adapters. **The seam is `FieldRendererBase` plus
@@ -623,8 +627,9 @@ public static class FormExtensions
 var form = FormTemplates.LoginForm<LoginModel>();
 var form = FormTemplates.RegistrationForm<UserModel>();
 
-// Create custom template — FormCraft has no built-in wizard/multi-step layout;
-// a "template" is just a static method that returns a configured FormBuilder<T>
+// Create custom template — FormCraft has no built-in wizard/multi-step layout.
+// The built-in templates above return a built IFormConfiguration<T>; your own
+// "template" can be any static method — here, one returning a configured FormBuilder<T>
 public static class MyTemplates
 {
     public static FormBuilder<T> CreateGridForm<T>() where T : new()
@@ -651,7 +656,8 @@ public static class MyTemplates
     .WithRateLimit(5, TimeSpan.FromMinutes(1))
     
     // Audit logging — the Action<AuditLogConfiguration> callback is the only
-    // audit-logging configuration surface today; there is no custom logger hook
+    // fluent audit-logging configuration surface; swapping the logger
+    // implementation itself is a DI concern (IAuditLogService), not a builder method
     .EnableAuditLogging(cfg => cfg.LogFieldChanges = true))
 ```
 
