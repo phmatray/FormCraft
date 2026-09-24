@@ -438,7 +438,7 @@ public class FieldConfigurationParityTests : FluentUITestBase
                     // mode in which a dropped _selectedItems.Clear() is DOM-observable here - see
                     // the remark on LovField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap.
                     // ResolveSelectionValue()'s pattern-matched fallback (`values is TValue
-                    // typedList ? typedList : values[0]`) keeps a scalar int? field working
+                    // typedList`, else the first value) keeps a scalar int? field working
                     // correctly even in multi-select mode.
                     .AllowMultipleSelection()))
             .Build();

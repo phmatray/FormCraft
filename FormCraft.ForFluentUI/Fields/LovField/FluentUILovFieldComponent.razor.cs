@@ -78,7 +78,8 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TKey, TItem>
             ?? throw new InvalidOperationException(
                 "LovConfiguration is required. Use the .AsLov() extension method to configure the field.");
 
-        if (CurrentValue is not null)
+        // Not for an AsMultiSelectLov value: a collection's ToString() is a type name (#480).
+        if (CurrentValue is not null and (string or not System.Collections.IEnumerable))
         {
             DisplayText = CurrentValue.ToString() ?? string.Empty;
         }
@@ -231,7 +232,7 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TKey, TItem>
 
     private TValue? ResolveSelectionValue()
     {
-        if (LovConfig is null || _selectedItems.Count == 0)
+        if (LovConfig is null)
         {
             return default;
         }
@@ -239,13 +240,14 @@ public partial class FluentUILovFieldComponent<TModel, TValue, TKey, TItem>
         var values = _selectedItems.Select(LovConfig.ValueSelector).ToList();
 
         // TValue is the field's bound type: IEnumerable<TKey> for AsMultiSelectLov, which the
-        // List<TKey> satisfies; the key itself for single-select (#480).
+        // List<TKey> satisfies - an empty one once the last chip is removed, never null, matching
+        // the MudBlazor component; the key itself for single-select (#480).
         if (IsMultiSelect && values is TValue typedList)
         {
             return typedList;
         }
 
-        return (TValue?)(object?)values[0];
+        return values.Count > 0 ? (TValue?)(object?)values[0] : default;
     }
 
     /// <summary>
