@@ -11,6 +11,18 @@ public class NumericTestModel
 
     /// <summary>A nullable decimal, for the invariant-formatting check.</summary>
     public decimal? Price { get; set; }
+
+    /// <summary>A float field, for numeric type-coverage parity with MudBlazor.</summary>
+    public float Weight { get; set; }
+
+    /// <summary>A long field, for numeric type-coverage parity with MudBlazor.</summary>
+    public long Population { get; set; }
+
+    /// <summary>A short field, for numeric type-coverage parity with MudBlazor.</summary>
+    public short Year { get; set; }
+
+    /// <summary>A byte field, for numeric type-coverage parity with MudBlazor.</summary>
+    public byte Level { get; set; }
 }
 
 /// <summary>
@@ -141,6 +153,66 @@ public class FluentUINumericFieldComponentTests : FluentUITestBase
         var input = component.FindComponent<FluentNumberInput<int>>().Instance;
         input.Min.ShouldBe(int.MinValue);
         input.Max.ShouldBe(int.MaxValue);
+    }
+
+    [Fact]
+    public void FloatField_Should_Render_As_NumberInput()
+    {
+        // Arrange
+        var config = FormBuilder<NumericTestModel>.Create()
+            .AddField(x => x.Weight, f => f.WithLabel("Field"))
+            .Build();
+
+        // Act
+        var component = Render(new NumericTestModel(), config);
+
+        // Assert
+        component.FindComponent<FluentNumberInput<float>>().Instance.Label.ShouldBe("Field");
+    }
+
+    [Fact]
+    public void LongField_Should_Render_As_NumberInput()
+    {
+        // Arrange
+        var config = FormBuilder<NumericTestModel>.Create()
+            .AddField(x => x.Population, f => f.WithLabel("Field"))
+            .Build();
+
+        // Act
+        var component = Render(new NumericTestModel(), config);
+
+        // Assert
+        component.FindComponent<FluentNumberInput<long>>().Instance.Label.ShouldBe("Field");
+    }
+
+    [Fact]
+    public void ShortField_Should_Render_As_NumberInput()
+    {
+        // Arrange
+        var config = FormBuilder<NumericTestModel>.Create()
+            .AddField(x => x.Year, f => f.WithLabel("Field"))
+            .Build();
+
+        // Act
+        var component = Render(new NumericTestModel(), config);
+
+        // Assert
+        component.FindComponent<FluentNumberInput<short>>().Instance.Label.ShouldBe("Field");
+    }
+
+    [Fact]
+    public void ByteField_Should_Render_As_NumberInput()
+    {
+        // Arrange
+        var config = FormBuilder<NumericTestModel>.Create()
+            .AddField(x => x.Level, f => f.WithLabel("Field"))
+            .Build();
+
+        // Act
+        var component = Render(new NumericTestModel(), config);
+
+        // Assert
+        component.FindComponent<FluentNumberInput<byte>>().Instance.Label.ShouldBe("Field");
     }
 
     [Fact]

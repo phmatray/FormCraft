@@ -1,6 +1,6 @@
 namespace FormCraft.UnitTests.Rendering;
 
-public class DoubleFieldRendererTests
+public class DoubleFieldRendererTests : CoreRendererTestBase
 {
     private readonly DoubleFieldRenderer _renderer;
 
@@ -143,6 +143,31 @@ public class DoubleFieldRendererTests
         A.CallTo(() => context.OnDependencyChanged).Returns(EventCallback.Factory.Create(this, () => { }));
 
         return context;
+    }
+
+    [Fact]
+    public void RenderField_Should_Render_Label_NumberInput_And_HelpText_With_No_Adapter_Registered()
+    {
+        // Arrange - the standalone-consumer path: services.AddFormCraft() with no UI adapter.
+        // An integer-valued double avoids a culture-dependent decimal separator in the assertion.
+        var model = new TestModel { Temperature = 20d };
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Temperature, field => field
+                .WithLabel("Temperature")
+                .WithHelpText("In Celsius"))
+            .Build();
+        var field = config.Fields.First(f => f.FieldName == "Temperature");
+
+        // Act
+        var cut = Render(RendererService.RenderField(model, field, default, default));
+
+        // Assert
+        cut.Find("label").TextContent.ShouldBe("Temperature");
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("number");
+        input.GetAttribute("step").ShouldBe("any");
+        input.GetAttribute("value").ShouldBe("20");
+        cut.Find(".help-text").TextContent.ShouldBe("In Celsius");
     }
 
     public class TestModel

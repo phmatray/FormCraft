@@ -1,6 +1,6 @@
 namespace FormCraft.UnitTests.Rendering;
 
-public class BoolFieldRendererTests
+public class BoolFieldRendererTests : CoreRendererTestBase
 {
     private readonly BoolFieldRenderer _renderer;
 
@@ -622,6 +622,27 @@ public class BoolFieldRendererTests
         A.CallTo(() => context.OnDependencyChanged).Returns(EventCallback.Factory.Create(this, () => { }));
 
         return context;
+    }
+
+    [Fact]
+    public void RenderField_Should_Render_Checkbox_And_Label_With_No_Adapter_Registered()
+    {
+        // Arrange - the standalone-consumer path: services.AddFormCraft() with no UI adapter.
+        var model = new TestModel { IsActive = true };
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.IsActive, field => field.WithLabel("Is Active"))
+            .Build();
+        var field = config.Fields.First(f => f.FieldName == "IsActive");
+
+        // Act
+        var cut = Render(RendererService.RenderField(model, field, default, default));
+
+        // Assert - checkbox's "checked"/"disabled" are boolean HTML attributes: presence-only.
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("checkbox");
+        input.HasAttribute("checked").ShouldBeTrue();
+        input.HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("label").TextContent.ShouldBe("Is Active");
     }
 
     public class TestModel

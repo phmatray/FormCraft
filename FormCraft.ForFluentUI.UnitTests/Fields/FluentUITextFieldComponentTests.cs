@@ -83,6 +83,19 @@ public class FluentUITextFieldComponentTests : FluentUITestBase
     }
 
     [Fact]
+    public void AsTextArea_Should_Render_A_Text_Area_With_The_Configured_Row_Count()
+    {
+        // Arrange & Act - the public AsTextArea(lines:) entry point, not the raw attribute
+        var component = RenderField(new TestModel(), f => f
+            .WithLabel("Notes")
+            .AsTextArea(lines: 4));
+
+        // Assert - Lines reaches FluentTextArea as an unmatched/splatted attribute (it has no
+        // typed Rows parameter), so it is asserted on the rendered element rather than Instance.
+        component.Find("fluent-textarea").GetAttribute("Rows").ShouldBe("4");
+    }
+
+    [Fact]
     public void Password_Field_Should_Stay_Single_Line_So_It_Can_Mask()
     {
         // Arrange & Act - a text area has no `type`, so honouring Lines here would render the

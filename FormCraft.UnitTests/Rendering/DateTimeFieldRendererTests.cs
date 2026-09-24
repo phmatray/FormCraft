@@ -1,6 +1,6 @@
 namespace FormCraft.UnitTests.Rendering;
 
-public class DateTimeFieldRendererTests
+public class DateTimeFieldRendererTests : CoreRendererTestBase
 {
     private readonly DateTimeFieldRenderer _renderer;
 
@@ -798,6 +798,29 @@ public class DateTimeFieldRendererTests
         A.CallTo(() => context.OnDependencyChanged).Returns(EventCallback.Factory.Create(this, () => { }));
 
         return context;
+    }
+
+    [Fact]
+    public void RenderField_Should_Render_Label_DateInput_And_HelpText_With_No_Adapter_Registered()
+    {
+        // Arrange - the standalone-consumer path: services.AddFormCraft() with no UI adapter.
+        var model = new TestModel { BirthDate = new DateTime(2024, 5, 17) };
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.BirthDate, field => field
+                .WithLabel("Birth Date")
+                .WithHelpText("As shown on your ID"))
+            .Build();
+        var field = config.Fields.First(f => f.FieldName == "BirthDate");
+
+        // Act
+        var cut = Render(RendererService.RenderField(model, field, default, default));
+
+        // Assert
+        cut.Find("label").TextContent.ShouldBe("Birth Date");
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("datetime-local");
+        input.GetAttribute("value").ShouldBe(model.BirthDate!.Value.ToString());
+        cut.Find(".help-text").TextContent.ShouldBe("As shown on your ID");
     }
 
     public class TestModel

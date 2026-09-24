@@ -1,6 +1,6 @@
 namespace FormCraft.UnitTests.Rendering;
 
-public class IntFieldRendererTests
+public class IntFieldRendererTests : CoreRendererTestBase
 {
     private readonly IntFieldRenderer _renderer;
 
@@ -642,6 +642,29 @@ public class IntFieldRendererTests
         A.CallTo(() => context.OnDependencyChanged).Returns(EventCallback.Factory.Create(this, () => { }));
 
         return context;
+    }
+
+    [Fact]
+    public void RenderField_Should_Render_Label_NumberInput_And_HelpText_With_No_Adapter_Registered()
+    {
+        // Arrange - the standalone-consumer path: services.AddFormCraft() with no UI adapter.
+        var model = new TestModel { Age = 42 };
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Age, field => field
+                .WithLabel("Age")
+                .WithHelpText("In years"))
+            .Build();
+        var field = config.Fields.First(f => f.FieldName == "Age");
+
+        // Act
+        var cut = Render(RendererService.RenderField(model, field, default, default));
+
+        // Assert
+        cut.Find("label").TextContent.ShouldBe("Age");
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("number");
+        input.GetAttribute("value").ShouldBe("42");
+        cut.Find(".help-text").TextContent.ShouldBe("In years");
     }
 
     public class TestModel

@@ -1,6 +1,6 @@
 namespace FormCraft.UnitTests.Rendering;
 
-public class StringFieldRendererTests
+public class StringFieldRendererTests : CoreRendererTestBase
 {
     private readonly StringFieldRenderer _renderer;
 
@@ -575,6 +575,30 @@ public class StringFieldRendererTests
         A.CallTo(() => field.AdditionalAttributes).Returns(attributes);
 
         return field;
+    }
+
+    [Fact]
+    public void RenderField_Should_Render_Label_Input_And_HelpText_With_No_Adapter_Registered()
+    {
+        // Arrange - the standalone-consumer path: services.AddFormCraft() with no UI adapter, so
+        // IFieldRendererService resolves this renderer's own TestStubComponent markup.
+        var model = new TestModel { Name = "Ada Lovelace" };
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .WithLabel("Full Name")
+                .WithHelpText("As it appears on your ID"))
+            .Build();
+        var field = config.Fields.First(f => f.FieldName == "Name");
+
+        // Act
+        var cut = Render(RendererService.RenderField(model, field, default, default));
+
+        // Assert - real DOM assertions, not "a non-null fragment".
+        cut.Find("label").TextContent.ShouldBe("Full Name");
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("text");
+        input.GetAttribute("value").ShouldBe("Ada Lovelace");
+        cut.Find(".help-text").TextContent.ShouldBe("As it appears on your ID");
     }
 
     public class TestModel
