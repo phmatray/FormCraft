@@ -311,13 +311,16 @@ public class FieldConfigurationParityTests : FluentUITestBase
         typeof(FluentUIDateTimeFieldComponent<>),
         typeof(FluentUITimeOnlyFieldComponent<>),
 
-        // Both upload components expose their constraints (accepted types, max size, max count) as
-        // COMPUTED GETTERS on FluentUIFileUploadComponentBase, re-evaluating UploadConstraintResolver
-        // against Context.Field live on every access - never cached into a field the hook would need
-        // to reset. Unlike MudBlazor's upload components (covered rows there), these cannot go stale
-        // by construction. FluentUIMultipleFileUploadComponent<> is NOT exempt, despite sharing this
-        // base class: it also carries TooManyFilesError, state derived from a selection rather than
-        // from the configuration, which is now covered by MultipleFileUploadField_Row (#416).
+        // The single-file upload component exposes its constraints (accepted types, max size, max
+        // count) as COMPUTED GETTERS on FluentUIFileUploadComponentBase, re-evaluating
+        // UploadConstraintResolver against Context.Field live on every access - never cached into a
+        // field the hook would need to reset, and it sets no error/message field of its own either.
+        // Unlike MudBlazor's upload components (covered rows there), it cannot go stale by
+        // construction. FluentUIMultipleFileUploadComponent<> shares this same base class but is NOT
+        // exempt: it also carries TooManyFilesError, state derived from a selection rather than from
+        // the configuration, which is now covered by
+        // MultipleFileUploadField_Row_Clears_Its_Too_Many_Files_Error_After_A_Configuration_Swap
+        // (#416).
         typeof(FluentUIFileUploadFieldComponent<>),
 
         // ColorPicker reads no attribute at all.
