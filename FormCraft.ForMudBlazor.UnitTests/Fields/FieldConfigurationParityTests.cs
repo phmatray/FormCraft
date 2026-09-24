@@ -1,3 +1,5 @@
+using FormCraft.ForMudBlazor.UnitTests.TestSupport;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
@@ -272,7 +274,7 @@ public class FieldConfigurationParityTests : MudBlazorTestBase
     public async Task LookupField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap()
     {
         var model = new LookupModel { CityId = 7 };
-        Services.AddSingleton(StubDialogServiceReturning<MudBlazorLookupDialog>(new LookupCity(7, "Lisbon")));
+        Services.AddSingleton(StubDialogService.Returning<MudBlazorLookupDialog>(new LookupCity(7, "Lisbon")));
 
         var component = Render<FormCraftComponent<LookupModel>>(parameters => parameters
             .Add(p => p.Model, model)
@@ -309,7 +311,7 @@ public class FieldConfigurationParityTests : MudBlazorTestBase
     public async Task LovField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap()
     {
         var model = new LovModel();
-        Services.AddSingleton(StubDialogServiceReturning<LovSelectionDialog<LovCustomer, int?>>(
+        Services.AddSingleton(StubDialogService.Returning<LovSelectionDialog<LovCustomer, int?>>(
             new LovSelectionResult<LovCustomer> { SelectedItems = [new LovCustomer(7, "ACME")] }));
 
         var component = Render<FormCraftComponent<LovModel>>(parameters => parameters
@@ -327,25 +329,6 @@ public class FieldConfigurationParityTests : MudBlazorTestBase
         // Assert - the stale selection does not survive: display falls back to the model's raw
         // value instead of the previous field's selected label (#336).
         component.FindComponent<MudTextField<string>>().Instance.Value.ShouldBe("7");
-    }
-
-    /// <summary>
-    /// A minimal <see cref="IDialogService"/> double that resolves a component's own
-    /// <c>ShowAsync&lt;TDialog&gt;</c> call to a canned result, so a lookup/LOV parity row can drive
-    /// the REAL selection code path (<c>OpenLookupDialog</c>/<c>OpenLovDialog</c>, and everything
-    /// each writes off the result) without a <c>MudDialogProvider</c> in the render tree.
-    /// </summary>
-    private static IDialogService StubDialogServiceReturning<TDialog>(object selectedData)
-        where TDialog : IComponent
-    {
-        var reference = A.Fake<IDialogReference>();
-        A.CallTo(() => reference.Result).Returns(Task.FromResult<DialogResult?>(DialogResult.Ok(selectedData)));
-
-        var service = A.Fake<IDialogService>();
-        A.CallTo(() => service.ShowAsync<TDialog>(A<string>._, A<DialogParameters>._, A<DialogOptions>._))
-            .Returns(Task.FromResult(reference));
-
-        return service;
     }
 
     // -----------------------------------------------------------------------------------------
