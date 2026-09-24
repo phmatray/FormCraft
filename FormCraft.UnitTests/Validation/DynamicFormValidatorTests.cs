@@ -174,6 +174,41 @@ public class DynamicFormValidatorTests : BunitContext
             await validator.Instance.ValidateModelAsync());
     }
 
+    [Fact]
+    public async Task ValidateModelAsync_Should_Not_Lose_Prior_Messages_When_A_Later_Pass_Throws()
+    {
+        // Arrange - a first pass, against a config with only a Required field, reports it invalid
+        // and populates the message store (#440).
+        var model = new TestModel();
+        var editContext = new EditContext(model);
+        var requiredOnlyConfig = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field.Required("Name is required"))
+            .Build();
+
+        var validator = RenderValidator(editContext, requiredOnlyConfig);
+
+        var firstPassIsValid = await validator.Instance.ValidateModelAsync();
+        firstPassIsValid.ShouldBeFalse();
+        editContext.GetValidationMessages().ShouldContain("Name is required");
+
+        // Act - swap in a config whose only field now has a genuinely faulting accessor (not a
+        // null intermediate, which TryGetValue already tolerates). The Required field is
+        // deliberately absent here: were it still present, today's buggy code would re-add "Name
+        // is required" before reaching the throw, passing even though the bug this test targets
+        // is real.
+        var faultingOnlyConfig = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Faulting, field => field.WithLabel("Faulting"))
+            .Build();
+        validator.Instance.Configuration = faultingOnlyConfig;
+
+        await Should.ThrowAsync<InvalidOperationException>(async () =>
+            await validator.Instance.ValidateModelAsync());
+
+        // Assert - a mid-pass throw must not wipe the message store: the first pass's message
+        // must still be present afterwards.
+        editContext.GetValidationMessages().ShouldContain("Name is required");
+    }
+
     // No propagation sibling for HandleFieldChanged (#425): its own outer catch guards the async-void
     // boundary, where an escaping exception would crash the Blazor circuit, so it swallows a genuine
     // fault by design. The read it performs is proven to propagate at the TryGetValue seam instead.
