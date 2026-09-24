@@ -68,6 +68,28 @@ public class EncryptedFieldHelperTests
         model.Ssn.ShouldBe("123-45-6789");
     }
 
+    [Fact]
+    public void EncryptFields_Should_Encrypt_A_Shared_Nested_Object_Only_Once()
+    {
+        var shared = new TestAddress { City = "Brussels" };
+        var model = new TestModel { Address = shared, Work = shared };
+
+        EncryptedFieldHelper.EncryptFields(model, Security("Address.City", "Work.City"), _encryptionService);
+
+        shared.City.ShouldBe("ENC:Brussels");
+    }
+
+    [Fact]
+    public void CreateDecryptedCopy_Should_Not_Decrypt_The_Original_Nested_Object()
+    {
+        var model = new TestModel { Address = new TestAddress { City = "ENC:Brussels" } };
+
+        var copy = EncryptedFieldHelper.CreateDecryptedCopy(model, Security("Address.City"), _encryptionService);
+
+        copy.Address.City.ShouldBe("Brussels");
+        model.Address.City.ShouldBe("ENC:Brussels");
+    }
+
     private static FormSecurity Security(params string[] paths)
     {
         var security = new FormSecurity();
@@ -81,6 +103,7 @@ public class EncryptedFieldHelperTests
         public int Age { get; set; }
         public string ReadOnly => "fixed";
         public TestAddress Address { get; set; } = new();
+        public TestAddress? Work { get; set; }
     }
 
     private class TestAddress

@@ -64,7 +64,16 @@ internal static class MemberPathResolver
         var type = rootType;
         for (var i = 0; i < segments.Length; i++)
         {
-            var property = type.GetProperty(segments[i], BindingFlags.Public | BindingFlags.Instance);
+            PropertyInfo? property;
+            try
+            {
+                property = type.GetProperty(segments[i], BindingFlags.Public | BindingFlags.Instance);
+            }
+            catch (AmbiguousMatchException)
+            {
+                property = null; // e.g. a property hidden with `new`: report it like any other miss.
+            }
+
             if (property is not { CanRead: true })
             {
                 throw new ArgumentException(

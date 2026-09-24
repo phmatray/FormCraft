@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace FormCraft;
 
@@ -43,6 +44,9 @@ public static class EncryptedFieldHelper
             .Select(path => ResolveWritable(typeof(TModel), path))
             .ToList();
 
+        // Two paths can reach one object (Home and Work sharing an Address instance); transforming
+        // it twice would encrypt the ciphertext, which a later decrypt cannot undo.
+        var transformed = new HashSet<(object Owner, PropertyInfo Property)>(OwnerPropertyComparer.Instance);
         foreach (var chain in chains)
         {
             if (!MemberPathResolver.TryGetOwner(model, chain, out var owner))
@@ -51,6 +55,11 @@ public static class EncryptedFieldHelper
             }
 
             var property = chain[^1];
+            if (!transformed.Add((owner, property)))
+            {
+                continue;
+            }
+
             if (property.GetValue(owner) is string { Length: > 0 } value)
             {
                 property.SetValue(owner, transform(value));
@@ -96,9 +105,47 @@ public static class EncryptedFieldHelper
             }
         }
 
+        // The copy is shallow, so a nested path still points into the original's objects: clone
+        // each object along it first, or decrypting the copy would write plaintext into the model.
+        foreach (var path in security?.EncryptedFields ?? [])
+        {
+            object owner = copy;
+            foreach (var property in ResolveWritable(typeof(TModel), path)[..^1])
+            {
+                if (property.GetValue(owner) is not { } child)
+                {
+                    break;
+                }
+
+                if (!property.CanWrite)
+                {
+                    throw new ArgumentException(
+                        $"Encrypted field '{path}' on {typeof(TModel).Name} cannot be decrypted into a copy: '{property.Name}' has no setter.");
+                }
+
+                var clone = MemberwiseCloneMethod.Invoke(child, null)!;
+                property.SetValue(owner, clone);
+                owner = clone;
+            }
+        }
+
         // Decrypt encrypted fields in the copy
-        DecryptFields(copy, security, encryptionService);
+        DecryptFields(copy, security!, encryptionService);
 
         return copy;
+    }
+
+    private static readonly MethodInfo MemberwiseCloneMethod =
+        typeof(object).GetMethod("MemberwiseClone", BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+    private sealed class OwnerPropertyComparer : IEqualityComparer<(object Owner, PropertyInfo Property)>
+    {
+        public static readonly OwnerPropertyComparer Instance = new();
+
+        public bool Equals((object Owner, PropertyInfo Property) x, (object Owner, PropertyInfo Property) y)
+            => ReferenceEquals(x.Owner, y.Owner) && x.Property.Equals(y.Property);
+
+        public int GetHashCode((object Owner, PropertyInfo Property) obj)
+            => HashCode.Combine(RuntimeHelpers.GetHashCode(obj.Owner), obj.Property);
     }
 }

@@ -167,9 +167,17 @@ public sealed class FormSecurityEnforcer<TModel>
     /// </summary>
     /// <param name="model">The model holding the plaintext values.</param>
     /// <param name="security">The form's security settings.</param>
-    /// <returns>A field-name to ciphertext map covering only the configured fields.</returns>
+    /// <returns>
+    /// A map from each configured field's path (<c>"SSN"</c>, or <c>"Address.City"</c> for a nested
+    /// field) to its ciphertext, covering only the configured fields.
+    /// </returns>
     /// <exception cref="InvalidOperationException">
     /// Thrown when no <see cref="IEncryptionService"/> is registered (call <c>AddFormCraft()</c>).
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when an entry in <see cref="IFormSecurity.EncryptedFields"/> does not resolve to a
+    /// readable <see cref="string"/> property of <typeparamref name="TModel"/> — encryption fails
+    /// closed rather than omitting a field the caller believes is encrypted (#423).
     /// </exception>
     public IReadOnlyDictionary<string, string?> EncryptConfiguredFields(TModel model, IFormSecurity? security)
     {
