@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using FormCraft.Diagnostics;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
@@ -52,6 +53,14 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
     /// <summary>The JS runtime used to focus a <c>FluentButton</c> by id (#383). See <see cref="_idPrefix"/>.</summary>
     [Inject]
     private IJSRuntime JS { get; set; } = default!;
+
+    /// <summary>
+    /// Resolves the optional logger behind the unreadable-binding diagnostic (#433). May legitimately
+    /// be a provider with no logging stack registered — <see cref="FormDiagnosticLog.Warn"/> degrades
+    /// silently in that case.
+    /// </summary>
+    [Inject]
+    private IServiceProvider ServiceProvider { get; set; } = null!;
 
     /// <summary>
     /// Lazily-started import of <c>collectionFocus.js</c>, cached for the component's lifetime.
@@ -151,9 +160,9 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
     /// as a local <c>try</c>/<c>catch</c> rather than a call to the same helper:
     /// <c>FieldValueGetterCache&lt;TModel&gt;.TryInvoke</c> is <c>internal</c> to <c>FormCraft</c>
     /// core, and this assembly has no <c>InternalsVisibleTo</c> to it. Catches
-    /// <see cref="NullReferenceException"/> specifically — not <see cref="Exception"/> broadly, unlike
-    /// <c>TryReadCollection</c> — so a genuinely broken accessor, or a cancellation, still propagates
-    /// instead of being swallowed here.
+    /// <see cref="NullReferenceException"/> specifically — the same narrowing #425 gave
+    /// <c>TryInvoke</c> itself, which is what <c>TryReadCollection</c> calls, so a genuinely broken
+    /// accessor, or a cancellation, still propagates on both paths instead of being swallowed here.
     /// </remarks>
     private List<TItem> Items
     {
@@ -161,14 +170,69 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
         {
             try
             {
-                return Configuration.CollectionAccessor(Model);
+                var items = Configuration.CollectionAccessor(Model);
+                _bindingUnreadable = false;
+                return items;
             }
             catch (NullReferenceException)
             {
+                _bindingUnreadable = true;
+
+                // Once per field (#433), latched on the field's OWN name rather than a bare bool:
+                // FluentUICollectionFieldRenderer opens this component with no @key, so Blazor can
+                // reuse the same instance for a DIFFERENT collection field landing at the same tree
+                // position (the exact repoint MudBlazor's CollectionItemFieldScope/OnParametersSet
+                // exists to detect) - a bare "have I warned yet" bool would then never warn for that
+                // second field at all (found in review). No per-field diagnostic SCOPE type here yet
+                // (see the .razor's own note on why FormCraft.ForMudBlazor's CollectionItemFieldScope
+                // has no Fluent counterpart) - a name comparison is enough for one diagnostic.
+                if (_warnedUnreadableBindingFor != Configuration.FieldName)
+                {
+                    _warnedUnreadableBindingFor = Configuration.FieldName;
+                    var displayName = string.IsNullOrWhiteSpace(Configuration.Label) ? Configuration.FieldName : Configuration.Label;
+                    FormDiagnosticLog.Warn(
+                        ServiceProvider,
+                        UnreadableBindingDiagnosticCategory,
+                        "Collection field '{Field}' could not read its bound collection from the " +
+                        "model, so Add and Remove are disabled until the binding is reachable again. " +
+                        "Check that its binding expression is reachable (e.g. no null intermediate in " +
+                        "a nested path).",
+                        displayName);
+                }
+
                 return new List<TItem>();
             }
         }
     }
+
+    /// <summary>
+    /// Whether the last <see cref="Items"/> read hit the catch above — the binding is currently
+    /// unreadable (#433). Folded into <see cref="HasReachedMax"/>/<see cref="HasReachedMin"/> rather
+    /// than checked as a separate condition everywhere they gate Add/Remove, so every downstream
+    /// consumer (<see cref="ShouldRenderAdd"/>, <see cref="DeleteTargetsRendered"/>) inherits it for
+    /// free, mirroring <c>FormCraft.ForMudBlazor</c>'s <c>CollectionFieldComponent</c>.
+    /// </summary>
+    private bool _bindingUnreadable;
+
+    /// <summary>
+    /// The field name the unreadable-binding diagnostic has already fired for, or <see langword="null"/>
+    /// if it never has. Compared against <see cref="Configuration"/>'s CURRENT <c>FieldName</c> rather
+    /// than latched as a bare bool, so a component instance Blazor reuses for a different collection
+    /// field still warns once for THAT field too (#433, found in review).
+    /// </summary>
+    private string? _warnedUnreadableBindingFor;
+
+    /// <summary>Logger category for the unreadable-binding diagnostic (#433).</summary>
+    private const string UnreadableBindingDiagnosticCategory = "FormCraft.ForFluentUI.CollectionUnreadableBinding";
+
+    /// <summary>
+    /// The user-facing message shown in place of <see cref="ICollectionFieldConfigurationBase.EmptyText"/>
+    /// while the binding is unreadable (#433) — distinct wording so a genuinely empty collection is
+    /// never mistaken for a broken one, or vice versa.
+    /// </summary>
+    private const string UnreadableBindingMessage =
+        "This field's data could not be read from the model right now, so items can't be added or " +
+        "removed.";
 
     /// <summary>
     /// Weak per-item tokens, minted once per item instance and reused for its lifetime — the
@@ -244,9 +308,41 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
         return false;
     }
 
-    private bool HasReachedMax => Configuration.MaxItems > 0 && Items.Count >= Configuration.MaxItems;
+    /// <summary>
+    /// Whether <see cref="Configuration"/>'s <c>MaxItems</c> has been reached, OR the binding is
+    /// currently unreadable (#433) — folded in here, rather than checked as a third, separately-wired
+    /// condition, so every existing consumer (<see cref="ShouldRenderAdd"/>, <see cref="AddItem"/>)
+    /// inherits it for free.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ <c>Items.Count</c> is read <b>unconditionally</b>, before the <c>MaxItems &gt; 0</c> check
+    /// that would otherwise short-circuit past it whenever <c>MaxItems</c> is its <c>0</c> default —
+    /// the common case. That read is what refreshes <see cref="_bindingUnreadable"/> for THIS call, not
+    /// whatever it was left at by whichever render or handler last happened to touch <see cref="Items"/>.
+    /// Without it, <see cref="AddItem"/>'s own opening guard could read a stale <c>false</c> and let
+    /// <c>Items.Add(new TItem())</c> perform the FIRST fresh read itself — appending to a throwaway
+    /// list the getter had no choice but to just-then materialise, the exact silent-no-op #433 reports,
+    /// reachable when the model becomes unreadable between this field's last render and a click that
+    /// was already in flight (found in review).
+    /// </remarks>
+    private bool HasReachedMax
+    {
+        get
+        {
+            var count = Items.Count;
+            return _bindingUnreadable || (Configuration.MaxItems > 0 && count >= Configuration.MaxItems);
+        }
+    }
 
-    private bool HasReachedMin => Configuration.MinItems > 0 && Items.Count <= Configuration.MinItems;
+    /// <inheritdoc cref="HasReachedMax"/>
+    private bool HasReachedMin
+    {
+        get
+        {
+            var count = Items.Count;
+            return _bindingUnreadable || (Configuration.MinItems > 0 && count <= Configuration.MinItems);
+        }
+    }
 
     private bool DeleteTargetsRendered => Configuration.CanRemove && !HasReachedMin;
 
@@ -327,7 +423,11 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
         // user building a list wants to stay. Moving focus anyway would push them into the new row's
         // header (tabindex="-1", outside the tab order), forcing a Shift+Tab back to Add for every
         // subsequent row: a regression in the common case, in the name of a failure that did not
-        // happen (#337).
+        // happen (#337). The other way in is _bindingUnreadable (#433): the NotifyCollectionChanged
+        // just above can synchronously run a consumer's own handler that nulls this field's nested
+        // intermediate, so Items.Count below can be 0 even though an item really was just added to
+        // what was, until that handler ran, a readable list. FocusRowAsync's own bounds check is what
+        // keeps that -1 from reaching a negative dictionary lookup.
         if (!HasReachedMax)
         {
             return;
@@ -424,6 +524,19 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
     /// </param>
     private async Task FocusRowAsync(int index, bool? movedDown)
     {
+        // The row this index named may no longer exist by the time this runs: AddItem/MoveItemUp/
+        // MoveItemDown compute it from an Items read that can be stale by the time OnAfterRenderAsync
+        // processes it - most concretely, NotifyCollectionChanged awaiting a consumer's handler that
+        // makes the binding unreadable collapses Items to empty before this runs (#433). Neither branch
+        // below throws on an out-of-range index (EnabledMoveTargetIdAt bounds-checks, and
+        // _rowHeaderTargets is a Dictionary lookup that just misses), but both would silently do
+        // nothing instead of falling back to the header the way an unmount-by-removal already does.
+        if (index < 0 || index >= Items.Count)
+        {
+            await FocusRestore.FocusSafelyAsync(HeaderTarget);
+            return;
+        }
+
         if (movedDown is { } down)
         {
             var targetId = EnabledMoveTargetIdAt(index, down);
