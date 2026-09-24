@@ -93,7 +93,7 @@ public abstract class MudBlazorFileUploadComponentBase<TModel, TValue> : FieldCo
     /// </remarks>
     protected string RequiredDescriptionId
     {
-        get => $"formcraft-{Context.Field.FieldName}-required-{field}";
+        get => $"formcraft-{IdSanitizer.ToCssSafeId(Context.Field.FieldName)}-required-{field}";
     } = Guid.NewGuid().ToString("N")[..8];
 
     /// <summary>

@@ -548,6 +548,74 @@ public class AriaRequiredTests : MudBlazorTestBase
     }
 
     [Fact]
+    public void Single_Member_FileUpload_Field_Should_Keep_Its_Hint_Id_Byte_For_Byte_Unchanged()
+    {
+        // Arrange & Act - the overwhelmingly common case has no '.' to sanitize, so #449's fix must
+        // leave it exactly as it was: formcraft-{FieldName}-required-{guid8}
+        var config = FormBuilder<TestModel>
+            .Create()
+            .AddField(x => x.Upload, f => f.WithLabel("Passport scan").Required("A scan is required"))
+            .Build();
+
+        var component = RenderConfig(config);
+
+        // Assert
+        var describedBy = component.FindAll(".mud-toolbar button")[0].GetAttribute("aria-describedby");
+        describedBy.ShouldNotBeNullOrWhiteSpace();
+        describedBy!.ShouldMatch("^formcraft-Upload-required-[0-9a-f]{8}$");
+    }
+
+    [Fact]
+    public void Nested_Required_FileUpload_Field_Should_Have_A_Dot_Free_Hint_Id()
+    {
+        // Arrange - a nested binding's FieldName is a dotted path ("Applicant.Resume", #437/#448).
+        // A '.' is a valid HTML id character but the CSS class-selector delimiter, so an unescaped
+        // one silently breaks a consumer's own #id.Class-shaped stylesheet selector (#449).
+        var config = FormBuilder<NestedUploadModel>
+            .Create()
+            .AddField(x => x.Applicant.Resume, f => f.WithLabel("Resume").Required("Resume is required"))
+            .Build();
+
+        // Act
+        var component = Render<FormCraftComponent<NestedUploadModel>>(parameters => parameters
+            .Add(p => p.Model, new NestedUploadModel())
+            .Add(p => p.Configuration, config));
+
+        // Assert - the dot is sanitized, but the rest of the format (guid suffix included) is intact
+        var describedBy = component.FindAll(".mud-toolbar button")[0].GetAttribute("aria-describedby");
+        describedBy.ShouldNotBeNullOrWhiteSpace();
+        describedBy!.ShouldNotContain(".");
+        describedBy.ShouldMatch("^formcraft-Applicant-Resume-required-[0-9a-f]{8}$");
+        component.Find($"#{describedBy}").TextContent.ShouldContain("Resume");
+    }
+
+    [Fact]
+    public void Two_Renders_Of_The_Same_Nested_Required_Upload_Field_Should_Not_Share_A_Hint_Id()
+    {
+        // Arrange - the trailing guid is what makes two renders of the same field distinct
+        // (CLAUDE.md #262); sanitizing the dotted FieldName segment must not disturb it (#449).
+        var config = FormBuilder<NestedUploadModel>
+            .Create()
+            .AddField(x => x.Applicant.Resume, f => f.WithLabel("Resume").Required("Resume is required"))
+            .Build();
+
+        // Act - two independent renders of the same configuration
+        var first = Render<FormCraftComponent<NestedUploadModel>>(parameters => parameters
+            .Add(p => p.Model, new NestedUploadModel())
+            .Add(p => p.Configuration, config));
+        var second = Render<FormCraftComponent<NestedUploadModel>>(parameters => parameters
+            .Add(p => p.Model, new NestedUploadModel())
+            .Add(p => p.Configuration, config));
+
+        // Assert
+        var firstId = first.FindAll(".mud-toolbar button")[0].GetAttribute("aria-describedby");
+        var secondId = second.FindAll(".mud-toolbar button")[0].GetAttribute("aria-describedby");
+
+        firstId.ShouldNotBeNullOrWhiteSpace();
+        firstId.ShouldNotBe(secondId);
+    }
+
+    [Fact]
     public void MultipleFileUpload_Should_Honour_The_Opt_Out_And_Leave_MudFileUpload_Unbound()
     {
         // Arrange - the parity half of the opt-out. Every other assertion about .WithNativeRequired
@@ -858,6 +926,17 @@ public class AriaRequiredTests : MudBlazorTestBase
         // Exactly IReadOnlyList<IBrowserFile> — that is what MudBlazorMultipleFileUploadRenderer
         // matches on, so a different list type would silently render the single-file component.
         public IReadOnlyList<IBrowserFile>? Attachments { get; set; }
+    }
+
+    /// <summary>Model with a nested upload field, so its <c>FieldName</c> is a dotted path (#449).</summary>
+    private class NestedUploadModel
+    {
+        public ApplicantSection Applicant { get; set; } = new();
+    }
+
+    private class ApplicantSection
+    {
+        public IBrowserFile? Resume { get; set; }
     }
 
     /// <summary>
