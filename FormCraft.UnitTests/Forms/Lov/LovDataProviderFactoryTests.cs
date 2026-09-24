@@ -27,6 +27,23 @@ public class LovDataProviderFactoryTests
     }
 
     [Fact]
+    public async Task Create_Should_Wire_GetByKeyProvider_From_Configuration_Instead_Of_A_Hardcoded_Null()
+    {
+        var factory = new LovDataProviderFactory(A.Fake<IServiceProvider>());
+        var config = new LovConfiguration<Item, int>
+        {
+            DataProvider = (_, _) => Task.FromResult(LovDataResult<Item>.Empty()),
+            GetByKeyProvider = (key, _) => Task.FromResult<Item?>(new Item { Id = (int)key })
+        };
+
+        var provider = factory.Create<Item, int>(config);
+        var found = await provider.GetItemByKeyAsync(7, Xunit.TestContext.Current.CancellationToken);
+
+        found.ShouldNotBeNull();
+        found.Id.ShouldBe(7);
+    }
+
+    [Fact]
     public async Task Create_Should_Resolve_And_Delegate_To_The_DI_Registered_Provider_When_DataProviderServiceType_Is_Set()
     {
         var innerProvider = A.Fake<ILovDataProvider<Item>>();

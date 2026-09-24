@@ -15,6 +15,15 @@ public interface ILovConfiguration<TItem, TValue>
     Func<LovQuery, CancellationToken, Task<LovDataResult<TItem>>>? DataProvider { get; }
 
     /// <summary>
+    /// Gets the function used to look up a single item by its key, backing
+    /// <see cref="ILovDataProvider{TItem}.GetItemByKeyAsync"/> for a <see cref="DataProvider"/>-backed
+    /// configuration (#472). A default interface member so no external implementer of
+    /// <see cref="ILovConfiguration{TItem, TValue}"/> is broken by this addition; defaults to null
+    /// (no lookup available).
+    /// </summary>
+    Func<object, CancellationToken, Task<TItem?>>? GetByKeyProvider => null;
+
+    /// <summary>
     /// Gets the type of the data provider service to resolve from DI.
     /// When set, the data provider is resolved from the service container.
     /// </summary>

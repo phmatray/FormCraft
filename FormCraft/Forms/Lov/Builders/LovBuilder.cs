@@ -56,11 +56,23 @@ public class LovBuilder<TModel, TValue, TItem> where TModel : new()
     /// <returns>The LovBuilder instance for method chaining.</returns>
     public LovBuilder<TModel, TValue, TItem> WithDataSource(Func<IEnumerable<TItem>> collectionFactory)
     {
-        _configuration.DataProvider = (query, ct) =>
-        {
-            var result = LovDataResult<TItem>.FromCollection(collectionFactory(), query);
-            return Task.FromResult(result);
-        };
+        ArgumentNullException.ThrowIfNull(collectionFactory);
+
+        // Resolved lazily (called only when a query actually runs, not here) because the demo
+        // app's own call order is .WithDataSource(...).WithKey(...).WithDisplay(...).AddColumn(...) —
+        // Columns/DisplaySelector/ValueSelector may not be configured yet at this point (#472).
+        bool DefaultSearchPredicate(TItem item, string text) =>
+            _configuration.Columns.Count > 0
+                ? _configuration.Columns.Any(column =>
+                    column.ValueSelector(item)?.ToString()?.Contains(text, StringComparison.OrdinalIgnoreCase) == true)
+                : _configuration.DisplaySelector(item)?.Contains(text, StringComparison.OrdinalIgnoreCase) == true;
+
+        _configuration.DataProvider = (query, _) => Task.FromResult(
+            LovDataResult<TItem>.FromCollection(collectionFactory(), query, DefaultSearchPredicate));
+
+        _configuration.GetByKeyProvider = (key, _) => Task.FromResult(
+            collectionFactory().FirstOrDefault(item => Equals(_configuration.ValueSelector(item), key)));
+
         return this;
     }
 
