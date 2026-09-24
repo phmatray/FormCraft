@@ -446,6 +446,99 @@ public class FluentFormBuilderExtensionsTests
         invalidResult.ErrorMessage.ShouldBe("Must be at most 1000");
     }
 
+    [Fact]
+    public void AddRequiredField_Should_Configure_Required_Validator_With_Default_Message()
+    {
+        // Arrange
+        var builder = FormBuilder<TestModel>.Create();
+
+        // Act
+        var config = builder.AddRequiredField(x => x.Notes, "Notes").Build();
+
+        // Assert
+        var field = config.Fields.First(f => f.FieldName == "Notes");
+        field.Label.ShouldBe("Notes");
+        field.IsRequired.ShouldBeTrue();
+        field.Validators.Count.ShouldBe(1);
+        field.Placeholder.ShouldBeNullOrEmpty();
+    }
+
+    [Fact]
+    public void AddRequiredField_Should_Use_Given_ErrorMessage_And_Placeholder()
+    {
+        // Arrange
+        var builder = FormBuilder<TestModel>.Create();
+
+        // Act
+        var config = builder.AddRequiredField(x => x.Notes, "Notes", "Enter notes", "Notes are required").Build();
+
+        // Assert
+        var field = config.Fields
+            .OfType<FieldConfigurationWrapper<TestModel, string?>>()
+            .First(f => f.FieldName == "Notes");
+        field.Placeholder.ShouldBe("Enter notes");
+        field.TypedConfiguration.Validators.ShouldHaveSingleItem().ErrorMessage.ShouldBe("Notes are required");
+    }
+
+    [Fact]
+    public void AddOptionalField_Should_Not_Add_Required_Validator()
+    {
+        // Arrange
+        var builder = FormBuilder<TestModel>.Create();
+
+        // Act
+        var config = builder.AddOptionalField(x => x.Notes, "Notes").Build();
+
+        // Assert
+        var field = config.Fields.First(f => f.FieldName == "Notes");
+        field.IsRequired.ShouldBeFalse();
+        field.Validators.ShouldBeEmpty();
+        field.Placeholder.ShouldBeNullOrEmpty();
+    }
+
+    [Fact]
+    public void AddOptionalField_Should_Apply_Placeholder_When_Given()
+    {
+        // Arrange
+        var builder = FormBuilder<TestModel>.Create();
+
+        // Act
+        var config = builder.AddOptionalField(x => x.Notes, "Notes", "Optional").Build();
+
+        // Assert
+        var field = config.Fields.First(f => f.FieldName == "Notes");
+        field.Placeholder.ShouldBe("Optional");
+    }
+
+    [Fact]
+    public void AddTextArea_Should_Set_Label_And_Lines_Attribute()
+    {
+        // Arrange
+        var builder = FormBuilder<TestModel>.Create();
+
+        // Act
+        var config = builder.AddTextArea(x => x.Notes, "Notes", rows: 6).Build();
+
+        // Assert
+        var field = config.Fields.First(f => f.FieldName == "Notes");
+        field.Label.ShouldBe("Notes");
+        field.AdditionalAttributes["Lines"].ShouldBe(6);
+    }
+
+    [Fact]
+    public void AddTextArea_Should_Apply_Optional_FieldConfig_Callback()
+    {
+        // Arrange
+        var builder = FormBuilder<TestModel>.Create();
+
+        // Act
+        var config = builder.AddTextArea(x => x.Notes, "Notes", fieldConfig: field => field.WithHelpText("Max 500 chars")).Build();
+
+        // Assert
+        var field = config.Fields.First(f => f.FieldName == "Notes");
+        field.HelpText.ShouldBe("Max 500 chars");
+    }
+
     public class TestModel
     {
         public string FirstName { get; set; } = string.Empty;
@@ -453,6 +546,7 @@ public class FluentFormBuilderExtensionsTests
         public int Age { get; set; }
         public decimal Price { get; set; }
         public string Country { get; set; } = string.Empty;
+        public string? Notes { get; set; }
         public string PhoneNumber { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public bool AcceptTerms { get; set; }
