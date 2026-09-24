@@ -53,6 +53,19 @@ public class CollectionFieldConfigurationTests
     }
 
     [Fact]
+    public void Label_Should_Default_To_The_Last_Segment_Only_For_A_Nested_Collection()
+    {
+        // Arrange & Act - Label (the un-set-.WithLabel() default) intentionally does NOT inherit
+        // FieldName's #428 qualification: it still reads "Items", not "Billing.Items". Only the
+        // lookup identity needed to change - a nested collection's default UI label regressing to a
+        // dotted path was never asked for (spec-review finding on #428).
+        var config = new CollectionFieldConfiguration<TwoSectionModel, Widget>(x => x.Billing.Items);
+
+        // Assert
+        config.Label.ShouldBe("Items");
+    }
+
+    [Fact]
     public void CollectionSetter_Should_Write_Through_The_Full_Nested_Path()
     {
         // Arrange

@@ -339,6 +339,40 @@ public class CollectionValidationPassTests : BunitContext
             .ShouldBe(["Shipping message"]);
     }
 
+    [Fact]
+    public async Task ValidateModelAsync_Should_Use_Each_Nested_Collections_Own_MinItems_Not_The_Others()
+    {
+        // Arrange - Billing and Shipping are two DIFFERENT nested collections sharing the last
+        // segment "Items", each with its own MinItems (Acceptance Criterion 2 names
+        // MinItems/MaxItems explicitly, alongside ItemFormConfiguration which the test above covers).
+        // Both empty, so both collections' own rule must fire against their own configured minimum.
+        var model = new NestedTwoListModel();
+        var editContext = new EditContext(model);
+        var configuration = FormBuilder<NestedTwoListModel>
+            .Create()
+            .AddCollectionField(x => x.Billing.Items, collection => collection
+                .WithLabel("Billing Items")
+                .WithMinItems(2))
+            .AddCollectionField(x => x.Shipping.Items, collection => collection
+                .WithLabel("Shipping Items")
+                .WithMinItems(1))
+            .Build();
+
+        var validator = Render<DynamicFormValidator<NestedTwoListModel>>(parameters => parameters
+            .AddCascadingValue(editContext)
+            .Add(p => p.Configuration, configuration));
+
+        // Act
+        await validator.Instance.ValidateModelAsync();
+
+        // Assert - each collection's own MinItems fires against its own configured value, not the
+        // other's.
+        editContext.GetValidationMessages(editContext.Field("Billing.Items"))
+            .ShouldContain(m => m.Contains("at least 2"));
+        editContext.GetValidationMessages(editContext.Field("Shipping.Items"))
+            .ShouldContain(m => m.Contains("at least 1"));
+    }
+
     private static IFormConfiguration<OrderModel> BuildConfiguration(CountingValidator counter) =>
         FormBuilder<OrderModel>
             .Create()
