@@ -546,7 +546,8 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// item binding such as <c>item =&gt; item.Details.Name</c> — its <c>FieldName</c> is the full
     /// dotted path since #437 — so the edit was dropped (or, while the name was the last member only,
     /// written to a same-named top-level member). A binding that still cannot be written, such as a
-    /// null intermediate, drops the edit rather than throwing out of the change handler.
+    /// null intermediate, reports once per field via <see cref="_itemFieldScope"/> (#450) and drops
+    /// the edit rather than throwing out of the change handler.
     /// </remarks>
     private async Task UpdateItemFieldValue(int itemIndex, IFieldConfiguration<TItem, object> field, object? value)
     {
