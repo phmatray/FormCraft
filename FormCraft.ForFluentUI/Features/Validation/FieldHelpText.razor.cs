@@ -22,5 +22,5 @@ public partial class FieldHelpText : ComponentBase
     /// of the <c>aria-describedby</c> link derive it the same way rather than by convention.
     /// </summary>
     /// <param name="fieldName">The field's name.</param>
-    public static string IdFor(string fieldName) => $"formcraft-help-{fieldName}";
+    public static string IdFor(string fieldName) => $"formcraft-help-{IdSanitizer.ToCssSafeId(fieldName)}";
 }

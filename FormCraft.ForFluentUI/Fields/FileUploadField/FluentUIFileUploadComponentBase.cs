@@ -44,7 +44,7 @@ public abstract class FluentUIFileUploadComponentBase<TModel, TValue> : FluentUI
     protected string RequiredDescriptionId
     {
         get =>
-        $"formcraft-{Context.Field.FieldName}-required-{field}";
+        $"formcraft-{IdSanitizer.ToCssSafeId(Context.Field.FieldName)}-required-{field}";
     } = Guid.NewGuid().ToString("N")[..8];
 
     /// <summary>
