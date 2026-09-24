@@ -83,6 +83,26 @@ public class MultipleFileUploadDisabledWhenTests : MudBlazorTestBase
         component.FindAll(".mud-chip-close-button").Count.ShouldBe(1);
     }
 
+    [Fact]
+    public void Clicking_The_Drop_Zone_While_Disabled_Should_Not_Open_The_File_Picker()
+    {
+        // Arrange - enabled first, as a positive control: proves the selector really opens the
+        // picker before asserting the negative, so a wrong selector cannot pass this test silently.
+        var model = new MultiLockModel { Mode = "open" };
+        var component = RenderForm(model);
+        component.Find(".mud-file-upload .mud-paper").Click();
+        JSInterop.Invocations.Count(i => i.Identifier.Contains("openFilePicker", StringComparison.Ordinal)).ShouldBe(1);
+
+        // Act - the field becomes disabled; the drop zone's own @onclick calls OpenFilePickerAsync
+        // directly, bypassing the Browse button's Disabled binding entirely (#482).
+        component.FindAll("input")[0].Input("locked");
+        component.WaitForAssertion(() => FileUpload(component).Disabled.ShouldBeTrue());
+        component.Find(".mud-file-upload .mud-paper").Click();
+
+        // Assert - no second picker request was issued
+        JSInterop.Invocations.Count(i => i.Identifier.Contains("openFilePicker", StringComparison.Ordinal)).ShouldBe(1);
+    }
+
     private IRenderedComponent<FormCraftComponent<MultiLockModel>> RenderForm(MultiLockModel model)
     {
         var config = FormBuilder<MultiLockModel>.Create()
