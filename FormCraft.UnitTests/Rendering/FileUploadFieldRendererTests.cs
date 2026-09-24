@@ -167,9 +167,10 @@ public class FileUploadFieldRendererTests : CoreRendererTestBase
         // Act
         var cut = Render(_renderer.Render(context));
 
-        // Assert - "multiple" comes from ActualFieldType, not FileUploadConfiguration.Multiple.
+        // Assert - "multiple" comes from ActualFieldType, not FileUploadConfiguration.Multiple; this
+        // stub never reads FileUploadConfiguration for "accept" either, so it stays absent.
         cut.Find("input").HasAttribute("multiple").ShouldBeTrue();
-        uploadConfig.Multiple.ShouldBeTrue();
+        cut.Find("input").HasAttribute("accept").ShouldBeFalse();
     }
 
     [Fact]
@@ -271,10 +272,12 @@ public class FileUploadFieldRendererTests : CoreRendererTestBase
         // Act
         var cut = Render(_renderer.Render(context));
 
-        // Assert
+        // Assert - a successful upload (a real CurrentValue, no error key) still renders the same
+        // fixed markup: this stub reflects neither CurrentValue nor FileUploadErrors into the DOM.
         cut.Find("label").TextContent.ShouldBe("Upload File");
-        cut.Find("input").GetAttribute("type").ShouldBe("file");
-        additionalAttributes.ShouldNotContainKey("FileUploadErrors");
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("file");
+        input.HasAttribute("multiple").ShouldBeFalse();
     }
 
     [Fact]
