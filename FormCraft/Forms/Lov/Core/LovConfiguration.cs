@@ -12,6 +12,9 @@ public class LovConfiguration<TItem, TValue> : ILovConfiguration<TItem, TValue>
     public Func<LovQuery, CancellationToken, Task<LovDataResult<TItem>>>? DataProvider { get; set; }
 
     /// <inheritdoc />
+    public Func<object, CancellationToken, Task<TItem?>>? GetByKeyProvider { get; set; }
+
+    /// <inheritdoc />
     public Type? DataProviderServiceType { get; set; }
 
     /// <inheritdoc />
