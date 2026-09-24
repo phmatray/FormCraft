@@ -1,6 +1,6 @@
 namespace FormCraft.UnitTests.Rendering;
 
-public class DecimalFieldRendererTests
+public class DecimalFieldRendererTests : CoreRendererTestBase
 {
     private readonly DecimalFieldRenderer _renderer;
 
@@ -142,6 +142,31 @@ public class DecimalFieldRendererTests
         A.CallTo(() => context.OnDependencyChanged).Returns(EventCallback.Factory.Create(this, () => { }));
 
         return context;
+    }
+
+    [Fact]
+    public void RenderField_Should_Render_Label_NumberInput_And_HelpText_With_No_Adapter_Registered()
+    {
+        // Arrange - the standalone-consumer path: services.AddFormCraft() with no UI adapter.
+        // An integer-valued decimal avoids a culture-dependent decimal separator in the assertion.
+        var model = new TestModel { Price = 100m };
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Price, field => field
+                .WithLabel("Price")
+                .WithHelpText("In USD"))
+            .Build();
+        var field = config.Fields.First(f => f.FieldName == "Price");
+
+        // Act
+        var cut = Render(RendererService.RenderField(model, field, default, default));
+
+        // Assert
+        cut.Find("label").TextContent.ShouldBe("Price");
+        var input = cut.Find("input");
+        input.GetAttribute("type").ShouldBe("number");
+        input.GetAttribute("step").ShouldBe("0.01");
+        input.GetAttribute("value").ShouldBe("100");
+        cut.Find(".help-text").TextContent.ShouldBe("In USD");
     }
 
     public class TestModel
