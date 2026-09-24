@@ -115,10 +115,11 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         // unconditionally up front.
         var pendingMessages = new List<(FieldIdentifier Identifier, string Message)>();
         // Every ordinary-field and item-cell identifier this pass actually evaluated, valid or not
-        // (#445) - the flush below stamps all of them so a field-changed handler parked since before
-        // this pass started cannot overwrite a "now valid" result with its own stale one. The
-        // collection's own flat-set identifier is deliberately never added here (see the flush
-        // block's exemption further down).
+        // (#445, widened by #447 to also cover a collection cell the pass finds VALID - previously
+        // absent here because it produces no ItemErrors entry to add) - the flush below stamps all of
+        // them so a field-changed handler parked since before this pass started cannot overwrite a
+        // "now valid" result with its own stale one. The collection's own flat-set identifier is
+        // deliberately never added here (see the flush block's exemption further down).
         var evaluatedIdentifiers = new HashSet<FieldIdentifier>();
         // Reserves this pass's own stamp up front (#445, review finding) rather than merely reading
         // the counter: a handler that starts DURING this pass - after this line, before the flush -
@@ -188,6 +189,17 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                     pendingMessages.Add((_editContext.Field(collectionField.FieldName), error));
                 }
 
+                // Every cell this pass evaluated, valid or not (#447) - stamped exactly like an
+                // ordinary field below, so a field-changed handler parked on a cell since before this
+                // pass started cannot resurrect a stale error once the pass finds that cell valid. A
+                // failing cell's identifier is also in here (EvaluatedItemFields is a superset of
+                // ItemErrors), so it does not need adding again in the loop below.
+                foreach (var (itemIndex, itemFieldName) in result.EvaluatedItemFields)
+                {
+                    evaluatedIdentifiers.Add(CreateCollectionItemFieldIdentifier(
+                        collectionField.FieldName, itemIndex, itemFieldName));
+                }
+
                 // Additionally attach per-item errors to nested field identifiers
                 // (e.g. Items[0].ProductName) so ValidationMessage/ValidationSummary
                 // and FieldValidationMessage can display them natively.
@@ -195,7 +207,6 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                 {
                     var itemIdentifier = CreateCollectionItemFieldIdentifier(
                         collectionField.FieldName, itemError.ItemIndex, itemError.FieldName);
-                    evaluatedIdentifiers.Add(itemIdentifier);
                     pendingMessages.Add((itemIdentifier, itemError.Message));
                 }
             }
@@ -356,6 +367,14 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
 
             var model = (TModel)_editContext!.Model;
 
+            // Mirrors ValidateModelAsync's own guard (#447): skip work for a field already hidden
+            // when this handler starts. Not sufficient on its own - see the re-check just before the
+            // write below, which is what actually closes the gap this exists for.
+            if (!IsFieldVisible(fieldConfig, model))
+            {
+                return;
+            }
+
             // TryGetValue, not GetOrCompile(fieldConfig)(model) directly: the same unguarded-read
             // hazard #397 fixed in ValidateModelAsync above applies here too — a nested binding with
             // a null intermediate must not crash a single field's re-validation on change.
@@ -376,6 +395,16 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                 }
             }
 
+            // Re-checked here, not just above (#447): an async validator's await is exactly where a
+            // VisibilityCondition can flip to hidden while this handler is parked. The pass's own
+            // guard above only catches a field already hidden when the handler STARTS; a field
+            // hidden WHILE it awaits must still stop the write, or nothing refuses it - the next full
+            // pass also skips a hidden field, so it never stamps one either.
+            if (!IsFieldVisible(fieldConfig, model))
+            {
+                return;
+            }
+
             if (TryWrite(e.FieldIdentifier, stamp, messages))
             {
                 _editContext.NotifyValidationStateChanged();
@@ -394,11 +423,28 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             return;
         }
 
+        // Mirrors the ordinary-field guard above (#447, review finding on this same PR): a cell
+        // whose collection is already hidden when this handler starts must not be validated at all.
+        // Not sufficient alone - see the re-check below, for the same reason the ordinary-field
+        // guard needs its own post-await re-check.
+        if (!collectionField.IsVisible)
+        {
+            return;
+        }
+
         var model = (TModel)_editContext!.Model;
 
         // Validate just this cell. This used to validate the whole collection and filter the result
         // down to the matching item/field, which runs items × fields validators per keystroke (#329).
         var itemErrors = await ValidateCollectionCellAsync(model, collectionField, itemIndex, itemFieldName);
+
+        // Re-checked here, not just above: the awaited cell validator is exactly where the owning
+        // collection can be hidden while this handler is parked, same as an ordinary field's
+        // VisibilityCondition can flip mid-await.
+        if (!collectionField.IsVisible)
+        {
+            return;
+        }
 
         // Write only now that validation succeeded (#443), so a throwing validator leaves the
         // cell's previous message in place instead of a blank, "valid" cell.

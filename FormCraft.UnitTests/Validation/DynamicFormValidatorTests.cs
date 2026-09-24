@@ -577,6 +577,136 @@ public class DynamicFormValidatorTests : BunitContext
     }
 
     [Fact]
+    public async Task ValidateModelAsync_Should_Stamp_A_Valid_Collection_Cell_So_A_Parked_Handler_Cannot_Resurrect_A_Stale_Error()
+    {
+        // Arrange - #447, a follow-up from #445's own review. #445 stamps every ordinary-field
+        // identifier a pass evaluates, valid or not, so a field-changed handler parked since before
+        // the pass started cannot overwrite a "now valid" result with a stale one. A collection cell
+        // the pass finds VALID never appears in ItemErrors at all, so it was never added to that
+        // stamped set - this cell's stale "Name rejected" below was free to win once the handler
+        // resumed.
+        var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var model = new TestModel { Items = [new ItemModel()] };
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.Name, field => field.WithAsyncValidator(
+                        async value =>
+                        {
+                            if (string.IsNullOrEmpty(value))
+                            {
+                                await gate.Task;
+                                return false;
+                            }
+
+                            return true;
+                        },
+                        "Name rejected"))))
+            .Build();
+        var validator = RenderValidator(editContext, config);
+        var cell = new FieldIdentifier(model, "Items[0].Name");
+
+        // Act - the handler takes its stamp, reads the empty value and parks on the gate.
+        editContext.NotifyFieldChanged(cell);
+
+        // The user fixes the value, then a full pass runs to completion while the handler above is
+        // still parked - it reads the fixed value directly, so it never touches the gate.
+        model.Items[0].Name = "Ada";
+        var isValid = await validator.Instance.ValidateModelAsync();
+        isValid.ShouldBeTrue();
+        editContext.GetValidationMessages(cell).ShouldBeEmpty();
+
+        // The parked handler now resumes and tries to write its stale "Name rejected" result.
+        gate.SetResult(true);
+        await Task.Delay(50, Xunit.TestContext.Current.CancellationToken);
+
+        // Assert - the pass's newer (now-valid) result must survive the handler's stale write.
+        editContext.GetValidationMessages(cell).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task HandleFieldChanged_Should_Not_Write_A_Message_For_A_Field_Hidden_Before_It_Resumes()
+    {
+        // Arrange - #447. HandleFieldChanged never checks IsFieldVisible, unlike ValidateModelAsync's
+        // own field loop. If a field's VisibilityCondition flips to hidden while a handler is parked
+        // on it, the next full pass also skips the now-hidden field (same guard), so it is never
+        // stamped either - nothing then refuses the parked handler's stale write for a field the user
+        // can no longer see or correct.
+        var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var model = new TestModel { ShowName = true };
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Name, field => field
+                .VisibleWhen(m => m.ShowName)
+                .WithAsyncValidator(_ => gate.Task, "Name rejected"))
+            .Build();
+        var validator = RenderValidator(editContext, config);
+        var name = editContext.Field(nameof(TestModel.Name));
+
+        // Act - the handler takes its stamp and parks on the gate.
+        editContext.NotifyFieldChanged(name);
+
+        // The field becomes hidden, then a full pass runs to completion while the handler above is
+        // still parked - ValidateModelAsync's own IsFieldVisible guard skips it entirely.
+        model.ShowName = false;
+        var isValid = await validator.Instance.ValidateModelAsync();
+        isValid.ShouldBeTrue();
+        editContext.GetValidationMessages(name).ShouldBeEmpty();
+
+        // The parked handler now resumes and finds the value invalid.
+        gate.SetResult(false);
+        await Task.Delay(50, Xunit.TestContext.Current.CancellationToken);
+
+        // Assert - a field nobody can see must not gain a validation message just because a handler
+        // that started before it was hidden resumes after.
+        editContext.GetValidationMessages(name).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ValidateCollectionItemFieldAsync_Should_Not_Write_A_Message_For_A_Cell_Whose_Collection_Is_Hidden_Before_It_Resumes()
+    {
+        // Arrange - #447, review finding on this PR: HandleFieldChanged's collection-cell branch
+        // had no visibility guard at all, unlike the ordinary-field branch fixed above. Collection
+        // visibility (ICollectionFieldConfigurationBase.IsVisible) is a plain mutable flag with no
+        // VisibilityCondition, and it can flip to hidden while a per-cell handler is parked on an
+        // async validator - the pass's own collection loop already skips a hidden collection
+        // entirely, so nothing stamped this cell either, leaving the handler's stale write free to
+        // win once it resumed.
+        var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var model = new TestModel { Items = [new ItemModel()] };
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddCollectionField(x => x.Items, collection => collection
+                .WithLabel("Items")
+                .WithItemForm(item => item
+                    .AddField(x => x.Name, field => field.WithAsyncValidator(_ => gate.Task, "Name rejected"))))
+            .Build();
+        var validator = RenderValidator(editContext, config);
+        var cell = new FieldIdentifier(model, "Items[0].Name");
+        var collectionField = ((ICollectionFormConfiguration<TestModel>)config).CollectionFields[0];
+
+        // Act - the handler takes its stamp and parks on the gate.
+        editContext.NotifyFieldChanged(cell);
+
+        // The collection becomes hidden, then a full pass runs to completion while the handler
+        // above is still parked - the pass's own collection loop skips a hidden collection entirely.
+        collectionField.IsVisible = false;
+        var isValid = await validator.Instance.ValidateModelAsync();
+        isValid.ShouldBeTrue();
+        editContext.GetValidationMessages(cell).ShouldBeEmpty();
+
+        // The parked handler now resumes and finds the value invalid.
+        gate.SetResult(false);
+        await Task.Delay(50, Xunit.TestContext.Current.CancellationToken);
+
+        // Assert - a cell nobody can see must not gain a validation message just because a handler
+        // that started before its collection was hidden resumes after.
+        editContext.GetValidationMessages(cell).ShouldBeEmpty();
+    }
+
+    [Fact]
     public void OnInitialized_Should_Throw_Without_A_Cascading_EditContext()
     {
         // Arrange - the component is only meaningful inside an EditForm, and says so.
@@ -616,6 +746,8 @@ public class DynamicFormValidatorTests : BunitContext
         public string Name { get; set; } = string.Empty;
 
         public string Email { get; set; } = string.Empty;
+
+        public bool ShowName { get; set; } = true;
 
         public NestedModel? Nested { get; set; }
 
