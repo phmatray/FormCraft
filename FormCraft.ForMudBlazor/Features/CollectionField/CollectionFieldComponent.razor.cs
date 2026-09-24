@@ -217,6 +217,14 @@ public partial class CollectionFieldComponent<TModel, TItem>
     private const string UnreadableBindingDiagnosticCategory = "FormCraft.ForMudBlazor.CollectionUnreadableBinding";
 
     /// <summary>
+    /// Logger category for the unwritable-item-field-binding diagnostic (#450) — the write-side
+    /// counterpart of <see cref="UnreadableBindingDiagnosticCategory"/>. Distinct on purpose: that one
+    /// means "the whole collection could not be read", this one means "one item field could not be
+    /// written", and folding them together would misdescribe which failure actually happened.
+    /// </summary>
+    private const string CollectionItemUnwritableBindingDiagnosticCategory = "FormCraft.ForMudBlazor.CollectionItemUnwritableBinding";
+
+    /// <summary>
     /// The user-facing message shown in place of <see cref="ICollectionFieldConfigurationBase.EmptyText"/>
     /// while the binding is unreadable (#433) — distinct wording so a genuinely empty collection is
     /// never mistaken for a broken one, or vice versa.
@@ -538,7 +546,8 @@ public partial class CollectionFieldComponent<TModel, TItem>
     /// item binding such as <c>item =&gt; item.Details.Name</c> — its <c>FieldName</c> is the full
     /// dotted path since #437 — so the edit was dropped (or, while the name was the last member only,
     /// written to a same-named top-level member). A binding that still cannot be written, such as a
-    /// null intermediate, drops the edit rather than throwing out of the change handler.
+    /// null intermediate, reports once per field via <see cref="_itemFieldScope"/> (#450) and drops
+    /// the edit rather than throwing out of the change handler.
     /// </remarks>
     private async Task UpdateItemFieldValue(int itemIndex, IFieldConfiguration<TItem, object> field, object? value)
     {
@@ -553,9 +562,24 @@ public partial class CollectionFieldComponent<TModel, TItem>
             FieldValueSetterCache<TItem>.GetOrCompile(field)(Items[itemIndex], value);
             written = true;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Unwritable binding (e.g. a null intermediate): drop the edit, as the top-level path does.
+            // Unwritable binding (e.g. a null intermediate): drop the edit, as the top-level path
+            // does, but warn once per field (#450) — the write-side counterpart of #433's read-side
+            // diagnostic, via the same once-per-(diagnostic, field) latch that already resets whenever
+            // this component is repointed at a different collection field (OnParametersSet above).
+            if (_itemFieldScope!.ShouldWarnOnce(CollectionItemUnwritableBindingDiagnosticCategory, field.FieldName))
+            {
+                var displayName = string.IsNullOrWhiteSpace(field.Label) ? field.FieldName : field.Label;
+                FormDiagnosticLog.Warn(
+                    ServiceProvider,
+                    CollectionItemUnwritableBindingDiagnosticCategory,
+                    "Collection item field '{Field}' has a value that could not be written back to " +
+                    "the model ({ExceptionType}: {ExceptionMessage}), so the edit is dropped instead " +
+                    "of throwing out of the change handler. Check that its binding expression is " +
+                    "reachable (e.g. no null intermediate in a nested path).",
+                    displayName, ex.GetType().Name, ex.Message);
+            }
         }
 
         // Notify the parent EditContext with a nested field identifier (Blazor convention: the model
