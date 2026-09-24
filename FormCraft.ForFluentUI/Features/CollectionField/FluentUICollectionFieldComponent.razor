@@ -42,7 +42,13 @@
             @for (var i = 0; i < Items.Count; i++)
             {
                 var index = i;
-                <FluentCard Class="formcraft-collection-item" data-testid="formcraft-collection-item">
+                var key = RowKey(index);
+                @* #401 (porting #334): the row's ROOT element is keyed on the item's own identity -
+                   a weak token, never the item itself. Keying on `Items[index]` was tried and
+                   reverted on the MudBlazor side (#298/#308): Blazor matches keys by Equals, not by
+                   reference, and TItem is constrained only to `new()`, so a record/struct row
+                   comparing equal to another was a duplicate key. *@
+                <FluentCard Class="formcraft-collection-item" data-testid="formcraft-collection-item" @key="key">
                     @* tabindex="-1" so a row can take focus without joining the tab order: it is
                        where focus goes when the acting control leaves no usable target - after Add
                        (the row's own fields render through IFieldRendererService and expose no
@@ -75,8 +81,10 @@
                             @if (Configuration.CanRemove && !HasReachedMin)
                             {
                                 @* The id is deterministic per index (#383), so a removal can focus
-                                   the control that takes the vacated slot - the row loop is keyless,
-                                   so Blazor reuses the element already at each position. *@
+                                   the control that takes the vacated slot - it is recomputed from
+                                   today's Items on every render, independent of the row's own @key
+                                   (#401), so the survivor at a given index always carries that
+                                   index's id regardless of which row's component instance renders it. *@
                                 <FluentButton Appearance="ButtonAppearance.Subtle"
                                               Id="@DeleteTargetIdAt(index)"
                                               OnClick="@(() => RemoveItem(index))"

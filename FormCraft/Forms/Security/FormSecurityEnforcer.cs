@@ -227,8 +227,12 @@ public sealed class FormSecurityEnforcer<TModel>
         foreach (var field in configuration.Fields)
         {
             var key = BuildAuditKey(field);
-            if (excludedFields?.Contains(field.FieldName) == true ||
-                security.EncryptedFields.Contains(field.FieldName))
+            // Match the bare FieldName and the full-path key, so both "City" and "Address.City"
+            // listings redact (#417). Fail closed: any match on either set redacts.
+            if (AuditLogConfiguration.Matches(excludedFields, key) ||
+                AuditLogConfiguration.Matches(excludedFields, field.FieldName) ||
+                AuditLogConfiguration.Matches(security.EncryptedFields, key) ||
+                AuditLogConfiguration.Matches(security.EncryptedFields, field.FieldName))
             {
                 entry.AdditionalData[key] = "[REDACTED]";
                 continue;

@@ -80,5 +80,25 @@ public class AuditLogConfiguration
     /// <summary>
     /// Fields to exclude from logging (e.g., passwords).
     /// </summary>
+    /// <remarks>
+    /// Audit keys for nested fields are full dotted paths (<c>"Address.City"</c>). An entry here
+    /// matches a key either exactly or by the key's last segment, so a bare member name
+    /// (<c>"City"</c>) redacts every field ending in that member, while a full path redacts only
+    /// that one field.
+    /// </remarks>
     public HashSet<string> ExcludedFields { get; set; } = new();
+
+    /// <summary>
+    /// Whether <paramref name="key"/> — a field name or dotted audit path — is named by
+    /// <paramref name="fields"/>, either exactly or by its last dot-separated segment (#417).
+    /// </summary>
+    internal static bool Matches(HashSet<string>? fields, string? key)
+    {
+        if (fields is not { Count: > 0 } || key is null)
+        {
+            return false;
+        }
+
+        return fields.Contains(key) || fields.Contains(key[(key.LastIndexOf('.') + 1)..]);
+    }
 }

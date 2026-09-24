@@ -65,8 +65,12 @@ public class ConsoleAuditLogService : IAuditLogService
             return entry;
         }
 
-        var isFieldExcluded = entry.FieldName != null && excludedFields.Contains(entry.FieldName);
-        var hasExcludedAdditionalData = entry.AdditionalData.Keys.Any(excludedFields.Contains);
+        // FieldName is a bare last member, so a full-path entry ending in it ("Address.City" for
+        // "City") also redacts: it cannot tell which nested field it came from (#417, fail closed).
+        var isFieldExcluded = AuditLogConfiguration.Matches(excludedFields, entry.FieldName) ||
+            (entry.FieldName != null &&
+             excludedFields.Any(e => e.EndsWith("." + entry.FieldName, StringComparison.Ordinal)));
+        var hasExcludedAdditionalData = entry.AdditionalData.Keys.Any(key => AuditLogConfiguration.Matches(excludedFields, key));
         if (!isFieldExcluded && !hasExcludedAdditionalData)
         {
             return entry;
@@ -86,7 +90,7 @@ public class ConsoleAuditLogService : IAuditLogService
             NewValue = isFieldExcluded && entry.NewValue != null ? RedactedValue : entry.NewValue,
             AdditionalData = entry.AdditionalData.ToDictionary(
                 kvp => kvp.Key,
-                kvp => excludedFields.Contains(kvp.Key) ? RedactedValue : kvp.Value)
+                kvp => AuditLogConfiguration.Matches(excludedFields, kvp.Key) ? RedactedValue : kvp.Value)
         };
     }
 }
