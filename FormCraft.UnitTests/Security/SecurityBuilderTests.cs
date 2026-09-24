@@ -215,6 +215,49 @@ public class SecurityBuilderTests
         config.Security.AuditLog.ExcludedFields.ShouldContain("Password");
     }
 
+    private interface IHasEmail
+    {
+        string Email { get; set; }
+    }
+
+    private interface IContact : IHasEmail
+    {
+    }
+
+    private class Contact : IContact
+    {
+        public string Email { get; set; } = "";
+    }
+
+    private class ModelWithInterfaceContact
+    {
+        public IContact Contact { get; set; } = new Contact();
+    }
+
+    [Fact]
+    public void EncryptField_Should_Resolve_And_Encrypt_A_Property_Inherited_Through_A_Base_Interface()
+    {
+        // #429: Contact is declared as IContact, and Email is declared on the base interface
+        // IHasEmail that IContact inherits from, not on IContact itself. Type.GetProperty only looks
+        // at members declared directly on the queried type, so this used to fail closed with an
+        // ArgumentException at Build() time — a false rejection of a normal C# idiom (interface
+        // inheritance), not the genuinely-unresolvable case the fail-closed behavior exists for.
+        var config = FormBuilder<ModelWithInterfaceContact>.Create()
+            .WithSecurity(security => security.EncryptField(x => x.Contact.Email))
+            .Build();
+
+        config.Security.ShouldNotBeNull();
+        config.Security.EncryptedFields.ShouldContain("Contact.Email");
+
+        var model = new ModelWithInterfaceContact { Contact = new Contact { Email = "a@b.com" } };
+        var encryptionService = A.Fake<IEncryptionService>();
+        A.CallTo(() => encryptionService.Encrypt(A<string?>._)).ReturnsLazily((string? v) => $"ENC:{v}");
+
+        EncryptedFieldHelper.EncryptFields(model, config.Security, encryptionService);
+
+        model.Contact.Email.ShouldBe("ENC:a@b.com");
+    }
+
     [Fact]
     public void Should_Work_With_Regular_Form_Configuration()
     {
