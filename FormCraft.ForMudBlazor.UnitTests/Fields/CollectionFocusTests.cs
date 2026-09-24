@@ -315,6 +315,68 @@ public class CollectionFocusTests : FocusAssertingTestBase
         fields[0].FindAll(DeleteSelector).Count.ShouldBe(3);
     }
 
+    /// <summary>
+    /// #433: the "binding transitions from readable to unreadable while a row is focused" case
+    /// CLAUDE.md calls out explicitly. Approximated through this component's own removal path — the
+    /// only keyboard-reachable route, since nothing here can query which element the browser currently
+    /// has focus on — by having a sibling model change (raised the same way
+    /// <c>FormCraftComponent.HandleCollectionChanged</c> already raises
+    /// <c>EditContext.OnValidationStateChanged</c> on every collection edit) null the nested
+    /// intermediate mid-removal. Once that happens, the removed button's own focus-restore chain
+    /// degrades to the header exactly as the MinItems-reached-zero case already does, because
+    /// <see cref="CollectionFieldComponent{TModel,TItem}.DeleteButtonAt"/> and the Add gate both fold
+    /// in the same unreadable flag (#433).
+    /// </summary>
+    [Fact]
+    public async Task Removing_A_Row_That_Makes_The_Binding_Unreadable_Should_Fall_Back_To_The_Header()
+    {
+        // Arrange - three readable rows.
+        var config = FormBuilder<CollectionItemsGetterNullIntermediateTests.ParentModel>.Create()
+            .AddCollectionField(x => x.Details!.Items, collection => collection
+                .WithLabel("Items")
+                .AllowAdd()
+                .AllowRemove()
+                .WithItemForm(item => item
+                    .AddField(x => x.ProductName, field => field.WithLabel("Product"))))
+            .Build();
+        var model = new CollectionItemsGetterNullIntermediateTests.ParentModel
+        {
+            Details = new CollectionItemsGetterNullIntermediateTests.DetailModel
+            {
+                Items =
+                [
+                    new() { ProductName = "a" },
+                    new() { ProductName = "b" },
+                    new() { ProductName = "c" },
+                ],
+            },
+        };
+
+        var component = this.RenderItemForm(model, config, configure: p => p
+            .Add(c => c.OnEditContextCreated, EventCallback.Factory.Create<EditContext>(
+                this, ctx => ctx.OnValidationStateChanged += (_, _) => model.Details = null)));
+
+        var buttonIdsBefore = new List<string>();
+        foreach (var button in component.FindComponents<MudIconButton>().Select(b => b.Instance))
+        {
+            buttonIdsBefore.Add(await LearnElementIdAsync(component, button));
+        }
+
+        var focusesBefore = FocusCount();
+
+        // Act - the removal's own NotifyCollectionChanged -> HandleCollectionChanged ->
+        // EditContext.NotifyValidationStateChanged fires the hook above mid-removal, so the binding is
+        // unreadable by the time OnAfterRenderAsync moves focus.
+        await component.InvokeAsync(() => component.FindAll(DeleteSelector)[0].Click());
+
+        // Assert - every delete button AND Add are gone (both fold in _bindingUnreadable), and focus
+        // landed deliberately rather than on a stale reference to a control that has unmounted.
+        component.FindAll(DeleteSelector).ShouldBeEmpty();
+        component.FindAll("button").Any(b => b.TextContent.Contains("Add Item")).ShouldBeFalse();
+        FocusCount().ShouldBe(focusesBefore + 1);
+        LastFocusedElementId().ShouldNotBeOneOf([.. buttonIdsBefore]);
+    }
+
     private static List<MudIconButton> DeleteButtonsIn(
         IRenderedComponent<CollectionFieldComponent<TwoCollectionModel, MixedItem>> field) =>
         field.FindComponents<MudIconButton>()

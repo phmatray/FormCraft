@@ -31,11 +31,25 @@
 
         @if (Items.Count == 0)
         {
-            <FluentMessageBar Intent="MessageBarIntent.Info"
-                              AllowDismiss="false"
-                              data-testid="formcraft-collection-empty">
-                @Configuration.EmptyText
-            </FluentMessageBar>
+            @if (_bindingUnreadable)
+            {
+                @* Distinct from EmptyText (#433): a genuinely empty collection and one whose binding
+                   cannot currently be read must never look identical to the user. *@
+                <FluentMessageBar
+                    Intent="MessageBarIntent.Warning"
+                    AllowDismiss="false"
+                    data-testid="formcraft-collection-unreadable">
+                    @UnreadableBindingMessage
+                </FluentMessageBar>
+            }
+            else
+            {
+                <FluentMessageBar Intent="MessageBarIntent.Info"
+                                  AllowDismiss="false"
+                                  data-testid="formcraft-collection-empty">
+                    @Configuration.EmptyText
+                </FluentMessageBar>
+            }
         }
         else
         {
@@ -78,7 +92,7 @@
                                         &#8595;
                                     </FluentButton>
                                 }
-                            @if (Configuration.CanRemove && !HasReachedMin)
+                            @if (DeleteTargetsRendered)
                             {
                                 @* The id is deterministic per index (#383), so a removal can focus
                                    the control that takes the vacated slot - it is recomputed from
