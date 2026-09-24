@@ -88,7 +88,10 @@ public class CollectionFieldValidator<TModel, TItem> : ICollectionValidator
         // than the one actually validated (#344).
         var items = TryReadCollection(model);
         var (itemErrors, evaluatedItemFields) = await ValidateItemsWithEvaluatedAsync(items, services);
-        return new CollectionValidationResult(BuildMessages(items, itemErrors), itemErrors, evaluatedItemFields);
+        return new CollectionValidationResult(BuildMessages(items, itemErrors), itemErrors)
+        {
+            EvaluatedItemFields = evaluatedItemFields
+        };
     }
 
     /// <summary>
