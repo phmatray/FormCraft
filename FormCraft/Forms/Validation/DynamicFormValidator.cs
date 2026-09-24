@@ -110,6 +110,12 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         // immediately before this list is flushed, at the bottom of the method, instead of running
         // unconditionally up front.
         var pendingMessages = new List<(FieldIdentifier Identifier, string Message)>();
+        // Every ordinary-field and item-cell identifier this pass actually evaluated, valid or not
+        // (#445) - the flush below stamps all of them so a field-changed handler parked since before
+        // this pass started cannot overwrite a "now valid" result with its own stale one. The
+        // collection's own flat-set identifier is deliberately never added here (see the flush
+        // block's exemption further down).
+        var evaluatedIdentifiers = new HashSet<FieldIdentifier>();
         var passStartedAt = _writeVersion;
 
         foreach (var field in Configuration.Fields)
@@ -119,6 +125,9 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
             {
                 continue;
             }
+
+            var fieldIdentifier = _editContext.Field(field.FieldName);
+            evaluatedIdentifiers.Add(fieldIdentifier);
 
             // TryGetValue rather than GetOrCompile(field)(model) directly (#397): a nested binding
             // with a null intermediate would otherwise throw out of the whole validation pass instead
@@ -134,7 +143,7 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                 var result = await validator.ValidateAsync(model, value!, ServiceProvider);
                 if (!result.IsValid)
                 {
-                    pendingMessages.Add((_editContext.Field(field.FieldName), result.ErrorMessage!));
+                    pendingMessages.Add((fieldIdentifier, result.ErrorMessage!));
                 }
             }
         }
@@ -171,9 +180,10 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
                 // and FieldValidationMessage can display them natively.
                 foreach (var itemError in result.ItemErrors)
                 {
-                    pendingMessages.Add((
-                        CreateCollectionItemFieldIdentifier(collectionField.FieldName, itemError.ItemIndex, itemError.FieldName),
-                        itemError.Message));
+                    var itemIdentifier = CreateCollectionItemFieldIdentifier(
+                        collectionField.FieldName, itemError.ItemIndex, itemError.FieldName);
+                    evaluatedIdentifiers.Add(itemIdentifier);
+                    pendingMessages.Add((itemIdentifier, itemError.Message));
                 }
             }
         }
@@ -196,6 +206,23 @@ public class DynamicFormValidator<TModel> : ComponentBase, IDisposable where TMo
         foreach (var (identifier, message) in carried.Concat(fresh))
         {
             _messageStore.Add(identifier, message);
+        }
+
+        // Stamp every identifier this pass just wrote fresh - including ones it evaluated and found
+        // valid, which never enter pendingMessages at all (#445). A field-changed handler that took
+        // its own stamp before this line and is still awaiting must lose the TryWrite race for any of
+        // these identifiers once it resumes. One shared stamp, taken now rather than reusing
+        // passStartedAt: passStartedAt can equal a handler's own stamp exactly (the handler's
+        // increment is what set it), and TryWrite's check is a strict >, so an equal value would still
+        // let a stale write through. Carried identifiers are skipped - they already carry a handler's
+        // own newer stamp from #443, and this flush did not write them.
+        var flushStamp = ++_writeVersion;
+        foreach (var identifier in evaluatedIdentifiers)
+        {
+            if (!newer.Contains(identifier))
+            {
+                _writtenAt[identifier] = flushStamp;
+            }
         }
 
         // The collection's flat set came from this pass (it carries the count rules, which exist

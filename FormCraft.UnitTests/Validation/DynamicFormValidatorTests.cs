@@ -448,6 +448,51 @@ public class DynamicFormValidatorTests : BunitContext
     }
 
     [Fact]
+    public async Task HandleFieldChanged_Should_Not_Overwrite_A_Pass_That_Finished_While_It_Was_Parked()
+    {
+        // Arrange - Email's only validator parks on a gate for an empty value (#445, the reverse
+        // direction of #443's HandleFieldChanged_Should_Not_Let_An_Older_Edit_Overwrite_A_Newer_One):
+        // a field-changed handler takes its stamp and starts reading "", then a full pass runs to
+        // completion against a fixed value BEFORE the handler resumes.
+        var gate = new TaskCompletionSource<bool>();
+        var model = new TestModel();
+        var editContext = new EditContext(model);
+        var config = FormBuilder<TestModel>.Create()
+            .AddField(x => x.Email, field => field.WithAsyncValidator(
+                async value =>
+                {
+                    if (string.IsNullOrEmpty(value))
+                    {
+                        await gate.Task;
+                        return false;
+                    }
+
+                    return true;
+                },
+                "Email is required"))
+            .Build();
+        var validator = RenderValidator(editContext, config);
+        var email = editContext.Field(nameof(TestModel.Email));
+
+        // Act - the handler takes its stamp, reads the empty value and parks on the gate.
+        editContext.NotifyFieldChanged(email);
+
+        // The user fixes the value, then a full pass runs to completion while the handler above is
+        // still parked - it reads the new value directly, so it never touches the gate.
+        model.Email = "ada@example.com";
+        var isValid = await validator.Instance.ValidateModelAsync();
+        isValid.ShouldBeTrue();
+        editContext.GetValidationMessages(email).ShouldBeEmpty();
+
+        // The parked handler now resumes and tries to write its stale "Email is required" result.
+        gate.SetResult(true);
+        await Task.Delay(50, Xunit.TestContext.Current.CancellationToken);
+
+        // Assert - the pass's newer (now-valid) result must survive the handler's stale write.
+        editContext.GetValidationMessages(email).ShouldBeEmpty();
+    }
+
+    [Fact]
     public void OnInitialized_Should_Throw_Without_A_Cascading_EditContext()
     {
         // Arrange - the component is only meaningful inside an EditForm, and says so.
