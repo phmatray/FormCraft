@@ -82,18 +82,41 @@ public class EncryptionServiceExtensionsTests
     }
 
     [Fact]
-    public void EncryptConfiguredFields_Should_Skip_Non_String_Properties()
+    public void EncryptConfiguredFields_Should_Fail_Closed_On_A_Non_String_Property()
     {
-        // Arrange
+        // Fail closed (#423): silently omitting a listed field would hand the caller no ciphertext
+        // for a value it believes is encrypted.
         var model = new TestModel { Age = 42 };
         var security = new FormSecurity();
         security.EncryptedFields.Add(nameof(TestModel.Age));
 
-        // Act
-        var result = _encryptionService.EncryptConfiguredFields(model, security);
+        Should.Throw<ArgumentException>(() => _encryptionService.EncryptConfiguredFields(model, security));
+    }
 
-        // Assert
-        result.ShouldBeEmpty();
+    [Fact]
+    public void EncryptConfiguredFields_Should_Encrypt_A_Nested_Field_Under_Its_Full_Path()
+    {
+        var model = new TestModel { Address = new TestAddress { City = "Brussels" } };
+        var configuration = FormBuilder<TestModel>.Create()
+            .WithSecurity(security => security.EncryptField(x => x.Address!.City))
+            .Build();
+
+        var result = _encryptionService.EncryptConfiguredFields(model, configuration);
+
+        result["Address.City"].ShouldBe("enc(Brussels)");
+        model.Address.City.ShouldBe("Brussels");
+    }
+
+    [Fact]
+    public void EncryptConfiguredFields_Should_Pass_Null_Through_For_A_Nested_Field_Under_A_Null_Parent()
+    {
+        var security = new FormSecurity();
+        security.EncryptedFields.Add("Address.City");
+
+        var result = _encryptionService.EncryptConfiguredFields(new TestModel(), security);
+
+        result["Address.City"].ShouldBeNull();
+        A.CallTo(() => _encryptionService.Encrypt(A<string?>._)).MustNotHaveHappened();
     }
 
     [Fact]
@@ -131,5 +154,11 @@ public class EncryptionServiceExtensionsTests
         public string? Ssn { get; set; }
         public string? CreditCard { get; set; }
         public int Age { get; set; }
+        public TestAddress? Address { get; set; }
+    }
+
+    private class TestAddress
+    {
+        public string City { get; set; } = string.Empty;
     }
 }

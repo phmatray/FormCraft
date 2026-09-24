@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -168,9 +167,17 @@ public sealed class FormSecurityEnforcer<TModel>
     /// </summary>
     /// <param name="model">The model holding the plaintext values.</param>
     /// <param name="security">The form's security settings.</param>
-    /// <returns>A field-name to ciphertext map covering only the configured fields.</returns>
+    /// <returns>
+    /// A map from each configured field's path (<c>"SSN"</c>, or <c>"Address.City"</c> for a nested
+    /// field) to its ciphertext, covering only the configured fields.
+    /// </returns>
     /// <exception cref="InvalidOperationException">
     /// Thrown when no <see cref="IEncryptionService"/> is registered (call <c>AddFormCraft()</c>).
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when an entry in <see cref="IFormSecurity.EncryptedFields"/> does not resolve to a
+    /// readable <see cref="string"/> property of <typeparamref name="TModel"/> — encryption fails
+    /// closed rather than omitting a field the caller believes is encrypted (#423).
     /// </exception>
     public IReadOnlyDictionary<string, string?> EncryptConfiguredFields(TModel model, IFormSecurity? security)
     {
@@ -272,29 +279,14 @@ public sealed class FormSecurityEnforcer<TModel>
     /// last-member-only name, so two fields that end in the same member (<c>x =&gt; x.Home.City</c>
     /// and <c>x =&gt; x.Work.City</c>) no longer collide on one shared key (#406).
     /// </summary>
+    /// <remarks>
+    /// A hand-rolled <see cref="IFieldConfiguration{TModel, TValue}"/> is not bound by
+    /// <see cref="FieldConfiguration{TModel, TValue}"/>'s member-expression guard, since
+    /// <see cref="IFormConfiguration{TModel}.Fields"/> is a public, mutable list; for one whose
+    /// expression is not a member chain on the model this keeps the pre-#406 <c>FieldName</c> key.
+    /// </remarks>
     private static string BuildAuditKey(IFieldConfiguration<TModel, object> field)
-    {
-        var expression = field.ValueExpression.Body;
-        if (expression is UnaryExpression unary)
-        {
-            expression = unary.Operand;
-        }
-
-        var segments = new Stack<string>();
-        while (expression is MemberExpression member)
-        {
-            segments.Push(member.Member.Name);
-            expression = member.Expression;
-        }
-
-        // Every field built through the fluent builder already has a MemberExpression body (enforced
-        // by FieldConfiguration<TModel, TValue>'s constructor), so this branch is unreachable for
-        // those. IFormConfiguration<TModel>.Fields is a public, mutable list, though, and a
-        // hand-rolled IFieldConfiguration<TModel, TValue> (see that interface's own XML doc example)
-        // is not bound by that guard — this is its compatibility fallback, preserving the pre-#406
-        // FieldName-only key for any such implementation.
-        return segments.Count == 0 ? field.FieldName : string.Join(".", segments);
-    }
+        => MemberPathResolver.GetDottedPath(field.ValueExpression) ?? field.FieldName;
 
     private void LogSecurityError(string message, params object?[] args)
     {

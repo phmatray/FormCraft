@@ -8,6 +8,46 @@ public class SecurityBuilderTests
         public string SSN { get; set; } = "";
         public string Email { get; set; } = "";
         public string Password { get; set; } = "";
+        public int Age { get; set; }
+        public TestAddress Address { get; set; } = new();
+        public string Computed() => "";
+    }
+
+    private class TestAddress
+    {
+        public string City { get; set; } = "";
+    }
+
+    [Fact]
+    public void Should_Store_Full_Dotted_Path_For_Nested_EncryptField()
+    {
+        var config = FormBuilder<TestModel>.Create()
+            .WithSecurity(security => security.EncryptField(x => x.Address.City))
+            .Build();
+
+        config.Security.ShouldNotBeNull();
+        config.Security.EncryptedFields.ShouldContain("Address.City");
+        config.Security.EncryptedFields.ShouldNotContain("City");
+    }
+
+    [Fact]
+    public void EncryptField_Should_Throw_At_Configuration_Time_For_A_Non_String_Member()
+    {
+        // Fail closed (#423): only strings can be encrypted, so accepting an int would leave it in
+        // plaintext with no error.
+        Should.Throw<ArgumentException>(() => FormBuilder<TestModel>.Create()
+            .WithSecurity(security => security.EncryptField(x => x.Age)));
+    }
+
+    [Fact]
+    public void EncryptField_Should_Throw_At_Configuration_Time_For_An_Expression_That_Is_Not_A_Member_Chain()
+    {
+        var outside = new TestModel();
+
+        Should.Throw<ArgumentException>(() => FormBuilder<TestModel>.Create()
+            .WithSecurity(security => security.EncryptField(x => x.Computed())));
+        Should.Throw<ArgumentException>(() => FormBuilder<TestModel>.Create()
+            .WithSecurity(security => security.EncryptField(x => outside.SSN)));
     }
 
     [Fact]

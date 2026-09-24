@@ -262,6 +262,17 @@ public class FormSecurityEnforcerTests
         entry.AdditionalData["Address.City"].ShouldBe("Brussels");
     }
 
+    [Fact]
+    public async Task Should_Not_Redact_Unrelated_Field_When_Only_Nested_Field_Is_Encrypted()
+    {
+        // #423: EncryptField now stores "Address.City", not the bare "City" that #417's bare-name
+        // match also applied to Work.City.
+        var entry = await LogTwoCitiesAsync(s => s.EncryptField(x => x.Address!.City).EnableAuditLogging());
+
+        entry.AdditionalData["Address.City"].ShouldBe("[REDACTED]");
+        entry.AdditionalData["Work.City"].ShouldBe("Antwerp");
+    }
+
     private async Task<AuditLogEntry> LogTwoCitiesAsync(Action<SecurityBuilder<TestModel>> security)
     {
         await CreateEnforcer().LogSubmittedAsync(BuildTwoCitiesConfig(security), TwoCitiesModel(), null);

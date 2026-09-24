@@ -70,7 +70,10 @@ Configure encryption in `appsettings.json`:
 
 ### How It Works
 
-1. `EncryptField()` marks fields as sensitive in `config.Security.EncryptedFields`
+1. `EncryptField()` marks fields as sensitive in `config.Security.EncryptedFields`, under their full
+   dotted path — `EncryptField(x => x.Address.City)` stores `"Address.City"`. Only `string` properties
+   can be encrypted: any other member throws an `ArgumentException` when the form is configured, rather
+   than being silently left in plaintext
 2. You encrypt/decrypt the marked fields with `IEncryptionService` when persisting or loading data:
 
 ```csharp
