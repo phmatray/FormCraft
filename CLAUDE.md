@@ -400,6 +400,13 @@ because it lives in core rather than in one of the two packages that need it.
   components since #203 (one hint per row), two forms over one model collide the same way, and two
   nested fields can share a member name. A test using two *different* fields cannot catch this —
   different names never collide; the real case is the same field rendered twice
+- **`{FieldName}` in that template is the CSS-sanitized form, not the raw one, since #449.** A
+  nested binding's `FieldName` is a dotted path (`"Billing.Amount"`, #437/#448), and an unescaped
+  `.` inside an HTML id is a valid character but the CSS class-selector delimiter — `#formcraft-help-
+  Billing.Amount` parses as "id `formcraft-help-Billing` and class `Amount`". `IdSanitizer.ToCssSafeId`
+  (`FormCraft/Forms/Rendering/IdSanitizer.cs`) maps `.` → `-` before interpolation, in the one place
+  every id builder that embeds `FieldName` routes through (`FieldHelpText.IdFor`, both adapters'
+  upload `RequiredDescriptionId`) — add a new one through it rather than a fourth copy of the escape
 - **`MudFileUpload` renders its own file list independently of `CustomContent`** — `CustomContent`
   replaces the drop *target*, not the file list, and the two are gated by separate parameters
   (measured by decompiling MudBlazor 9.10.0's `MudFileUpload.razor.cs`, #338). Left alone, that meant
