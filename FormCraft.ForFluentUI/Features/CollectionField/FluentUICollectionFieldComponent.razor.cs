@@ -558,41 +558,42 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
         StateHasChanged();
     }
 
-    private async Task UpdateItemFieldValue(int itemIndex, string fieldName, object? value)
+    /// <summary>
+    /// Writes an item field's edit onto its row through the field's own binding expression
+    /// (<see cref="FieldValueSetterCache{TModel}"/>, the setter top-level fields already use), then
+    /// notifies the parent <see cref="EditContext"/> under the nested identifier.
+    /// </summary>
+    /// <remarks>
+    /// The flat <c>typeof(TItem).GetProperty(fieldName)</c> this replaced could not reach a nested
+    /// item binding such as <c>item =&gt; item.Details.Name</c> — its <c>FieldName</c> is the full
+    /// dotted path since #437 — so the edit was dropped (or, while the name was the last member only,
+    /// written to a same-named top-level member). A binding that still cannot be written, such as a
+    /// null intermediate, drops the edit rather than throwing out of the change handler.
+    /// </remarks>
+    private async Task UpdateItemFieldValue(int itemIndex, IFieldConfiguration<TItem, object> field, object? value)
     {
         if (itemIndex < 0 || itemIndex >= Items.Count)
         {
             return;
         }
 
-        var item = Items[itemIndex];
-        var property = typeof(TItem).GetProperty(fieldName);
-        if (property != null)
+        var written = false;
+        try
         {
-            var targetType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
-            var convertedValue = value;
+            FieldValueSetterCache<TItem>.GetOrCompile(field)(Items[itemIndex], value);
+            written = true;
+        }
+        catch (Exception)
+        {
+            // Unwritable binding (e.g. a null intermediate): drop the edit, as the top-level path does.
+        }
 
-            if (value != null && value.GetType() != targetType)
-            {
-                try
-                {
-                    convertedValue = Convert.ChangeType(value, targetType);
-                }
-                catch
-                {
-                    // Conversion failed - hand the value over as-is and let validation report it.
-                }
-            }
-
-            property.SetValue(item, convertedValue);
-
-            // Notify the parent EditContext with a nested field identifier (Blazor convention: the
-            // model stays the root model, the field name encodes the collection path, e.g.
-            // "Lines[0].Product") so IsModified tracking and validation messages work natively.
-            if (EditContext != null && Model is not null)
-            {
-                EditContext.NotifyFieldChanged(GetItemFieldIdentifier(itemIndex, fieldName));
-            }
+        // Notify the parent EditContext with a nested field identifier (Blazor convention: the model
+        // stays the root model, the field name encodes the collection path, e.g. "Items[0].ProductName")
+        // so IsModified tracking and validation messages work natively.
+        if (written && EditContext != null && Model is not null)
+        {
+            EditContext.NotifyFieldChanged(GetItemFieldIdentifier(itemIndex, field.FieldName));
         }
 
         await NotifyCollectionChanged();
@@ -661,6 +662,6 @@ public partial class FluentUICollectionFieldComponent<TModel, TItem> : IAsyncDis
             item,
             field,
             EventCallback.Factory.Create<object?>(
-                this, value => UpdateItemFieldValue(itemIndex, field.FieldName, value)),
+                this, value => UpdateItemFieldValue(itemIndex, field, value)),
             EventCallback.Factory.Create(this, NotifyCollectionChanged));
 }
