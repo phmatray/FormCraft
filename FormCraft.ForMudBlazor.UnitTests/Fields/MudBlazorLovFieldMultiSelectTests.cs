@@ -1,3 +1,5 @@
+using FormCraft.ForMudBlazor.UnitTests.TestSupport;
+
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
 /// <summary>
@@ -35,7 +37,7 @@ public class MudBlazorLovFieldMultiSelectTests : MudBlazorTestBase
     public async Task Selecting_Multiple_Items_Should_Render_One_Chip_Each()
     {
         var model = new LovModel();
-        Services.AddSingleton(StubDialogServiceReturning<LovSelectionDialog<LovCustomer, object>>(
+        Services.AddSingleton(StubDialogService.Returning<LovSelectionDialog<LovCustomer, object>>(
             new LovSelectionResult<LovCustomer> { SelectedItems = [Customers[0], Customers[1]] }));
 
         var component = Render<FormCraftComponent<LovModel>>(parameters => parameters
@@ -45,6 +47,11 @@ public class MudBlazorLovFieldMultiSelectTests : MudBlazorTestBase
         await component.Find("button").ClickAsync(new());
 
         component.FindComponents<MudChip<LovCustomer>>().Count.ShouldBe(2);
+
+        // The chips are a VIEW of _selectedItems; also prove the actual model write ApplySelection
+        // performs (SetValueWithoutNotification/NotifyValueChangedAsync) actually reached the model.
+        model.SelectedCustomer.ShouldNotBeNull();
+        ((List<object>)model.SelectedCustomer!).Select(v => (int)v).ShouldBe([1, 2]);
     }
 
     /// <summary>
@@ -62,7 +69,7 @@ public class MudBlazorLovFieldMultiSelectTests : MudBlazorTestBase
     public async Task Closing_A_Chip_Currently_Clears_The_Whole_Selection_Bug475()
     {
         var model = new LovModel();
-        Services.AddSingleton(StubDialogServiceReturning<LovSelectionDialog<LovCustomer, object>>(
+        Services.AddSingleton(StubDialogService.Returning<LovSelectionDialog<LovCustomer, object>>(
             new LovSelectionResult<LovCustomer> { SelectedItems = [Customers[0], Customers[1]] }));
 
         var component = Render<FormCraftComponent<LovModel>>(parameters => parameters
@@ -78,25 +85,6 @@ public class MudBlazorLovFieldMultiSelectTests : MudBlazorTestBase
 
         // BUG (#475): should be 1 (only the closed chip removed); currently both are gone.
         component.FindComponents<MudChip<LovCustomer>>().Count.ShouldBe(0);
-    }
-
-    /// <summary>
-    /// A minimal <see cref="IDialogService"/> double resolving <c>ShowAsync&lt;TDialog&gt;</c> to a
-    /// canned result — the same shape as
-    /// <see cref="FieldConfigurationParityTests.StubDialogServiceReturning{TDialog}"/>, duplicated
-    /// here rather than shared because that helper is private to its own file.
-    /// </summary>
-    private static IDialogService StubDialogServiceReturning<TDialog>(object selectedData)
-        where TDialog : IComponent
-    {
-        var reference = A.Fake<IDialogReference>();
-        A.CallTo(() => reference.Result).Returns(Task.FromResult<DialogResult?>(DialogResult.Ok(selectedData)));
-
-        var service = A.Fake<IDialogService>();
-        A.CallTo(() => service.ShowAsync<TDialog>(A<string>._, A<DialogParameters>._, A<DialogOptions>._))
-            .Returns(Task.FromResult(reference));
-
-        return service;
     }
 
     private static IFormConfiguration<LovModel> LovConfig() =>

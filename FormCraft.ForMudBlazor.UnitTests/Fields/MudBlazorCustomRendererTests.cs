@@ -42,6 +42,32 @@ public class MudBlazorCustomRendererTests : MudBlazorTestBase
         slider.Step.ShouldBe(5.0);
     }
 
+    /// <summary>
+    /// The row above proves the ATTRIBUTE KEYS <c>.AsSlider(...)</c> writes; this one proves the
+    /// EXTENSION METHOD ITSELF still writes them — the two facts previously agreed only because both
+    /// re-implemented the same attribute keys by hand (verification-gap review, #461): renaming a key
+    /// inside <c>MudBlazorFieldBuilderExtensions.AsSlider</c> or dropping its
+    /// <c>.WithCustomRenderer&lt;MudBlazorSliderRenderer&gt;()</c> call would leave every other fact
+    /// here green. Fully qualified for the same ambiguity reason as the row above.
+    /// </summary>
+    [Fact]
+    public void AsSlider_Extension_Itself_Should_Configure_The_Real_MudSlider()
+    {
+        var config = FormBuilder<PreferencesModel>.Create()
+            .AddField(x => x.Volume, field => MudBlazorFieldBuilderExtensions.AsSlider(
+                field.WithLabel("Volume"), min: 10, max: 50, step: 5))
+            .Build();
+
+        var component = Render<FormCraftComponent<PreferencesModel>>(p => p
+            .Add(c => c.Model, new PreferencesModel())
+            .Add(c => c.Configuration, config));
+
+        var slider = component.FindComponent<MudSlider<double>>().Instance;
+        slider.Min.ShouldBe(10.0);
+        slider.Max.ShouldBe(50.0);
+        slider.Step.ShouldBe(5.0);
+    }
+
     [Fact]
     public void Slider_Renderer_Should_Default_Its_Range_When_Unconfigured()
     {
@@ -101,6 +127,33 @@ public class MudBlazorCustomRendererTests : MudBlazorTestBase
         await rating.InvokeAsync(() => rating.Instance.SelectedValueChanged.InvokeAsync(4));
 
         model.Score.ShouldBe(4);
+    }
+
+    /// <summary>
+    /// Mirrors other field components' <c>IsDisabled</c>/<c>IsReadOnly</c> semantics (per the
+    /// issue's own Edge cases): clicking a star must not change the model when the field is
+    /// disabled or read-only.
+    /// </summary>
+    [Fact]
+    public async Task Rating_Renderer_Should_Not_Change_The_Model_When_Disabled()
+    {
+        var model = new PreferencesModel();
+        var component = RenderRating(f => f.WithLabel("Score").AsRating().Disabled(), model);
+
+        await component.InvokeAsync(() => component.FindAll("span.mud-rating-item")[3].ClickAsync(new()));
+
+        model.Score.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Rating_Renderer_Should_Not_Change_The_Model_When_ReadOnly()
+    {
+        var model = new PreferencesModel();
+        var component = RenderRating(f => f.WithLabel("Score").AsRating().ReadOnly(), model);
+
+        await component.InvokeAsync(() => component.FindAll("span.mud-rating-item")[3].ClickAsync(new()));
+
+        model.Score.ShouldBe(0);
     }
 
     [Fact]

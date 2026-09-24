@@ -1,4 +1,4 @@
-using AngleSharp.Dom;
+using FormCraft.ForMudBlazor.UnitTests.TestSupport;
 
 namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 
@@ -6,8 +6,9 @@ namespace FormCraft.ForMudBlazor.UnitTests.Fields;
 /// Direct-render coverage for <see cref="MudBlazorLookupDialog"/> — the dialog's own
 /// search/select/cancel behaviour, rendered through a real <see cref="MudDialogProvider"/> and
 /// <see cref="IDialogService"/> round trip (mirrors <see cref="LovSelectionDialogTests"/>).
-/// <see cref="FieldConfigurationParityTests.StubDialogServiceReturning{TDialog}"/> already covers
-/// the outer field's reaction to a canned result; this file covers the dialog's own markup.
+/// <see cref="FieldConfigurationParityTests.LookupField_Row_Keeps_Its_Display_Text_After_A_Configuration_Swap"/>
+/// already covers the outer field's reaction to a canned result; this file covers the dialog's own
+/// markup.
 /// </summary>
 public class MudBlazorLookupDialogTests : MudBlazorTestBase
 {
@@ -23,7 +24,7 @@ public class MudBlazorLookupDialogTests : MudBlazorTestBase
     {
         var (provider, _) = await ShowDialog();
 
-        RowCount(provider).ShouldBe(3);
+        DialogTestHelpers.RowCount(provider).ShouldBe(3);
     }
 
     [Fact]
@@ -32,9 +33,12 @@ public class MudBlazorLookupDialogTests : MudBlazorTestBase
         var (provider, _) = await ShowDialog();
 
         await provider.InvokeAsync(() => provider.Find("input").Input("ali"));
-        await provider.InvokeAsync(() => Task.Delay(350));
 
-        RowCount(provider).ShouldBe(1);
+        // The search box's DebounceInterval is hardcoded to 300ms in MudBlazorLookupDialog.razor
+        // (no builder knob to zero it out, unlike the LOV dialog's WithSearchDebounce). Poll for the
+        // narrowed result instead of a fixed delay — a fixed Task.Delay(350) left only ~50ms of
+        // slack against that 300ms timer and was flaky under a loaded CI runner (code review).
+        provider.WaitForState(() => DialogTestHelpers.RowCount(provider) == 1, TimeSpan.FromSeconds(2));
     }
 
     [Fact]
@@ -43,9 +47,8 @@ public class MudBlazorLookupDialogTests : MudBlazorTestBase
         var (provider, _) = await ShowDialog();
 
         await provider.InvokeAsync(() => provider.Find("input").Input("nobody"));
-        await provider.InvokeAsync(() => Task.Delay(350));
 
-        RowCount(provider).ShouldBe(0);
+        provider.WaitForState(() => DialogTestHelpers.RowCount(provider) == 0, TimeSpan.FromSeconds(2));
         provider.Markup.ShouldContain("No matching records found.");
     }
 
@@ -54,8 +57,8 @@ public class MudBlazorLookupDialogTests : MudBlazorTestBase
     {
         var (provider, reference) = await ShowDialog();
 
-        await provider.InvokeAsync(() => Row(provider, "Bob").ClickAsync(new()));
-        await provider.InvokeAsync(() => SelectButton(provider).ClickAsync(new()));
+        await provider.InvokeAsync(() => DialogTestHelpers.Row(provider, "Bob").ClickAsync(new()));
+        await provider.InvokeAsync(() => DialogTestHelpers.Button(provider, "Select").ClickAsync(new()));
 
         var result = await reference.Result;
         result!.Canceled.ShouldBeFalse();
@@ -67,23 +70,11 @@ public class MudBlazorLookupDialogTests : MudBlazorTestBase
     {
         var (provider, reference) = await ShowDialog();
 
-        await provider.InvokeAsync(() => CancelButton(provider).ClickAsync(new()));
+        await provider.InvokeAsync(() => DialogTestHelpers.Button(provider, "Cancel").ClickAsync(new()));
 
         var result = await reference.Result;
         result!.Canceled.ShouldBeTrue();
     }
-
-    private static int RowCount(IRenderedComponent<MudDialogProvider> provider) =>
-        provider.FindAll("tbody tr.mud-table-row").Count;
-
-    private static IElement Row(IRenderedComponent<MudDialogProvider> provider, string displayText) =>
-        provider.FindAll("tbody tr.mud-table-row").First(r => r.TextContent.Contains(displayText));
-
-    private static IElement SelectButton(IRenderedComponent<MudDialogProvider> provider) =>
-        provider.FindAll("button").First(b => b.TextContent.Trim() == "Select");
-
-    private static IElement CancelButton(IRenderedComponent<MudDialogProvider> provider) =>
-        provider.FindAll("button").First(b => b.TextContent.Trim() == "Cancel");
 
     private async Task<(IRenderedComponent<MudDialogProvider> Provider, IDialogReference Reference)> ShowDialog()
     {
