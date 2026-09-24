@@ -37,6 +37,11 @@
                           ValidateCollections="true"
                           @ref="_validator" />
 
+    @if (Configuration.ShowValidationSummary)
+    {
+        <Microsoft.AspNetCore.Components.Forms.ValidationSummary />
+    }
+
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
         @if (HasFieldGroups)
         {

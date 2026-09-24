@@ -28,6 +28,11 @@
    documents itself as never producing. *@
 <EditForm EditContext="@_editContext" OnSubmit="@HandleSubmit" novalidate="novalidate" class="@Configuration.CssClass">
     <DynamicFormValidator TModel="TModel" Configuration="@Configuration" @ref="_validator" />
+
+    @if (Configuration.ShowValidationSummary)
+    {
+        <Microsoft.AspNetCore.Components.Forms.ValidationSummary />
+    }
     
     @if (GroupedConfiguration != null && GroupedConfiguration.UseFieldGroups && GroupedConfiguration.FieldGroups.Any())
     {
