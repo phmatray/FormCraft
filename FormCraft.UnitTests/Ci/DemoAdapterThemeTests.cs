@@ -58,6 +58,24 @@ public class DemoAdapterThemeTests
             4.5, $"{foreground} on {background} under Fluent UI");
     }
 
+    [Fact]
+    public void Index_Sets_Adapter_Attribute_Before_Blazor_Boots()
+    {
+        var index = File.ReadAllText(Path.Combine(DemoRoot, "index.html"));
+        var boot = index.IndexOf("blazor.webassembly", StringComparison.Ordinal);
+        boot.ShouldBeGreaterThan(0, "index.html no longer loads blazor.webassembly.js");
+
+        // A pre-boot script is what keeps the first paint from being violet under Fluent UI (AC3).
+        var script = Regex.Matches(index[..boot], @"<script[^>]*>(?<body>.*?)</script>", RegexOptions.Singleline)
+            .Select(m => m.Groups["body"].Value)
+            .SingleOrDefault(body => body.Contains("fc-adapter", StringComparison.Ordinal)
+                && body.Contains("dataset.adapter", StringComparison.Ordinal));
+
+        script.ShouldNotBeNull("no inline script reading `fc-adapter` into `dataset.adapter` before Blazor boots");
+        script.ShouldContain("try", Case.Sensitive, "localStorage can throw (blocked site data) and must not break boot");
+        script.ShouldContain("'fluentui'", Case.Sensitive, "only the literal value may reach the attribute");
+    }
+
     private static List<string> AccentKeys(IReadOnlyDictionary<string, string> tokens) =>
         tokens.Keys.Where(key => key.StartsWith("--fc-violet", StringComparison.Ordinal) || key == "--fc-on-violet-2").ToList();
 

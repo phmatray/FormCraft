@@ -51,6 +51,22 @@ window.formcraftShortcuts = {
     }
 };
 
+// ---------------------------------------------------------------------------
+// Adapter preference (MudBlazor | Fluent UI), read by AdapterPreference.cs.
+// Storage can throw (private mode, blocked site data), so every access is guarded;
+// the attribute still switches for the session when storage is unavailable.
+// ---------------------------------------------------------------------------
+window.fcAdapter = {
+    get: function () {
+        try { return localStorage.getItem('fc-adapter'); } catch (e) { return null; }
+    },
+    set: function (value) {
+        if (value === 'fluentui') document.documentElement.dataset.adapter = 'fluentui';
+        else delete document.documentElement.dataset.adapter;
+        try { localStorage.setItem('fc-adapter', value === 'fluentui' ? 'fluentui' : 'mudblazor'); } catch (e) { }
+    }
+};
+
 // Asked once by the home hero before it starts its sequence.
 window.formcraftPrefersReducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
