@@ -35,10 +35,21 @@
     <!-- End Single Page Apps for GitHub Pages -->
 
     <!-- The adapter picked in the top bar sets the accent (tokens.css). Applied before the
-         stylesheets paint so a Fluent UI visitor never sees a violet first frame. Only the literal
-         'fluentui' is honoured; storage may throw when site data is blocked. -->
+         stylesheets paint so a Fluent UI visitor never sees a violet first frame. A shared link's
+         ?adapter= wins over the stored choice and becomes it; only 'fluentui' and 'mudblazor' are
+         honoured, and storage may throw when site data is blocked. The attribute is what
+         fcAdapter.get (js/app.js) reports to Blazor. -->
     <script>
-        try { if (localStorage.getItem('fc-adapter') === 'fluentui') document.documentElement.dataset.adapter = 'fluentui'; } catch (e) { }
+        (function () {
+            var a = null;
+            try { a = new URLSearchParams(location.search).get('adapter'); } catch (e) { }
+            if (a === 'fluentui' || a === 'mudblazor') {
+                try { localStorage.setItem('fc-adapter', a); } catch (e) { }
+            } else {
+                try { a = localStorage.getItem('fc-adapter'); } catch (e) { }
+            }
+            if (a === 'fluentui') document.documentElement.dataset.adapter = 'fluentui';
+        })();
     </script>
 
     <link rel="preload" id="webassembly" />
