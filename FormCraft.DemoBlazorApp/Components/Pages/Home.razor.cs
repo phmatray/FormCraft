@@ -1,3 +1,4 @@
+using FormCraft.DemoBlazorApp.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -5,7 +6,11 @@ namespace FormCraft.DemoBlazorApp.Components.Pages;
 
 public partial class Home : IDisposable
 {
-    private const string InstallCommand = "dotnet add package FormCraft.ForMudBlazor";
+    private const string MudInstall = "dotnet add package FormCraft.ForMudBlazor";
+    private const string FluentInstall = "dotnet add package FormCraft.ForFluentUI";
+
+    /// <summary>The hero's install line, for the adapter picked in the top bar (#490).</summary>
+    private string InstallCommand => Adapter.Current == DemoAdapter.FluentUI ? FluentInstall : MudInstall;
 
     private static readonly string[] Levels =
     [
@@ -100,11 +105,17 @@ public partial class Home : IDisposable
         }
         """;
 
-    /// <summary>The three setup steps. Registration mirrors this app's own Program.cs.</summary>
-    private static readonly (int Step, string Title, string Source, string Language)[] Steps =
+    private const string MudRegister = "builder.Services.AddMudServices();\nbuilder.Services.AddFormCraft();\nbuilder.Services.AddFormCraftMudBlazor();";
+    private const string FluentRegister = "builder.Services.AddFluentUIComponents();\nbuilder.Services.AddFormCraft();\nbuilder.Services.AddFormCraftFluentUI();";
+
+    /// <summary>
+    /// The three setup steps, for the adapter picked in the top bar. MudBlazor registration mirrors
+    /// this app's own Program.cs; the Fluent UI one mirrors <c>FormCraft.DemoFluentApp/Program.cs</c>.
+    /// </summary>
+    private (int Step, string Title, string Source, string Language)[] Steps =>
     [
         (1, "Install", InstallCommand, "shell"),
-        (2, "Register", "builder.Services.AddMudServices();\nbuilder.Services.AddFormCraft();\nbuilder.Services.AddFormCraftMudBlazor();", "csharp"),
+        (2, "Register", Adapter.Current == DemoAdapter.FluentUI ? FluentRegister : MudRegister, "csharp"),
         (3, "Render", "<FormCraftComponent\n    TModel=\"Contact\"\n    Model=\"@_contact\"\n    Configuration=\"@_config\" />", "razor")
     ];
 
@@ -114,12 +125,25 @@ public partial class Home : IDisposable
 
     private ElementReference _root;
 
+    protected override void OnInitialized() => Adapter.Changed += OnAdapterChanged;
+
+    /// <summary>Set when the adapter changed, so the re-keyed setup step is highlighted after it renders.</summary>
+    private bool _highlightPending;
+
+    private void OnAdapterChanged()
+    {
+        _highlightPending = true;
+        InvokeAsync(StateHasChanged);
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        if (!firstRender && !_highlightPending)
         {
             return;
         }
+
+        _highlightPending = false;
 
         try
         {
@@ -216,6 +240,7 @@ public partial class Home : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
+        Adapter.Changed -= OnAdapterChanged;
         _disposed = true;
         _resetCts?.Cancel();
         _resetCts?.Dispose();
