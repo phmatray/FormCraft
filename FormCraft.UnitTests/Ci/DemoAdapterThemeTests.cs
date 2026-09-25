@@ -88,9 +88,14 @@ public class DemoAdapterThemeTests
         var end = doc.IndexOf("\n#", start + heading.Length, StringComparison.Ordinal);
         var section = end < 0 ? doc[start..] : doc[start..end];
 
-        Regex.Matches(section, @"^::: adapter-mudblazor$", RegexOptions.Multiline).Count.ShouldBe(1);
+        var mud = Regex.Matches(section, @"^::: adapter-mudblazor\n(?<body>.*?)^:::$", RegexOptions.Multiline | RegexOptions.Singleline);
+        mud.Count.ShouldBe(1);
         var fluent = Regex.Matches(section, @"^::: adapter-fluentui\n(?<body>.*?)^:::$", RegexOptions.Multiline | RegexOptions.Singleline);
         fluent.Count.ShouldBe(1);
+
+        // An unclosed MudBlazor container would nest the Fluent one inside it, hiding both under Fluent UI.
+        mud[0].Groups["body"].Value.ShouldNotContain("::: adapter-");
+        fluent[0].Groups["body"].Value.ShouldNotContain("::: adapter-");
 
         var body = fluent[0].Groups["body"].Value;
         body.ShouldNotContain("AddMudServices");
