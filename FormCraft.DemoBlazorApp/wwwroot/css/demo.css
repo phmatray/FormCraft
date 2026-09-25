@@ -190,7 +190,7 @@ span.fc-prevnext__link { border: 0; }
 .fc-filter { position: relative; margin-bottom: 18px; }
 .fc-filter input { width: 100%; height: 42px; border-radius: 10px; border: 1px solid var(--fc-line-2); background: var(--fc-bg-2); color: var(--fc-text); font: inherit; font-size: 14.5px; padding: 0 12px 0 38px; }
 .fc-filter input::placeholder { color: var(--fc-muted); }
-.fc-filter input:focus { outline: none; border-color: var(--fc-violet-2); box-shadow: 0 0 0 3px rgba(143, 130, 245, .3); }
+.fc-filter input:focus { outline: none; border-color: var(--fc-violet-2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fc-violet-2) 30%, transparent); }
 .fc-filter svg { position: absolute; left: 12px; top: 12px; color: var(--fc-muted); }
 .fc-shell .fc-side--api a { font-family: var(--fc-mono); font-size: 13px; padding: 5px 12px 5px 24px; color: var(--fc-muted); }
 .fc-shell .fc-side--api a.fc-side__sub { font-family: var(--fc-body); font-size: 13.5px; color: var(--fc-text-2); padding-left: 12px; margin-top: 6px; }

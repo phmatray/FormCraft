@@ -8,6 +8,8 @@
      coral  = error
    Forms keep MudBlazor's light palette and sit on light panels, the way they
    look in a visitor's own app. Everything around them is this dark stage.
+   The accent follows the adapter picked in the top bar: violet for MudBlazor,
+   Fluent 2's brand blue under html[data-adapter="fluentui"] (#490).
    ========================================================================== */
 
 :root {
@@ -54,6 +56,17 @@
     --fc-gut: clamp(16px, 3.2vw, 40px);
 
     color-scheme: dark;
+}
+
+:root[data-adapter="fluentui"] {
+    --fc-violet: #0F6CBD;
+    --fc-violet-2: #479EF5;
+    --fc-violet-slab: #115EA3;
+    --fc-violet-ink: #96C6FA;
+    --fc-violet-hover: #0F548C;
+    --fc-violet-deep: #082338;
+    --fc-on-violet-2: #EBF3FC;
+    --fc-violet-onwhite: #0F548C;
 }
 
 html body {
