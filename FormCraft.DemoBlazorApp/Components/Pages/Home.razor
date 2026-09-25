@@ -2,6 +2,7 @@
 @page "/home"
 @inject IJSRuntime JS
 @inject IDemoRegistry DemoRegistry
+@inject AdapterPreference Adapter
 
 <PageTitle>FormCraft: forms in a few lines of C#</PageTitle>
 
@@ -204,7 +205,12 @@
     <div class="fc-start">
         @foreach (var (step, title, source, lang) in Steps)
         {
-            <div class="fc-start__step" data-code-host>
+            @* Keyed on the source: code.js rewrites the <code> it highlights, so a changed snippet
+               needs a fresh element rather than a text update Blazor can no longer apply. *@
+            <div
+                @key="source"
+                class="fc-start__step"
+                data-code-host>
                 <h3>
                     <span>@step</span>@title
                     <button type="button" class="fc-copy" data-copy-code aria-label="@($"Copy step {step}")">

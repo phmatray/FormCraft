@@ -67,6 +67,44 @@
 .fc-search span { flex: 1; text-align: left; }
 .fc-kbd { font-family: var(--fc-mono); font-size: 11px; border: 1px solid var(--fc-line-2); padding: 1px 6px; border-radius: 5px; }
 
+/* Adapter selector (#490): a two-option segmented control. */
+.fc-adapter {
+    display: flex;
+    flex: none;
+    padding: 3px;
+    gap: 2px;
+    background: var(--fc-bg-3);
+    border: 1px solid var(--fc-line);
+    border-radius: 10px;
+}
+
+.fc-adapter__opt {
+    height: 30px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--fc-text-2);
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.fc-adapter__opt:hover { color: var(--fc-text); }
+.fc-adapter__opt[aria-pressed="true"] { background: var(--fc-violet); color: #fff; }
+.fc-adapter__short { display: none; }
+
+/* Vertical margins only: .fc-wrap centres the note with auto side margins. It is a flex item of
+   .fc-shell, where auto margins would shrink it to its text, hence the explicit width. */
+.fc-adapter-note { width: 100%; box-sizing: border-box; margin-top: 0; margin-bottom: 0; padding-top: 10px; padding-bottom: 10px; color: var(--fc-muted); font-size: 13.5px; }
+.fc-nav .fc-btn--sm { flex: none; white-space: nowrap; }
+
+/* Markdown docs carry both adapters' setup; only the selected one shows. */
+:root:not([data-adapter="fluentui"]) .adapter-fluentui,
+:root[data-adapter="fluentui"] .adapter-mudblazor { display: none; }
+
 .fc-shell .fc-iconbtn {
     width: 40px;
     height: 40px;
@@ -307,4 +345,12 @@
 @media (max-width: 680px) {
     .fc-nav .fc-btn--sm, .fc-brand__version { display: none; }
     .fc-code { font-size: 12px; }
+}
+
+/* Short visible labels; the full name stays the accessible one. */
+@media (max-width: 480px) {
+    .fc-nav__row { gap: 10px; }
+    .fc-adapter__opt { padding: 0 8px; }
+    .fc-adapter__short { display: inline; }
+    .fc-adapter__full { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }

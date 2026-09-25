@@ -17,15 +17,27 @@ FormCraft provides a fluent API for building forms that are:
 
 Add FormCraft to your Blazor project:
 
+::: adapter-mudblazor
 ```bash
 dotnet add package FormCraft
 dotnet add package FormCraft.ForMudBlazor
 ```
+:::
+
+::: adapter-fluentui
+```bash
+dotnet add package FormCraft
+dotnet add package FormCraft.ForFluentUI
+```
+
+Live previews render with MudBlazor. The Fluent UI adapter builds the same form from the same C# with Fluent components.
+:::
 
 ### 2. Configure Services
 
 In your `Program.cs`, add the required services:
 
+::: adapter-mudblazor
 ```csharp
 // Add MudBlazor services
 builder.Services.AddMudServices();
@@ -34,9 +46,24 @@ builder.Services.AddMudServices();
 builder.Services.AddFormCraft();
 builder.Services.AddFormCraftMudBlazor();
 ```
+:::
+
+::: adapter-fluentui
+```csharp
+using FormCraft.ForFluentUI.Extensions;
+
+// Add Fluent UI services
+builder.Services.AddFluentUIComponents();
+
+// Add FormCraft services
+builder.Services.AddFormCraft();
+builder.Services.AddFormCraftFluentUI();
+```
+:::
 
 ### 3. Add Required References
 
+::: adapter-mudblazor
 In your `_Imports.razor` file, add:
 
 ```razor
@@ -52,6 +79,24 @@ In your `index.html` (WebAssembly) or `_Host.cshtml` (Server), add MudBlazor ref
 <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
 <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 ```
+:::
+
+::: adapter-fluentui
+In your `_Imports.razor` file, add:
+
+```razor
+@using FormCraft
+@using FormCraft.ForFluentUI
+@using Microsoft.FluentUI.AspNetCore.Components
+```
+
+In your `index.html` (WebAssembly) or `App.razor` (Server), add the Fluent UI and FormCraft stylesheets:
+
+```html
+<link href="_content/Microsoft.FluentUI.AspNetCore.Components/css/reboot.css" rel="stylesheet" />
+<link href="_content/FormCraft.ForFluentUI/css/formcraft-layout.css" rel="stylesheet" />
+```
+:::
 
 ## Quick Start Example
 

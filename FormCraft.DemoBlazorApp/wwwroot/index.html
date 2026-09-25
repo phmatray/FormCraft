@@ -34,6 +34,13 @@
     </script>
     <!-- End Single Page Apps for GitHub Pages -->
 
+    <!-- The adapter picked in the top bar sets the accent (tokens.css). Applied before the
+         stylesheets paint so a Fluent UI visitor never sees a violet first frame. Only the literal
+         'fluentui' is honoured; storage may throw when site data is blocked. -->
+    <script>
+        try { if (localStorage.getItem('fc-adapter') === 'fluentui') document.documentElement.dataset.adapter = 'fluentui'; } catch (e) { }
+    </script>
+
     <link rel="preload" id="webassembly" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

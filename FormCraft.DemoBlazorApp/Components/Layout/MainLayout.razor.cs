@@ -1,3 +1,4 @@
+using FormCraft.DemoBlazorApp.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
@@ -16,6 +17,8 @@ public partial class MainLayout : IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        Adapter.Changed += OnAdapterChanged;
+
         try
         {
             _version = await VersionService.GetFormCraftVersionAsync();
@@ -46,6 +49,10 @@ public partial class MainLayout : IAsyncDisposable
         }
     }
 
+    private string IsPressed(DemoAdapter adapter) => Adapter.Current == adapter ? "true" : "false";
+
+    private void OnAdapterChanged() => InvokeAsync(StateHasChanged);
+
     private string? ActiveFor(Section section) => Current == section ? "active" : null;
 
     private bool _isApple;
@@ -67,6 +74,9 @@ public partial class MainLayout : IAsyncDisposable
         {
             return;
         }
+
+        // index.html already set the accent before boot; this only syncs Current to it.
+        await Adapter.LoadAsync();
 
         try
         {
@@ -94,6 +104,8 @@ public partial class MainLayout : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        Adapter.Changed -= OnAdapterChanged;
+
         try
         {
             await JS.InvokeVoidAsync("formcraftShortcuts.unregister");

@@ -22,6 +22,7 @@ builder.Services.AddScoped<IMarkdownService>(sp =>
     new MarkdownService(sp.GetRequiredService<HttpClient>()));
 builder.Services.AddScoped<IVersionService>(sp =>
     new VersionService(sp.GetRequiredService<HttpClient>()));
+builder.Services.AddScoped<AdapterPreference>();
 builder.Services.AddSingleton<IDemoRegistry, DemoRegistry>();
 builder.Services.AddSingleton<IDemoDocumentationValidator, DemoDocumentationValidator>();
 
