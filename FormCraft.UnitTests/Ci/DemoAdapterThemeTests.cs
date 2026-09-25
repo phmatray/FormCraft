@@ -76,6 +76,41 @@ public class DemoAdapterThemeTests
         script.ShouldContain("'fluentui'", Case.Sensitive, "only the literal value may reach the attribute");
     }
 
+    [Theory]
+    [InlineData("### 1. Install the Package")]
+    [InlineData("### 2. Configure Services")]
+    [InlineData("### 3. Add Required References")]
+    public void Getting_Started_Carries_Both_Adapters_For_Each_Setup_Section(string heading)
+    {
+        var doc = File.ReadAllText(Path.Combine(DemoRoot, "docs", "getting-started.md")).ReplaceLineEndings("\n");
+        var start = doc.IndexOf(heading + "\n", StringComparison.Ordinal);
+        start.ShouldBeGreaterThanOrEqualTo(0, $"getting-started.md lost its `{heading}` section");
+        var end = doc.IndexOf("\n#", start + heading.Length, StringComparison.Ordinal);
+        var section = end < 0 ? doc[start..] : doc[start..end];
+
+        Regex.Matches(section, @"^::: adapter-mudblazor$", RegexOptions.Multiline).Count.ShouldBe(1);
+        var fluent = Regex.Matches(section, @"^::: adapter-fluentui\n(?<body>.*?)^:::$", RegexOptions.Multiline | RegexOptions.Singleline);
+        fluent.Count.ShouldBe(1);
+
+        var body = fluent[0].Groups["body"].Value;
+        body.ShouldNotContain("AddMudServices");
+        body.ShouldNotContain("MudBlazor.min.css");
+    }
+
+    [Fact]
+    public void Getting_Started_Fluent_Setup_Uses_The_Real_Adapter_Surface()
+    {
+        var doc = File.ReadAllText(Path.Combine(DemoRoot, "docs", "getting-started.md")).ReplaceLineEndings("\n");
+        var fluent = string.Concat(Regex.Matches(doc, @"^::: adapter-fluentui\n(?<body>.*?)^:::$", RegexOptions.Multiline | RegexOptions.Singleline)
+            .Select(m => m.Groups["body"].Value));
+
+        fluent.ShouldContain("dotnet add package FormCraft.ForFluentUI");
+        fluent.ShouldContain("AddFormCraftFluentUI()");
+        fluent.ShouldContain("using FormCraft.ForFluentUI.Extensions;");
+        fluent.ShouldContain("_content/Microsoft.FluentUI.AspNetCore.Components/css/reboot.css");
+        fluent.ShouldContain("_content/FormCraft.ForFluentUI/css/formcraft-layout.css");
+    }
+
     private static List<string> AccentKeys(IReadOnlyDictionary<string, string> tokens) =>
         tokens.Keys.Where(key => key.StartsWith("--fc-violet", StringComparison.Ordinal) || key == "--fc-on-violet-2").ToList();
 
