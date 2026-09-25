@@ -1,5 +1,6 @@
 using FormCraft.DemoBlazorApp.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.JSInterop;
 using MudBlazor;
 
@@ -18,6 +19,7 @@ public partial class MainLayout : IAsyncDisposable
     protected override async Task OnInitializedAsync()
     {
         Adapter.Changed += OnAdapterChanged;
+        Navigation.LocationChanged += OnLocationChanged;
 
         try
         {
@@ -51,7 +53,11 @@ public partial class MainLayout : IAsyncDisposable
 
     private string IsPressed(DemoAdapter adapter) => Adapter.Current == adapter ? "true" : "false";
 
-    private void OnAdapterChanged() => InvokeAsync(StateHasChanged);
+    private void OnAdapterChanged() => InvokeAsync(() =>
+    {
+        SyncAdapterQuery();
+        StateHasChanged();
+    });
 
     private string? ActiveFor(Section section) => Current == section ? "active" : null;
 
@@ -77,6 +83,7 @@ public partial class MainLayout : IAsyncDisposable
 
         // index.html already set the accent before boot; this only syncs Current to it.
         await Adapter.LoadAsync();
+        SyncAdapterQuery();
 
         try
         {
@@ -105,6 +112,7 @@ public partial class MainLayout : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         Adapter.Changed -= OnAdapterChanged;
+        Navigation.LocationChanged -= OnLocationChanged;
 
         try
         {
@@ -121,4 +129,20 @@ public partial class MainLayout : IAsyncDisposable
 
         _selfRef?.Dispose();
     }
+
+    /// <summary>
+    /// Keeps <c>?adapter=fluentui</c> in the address bar while Fluent UI is selected, so a copied link
+    /// opens on the same adapter (index.html reads it before boot). In-site links carry no query, so
+    /// this re-applies it after every navigation; MudBlazor is the default and drops the parameter.
+    /// </summary>
+    private void SyncAdapterQuery()
+    {
+        var uri = Navigation.GetUriWithQueryParameter("adapter", Adapter.Current == DemoAdapter.FluentUI ? "fluentui" : null);
+        if (uri != Navigation.Uri)
+        {
+            Navigation.NavigateTo(uri, replace: true);
+        }
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => InvokeAsync(SyncAdapterQuery);
 }

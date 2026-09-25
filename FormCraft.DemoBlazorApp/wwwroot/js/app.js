@@ -57,8 +57,9 @@ window.formcraftShortcuts = {
 // the attribute still switches for the session when storage is unavailable.
 // ---------------------------------------------------------------------------
 window.fcAdapter = {
+    // index.html resolved ?adapter= and storage into the attribute before boot; report that.
     get: function () {
-        try { return localStorage.getItem('fc-adapter'); } catch (e) { return null; }
+        return document.documentElement.dataset.adapter === 'fluentui' ? 'fluentui' : 'mudblazor';
     },
     set: function (value) {
         if (value === 'fluentui') document.documentElement.dataset.adapter = 'fluentui';

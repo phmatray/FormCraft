@@ -74,6 +74,7 @@ public class DemoAdapterThemeTests
         script.ShouldNotBeNull("no inline script reading `fc-adapter` into `dataset.adapter` before Blazor boots");
         script.ShouldContain("try", Case.Sensitive, "localStorage can throw (blocked site data) and must not break boot");
         script.ShouldContain("'fluentui'", Case.Sensitive, "only the literal value may reach the attribute");
+        script.ShouldContain("get('adapter')", Case.Sensitive, "a shared link's ?adapter= must set the accent before boot");
     }
 
     [Theory]
