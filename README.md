@@ -662,6 +662,14 @@ What changed in each release is in the [changelog](CHANGELOG.md) and on the
 
 <!-- portfolio-techstack:end -->
 
+<!-- portfolio-roadmap:start -->
+
+## Roadmap
+
+Planned work and known limitations are tracked in the [open issues](https://github.com/phmatray/FormCraft/issues). Contributions toward them are welcome.
+
+<!-- portfolio-roadmap:end -->
+
 ## Contributing
 
 Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has the details.
