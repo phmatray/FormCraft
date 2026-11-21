@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: '11.0.x'
       # Runs BEFORE Test so a style slip reports in ~30s instead of behind a full build+test.
       #
       # This is the only thing that reads .editorconfig (#301). Its severities say `warning` and
